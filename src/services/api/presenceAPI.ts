@@ -1,11 +1,22 @@
 /**
- * Presence API client — backs /presence/onboarding.
+ * Presence API client — backs /presence/onboarding, /presence/home and /call/:token.
  *
- * Every call is best-effort and silent on failure (returns null): onboarding must
- * never block on the network, because the localStorage draft is the local source
- * of truth and the flow keeps working with the backend down (dev included).
+ * A failed request throws PresenceApiError (status, message) so the page can say
+ * what did not happen. The onboarding still keeps its localStorage draft as the
+ * local source of truth and syncs best-effort; it catches and shows, it never
+ * blocks on the network.
  */
 import { API_URL, authFetch, getAuthHeaders } from './apiBase';
+
+export class PresenceApiError extends Error {
+  status: number;
+
+  constructor(status: number, message: string) {
+    super(message);
+    this.name = 'PresenceApiError';
+    this.status = status;
+  }
+}
 
 export interface PresenceRecord {
   id: string;
@@ -32,17 +43,44 @@ interface MineResponse {
   facts?: Array<{ id: string; kind: PresenceFactKind; question: string; answer: string }>;
 }
 
-async function request<T>(path: string, options?: RequestInit): Promise<T | null> {
+/** The server's error line, or a status-shaped one when the body is not JSON. */
+async function errorOf(response: Response): Promise<PresenceApiError> {
+  let message = `HTTP ${response.status}`;
   try {
-    const response = await authFetch(path, {
+    const body = await response.json();
+    if (body && typeof body.error === 'string') message = body.error;
+  } catch {
+    /* not JSON */
+  }
+  return new PresenceApiError(response.status, message);
+}
+
+async function request<T>(path: string, options?: RequestInit): Promise<T> {
+  let response: Response;
+  try {
+    response = await authFetch(path, {
       ...options,
       headers: { 'Content-Type': 'application/json', ...(options?.headers || {}) },
     });
-    if (!response.ok) return null;
-    return (await response.json()) as T;
-  } catch {
-    return null;
+  } catch (err) {
+    throw new PresenceApiError(0, err instanceof Error ? err.message : 'network');
   }
+  if (!response.ok) throw await errorOf(response);
+  return (await response.json()) as T;
+}
+
+/** Multipart: the browser must set the boundary itself, so the JSON content-type is stripped. */
+async function upload<T>(path: string, form: FormData): Promise<T> {
+  const headers: Record<string, string> = { ...getAuthHeaders() };
+  delete headers['Content-Type'];
+  let response: Response;
+  try {
+    response = await fetch(`${API_URL}${path}`, { method: 'POST', headers, body: form });
+  } catch (err) {
+    throw new PresenceApiError(0, err instanceof Error ? err.message : 'network');
+  }
+  if (!response.ok) throw await errorOf(response);
+  return (await response.json()) as T;
 }
 
 export const presenceAPI = {
@@ -59,6 +97,10 @@ export const presenceAPI = {
       method: 'PATCH',
       body: JSON.stringify(fields),
     }),
+
+  /** Soft delete: the presence, her link and her calls are gone from every screen. */
+  remove: (id: string) =>
+    request<{ success: boolean; deleted: boolean }>(`/presence/${id}`, { method: 'DELETE' }),
 
   consent: (id: string, kind: 'own_voice' | 'own_voice_revoked' | 'ai_disclosure', textVersion: string) =>
     request<{ success: boolean }>(`/presence/${id}/consent`, {
@@ -79,15 +121,9 @@ export const presenceAPI = {
     }),
 
   queueNote: (id: string, body: string) =>
-    request<{ success: boolean }>(`/presence/${id}/notes`, {
+    request<{ success: boolean; note: PresenceNote }>(`/presence/${id}/notes`, {
       method: 'POST',
       body: JSON.stringify({ body }),
-    }),
-
-  voiceStatus: (id: string, status: 'samples_recorded' | 'queued', sampleCount: number, sampleSeconds: number) =>
-    request<{ success: boolean }>(`/presence/${id}/voice-status`, {
-      method: 'POST',
-      body: JSON.stringify({ status, sample_count: sampleCount, sample_seconds: sampleSeconds }),
     }),
 
   createCallLink: (id: string) =>
@@ -96,41 +132,23 @@ export const presenceAPI = {
   readiness: (id: string) =>
     request<PresenceReadiness>(`/presence/${id}/readiness`),
 
-  /** "Tell me about her": voice note (audio blob) or typed text → extracted structure. */
-  about: async (id: string, input: { audio?: Blob; text?: string }): Promise<PresenceAboutResult | null> => {
-    try {
-      const form = new FormData();
-      if (input.audio) form.append('audio', input.audio, 'about.webm');
-      if (input.text) form.append('text', input.text);
-      // Multipart: the browser must set the boundary itself, so strip the JSON
-      // content-type that getAuthHeaders() adds by default.
-      const headers: Record<string, string> = { ...getAuthHeaders() };
-      delete headers['Content-Type'];
-      const response = await fetch(`${API_URL}/presence/${id}/about`, { method: 'POST', headers, body: form });
-      if (!response.ok) return null;
-      return (await response.json()) as PresenceAboutResult;
-    } catch {
-      return null;
-    }
+  /** "Me conta sobre ela": voice note (audio blob) or typed text → extracted structure. */
+  about: (id: string, input: { audio?: Blob; text?: string }) => {
+    const form = new FormData();
+    if (input.audio) form.append('audio', input.audio, 'about.webm');
+    if (input.text) form.append('text', input.text);
+    return upload<PresenceAboutResult>(`/presence/${id}/about`, form);
   },
 
   overview: (id: string) =>
     request<PresenceOverview>(`/presence/${id}/overview`),
 
-  /** Upload one voice sample; the server clones (flag on) or queues (flag off). */
-  uploadVoiceSample: async (id: string, audio: Blob, sampleSeconds: number): Promise<VoiceSampleResult | null> => {
-    try {
-      const form = new FormData();
-      form.append('audio', audio, 'sample.webm');
-      form.append('sample_seconds', String(sampleSeconds));
-      const headers: Record<string, string> = { ...getAuthHeaders() };
-      delete headers['Content-Type'];
-      const response = await fetch(`${API_URL}/presence/${id}/voice-samples`, { method: 'POST', headers, body: form });
-      if (!response.ok) return null;
-      return (await response.json()) as VoiceSampleResult;
-    } catch {
-      return null;
-    }
+  /** Upload one voice sample. 503 (PresenceApiError) while cloning is not enabled. */
+  uploadVoiceSample: (id: string, audio: Blob, sampleSeconds: number) => {
+    const form = new FormData();
+    form.append('audio', audio, 'sample.webm');
+    form.append('sample_seconds', String(sampleSeconds));
+    return upload<VoiceSampleResult>(`/presence/${id}/voice-samples`, form);
   },
 
   revokeVoice: (id: string) =>
@@ -156,7 +174,7 @@ export interface PresenceConversationDetail {
 export interface VoiceSampleResult {
   success: boolean;
   clone_enabled: boolean;
-  voice: { status: 'queued' | 'ready' | 'failed' | 'samples_recorded'; sample_count: number; sample_seconds: number; note: string };
+  voice: { status: 'ready' | 'failed' | 'samples_recorded' | 'revoked'; sample_count: number; sample_seconds: number; note: string };
 }
 
 export interface PresenceReadiness {
@@ -198,12 +216,13 @@ export interface PresenceConversation {
   duration_seconds: number;
   summary: string;
   needs_family: string[];
+  urgency?: 'normal' | 'high';
   status: 'recorded' | 'summarized' | 'failed';
 }
 
 export interface PresenceOverview {
   success: boolean;
-  presence: PresenceRecord & { call_token: string | null };
+  presence: PresenceRecord & { call_token: string | null; elder_assent_at?: string | null };
   people: Array<{ id: string; name: string; relation: string; called_by: string }>;
   voice: { status: string; sample_count: number; sample_seconds: number } | null;
   facts: Array<{ id: string; kind: PresenceFactKind; question: string; answer: string; confidence?: 'committed' | 'provisional' | 'ask'; source?: string }>;
@@ -217,12 +236,18 @@ export interface PresenceOverview {
 
 export interface PresenceCallConfig {
   agent_id: string;
+  /** Server-issued WebRTC session for the private agent; null without an ElevenLabs key (local dev). */
+  conversation_token: string | null;
+  presence_id: string;
   cared_for_name: string;
   caller_name: string;
   prompt: string;
   first_message: string;
   voice_id: string | null;
+  /** ElevenLabs language code, 'pt-br'. */
   language: string;
+  /** True until she has said yes on the assent screen. */
+  assent_required: boolean;
 }
 
 export async function fetchCallConfig(token: string): Promise<PresenceCallConfig | null> {
@@ -255,19 +280,36 @@ export async function fetchCallHome(token: string): Promise<PresenceCallHome | n
   }
 }
 
-export async function completeCall(
-  token: string,
-  transcript: Array<{ role: 'user' | 'assistant'; content: string }>,
-  durationSeconds: number,
-): Promise<boolean> {
+/** Her "Sim, pode" on the assent screen. */
+export async function recordAssent(token: string): Promise<boolean> {
   try {
-    const response = await fetch(`${API_URL}/presence-call/${encodeURIComponent(token)}/complete`, {
+    const response = await fetch(`${API_URL}/presence-call/${encodeURIComponent(token)}/assent`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ transcript, duration_seconds: durationSeconds }),
+      body: '{}',
     });
     return response.ok;
   } catch {
     return false;
+  }
+}
+
+export interface CompleteCallInput {
+  /** The id ElevenLabs gave the session; required when the server holds a key. */
+  conversation_id: string | null;
+  transcript: Array<{ role: 'user' | 'assistant'; content: string }>;
+  duration_seconds: number;
+}
+
+export async function completeCall(token: string, input: CompleteCallInput): Promise<{ ok: boolean; status: number }> {
+  try {
+    const response = await fetch(`${API_URL}/presence-call/${encodeURIComponent(token)}/complete`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(input),
+    });
+    return { ok: response.ok, status: response.status };
+  } catch {
+    return { ok: false, status: 0 };
   }
 }

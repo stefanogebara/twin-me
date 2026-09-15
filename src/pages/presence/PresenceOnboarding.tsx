@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   ArrowLeft,
   ArrowRight,
@@ -9,8 +9,6 @@ import {
   Clock,
   MessageCircle,
   Mic,
-  Pause,
-  Play,
   Plus,
   ShieldCheck,
   Square,
@@ -19,13 +17,14 @@ import {
 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { presenceAPI } from '@/services/api/presenceAPI';
+import { useAnalytics } from '@/contexts/AnalyticsContext';
 import '@/styles/presence-cosmos.css';
 import '@/styles/presence-cosmos-onboarding.css';
 
 /**
- * /presence/onboarding — seven steps on the Cosmos system.
+ * /presence/onboarding — six steps on the Cosmos system, read by a Brazilian family in pt-BR.
  *
- *   start → bond → about → review → voice (consent first) → style → relay
+ *   start → bond → about → review → style → relay
  *
  * The "About" voice note is the primary input: it is transcribed and mined server-side
  * (people, story anchors, boundaries, life facts, tone hint) and prefills "Review" — one
@@ -33,13 +32,20 @@ import '@/styles/presence-cosmos-onboarding.css';
  * to never bring up. Typed fields remain the fallback and the correction surface.
  * (Plans: 2026-08-31-presence-onboarding-system, 2026-08-31-presence-context-architecture §4.)
  *
- * Persistence: localStorage draft (v5) is the local source of truth; step completion also
- * syncs best-effort to /api/presence (fire-and-forget). Server writes happen only in
- * persistDraft mode (the authed route), never in the preview.
+ * There is no voice step: first value does not wait for a cloned voice. Recording the
+ * family member's own voice is offered later, from the home page.
+ *
+ * Stored values (tone, relationship) stay in English because the server prompt and the
+ * readiness tests key on them; only their displayed labels are Portuguese.
+ *
+ * Persistence: localStorage draft (v6) is the local source of truth; step completion also
+ * syncs best-effort to /api/presence. A failed sync shows one line by the Continue button
+ * and never blocks navigation. Finishing does wait for the PATCH to status 'active': a
+ * draft presence cannot answer her link. Server writes happen only in persistDraft mode
+ * (the authed route), never in the preview.
  */
 
-type StepId = 'start' | 'bond' | 'about' | 'review' | 'voice' | 'style' | 'relay';
-type RecordingState = 'idle' | 'recording' | 'ready' | 'processing' | 'queued' | 'cloned' | 'failed';
+type StepId = 'start' | 'bond' | 'about' | 'review' | 'style' | 'relay';
 type AboutRec = 'idle' | 'recording' | 'ready' | 'processing' | 'done';
 
 type Person = { name: string; relation: string; calledBy: string };
@@ -51,7 +57,6 @@ type PresenceDraft = {
   relationship: string;
   callerName: string;
   tone: string;
-  consent: boolean;
   people: Person[];
   anchors: { place: string; dish: string; person: string };
   boundaries: string[];
@@ -62,7 +67,7 @@ type PresenceDraft = {
   aboutCounts: { people: number; anchors: number; boundaries: number; facts: number } | null;
 };
 
-const DRAFT_KEY = 'twinme-presence-draft-v5';
+const DRAFT_KEY = 'twinme-presence-draft-v6';
 
 const DEFAULT_DRAFT: PresenceDraft = {
   stepIndex: 0,
@@ -71,7 +76,6 @@ const DEFAULT_DRAFT: PresenceDraft = {
   relationship: 'grandmother',
   callerName: '',
   tone: 'Gentle teasing',
-  consent: false,
   people: [
     { name: '', relation: '', calledBy: '' },
     { name: '', relation: '', calledBy: '' },
@@ -86,46 +90,59 @@ const DEFAULT_DRAFT: PresenceDraft = {
 };
 
 const STEPS: Array<{ id: StepId; short: string; eyebrow: string }> = [
-  { id: 'start', short: 'Start', eyebrow: 'A new kind of presence' },
-  { id: 'bond', short: 'Bond', eyebrow: 'The relationship' },
-  { id: 'about', short: 'About', eyebrow: 'Tell me about her' },
-  { id: 'review', short: 'Review', eyebrow: 'What I understood' },
-  { id: 'voice', short: 'Voice', eyebrow: 'Consent, then voice' },
-  { id: 'style', short: 'Style', eyebrow: 'How you show up' },
-  { id: 'relay', short: 'Relay', eyebrow: 'The family relay' },
+  { id: 'start', short: 'Início', eyebrow: 'Um novo tipo de presença' },
+  { id: 'bond', short: 'Vínculo', eyebrow: 'A relação' },
+  { id: 'about', short: 'Sobre ela', eyebrow: 'Me conta sobre ela' },
+  { id: 'review', short: 'Revisão', eyebrow: 'O que eu entendi' },
+  { id: 'style', short: 'Jeito', eyebrow: 'Como vocês são juntos' },
+  { id: 'relay', short: 'Retorno', eyebrow: 'O que volta para você' },
 ];
 
-const TONES = ['Gentle teasing', 'Very affectionate', 'Calm and practical', 'Storytelling'];
+// The stored value is what the server prompt and the readiness tests key on; the label is what the family reads.
+const TONES: Array<{ value: string; label: string }> = [
+  { value: 'Gentle teasing', label: 'Brincadeira carinhosa' },
+  { value: 'Very affectionate', label: 'Muito afetuoso' },
+  { value: 'Calm and practical', label: 'Calmo e prático' },
+  { value: 'Storytelling', label: 'Contador de histórias' },
+];
+const TONE_VALUES = TONES.map((t) => t.value);
+const toneLabel = (value: string) => TONES.find((t) => t.value === value)?.label ?? value;
 
-const VOICE_PROMPTS = [
-  'Hi. I wish I could sit with you for every story, even on the busiest days.',
-  'Tell me about the chocolate cake. I want to know who taught you to make it.',
-  'I still laugh when I remember that windy afternoon at the beach.',
+// Same split for the relationship: English key stored, Portuguese label shown. `side` is the sidebar line.
+const RELATIONSHIPS: Array<{ value: string; label: string; side: string }> = [
+  { value: 'grandmother', label: 'Avó', side: 'Sua avó' },
+  { value: 'grandfather', label: 'Avô', side: 'Seu avô' },
+  { value: 'mother', label: 'Mãe', side: 'Sua mãe' },
+  { value: 'father', label: 'Pai', side: 'Seu pai' },
+  { value: 'aunt', label: 'Tia ou tio', side: 'Sua tia ou seu tio' },
+  { value: 'friend', label: 'Amiga ou amigo', side: 'Uma amiga ou um amigo' },
 ];
 
-const CONSENT_TEXT_VERSION =
-  'own-voice-v1 (2026-08-31): I am recording my own voice and consent to a clearly identified AI version of it. Revocable at any time; revoking disables the voice.';
+const SYNC_FAILED = 'Não deu para salvar. Vamos tentar de novo no próximo passo.';
+const SERVER_UNREACHABLE = 'Não deu para falar com o servidor. Tente de novo em instantes.';
+const ABOUT_FAILED = 'Não consegui entender a gravação. Tente de novo ou escreva algumas linhas.';
+const ACTIVATE_FAILED = 'Não deu para ativar a Presença. Tente de novo.';
 
 // Style: the two codebook questions that a voice note rarely answers by itself.
 const QUESTIONS: Array<{ kind: 'tone' | 'language'; label: string; prompt: string; placeholder: string }> = [
   {
     kind: 'tone',
-    label: 'Your natural warmth',
-    prompt: 'When she repeats a story you have heard before, how do you usually respond?',
-    placeholder: 'I tease her gently, then ask for the detail she left out last time.',
+    label: 'O seu jeito carinhoso',
+    prompt: 'Quando ela repete uma história que você já ouviu, como você costuma responder?',
+    placeholder: 'Brinco com ela de leve e pergunto o detalhe que ela esqueceu da última vez.',
   },
   {
     kind: 'language',
-    label: 'Shared language',
-    prompt: 'What names, phrases, or little jokes belong only to the two of you?',
-    placeholder: 'I call her Nunu. She calls every good plan a Sunday plan, even on Tuesdays.',
+    label: 'Palavras só de vocês',
+    prompt: 'Que apelidos, expressões ou piadinhas são só de vocês dois?',
+    placeholder: 'Eu chamo ela de Nunu. Ela chama todo plano bom de plano de domingo, mesmo na terça.',
   },
 ];
 
 const ANCHORS: Array<{ key: keyof PresenceDraft['anchors']; label: string; placeholder: string }> = [
-  { key: 'place', label: 'A place that matters to her', placeholder: 'The beach house in Ubatuba' },
-  { key: 'dish', label: 'A dish or recipe with a story', placeholder: 'Her chocolate cake, from her mother' },
-  { key: 'person', label: 'A person she loves telling stories about', placeholder: 'Her sister Teresa, who taught her to swim' },
+  { key: 'place', label: 'Um lugar que importa para ela', placeholder: 'A casa de praia em Ubatuba' },
+  { key: 'dish', label: 'Um prato ou receita com história', placeholder: 'O bolo de chocolate dela, da mãe' },
+  { key: 'person', label: 'Uma pessoa de quem ela adora contar histórias', placeholder: 'A irmã Teresa, que ensinou ela a nadar' },
 ];
 
 function Mark() {
@@ -173,32 +190,35 @@ function loadDraft(persist: boolean): PresenceDraft {
   return withPendingNote(loadStoredDraft(persist));
 }
 
+/** Reads only the fields this version knows, so a draft with older fields (consent, voice) still loads. */
 function loadStoredDraft(persist: boolean): PresenceDraft {
   if (!persist) return DEFAULT_DRAFT;
   try {
     const stored = window.localStorage.getItem(DRAFT_KEY);
     if (!stored) return DEFAULT_DRAFT;
-    const parsed = JSON.parse(stored) as Partial<PresenceDraft>;
+    const parsed = JSON.parse(stored) as Partial<PresenceDraft> & Record<string, unknown>;
+    const text = (value: unknown, fallback: string) => (typeof value === 'string' ? value : fallback);
     return {
-      ...DEFAULT_DRAFT,
-      ...parsed,
+      stepIndex: Math.min(Math.max(Number(parsed.stepIndex) || 0, 0), STEPS.length - 1),
+      serverId: typeof parsed.serverId === 'string' ? parsed.serverId : null,
+      caredForName: text(parsed.caredForName, ''),
+      relationship: text(parsed.relationship, DEFAULT_DRAFT.relationship),
+      callerName: text(parsed.callerName, ''),
+      tone: text(parsed.tone, DEFAULT_DRAFT.tone),
       people: Array.isArray(parsed.people) && parsed.people.length > 0
         ? parsed.people.map((p) => ({ name: String(p?.name ?? ''), relation: String(p?.relation ?? ''), calledBy: String(p?.calledBy ?? '') }))
         : DEFAULT_DRAFT.people,
       anchors: { ...DEFAULT_DRAFT.anchors, ...(parsed.anchors ?? {}) },
       boundaries: Array.isArray(parsed.boundaries) && parsed.boundaries.length > 0 ? parsed.boundaries.map(String) : DEFAULT_DRAFT.boundaries,
       answers: Array.isArray(parsed.answers) && parsed.answers.length === 2 ? parsed.answers.map(String) : DEFAULT_DRAFT.answers,
+      firstNote: text(parsed.firstNote, ''),
+      aboutText: text(parsed.aboutText, ''),
+      aboutTranscript: text(parsed.aboutTranscript, ''),
       aboutCounts: parsed.aboutCounts && typeof parsed.aboutCounts === 'object' ? parsed.aboutCounts : null,
-      stepIndex: Math.min(Math.max(Number(parsed.stepIndex) || 0, 0), STEPS.length - 1),
     };
   } catch {
     return DEFAULT_DRAFT;
   }
-}
-
-/** Lowercase the first letter so a user-typed anchor reads naturally mid-sentence. */
-function decap(text: string) {
-  return text.charAt(0).toLowerCase() + text.slice(1);
 }
 
 function formatTime(totalSeconds: number) {
@@ -207,27 +227,16 @@ function formatTime(totalSeconds: number) {
   return `${minutes}:${seconds.toString().padStart(2, '0')}`;
 }
 
+const plural = (count: number, one: string, many: string) => `${count} ${count === 1 ? one : many}`;
+
 type Props = { persistDraft?: boolean; onExit?: () => void };
 
 export function PresenceOnboardingExperience({ persistDraft = false, onExit }: Props) {
+  const { trackEvent } = useAnalytics();
   const [draft, setDraft] = useState<PresenceDraft>(() => loadDraft(persistDraft));
-  const { stepIndex, caredForName, relationship, callerName, tone, consent, people, anchors, boundaries, answers, firstNote, aboutCounts } = draft;
+  const { stepIndex, caredForName, relationship, callerName, tone, people, anchors, boundaries, answers, firstNote, aboutCounts } = draft;
 
-  // Voice-sample recorder
-  const [recordingState, setRecordingState] = useState<RecordingState>('idle');
-  const [recordingSeconds, setRecordingSeconds] = useState(0);
-  const [promptIndex, setPromptIndex] = useState(0);
-  const [audioUrl, setAudioUrl] = useState<string | null>(null);
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [micError, setMicError] = useState<string | null>(null);
-  const [voiceNote, setVoiceNote] = useState('');
-  const recorderRef = useRef<MediaRecorder | null>(null);
-  const streamRef = useRef<MediaStream | null>(null);
-  const chunksRef = useRef<Blob[]>([]);
-  const voiceBlobRef = useRef<Blob | null>(null);
-  const audioRef = useRef<HTMLAudioElement | null>(null);
-
-  // "About her" recorder — separate from the voice-sample recorder.
+  // "About her" recorder: the family member describing her, not a voice sample.
   const [aboutRec, setAboutRec] = useState<AboutRec>(draft.aboutCounts ? 'done' : 'idle');
   const [aboutSeconds, setAboutSeconds] = useState(0);
   const [aboutError, setAboutError] = useState<string | null>(null);
@@ -236,18 +245,20 @@ export function PresenceOnboardingExperience({ persistDraft = false, onExit }: P
   const aboutChunksRef = useRef<Blob[]>([]);
   const aboutBlobRef = useRef<Blob | null>(null);
 
+  // Network state the family can see: one line by the Continue button.
+  const [syncError, setSyncError] = useState<string | null>(null);
+  const [finishError, setFinishError] = useState<string | null>(null);
+  const [finishing, setFinishing] = useState(false);
+  const noteQueuedRef = useRef(false);
+
   const [questionIndex, setQuestionIndex] = useState(0);
   const draftRef = useRef(draft);
   const creatingRef = useRef<Promise<string | null> | null>(null);
-  const consentSentRef = useRef(false);
 
   const step = STEPS[stepIndex];
-  const progress = ((stepIndex + 1) / STEPS.length) * 100;
-  const displayName = caredForName.trim() || 'her';
+  const displayName = caredForName.trim() || 'ela';
   const answeredCount = answers.filter((a) => a.trim()).length;
   const understood = Boolean(aboutCounts);
-
-  const canContinue = useMemo(() => (step.id === 'voice' ? consent : true), [consent, step.id]);
 
   useEffect(() => {
     draftRef.current = draft;
@@ -258,32 +269,36 @@ export function PresenceOnboardingExperience({ persistDraft = false, onExit }: P
     window.localStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
   }, [draft, persistDraft]);
 
+  // One event per step shown; trackEvent is stable (useCallback in the provider).
+  useEffect(() => {
+    trackEvent('presence_onboarding_step', { step: step.id });
+  }, [step.id, trackEvent]);
+
   // Resume from the server once per mount: adopt the server presence id, and its
-  // fields only when the local draft is untouched.
+  // fields only when the local draft is untouched. Silent on failure: the draft is the truth.
   useEffect(() => {
     if (!persistDraft) return;
     let cancelled = false;
-    void presenceAPI.mine().then((response) => {
-      if (cancelled || !response?.presence) return;
-      const server = response.presence;
-      setDraft((current) => ({
-        ...current,
-        serverId: server.id,
-        ...(current.caredForName.trim() === '' && server.cared_for_name
-          ? { caredForName: server.cared_for_name, relationship: server.relationship || current.relationship, callerName: server.caller_name, tone: server.tone || current.tone }
-          : {}),
-      }));
-    });
+    presenceAPI
+      .mine()
+      .then((response) => {
+        if (cancelled || !response?.presence) return;
+        const server = response.presence;
+        setDraft((current) => ({
+          ...current,
+          serverId: server.id,
+          ...(current.caredForName.trim() === '' && server.cared_for_name
+            ? { caredForName: server.cared_for_name, relationship: server.relationship || current.relationship, callerName: server.caller_name, tone: server.tone || current.tone }
+            : {}),
+        }));
+      })
+      .catch(() => {
+        /* resume is a convenience; the local draft carries on */
+      });
     return () => {
       cancelled = true;
     };
   }, [persistDraft]);
-
-  useEffect(() => {
-    if (recordingState !== 'recording') return;
-    const timer = window.setInterval(() => setRecordingSeconds((s) => s + 1), 1000);
-    return () => window.clearInterval(timer);
-  }, [recordingState]);
 
   useEffect(() => {
     if (aboutRec !== 'recording') return;
@@ -293,15 +308,13 @@ export function PresenceOnboardingExperience({ persistDraft = false, onExit }: P
 
   useEffect(() => {
     return () => {
-      streamRef.current?.getTracks().forEach((track) => track.stop());
       aboutStreamRef.current?.getTracks().forEach((track) => track.stop());
-      if (audioUrl) URL.revokeObjectURL(audioUrl);
     };
-  }, [audioUrl]);
+  }, []);
 
   const patch = (partial: Partial<PresenceDraft>) => setDraft((current) => ({ ...current, ...partial }));
 
-  /** Get (or lazily create) the server-side presence. Null in preview / offline. */
+  /** Get (or lazily create) the server-side presence. Null in preview; throws PresenceApiError when creation fails. */
   async function ensureServer(): Promise<string | null> {
     if (!persistDraft) return null;
     const existing = draftRef.current.serverId;
@@ -322,53 +335,47 @@ export function PresenceOnboardingExperience({ persistDraft = false, onExit }: P
     return creatingRef.current;
   }
 
-  /** Best-effort sync when leaving a step. Never blocks navigation. */
+  /** Best-effort sync when leaving a step. Never blocks navigation; a failure shows one line, the next success clears it. */
   function syncStep(leaving: StepId) {
     if (!persistDraft) return;
     void (async () => {
       const d = draftRef.current;
-      const id = await ensureServer();
-      if (!id) return;
-      switch (leaving) {
-        case 'bond':
-          await presenceAPI.patch(id, { cared_for_name: d.caredForName, relationship: d.relationship, caller_name: d.callerName, tone: d.tone });
-          break;
-        case 'review':
-          await presenceAPI.savePeople(
-            id,
-            d.people.filter((p) => p.name.trim()).map((p) => ({ name: p.name.trim(), relation: p.relation.trim(), called_by: p.calledBy.trim() })),
-          );
-          for (const anchor of ANCHORS) {
-            const value = d.anchors[anchor.key]?.trim();
-            if (value) await presenceAPI.saveFact(id, 'anchor', anchor.label, value);
-          }
-          for (const boundary of d.boundaries) {
-            const text = boundary.trim();
-            if (text) await presenceAPI.saveFact(id, 'boundary', text.slice(0, 200), text);
-          }
-          break;
-        case 'style':
-          for (const [index, question] of QUESTIONS.entries()) {
-            const answer = d.answers[index]?.trim();
-            if (answer) await presenceAPI.saveFact(id, question.kind, question.prompt, answer);
-          }
-          break;
-        default:
-          break;
+      try {
+        const id = await ensureServer();
+        if (!id) return;
+        switch (leaving) {
+          case 'bond':
+            await presenceAPI.patch(id, { cared_for_name: d.caredForName, relationship: d.relationship, caller_name: d.callerName, tone: d.tone });
+            break;
+          case 'review':
+            await presenceAPI.savePeople(
+              id,
+              d.people.filter((p) => p.name.trim()).map((p) => ({ name: p.name.trim(), relation: p.relation.trim(), called_by: p.calledBy.trim() })),
+            );
+            for (const anchor of ANCHORS) {
+              const value = d.anchors[anchor.key]?.trim();
+              if (value) await presenceAPI.saveFact(id, 'anchor', anchor.label, value);
+            }
+            for (const boundary of d.boundaries) {
+              const text = boundary.trim();
+              if (text) await presenceAPI.saveFact(id, 'boundary', text.slice(0, 200), text);
+            }
+            break;
+          case 'style':
+            for (const [index, question] of QUESTIONS.entries()) {
+              const answer = d.answers[index]?.trim();
+              if (answer) await presenceAPI.saveFact(id, question.kind, question.prompt, answer);
+            }
+            break;
+          default:
+            break;
+        }
+        setSyncError(null);
+      } catch {
+        setSyncError(SYNC_FAILED);
       }
     })();
   }
-
-  // Consent is evidence: append it the moment it is given, exactly once per session.
-  useEffect(() => {
-    if (!persistDraft || !consent || consentSentRef.current) return;
-    consentSentRef.current = true;
-    void (async () => {
-      const id = await ensureServer();
-      if (id) await presenceAPI.consent(id, 'own_voice', CONSENT_TEXT_VERSION);
-    })();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [consent, persistDraft]);
 
   // ---------- About her ----------
   async function startAboutRecording() {
@@ -392,7 +399,7 @@ export function PresenceOnboardingExperience({ persistDraft = false, onExit }: P
       };
       recorder.start(250);
     } catch {
-      setAboutError('Microphone access is needed to record. You can write instead.');
+      setAboutError('Preciso do microfone para gravar. Você pode escrever em vez disso.');
     }
   }
 
@@ -404,16 +411,31 @@ export function PresenceOnboardingExperience({ persistDraft = false, onExit }: P
   async function analyzeAbout(input: { audio?: Blob; text?: string }) {
     setAboutError(null);
     setAboutRec('processing');
-    const id = await ensureServer();
-    if (!id) {
-      setAboutRec(input.audio ? 'ready' : 'idle');
-      setAboutError(persistDraft ? 'Could not reach the server. Try again in a moment.' : 'Analysis runs once you are signed in — the preview keeps your text.');
+    const backTo: AboutRec = input.audio ? 'ready' : 'idle';
+    let id: string | null;
+    try {
+      id = await ensureServer();
+    } catch {
+      setAboutRec(backTo);
+      setAboutError(SERVER_UNREACHABLE);
       return;
     }
-    const result = await presenceAPI.about(id, input);
+    if (!id) {
+      setAboutRec(backTo);
+      setAboutError(persistDraft ? SERVER_UNREACHABLE : 'A análise acontece depois de entrar. A prévia guarda o seu texto.');
+      return;
+    }
+    let result;
+    try {
+      result = await presenceAPI.about(id, input);
+    } catch {
+      setAboutRec(backTo);
+      setAboutError(ABOUT_FAILED);
+      return;
+    }
     if (!result?.success) {
-      setAboutRec(input.audio ? 'ready' : 'idle');
-      setAboutError('Could not understand the recording. Try again, or write a few lines instead.');
+      setAboutRec(backTo);
+      setAboutError(ABOUT_FAILED);
       return;
     }
     const ex = result.extracted;
@@ -440,85 +462,12 @@ export function PresenceOnboardingExperience({ persistDraft = false, onExit }: P
         people: merged.length ? merged : current.people,
         anchors: nextAnchors,
         boundaries: nextBoundaries.length ? nextBoundaries : current.boundaries,
-        tone: TONES.includes(ex.tone_hint) ? ex.tone_hint : current.tone,
+        tone: TONE_VALUES.includes(ex.tone_hint) ? ex.tone_hint : current.tone,
         aboutTranscript: result.transcript,
         aboutCounts: { people: ex.people.length, anchors: ex.anchors.length, boundaries: ex.boundaries.length, facts: ex.facts.length },
       };
     });
     setAboutRec('done');
-  }
-
-  // ---------- Voice samples ----------
-  async function startRecording() {
-    if (!consent) return;
-    setMicError(null);
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true } });
-      const recorder = new MediaRecorder(stream);
-      streamRef.current = stream;
-      recorderRef.current = recorder;
-      chunksRef.current = [];
-      setRecordingSeconds(0);
-      setRecordingState('recording');
-      recorder.ondataavailable = (event) => {
-        if (event.data.size > 0) chunksRef.current.push(event.data);
-      };
-      recorder.onstop = () => {
-        const blob = new Blob(chunksRef.current, { type: recorder.mimeType || 'audio/webm' });
-        voiceBlobRef.current = blob;
-        if (audioUrl) URL.revokeObjectURL(audioUrl);
-        setAudioUrl(URL.createObjectURL(blob));
-        setRecordingState('ready');
-        stream.getTracks().forEach((track) => track.stop());
-        streamRef.current = null;
-      };
-      recorder.start(250);
-    } catch {
-      setMicError('Microphone access is needed to record a sample. You can continue and record later.');
-    }
-  }
-
-  function stopRecording() {
-    if (recorderRef.current?.state === 'recording') recorderRef.current.stop();
-  }
-
-  /** Upload the sample; the server clones (flag on) or queues, and says which. */
-  function queueVoiceBuild() {
-    setRecordingState('processing');
-    const seconds = recordingSeconds;
-    const blob = voiceBlobRef.current;
-    void (async () => {
-      const id = persistDraft ? await ensureServer() : null;
-      if (!id || !blob) {
-        window.setTimeout(() => setRecordingState('queued'), 900);
-        return;
-      }
-      const result = await presenceAPI.uploadVoiceSample(id, blob, seconds);
-      if (!result?.success) {
-        setRecordingState('failed');
-        setVoiceNote('The sample could not be uploaded. You can try again or continue and record later.');
-        return;
-      }
-      setVoiceNote(result.voice.note || '');
-      setRecordingState(result.voice.status === 'ready' ? 'cloned' : result.voice.status === 'failed' ? 'failed' : 'queued');
-    })();
-  }
-
-  function recordAnotherSample() {
-    voiceBlobRef.current = null;
-    setPromptIndex((index) => (index + 1) % VOICE_PROMPTS.length);
-    setRecordingState('idle');
-  }
-
-  function togglePlayback() {
-    if (!audioRef.current) return;
-    if (isPlaying) {
-      audioRef.current.pause();
-      setIsPlaying(false);
-    } else {
-      void audioRef.current.play();
-      setIsPlaying(true);
-    }
   }
 
   // ---------- Navigation ----------
@@ -529,18 +478,33 @@ export function PresenceOnboardingExperience({ persistDraft = false, onExit }: P
     goTo(currentIndex + 1);
   }
 
-  function finishSetup() {
-    if (persistDraft) {
-      void (async () => {
-        const d = draftRef.current;
-        const id = await ensureServer();
-        if (!id) return;
-        if (d.firstNote.trim()) await presenceAPI.queueNote(id, d.firstNote.trim());
-        await presenceAPI.patch(id, { status: 'active' });
-      })();
+  /** Waits for the presence to be active before leaving: a draft presence cannot answer her link. */
+  async function finishSetup() {
+    if (!persistDraft) {
+      if (onExit) onExit();
+      else goTo(0);
+      return;
     }
-    if (onExit) onExit();
-    else goTo(0);
+    setFinishError(null);
+    setFinishing(true);
+    try {
+      const d = draftRef.current;
+      const id = await ensureServer();
+      if (!id) throw new Error('no presence');
+      if (d.firstNote.trim() && !noteQueuedRef.current) {
+        await presenceAPI.queueNote(id, d.firstNote.trim());
+        noteQueuedRef.current = true;
+      }
+      await presenceAPI.patch(id, { status: 'active' });
+      setSyncError(null);
+      trackEvent('presence_onboarding_done');
+      if (onExit) onExit();
+      else goTo(0);
+    } catch {
+      setFinishError(ACTIVATE_FAILED);
+    } finally {
+      setFinishing(false);
+    }
   }
 
   const setPerson = (index: number, field: keyof Person, value: string) =>
@@ -550,56 +514,48 @@ export function PresenceOnboardingExperience({ persistDraft = false, onExit }: P
 
   const [menuOpen, setMenuOpen] = useState(false);
 
-  const voiceReady = recordingState === 'cloned' || recordingState === 'queued';
   const namedPeople = people.filter((p) => p.name.trim()).length;
   const keptStories = ANCHORS.filter((a) => anchors[a.key]?.trim()).length;
+  const relationshipSide = RELATIONSHIPS.find((r) => r.value === relationship)?.side ?? 'Alguém que você ama';
 
   // The accreting record, in the sidebar. Order is the order it fills in, so
   // it reads as a thing being written rather than a form mirror.
   const plateFacts: Array<{ k: string; v: string; empty: string }> = [
-    { k: 'Calls you', v: callerName.trim(), empty: 'not yet' },
-    { k: 'Together', v: tone, empty: 'not chosen' },
-    { k: 'Voice', v: voiceReady ? 'Yours' : consent ? 'Consented' : '', empty: 'not recorded' },
-    { k: 'Her people', v: namedPeople ? `${namedPeople} named` : '', empty: 'none yet' },
-    { k: 'Her stories', v: keptStories ? `${keptStories} kept` : '', empty: 'none yet' },
+    { k: 'Chama você de', v: callerName.trim(), empty: 'ainda não' },
+    { k: 'Juntos', v: toneLabel(tone), empty: 'não escolhido' },
+    { k: 'As pessoas dela', v: namedPeople ? plural(namedPeople, 'nomeada', 'nomeadas') : '', empty: 'nenhuma ainda' },
+    { k: 'As histórias dela', v: keptStories ? plural(keptStories, 'guardada', 'guardadas') : '', empty: 'nenhuma ainda' },
   ];
 
   const aboutLine =
     aboutRec === 'recording' ? formatTime(aboutSeconds)
-      : aboutRec === 'ready' ? 'Recorded. Use it, or record again.'
-        : aboutRec === 'processing' ? 'Listening and taking notes…'
-          : 'About two minutes, in your own words.';
+      : aboutRec === 'ready' ? 'Gravado. Use, ou grave de novo.'
+        : aboutRec === 'processing' ? 'Ouvindo e anotando…'
+          : 'Uns dois minutos, com as suas palavras.';
 
-  const sampleLine =
-    recordingState === 'recording' ? formatTime(recordingSeconds)
-      : recordingState === 'ready' ? 'Listen back, or record again.'
-        : recordingState === 'processing' ? 'Building your voice…'
-          : recordingState === 'queued' ? 'Saved. Your voice build is queued; we tell you when it is ready.'
-            : recordingState === 'cloned' ? voiceNote || 'Your voice is ready. Her calls use it from now on.'
-              : recordingState === 'failed' ? voiceNote || 'Something went wrong with the sample.'
-                : `Sample ${promptIndex + 1} of ${VOICE_PROMPTS.length}. A quiet room helps.`;
+  const footerLine = step.id === 'relay' ? finishError : syncError;
 
   return (
     <main className="presence-cosmos pc-app obx" id="main-content">
       <div className="pc-shell">
         <div className="pc-topbar">
-          <Link className="pc-side-brand" to="/presence" aria-label="Presence home"><Mark /></Link>
+          <Link className="pc-side-brand" to="/presence" aria-label="Início da Presença"><Mark /></Link>
           <button
             className="pc-btn pc-btn--ghost"
             onClick={() => setMenuOpen((open) => !open)}
             aria-expanded={menuOpen}
             aria-controls="obx-side"
           >
-            Step {stepIndex + 1} of {STEPS.length}
+            Passo {stepIndex + 1} de {STEPS.length}
           </button>
         </div>
 
         {/* ------------------------------------------------ the sidebar -- */}
-        <aside className={`pc-side${menuOpen ? ' is-open' : ''}`} id="obx-side" aria-label="Your progress">
-          <Link className="pc-side-brand" to="/presence" aria-label="Presence home"><Mark /></Link>
+        <aside className={`pc-side${menuOpen ? ' is-open' : ''}`} id="obx-side" aria-label="Seu progresso">
+          <Link className="pc-side-brand" to="/presence" aria-label="Início da Presença"><Mark /></Link>
 
           {/* The steps as plain links: the done ones go back, the rest wait. */}
-          <nav className="pc-side-nav" aria-label="Onboarding steps">
+          <nav className="pc-side-nav" aria-label="Passos da configuração">
             {STEPS.map((s, index) => (
               <button
                 key={s.id}
@@ -621,8 +577,8 @@ export function PresenceOnboardingExperience({ persistDraft = false, onExit }: P
           {/* The thing being made: it starts nearly empty and fills in as the
               answers arrive. */}
           <div className="obx-record">
-            <p className={`obx-record-name${caredForName.trim() ? '' : ' is-empty'}`}>{caredForName.trim() || 'Her name'}</p>
-            <p className="pc-side-note">{relationship ? `Your ${relationship}` : 'Someone you love'}</p>
+            <p className={`obx-record-name${caredForName.trim() ? '' : ' is-empty'}`}>{caredForName.trim() || 'O nome dela'}</p>
+            <p className="pc-side-note">{relationshipSide}</p>
             <dl className="obx-facts">
               {plateFacts.map((f) => (
                 <div className="obx-fact" key={f.k}>
@@ -631,11 +587,11 @@ export function PresenceOnboardingExperience({ persistDraft = false, onExit }: P
                 </div>
               ))}
             </dl>
-            <p className="pc-side-note">{voiceReady ? 'Ready to call' : 'Saved as you go'}</p>
+            <p className="pc-side-note">Salvo conforme você avança</p>
           </div>
 
           <button className="pc-side-link" onClick={onExit ?? (() => window.history.back())}>
-            {persistDraft ? 'Save and exit' : 'Exit preview'}
+            {persistDraft ? 'Salvar e sair' : 'Sair da prévia'}
           </button>
         </aside>
 
@@ -645,30 +601,30 @@ export function PresenceOnboardingExperience({ persistDraft = false, onExit }: P
             {step.id === 'start' && (
               <>
                 <header className="pc-apphead">
-                  <h1 className="pc-apphead-title">A little of your voice carries a lot of love.</h1>
-                  <p className="pc-apphead-line">A clearly labelled AI that listens without rushing, and brings what matters back to you.</p>
+                  <h1 className="pc-apphead-title">Alguém para conversar com ela, feito por você.</h1>
+                  <p className="pc-apphead-line">Uma IA sempre identificada como IA, que escuta sem pressa e traz de volta o que importa.</p>
                 </header>
                 <section className="pc-appsection">
                   <ul className="pc-list">
                     <li className="pc-row">
                       <span className="pc-row-icon" aria-hidden="true"><Clock /></span>
                       <div className="pc-row-text">
-                        <p className="pc-row-title">About ten minutes</p>
-                        <p className="pc-row-line">Two of them are your voice.</p>
+                        <p className="pc-row-title">Uns dez minutos</p>
+                        <p className="pc-row-line">Dois deles são você contando sobre ela.</p>
                       </div>
                     </li>
                     <li className="pc-row">
                       <span className="pc-row-icon" aria-hidden="true"><BadgeCheck /></span>
                       <div className="pc-row-text">
-                        <p className="pc-row-title">Always labelled as AI</p>
-                        <p className="pc-row-line">It never pretends a sentence came from you.</p>
+                        <p className="pc-row-title">Sempre identificada como IA</p>
+                        <p className="pc-row-line">Nunca finge que uma frase veio de você.</p>
                       </div>
                     </li>
                     <li className="pc-row">
                       <span className="pc-row-icon" aria-hidden="true"><ShieldCheck /></span>
                       <div className="pc-row-text">
-                        <p className="pc-row-title">You stay in control</p>
-                        <p className="pc-row-line">Visits, money and medicine need a person. Pause or delete anytime.</p>
+                        <p className="pc-row-title">Você continua no controle</p>
+                        <p className="pc-row-line">Visitas, dinheiro e remédios precisam de uma pessoa. Pause ou apague quando quiser.</p>
                       </div>
                     </li>
                   </ul>
@@ -679,28 +635,25 @@ export function PresenceOnboardingExperience({ persistDraft = false, onExit }: P
             {step.id === 'bond' && (
               <>
                 <header className="pc-apphead">
-                  <h1 className="pc-apphead-title">Who are you showing up for?</h1>
-                  <p className="pc-apphead-line">The relationship first, not a personality quiz.</p>
+                  <h1 className="pc-apphead-title">Para quem você está fazendo isso?</h1>
+                  <p className="pc-apphead-line">Primeiro a relação, não um teste de personalidade.</p>
                 </header>
                 <section className="pc-appsection">
                   <ul className="pc-list">
                     <li>
                       <label className="pc-row pc-row--plain obx-fieldrow">
-                        <span className="pc-row-text"><span className="pc-row-title">The person you care for</span></span>
+                        <span className="pc-row-text"><span className="pc-row-title">A pessoa de quem você cuida</span></span>
                         <input className="pc-input" value={caredForName} placeholder="Sofia" onChange={(event) => patch({ caredForName: event.target.value })} />
                       </label>
                     </li>
                     <li>
                       <label className="pc-row pc-row--plain obx-fieldrow">
-                        <span className="pc-row-text"><span className="pc-row-title">Your relationship</span></span>
+                        <span className="pc-row-text"><span className="pc-row-title">Sua relação com ela</span></span>
                         <span className="pc-select">
                           <select className="pc-input" value={relationship} onChange={(event) => patch({ relationship: event.target.value })}>
-                            <option value="grandmother">Grandmother</option>
-                            <option value="grandfather">Grandfather</option>
-                            <option value="mother">Mother</option>
-                            <option value="father">Father</option>
-                            <option value="aunt">Aunt or uncle</option>
-                            <option value="friend">Friend</option>
+                            {RELATIONSHIPS.map((option) => (
+                              <option key={option.value} value={option.value}>{option.label}</option>
+                            ))}
                           </select>
                           <ChevronDown aria-hidden="true" />
                         </span>
@@ -709,8 +662,8 @@ export function PresenceOnboardingExperience({ persistDraft = false, onExit }: P
                     <li>
                       <label className="pc-row pc-row--plain obx-fieldrow">
                         <span className="pc-row-text">
-                          <span className="pc-row-title">What she calls you</span>
-                          <span className="pc-row-line">The exact name the Presence says aloud.</span>
+                          <span className="pc-row-title">Como ela chama você</span>
+                          <span className="pc-row-line">O nome exato que a Presença vai dizer em voz alta.</span>
                         </span>
                         <input className="pc-input" value={callerName} placeholder="Ana" onChange={(event) => patch({ callerName: event.target.value })} />
                       </label>
@@ -719,21 +672,21 @@ export function PresenceOnboardingExperience({ persistDraft = false, onExit }: P
                 </section>
                 <section className="pc-appsection">
                   <div className="pc-sechead">
-                    <h2 className="pc-sechead-title">How you are together</h2>
-                    <p className="pc-sechead-line">Choose what feels true, not ideal.</p>
+                    <h2 className="pc-sechead-title">Como vocês são juntos</h2>
+                    <p className="pc-sechead-line">Escolha o que é verdade, não o ideal.</p>
                   </div>
                   <ul className="pc-list">
                     <li className="pc-row pc-row--plain">
-                      <div className="obx-chips" role="group" aria-label="How you are together">
+                      <div className="obx-chips" role="group" aria-label="Como vocês são juntos">
                         {TONES.map((option) => (
                           <button
-                            key={option}
+                            key={option.value}
                             className="pc-btn pc-btn--ghost obx-chip"
-                            aria-pressed={tone === option}
-                            onClick={() => patch({ tone: option })}
+                            aria-pressed={tone === option.value}
+                            onClick={() => patch({ tone: option.value })}
                           >
-                            {tone === option ? <Check size={14} aria-hidden="true" /> : null}
-                            {option}
+                            {tone === option.value ? <Check size={14} aria-hidden="true" /> : null}
+                            {option.label}
                           </button>
                         ))}
                       </div>
@@ -746,8 +699,8 @@ export function PresenceOnboardingExperience({ persistDraft = false, onExit }: P
             {step.id === 'about' && (
               <>
                 <header className="pc-apphead">
-                  <h1 className="pc-apphead-title">Tell me about {displayName} like you'd tell a friend.</h1>
-                  <p className="pc-apphead-line">Who is around her, what she loves, what to never bring up. You check it all next.</p>
+                  <h1 className="pc-apphead-title">Me conta sobre {displayName} como contaria a uma amiga.</h1>
+                  <p className="pc-apphead-line">Quem está por perto, o que ela ama, o que nunca tocar no assunto. Você confere tudo no próximo passo.</p>
                 </header>
                 {aboutRec === 'done' && aboutCounts ? (
                   <section className="pc-appsection">
@@ -755,17 +708,17 @@ export function PresenceOnboardingExperience({ persistDraft = false, onExit }: P
                       <li className="pc-row">
                         <span className="pc-row-icon" aria-hidden="true"><Check /></span>
                         <div className="pc-row-text">
-                          <p className="pc-row-title">Understood</p>
+                          <p className="pc-row-title">Entendi</p>
                           <p className="pc-row-line">
-                            {aboutCounts.people} {aboutCounts.people === 1 ? 'person' : 'people'}
-                            {' · '}{aboutCounts.anchors} {aboutCounts.anchors === 1 ? 'story' : 'stories'}
-                            {' · '}{aboutCounts.boundaries} {aboutCounts.boundaries === 1 ? 'boundary' : 'boundaries'}
-                            {' · '}{aboutCounts.facts} facts
+                            {plural(aboutCounts.people, 'pessoa', 'pessoas')}
+                            {' · '}{plural(aboutCounts.anchors, 'história', 'histórias')}
+                            {' · '}{plural(aboutCounts.boundaries, 'limite', 'limites')}
+                            {' · '}{plural(aboutCounts.facts, 'fato', 'fatos')}
                           </p>
                         </div>
                         <div className="pc-row-action">
                           <button className="pc-btn pc-btn--ghost" onClick={() => { setAboutRec('idle'); aboutBlobRef.current = null; }}>
-                            Redo
+                            Refazer
                           </button>
                         </div>
                       </li>
@@ -778,19 +731,19 @@ export function PresenceOnboardingExperience({ persistDraft = false, onExit }: P
                         <li className="pc-row">
                           <span className="pc-row-icon" aria-hidden="true"><Mic /></span>
                           <div className="pc-row-text">
-                            <p className="pc-row-title">Record a voice note</p>
+                            <p className="pc-row-title">Gravar um áudio</p>
                             <p className="pc-row-line">{aboutLine}</p>
                           </div>
                           <div className="pc-row-action">
                             {aboutRec === 'idle' && (
-                              <button className="pc-btn pc-btn--ghost" onClick={startAboutRecording}>Record</button>
+                              <button className="pc-btn pc-btn--ghost" onClick={startAboutRecording}>Gravar</button>
                             )}
                             {aboutRec === 'recording' && (
-                              <button className="pc-btn pc-btn--ghost" onClick={stopAboutRecording}><Square size={12} fill="currentColor" /> Stop</button>
+                              <button className="pc-btn pc-btn--ghost" onClick={stopAboutRecording}><Square size={12} fill="currentColor" /> Parar</button>
                             )}
                             {aboutRec === 'ready' && (
                               <button className="pc-btn pc-btn--ghost" onClick={() => aboutBlobRef.current && analyzeAbout({ audio: aboutBlobRef.current })}>
-                                Use it
+                                Usar
                               </button>
                             )}
                             {aboutRec === 'processing' && <AudioLines className="pc-chevron" aria-hidden="true" />}
@@ -802,7 +755,7 @@ export function PresenceOnboardingExperience({ persistDraft = false, onExit }: P
                         {aboutRec === 'ready' && (
                           <li className="pc-subrow">
                             <span />
-                            <button className="pc-btn pc-btn--ghost" onClick={startAboutRecording}>Record again</button>
+                            <button className="pc-btn pc-btn--ghost" onClick={startAboutRecording}>Gravar de novo</button>
                           </li>
                         )}
                         {aboutError && (
@@ -812,17 +765,17 @@ export function PresenceOnboardingExperience({ persistDraft = false, onExit }: P
                     </section>
                     <section className="pc-appsection">
                       <div className="pc-sechead">
-                        <h2 className="pc-sechead-title">Or write it</h2>
-                        <p className="pc-sechead-line">A few lines are enough.</p>
+                        <h2 className="pc-sechead-title">Ou escreva</h2>
+                        <p className="pc-sechead-line">Algumas linhas bastam.</p>
                       </div>
                       <ul className="pc-list">
                         <li className="pc-row pc-row--plain obx-form">
                           <textarea
                             className="pc-input"
                             value={draft.aboutText}
-                            placeholder="Sofia lives alone in Santos since my grandfather passed. Her daughter Rê has lunch with her on Sundays. She loves talking about the beach house in Ubatuba and her mother's kibbeh. Never bring up the sale of the house."
+                            placeholder="A Sofia mora sozinha em Santos desde que meu avô faleceu. A filha dela, a Rê, almoça com ela aos domingos. Ela adora falar da casa de praia em Ubatuba e do quibe da mãe dela. Nunca toque no assunto da venda da casa."
                             onChange={(event) => patch({ aboutText: event.target.value })}
-                            aria-label="Tell me about her"
+                            aria-label="Me conta sobre ela"
                           />
                           <div className="obx-form-actions">
                             <button
@@ -830,7 +783,7 @@ export function PresenceOnboardingExperience({ persistDraft = false, onExit }: P
                               disabled={!draft.aboutText.trim() || aboutRec === 'processing'}
                               onClick={() => analyzeAbout({ text: draft.aboutText.trim() })}
                             >
-                              Use what I wrote
+                              Usar o que escrevi
                             </button>
                           </div>
                         </li>
@@ -838,30 +791,30 @@ export function PresenceOnboardingExperience({ persistDraft = false, onExit }: P
                     </section>
                   </>
                 )}
-                <p className="pc-empty">You can skip this. The first call will just know less.</p>
+                <p className="pc-empty">Você pode pular. A primeira conversa só vai saber menos.</p>
               </>
             )}
 
             {step.id === 'review' && (
               <>
                 <header className="pc-apphead">
-                  <h1 className="pc-apphead-title">{understood ? 'Here is what I understood.' : `Who is around ${displayName}.`}</h1>
+                  <h1 className="pc-apphead-title">{understood ? 'Isto é o que eu entendi.' : `Quem está por perto de ${displayName}.`}</h1>
                   <p className="pc-apphead-line">
                     {understood
-                      ? 'Fix anything that is off. The Presence checks this before it speaks.'
-                      : 'The Presence checks this before it mentions anyone.'}
+                      ? 'Corrija o que estiver errado. A Presença confere isto antes de falar.'
+                      : 'A Presença confere isto antes de mencionar alguém.'}
                   </p>
                 </header>
 
                 <section className="pc-appsection">
                   <div className="pc-sechead">
-                    <h2 className="pc-sechead-title">Her people</h2>
-                    <p className="pc-sechead-line">Passed away? Say so in the relation, like “husband (deceased)”.</p>
+                    <h2 className="pc-sechead-title">As pessoas dela</h2>
+                    <p className="pc-sechead-line">Já faleceu? Diga na relação, como “marido (falecido)”.</p>
                     {people.length < 8 && (
                       <button
                         className="pc-iconbtn pc-sechead-add"
                         onClick={() => patch({ people: [...people, { name: '', relation: '', calledBy: '' }] })}
-                        aria-label="Add a person"
+                        aria-label="Adicionar uma pessoa"
                       >
                         <Plus />
                       </button>
@@ -872,15 +825,15 @@ export function PresenceOnboardingExperience({ persistDraft = false, onExit }: P
                       <li className="pc-row pc-row--plain obx-person" key={index}>
                         <div className="obx-person-fields">
                           <label className="pc-field">
-                            <span className="pc-field-label">Name</span>
+                            <span className="pc-field-label">Nome</span>
                             <input className="pc-input" value={person.name} placeholder={index === 0 ? 'Ana' : 'Pedro'} onChange={(e) => setPerson(index, 'name', e.target.value)} />
                           </label>
                           <label className="pc-field">
-                            <span className="pc-field-label">Relation to her</span>
-                            <input className="pc-input" value={person.relation} placeholder={index === 0 ? 'Daughter' : 'Grandson'} onChange={(e) => setPerson(index, 'relation', e.target.value)} />
+                            <span className="pc-field-label">Relação com ela</span>
+                            <input className="pc-input" value={person.relation} placeholder={index === 0 ? 'Filha' : 'Neto'} onChange={(e) => setPerson(index, 'relation', e.target.value)} />
                           </label>
                           <label className="pc-field">
-                            <span className="pc-field-label">She calls them</span>
+                            <span className="pc-field-label">Ela chama de</span>
                             <input className="pc-input" value={person.calledBy} placeholder={index === 0 ? 'Aninha' : 'Pedrinho'} onChange={(e) => setPerson(index, 'calledBy', e.target.value)} />
                           </label>
                         </div>
@@ -888,7 +841,7 @@ export function PresenceOnboardingExperience({ persistDraft = false, onExit }: P
                           className="pc-iconbtn"
                           onClick={() => patch({ people: people.filter((_, i) => i !== index) })}
                           disabled={people.length <= 1}
-                          aria-label={`Remove person ${index + 1}`}
+                          aria-label={`Remover pessoa ${index + 1}`}
                         >
                           <X />
                         </button>
@@ -899,8 +852,8 @@ export function PresenceOnboardingExperience({ persistDraft = false, onExit }: P
 
                 <section className="pc-appsection">
                   <div className="pc-sechead">
-                    <h2 className="pc-sechead-title">Her stories</h2>
-                    <p className="pc-sechead-line">What she loves telling you about.</p>
+                    <h2 className="pc-sechead-title">As histórias dela</h2>
+                    <p className="pc-sechead-line">O que ela adora contar para você.</p>
                   </div>
                   <ul className="pc-list">
                     {ANCHORS.map((anchor) => (
@@ -921,10 +874,10 @@ export function PresenceOnboardingExperience({ persistDraft = false, onExit }: P
 
                 <section className="pc-appsection">
                   <div className="pc-sechead">
-                    <h2 className="pc-sechead-title">Never bring up</h2>
-                    <p className="pc-sechead-line">Visits, money and medicine are always protected. Add what is hers alone.</p>
+                    <h2 className="pc-sechead-title">Nunca tocar no assunto</h2>
+                    <p className="pc-sechead-line">Visitas, dinheiro e remédios já são protegidos. Adicione o que é só dela.</p>
                     {boundaries.length < 6 && (
-                      <button className="pc-iconbtn pc-sechead-add" onClick={() => patch({ boundaries: [...boundaries, ''] })} aria-label="Add a boundary">
+                      <button className="pc-iconbtn pc-sechead-add" onClick={() => patch({ boundaries: [...boundaries, ''] })} aria-label="Adicionar um limite">
                         <Plus />
                       </button>
                     )}
@@ -933,14 +886,14 @@ export function PresenceOnboardingExperience({ persistDraft = false, onExit }: P
                     {boundaries.map((boundary, index) => (
                       <li className="pc-row pc-row--plain" key={index}>
                         <label className="pc-field">
-                          <span className="sr-only">Boundary {index + 1}</span>
-                          <input className="pc-input" value={boundary} placeholder="The sale of the beach house" onChange={(e) => setBoundary(index, e.target.value)} />
+                          <span className="sr-only">Limite {index + 1}</span>
+                          <input className="pc-input" value={boundary} placeholder="A venda da casa de praia" onChange={(e) => setBoundary(index, e.target.value)} />
                         </label>
                         <button
                           className="pc-iconbtn"
                           onClick={() => patch({ boundaries: boundaries.filter((_, i) => i !== index) })}
                           disabled={boundaries.length <= 1}
-                          aria-label={`Remove boundary ${index + 1}`}
+                          aria-label={`Remover limite ${index + 1}`}
                         >
                           <X />
                         </button>
@@ -951,119 +904,22 @@ export function PresenceOnboardingExperience({ persistDraft = false, onExit }: P
               </>
             )}
 
-            {step.id === 'voice' && (
-              <>
-                <header className="pc-apphead">
-                  <h1 className="pc-apphead-title">Give it a voice she knows.</h1>
-                  <p className="pc-apphead-line">Consent first. Then two minutes of your own voice.</p>
-                </header>
-
-                <section className="pc-appsection">
-                  <ul className="pc-list">
-                    <li className="pc-row pc-row--plain">
-                      <div className="pc-row-text">
-                        <p className="pc-row-title" id="obx-consent-title">I am recording my own voice</p>
-                        <p className="pc-row-line" id="obx-consent-line">
-                          And I agree to a clearly labelled AI version of it speaking with {displayName}. I can take it back anytime, which deletes the voice.
-                        </p>
-                      </div>
-                      <div className="pc-row-action">
-                        <button
-                          className="pc-switch"
-                          role="switch"
-                          aria-checked={consent}
-                          aria-labelledby="obx-consent-title"
-                          aria-describedby="obx-consent-line"
-                          onClick={() => patch({ consent: !consent })}
-                        />
-                      </div>
-                    </li>
-                  </ul>
-                </section>
-
-                <section className={`pc-appsection${consent ? '' : ' obx-locked'}`} aria-disabled={!consent}>
-                  <div className="pc-sechead">
-                    <h2 className="pc-sechead-title">Read this aloud</h2>
-                    <p className="pc-sechead-line">{sampleLine}</p>
-                  </div>
-                  <ul className="pc-list">
-                    <li className="pc-row">
-                      <span className="pc-row-icon" aria-hidden="true"><Mic /></span>
-                      <div className="pc-row-text">
-                        <p className="pc-row-title">{VOICE_PROMPTS[promptIndex]}</p>
-                      </div>
-                      <div className="pc-row-action">
-                        {recordingState === 'idle' && (
-                          <button className="pc-btn pc-btn--ghost" onClick={startRecording}>Record</button>
-                        )}
-                        {recordingState === 'recording' && (
-                          <button className="pc-btn pc-btn--ghost" onClick={stopRecording}><Square size={12} fill="currentColor" /> Stop</button>
-                        )}
-                        {recordingState === 'ready' && (
-                          <button className="pc-btn pc-btn--ghost" onClick={queueVoiceBuild}>Use this</button>
-                        )}
-                        {recordingState === 'processing' && <AudioLines className="pc-chevron" aria-hidden="true" />}
-                        {recordingState === 'queued' && (
-                          <button className="pc-btn pc-btn--ghost" onClick={recordAnotherSample}>Record another</button>
-                        )}
-                        {recordingState === 'cloned' && (
-                          <button className="pc-btn pc-btn--ghost" onClick={recordAnotherSample}>Add another</button>
-                        )}
-                        {recordingState === 'failed' && (
-                          <button className="pc-btn pc-btn--ghost" onClick={recordAnotherSample}>Try again</button>
-                        )}
-                      </div>
-                    </li>
-                    {recordingState === 'recording' && (
-                      <li className="pc-subrow"><Waveform active /></li>
-                    )}
-                    {recordingState === 'ready' && (
-                      <li className="pc-subrow obx-listen">
-                        <button className="pc-iconbtn" onClick={togglePlayback} aria-label={isPlaying ? 'Pause sample' : 'Play sample'}>
-                          {isPlaying ? <Pause /> : <Play fill="currentColor" />}
-                        </button>
-                        <button className="pc-btn pc-btn--ghost" onClick={startRecording}>Record again</button>
-                      </li>
-                    )}
-                    {micError && (
-                      <li className="pc-subrow"><p className="obx-error" role="alert">{micError}</p></li>
-                    )}
-                    <li className="pc-subrow">
-                      <p className="pc-row-line">Other sentences</p>
-                      <div className="obx-dots">
-                        {VOICE_PROMPTS.map((_, index) => (
-                          <button
-                            key={index}
-                            className={index === promptIndex ? 'is-current' : ''}
-                            onClick={() => setPromptIndex(index)}
-                            aria-label={`Voice prompt ${index + 1}`}
-                            aria-pressed={index === promptIndex}
-                          />
-                        ))}
-                      </div>
-                    </li>
-                  </ul>
-                  {audioUrl && <audio ref={audioRef} src={audioUrl} onEnded={() => setIsPlaying(false)} className="sr-only" />}
-                </section>
-              </>
-            )}
-
             {step.id === 'style' && (
               <>
                 <header className="pc-apphead">
-                  <h1 className="pc-apphead-title">Two things a voice note rarely says.</h1>
-                  <p className="pc-apphead-line">How you really are together, and the words only you two use.</p>
+                  <h1 className="pc-apphead-title">Duas coisas que um áudio raramente conta.</h1>
+                  <p className="pc-apphead-line">Como vocês são de verdade juntos, e as palavras que só vocês dois usam.</p>
                 </header>
                 <section className="pc-appsection">
                   <ul className="pc-list">
                     <li className="pc-row pc-row--plain">
                       <div className="pc-row-text">
                         <p className="pc-row-title">{QUESTIONS[questionIndex].prompt}</p>
-                        <p className="pc-row-line">{QUESTIONS[questionIndex].label} · {questionIndex + 1} of {QUESTIONS.length}</p>
+                        <p className="pc-row-line">{QUESTIONS[questionIndex].label} · {questionIndex + 1} de {QUESTIONS.length}</p>
                       </div>
                       <div className="pc-row-action">
                         <button className="pc-btn pc-btn--ghost" onClick={() => setQuestionIndex((index) => (index + 1) % QUESTIONS.length)}>
-                          {questionIndex === QUESTIONS.length - 1 ? 'First question' : 'Next question'}
+                          {questionIndex === QUESTIONS.length - 1 ? 'Primeira pergunta' : 'Próxima pergunta'}
                         </button>
                       </div>
                     </li>
@@ -1077,14 +933,14 @@ export function PresenceOnboardingExperience({ persistDraft = false, onExit }: P
                           next[questionIndex] = event.target.value;
                           patch({ answers: next });
                         }}
-                        aria-label="Your answer"
+                        aria-label="Sua resposta"
                       />
                     </li>
                   </ul>
                   <p className="pc-empty">
                     {answeredCount === 0
-                      ? 'Nothing yet. One honest answer is enough to start.'
-                      : `Learned so far: ${answers.map((answer, index) => (answer.trim() ? QUESTIONS[index].label : null)).filter(Boolean).join(', ')}.`}
+                      ? 'Nada ainda. Uma resposta sincera já basta para começar.'
+                      : `Já aprendi: ${answers.map((answer, index) => (answer.trim() ? QUESTIONS[index].label : null)).filter(Boolean).join(', ')}.`}
                   </p>
                 </section>
               </>
@@ -1093,44 +949,47 @@ export function PresenceOnboardingExperience({ persistDraft = false, onExit }: P
             {step.id === 'relay' && (
               <>
                 <header className="pc-apphead">
-                  <h1 className="pc-apphead-title">Forty minutes become one meaningful minute.</h1>
-                  <p className="pc-apphead-line">How a call with {displayName} comes back to you. Always labelled as AI.</p>
+                  <h1 className="pc-apphead-title">O que volta para você depois de cada conversa.</h1>
+                  <p className="pc-apphead-line">Toda conversa com {displayName} vira um resumo curto para você. Sempre identificada como IA.</p>
                 </header>
                 <section className="pc-appsection">
                   <ul className="pc-list">
                     <li className="pc-row">
                       <span className="pc-row-icon" aria-hidden="true"><MessageCircle /></span>
                       <div className="pc-row-text">
-                        <p className="pc-row-title">For {displayName}</p>
-                        <p className="pc-row-line">
-                          {anchors.dish.trim() ? `“Tell me about ${decap(anchors.dish.trim())}. Who taught you?”` : '“And who taught you to make the cake that way?”'}
-                        </p>
+                        <p className="pc-row-title">O que ela contou</p>
+                        <p className="pc-row-line">Como ela estava e do que falou, em poucas frases.</p>
+                      </div>
+                    </li>
+                    <li className="pc-row">
+                      <span className="pc-row-icon" aria-hidden="true"><ShieldCheck /></span>
+                      <div className="pc-row-text">
+                        <p className="pc-row-title">O que precisa de uma pessoa</p>
+                        <p className="pc-row-line">Dor, um pedido de ajuda ou algo que só a família resolve aparece em separado.</p>
                       </div>
                     </li>
                     <li className="pc-row">
                       <span className="pc-row-icon" aria-hidden="true"><User /></span>
                       <div className="pc-row-text">
-                        <p className="pc-row-title">For you</p>
-                        <p className="pc-row-line">
-                          A new detail about {anchors.place.trim() ? decap(anchors.place.trim()) : 'the family beach trip'}, and one thing for you: can you visit Sunday?
-                        </p>
+                        <p className="pc-row-title">O que ela pediu para passar</p>
+                        <p className="pc-row-line">Um recado dela para você chega do jeito que ela disse.</p>
                       </div>
                     </li>
                   </ul>
                 </section>
                 <section className="pc-appsection">
                   <div className="pc-sechead">
-                    <h2 className="pc-sechead-title">A first note</h2>
-                    <p className="pc-sechead-line">Read aloud on her next call, as coming from you. Never rewritten.</p>
+                    <h2 className="pc-sechead-title">Um primeiro recado</h2>
+                    <p className="pc-sechead-line">Lido em voz alta na próxima conversa dela, como vindo de você. Nunca reescrito.</p>
                   </div>
                   <ul className="pc-list">
                     <li className="pc-row pc-row--plain obx-form">
                       <textarea
                         className="pc-input"
                         value={firstNote}
-                        placeholder="Ask who taught her to swim."
+                        placeholder="Pergunta quem ensinou ela a nadar."
                         onChange={(event) => patch({ firstNote: event.target.value })}
-                        aria-label="A first note for her next conversation"
+                        aria-label="Um primeiro recado para a próxima conversa dela"
                       />
                     </li>
                   </ul>
@@ -1140,17 +999,19 @@ export function PresenceOnboardingExperience({ persistDraft = false, onExit }: P
           </div>
 
           <footer className="obx-footer">
-            <button className="pc-btn pc-btn--ghost" onClick={() => goTo(stepIndex - 1)} disabled={stepIndex === 0}>
-              <ArrowLeft size={14} /> Back
+            <button className="pc-btn pc-btn--ghost" onClick={() => goTo(stepIndex - 1)} disabled={stepIndex === 0 || finishing}>
+              <ArrowLeft size={14} /> Voltar
             </button>
-            <span className="obx-footer-hint">{step.id === 'voice' ? 'You can improve the voice later.' : ''}</span>
+            <span className="obx-footer-hint">
+              {footerLine ? <span className="obx-error" role="alert">{footerLine}</span> : null}
+            </span>
             {stepIndex < STEPS.length - 1 ? (
-              <button className="pc-btn pc-btn--primary" onClick={() => continueFrom(stepIndex)} disabled={!canContinue}>
-                {stepIndex === 0 ? 'Create a first Presence' : 'Continue'} <ArrowRight size={14} />
+              <button className="pc-btn pc-btn--primary" onClick={() => continueFrom(stepIndex)}>
+                {stepIndex === 0 ? 'Criar a primeira Presença' : 'Continuar'} <ArrowRight size={14} />
               </button>
             ) : (
-              <button className="pc-btn pc-btn--primary" onClick={finishSetup}>
-                Finish setup <Check size={14} />
+              <button className="pc-btn pc-btn--primary" onClick={() => void finishSetup()} disabled={finishing}>
+                {finishing ? 'Ativando…' : 'Concluir'} <Check size={14} />
               </button>
             )}
           </footer>

@@ -6,9 +6,11 @@ import {
   completeCall,
   fetchCallConfig,
   fetchCallHome,
+  recordAssent,
   type PresenceCallConfig,
   type PresenceCallHome,
 } from '@/services/api/presenceAPI';
+import { useAnalytics } from '@/contexts/AnalyticsContext';
 import '@/styles/presence-cosmos.css';
 import '@/styles/presence-call.css';
 
@@ -24,9 +26,13 @@ import '@/styles/presence-call.css';
  * "needs you" items, care signals — is never fetched here (see the /home endpoint).
  * A waiting note shows that it exists and who it is from; the words themselves are
  * delivered aloud, as coming from their author, inside the conversation.
+ *
+ * Assent: the first visit asks her, in plain words, whether an AI may talk to her.
+ * Until she says yes there is no start button. 'lost' is the state where the call
+ * ended but the server did not keep it; the transcript stays in memory for a retry.
  */
 
-type CallState = 'loading' | 'invalid' | 'ready' | 'connecting' | 'live' | 'saving' | 'done' | 'error';
+type CallState = 'loading' | 'invalid' | 'ready' | 'connecting' | 'live' | 'saving' | 'done' | 'lost' | 'error';
 
 type Turn = { role: 'user' | 'assistant'; content: string };
 
@@ -68,10 +74,16 @@ export default function PresenceCallPage() {
   const [transcript, setTranscript] = useState<Turn[]>([]);
   const [orbMode, setOrbMode] = useState<'idle' | 'listening' | 'speaking'>('idle');
   const [explain, setExplain] = useState(false);
+  /** 'asking' until she answers; 'given' shows the start button; 'declined' shows her home without it. */
+  const [assent, setAssent] = useState<'asking' | 'given' | 'declined'>('given');
+  const [assentFailed, setAssentFailed] = useState(false);
+  const { trackEvent } = useAnalytics();
   const sessionRef = useRef<Awaited<ReturnType<typeof Conversation.startSession>> | null>(null);
   const transcriptRef = useRef<Turn[]>([]);
+  const conversationIdRef = useRef<string | null>(null);
   const startedAtRef = useRef<number>(0);
   const savedRef = useRef(false);
+  const openedRef = useRef(false);
   const orbRef = useRef<HTMLDivElement | null>(null);
   const volumeTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const panelRef = useRef<HTMLDivElement | null>(null);
@@ -92,12 +104,17 @@ export default function PresenceCallPage() {
       }
       setConfig(call);
       setHome(homeData);
+      setAssent(call.assent_required ? 'asking' : 'given');
       setState('ready');
+      if (!openedRef.current) {
+        openedRef.current = true;
+        trackEvent('presence_call_page_opened');
+      }
     })();
     return () => {
       cancelled = true;
     };
-  }, [token]);
+  }, [token, trackEvent]);
 
   useEffect(() => {
     const panel = panelRef.current;
@@ -130,27 +147,55 @@ export default function PresenceCallPage() {
     }, 80);
   }, []);
 
+  const elapsedSeconds = useCallback(
+    () => (startedAtRef.current ? Math.round((Date.now() - startedAtRef.current) / 1000) : 0),
+    [],
+  );
+
+  /**
+   * Posts the call. Ends in 'done' or 'lost'; the transcript and conversation id stay
+   * in their refs either way, so 'lost' can re-post exactly what was said.
+   */
   const saveConversation = useCallback(async () => {
     if (savedRef.current) return;
     savedRef.current = true;
-    const seconds = startedAtRef.current ? Math.round((Date.now() - startedAtRef.current) / 1000) : 0;
-    await completeCall(token, transcriptRef.current, seconds);
-  }, [token]);
+    setState('saving');
+    const seconds = elapsedSeconds();
+    const { ok } = await completeCall(token, {
+      conversation_id: conversationIdRef.current,
+      transcript: transcriptRef.current,
+      duration_seconds: seconds,
+    });
+    if (ok) {
+      trackEvent('presence_call_ended', { seconds, turns: transcriptRef.current.length });
+      setState('done');
+    } else {
+      savedRef.current = false;
+      trackEvent('presence_call_lost');
+      setState('lost');
+    }
+  }, [token, elapsedSeconds, trackEvent]);
 
   useEffect(() => {
     const onUnload = () => {
-      if (sessionRef.current && !savedRef.current && transcriptRef.current.length > 0) {
+      if (!savedRef.current && transcriptRef.current.length > 0) {
         savedRef.current = true;
-        const seconds = startedAtRef.current ? Math.round((Date.now() - startedAtRef.current) / 1000) : 0;
         navigator.sendBeacon?.(
           `${location.origin}/api/presence-call/${encodeURIComponent(token)}/complete`,
-          new Blob([JSON.stringify({ transcript: transcriptRef.current, duration_seconds: seconds })], { type: 'application/json' }),
+          new Blob(
+            [JSON.stringify({
+              conversation_id: conversationIdRef.current,
+              transcript: transcriptRef.current,
+              duration_seconds: elapsedSeconds(),
+            })],
+            { type: 'application/json' },
+          ),
         );
       }
     };
     window.addEventListener('pagehide', onUnload);
     return () => window.removeEventListener('pagehide', onUnload);
-  }, [token]);
+  }, [token, elapsedSeconds]);
 
   useEffect(() => {
     return () => {
@@ -166,23 +211,25 @@ export default function PresenceCallPage() {
     setState('connecting');
     setTranscript([]);
     transcriptRef.current = [];
+    conversationIdRef.current = null;
     savedRef.current = false;
     try {
-      const session = await Conversation.startSession({
-        agentId: config.agent_id,
-        connectionType: 'webrtc',
+      const shared = {
         overrides: {
           agent: {
             prompt: { prompt: config.prompt },
             firstMessage: config.first_message,
-            language: config.language || 'pt',
+            language: config.language || 'pt-br',
           },
           ...(config.voice_id ? { tts: { voiceId: config.voice_id } } : {}),
         },
-        onConnect: () => {
+        dynamicVariables: { presence_id: config.presence_id },
+        onConnect: ({ conversationId }: { conversationId: string }) => {
+          if (conversationId) conversationIdRef.current = conversationId;
           startedAtRef.current = Date.now();
           setState('live');
           startVolumeLoop();
+          trackEvent('presence_call_started');
         },
         onMessage: (payload: { message?: string; source?: string }) => {
           const content = typeof payload?.message === 'string' ? payload.message : '';
@@ -195,15 +242,25 @@ export default function PresenceCallPage() {
         onDisconnect: () => {
           sessionRef.current = null;
           stopVolumeLoop();
-          setState('saving');
-          void saveConversation().finally(() => setState('done'));
+          void saveConversation();
         },
         onError: () => {
           stopVolumeLoop();
           setState('error');
         },
-      });
+      };
+      /* A server-issued session for the private agent; the bare agent id only in local dev without a key. */
+      const session = config.conversation_token
+        ? await Conversation.startSession({ conversationToken: config.conversation_token, connectionType: 'webrtc', ...shared })
+        : await Conversation.startSession({ agentId: config.agent_id, connectionType: 'webrtc', ...shared });
       sessionRef.current = session;
+      if (!conversationIdRef.current) {
+        try {
+          conversationIdRef.current = session.getId() || null;
+        } catch {
+          /* onConnect is the primary source; the server tolerates a missing id in dev */
+        }
+      }
     } catch {
       setState('error');
     }
@@ -220,13 +277,29 @@ export default function PresenceCallPage() {
       /* the transcript still saves */
     }
     await saveConversation();
-    setState('done');
   }
 
   /** Back to home after a call: refresh her recaps so the new one appears. */
   function backHome() {
     setState('ready');
     void loadHome();
+  }
+
+  async function sayYes() {
+    setAssentFailed(false);
+    const ok = await recordAssent(token);
+    if (ok) {
+      trackEvent('presence_assent', { answer: 'yes' });
+      setAssent('given');
+    } else {
+      setAssentFailed(true);
+    }
+  }
+
+  function sayNotNow() {
+    trackEvent('presence_assent', { answer: 'not_now' });
+    setAssentFailed(false);
+    setAssent('declined');
   }
 
   const name = config?.cared_for_name?.trim() || '';
@@ -291,17 +364,44 @@ export default function PresenceCallPage() {
           <>
             <div className="pc-orb" aria-hidden="true" />
             <h1>{name ? `Oi, ${name}.` : 'Oi.'}</h1>
-            <p className="pc-call-sub">A presença de {caller} está aqui para conversar. Sem pressa.</p>
-            <div className="pc-call-actions">
-              <button className="pc-call-cta" onClick={startCall} disabled={state === 'connecting'}>
-                {state === 'connecting' ? 'Conectando…' : 'Começar a conversa'}
-              </button>
-              <button className="pc-call-cta pc-call-cta--ghost" onClick={() => setExplain((v) => !v)} aria-expanded={explain}>
-                Quem está falando?
-              </button>
-            </div>
-            {explainCard}
-            {homeBlocks}
+
+            {assent === 'asking' && (
+              <>
+                <p className="pc-call-sub">
+                  Quem vai falar com você é uma presença de inteligência artificial que {caller} criou.
+                  Ela sempre diz que é IA, nunca fala em nome de {caller}, e depois conta pra {caller} como você está.
+                  Posso conversar com você?
+                </p>
+                {assentFailed && <p className="pc-call-error">Não deu para guardar a sua resposta. Tente de novo.</p>}
+                <div className="pc-call-actions">
+                  <button className="pc-call-cta" onClick={sayYes}>Sim, pode</button>
+                  <button className="pc-call-cta pc-call-cta--ghost" onClick={sayNotNow}>Agora não</button>
+                </div>
+              </>
+            )}
+
+            {assent === 'declined' && (
+              <>
+                <p className="pc-call-sub">Tudo bem. Quando quiser, é só voltar aqui.</p>
+                {homeBlocks}
+              </>
+            )}
+
+            {assent === 'given' && (
+              <>
+                <p className="pc-call-sub">A presença de {caller} está aqui para conversar. Sem pressa.</p>
+                <div className="pc-call-actions">
+                  <button className="pc-call-cta" onClick={startCall} disabled={state === 'connecting'}>
+                    {state === 'connecting' ? 'Conectando…' : 'Começar a conversa'}
+                  </button>
+                  <button className="pc-call-cta pc-call-cta--ghost" onClick={() => setExplain((v) => !v)} aria-expanded={explain}>
+                    Quem está falando?
+                  </button>
+                </div>
+                {explainCard}
+                {homeBlocks}
+              </>
+            )}
           </>
         )}
 
@@ -334,6 +434,17 @@ export default function PresenceCallPage() {
             <p className="pc-call-sub">{caller} vai receber um resumo. Volte quando quiser.</p>
             <div className="pc-call-actions">
               <button className="pc-call-cta" onClick={backHome}>Voltar ao início</button>
+            </div>
+          </>
+        )}
+
+        {state === 'lost' && (
+          <>
+            <h1>Não consegui guardar a nossa conversa.</h1>
+            <p className="pc-call-sub">Ela não vai aparecer para {caller}. Quer tentar de novo?</p>
+            <div className="pc-call-actions">
+              <button className="pc-call-cta" onClick={() => void saveConversation()}>Tentar de novo</button>
+              <button className="pc-call-cta pc-call-cta--ghost" onClick={backHome}>Voltar ao início</button>
             </div>
           </>
         )}
