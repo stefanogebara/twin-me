@@ -22,7 +22,7 @@ vi.mock('../../../../api/services/money/store.js', async (importOriginal) => {
 });
 
 const {
-  assemble, buildFigure, validateAction, receiptsFor, parseReply, shortCircuit, assembleReply, contextText, euroGlyphs, answer, act, FIGURE_KINDS, RULES, asksWhereItWent, basisOf, amountKey, isShortAsk, dropUngrounded, amountsInText,
+  assemble, buildFigure, validateAction, receiptsFor, parseReply, shortCircuit, assembleReply, contextText, euroGlyphs, answer, act, FIGURE_KINDS, RULES, asksWhereItWent, basisOf, amountKey, isShortAsk, dropUngrounded, amountsInText, isStatement,
 } = await import('../../../../api/services/money/chat.js');
 
 const NOW = new Date('2026-09-08T12:00:00Z');
@@ -311,12 +311,32 @@ describe('contextText, the bank', () => {
   });
 });
 
+describe('a statement always carries a way to keep it', () => {
+  const ctx = assemble({ transactions, segments, recurring, places, questions, categories, now: NOW });
+  it('offers the person\'s own words as a note when the model attached no learning offer', () => {
+    const reply = assembleReply({ text: 'Spotify is your flatmate\'s, not yours. If that is right, mark it below.', figures: [], actions: [], cites: [] }, ctx, 'Spotify is my flatmate\'s, it is not mine.');
+    expect(reply.actions.map((a) => a.kind)).toEqual(['remember']);
+    expect(reply.actions[0].text).toBe('Spotify is my flatmate\'s, it is not mine.');
+  });
+  it('adds nothing to a question, and nothing when the model already offered a way to learn', () => {
+    expect(assembleReply({ text: 'Clothing took 116,76 EUR.', figures: [], actions: [], cites: [] }, ctx, 'what was biggest?').actions).toEqual([]);
+    const withOffer = assembleReply({ text: 'Noted.', figures: [], actions: [{ kind: 'remember', text: 'The trip is in October' }], cites: [] }, ctx, 'I am going to Valencia in October with Ana.');
+    expect(withOffer.actions.map((a) => a.kind)).toEqual(['remember']);
+    expect(withOffer.actions[0].text).toBe('The trip is in October');
+    expect(isStatement('Do not count the transfer to my savings account as spending.')).toBe(true);
+    expect(isStatement('What can I spend today?')).toBe(false);
+    expect(isStatement('ok')).toBe(false);
+  });
+});
+
 describe('isShortAsk', () => {
   it('a short question or request is an ask; a statement that teaches is not', () => {
     expect(isShortAsk('What comes back every month?')).toBe(true);
     expect(isShortAsk('what comes back every month')).toBe(true);
     expect(isShortAsk('subscriptions')).toBe(true);
     expect(isShortAsk('How does this month compare?')).toBe(true);
+    expect(isShortAsk('Give me a chart of my spending by category')).toBe(true);
+    expect(isStatement('Give me a chart of my spending by category')).toBe(false);
     expect(isShortAsk('maria dolores is the woman who gets me the real madrid tickets for 50 euros per person, so many times see if money comes back from 50 euro transfers or 200 euro to me as friends sometimes buy from me')).toBe(false);
     expect(isShortAsk('Spotify is my flatmate\'s, it comes back every month but it is not mine')).toBe(false);
     expect(isShortAsk('')).toBe(false);

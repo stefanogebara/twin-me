@@ -32,6 +32,8 @@ const arg = (name, dflt = null) => { const i = process.argv.indexOf(name); retur
 const API = arg('--api', 'http://127.0.0.1:3014');
 const ONLY = (arg('--only', '') || '').split(',').filter(Boolean);
 const JUDGE = process.argv.includes('--judge');
+/* The judge: DeepSeek flipped between 2 and 0 on the same reply across runs; a steadier reader by default. */
+const JUDGE_MODEL = arg('--judge-model', 'google/gemini-2.5-flash');
 const OUT = arg('--out', path.resolve(process.cwd(), '.claude/plans/2026-09-15-chat-evals/runs'));
 const EMAIL = process.env.EVAL_EMAIL || 'stefanogebara@gmail.com';
 
@@ -72,14 +74,17 @@ async function judge(s, reply, token) {
   const key = process.env.OPENROUTER_API_KEY;
   if (!key) return null;
   const body = {
-    model: 'deepseek/deepseek-v3.2', temperature: 0, max_tokens: 120,
+    model: JUDGE_MODEL, temperature: 0, max_tokens: 160,
     messages: [
-      { role: 'system', content: 'You grade one reply from a personal finance assistant. Return JSON only: {"addresses": 0|1|2, "why": string}. addresses: 2 = the reply responds to what the person typed (answers the question, or for a statement acknowledges it and offers to keep or act on it); 1 = partly; 0 = it answered something else or ignored the message.' },
+      { role: 'system', content: 'You grade one reply from a personal finance assistant that speaks for a ledger. Return JSON only: {"addresses": 0|1|2, "why": string}. addresses: 2 = the reply gives what the message asked for (a figure for a question about money, even in one terse line; for a statement, it says the thing back and offers to keep or act on it; for a greeting, a short greeting); 1 = it gives part of it; 0 = it answers a different question, ignores the message, or contradicts what the person said. Terseness is not a fault. A figure drawn counts as an answer when a chart was asked for.' },
       { role: 'user', content: `The person typed: ${s.message}\n\nThe reply: ${reply.text}\n\nOffers made: ${(reply.actions || []).map((a) => a.label).join('; ') || 'none'}\nFigures drawn: ${(reply.figures || []).map((f) => f.kind).join(', ') || 'none'}` },
     ],
   };
-  const r = await fetch('https://openrouter.ai/api/v1/chat/completions', { method: 'POST', headers: { authorization: `Bearer ${key}`, 'content-type': 'application/json' }, body: JSON.stringify(body) });
-  const j = await r.json().catch(() => null);
+  let j = null;
+  try {
+    const r = await fetch('https://openrouter.ai/api/v1/chat/completions', { method: 'POST', headers: { authorization: `Bearer ${key}`, 'content-type': 'application/json' }, body: JSON.stringify(body) });
+    j = await r.json().catch(() => null);
+  } catch { return { addresses: null, why: 'judge unreachable' }; }
   const raw = j?.choices?.[0]?.message?.content || '';
   try { const o = JSON.parse(raw.slice(raw.indexOf('{'), raw.lastIndexOf('}') + 1)); const n = Number(o.addresses); return { addresses: Number.isFinite(n) ? Math.max(0, Math.min(2, n)) : null, why: String(o.why || '').slice(0, 160) }; } catch { return { addresses: null, why: raw.slice(0, 160) }; }
 }
@@ -117,6 +122,6 @@ async function judge(s, reply, token) {
   console.log(`\n${passed}/${results.length} passed. By check: ${Object.entries(byCheck).map(([k, v]) => `${k} ${v.pass}/${v.pass + v.fail}`).join(', ')}. Turns cleaned: ${turns?.length || 0}.`);
   fs.mkdirSync(OUT, { recursive: true });
   const file = path.join(OUT, `${startedAt.replace(/[:.]/g, '-')}.json`);
-  fs.writeFileSync(file, JSON.stringify({ startedAt, api: API, judge: JUDGE, passed, total: results.length, byCheck, results }, null, 1));
+  fs.writeFileSync(file, JSON.stringify({ startedAt, api: API, judge: JUDGE ? JUDGE_MODEL : null, passed, total: results.length, byCheck, results }, null, 1));
   console.log(`written ${file}`);
 })().catch((e) => { console.error('eval failed:', e.message); process.exit(1); });

@@ -440,13 +440,13 @@ export const RULES = [
   'The earlier turns are the conversation so far. Do not restate the question, do not repeat a number or a sentence you already said unless asked for it again, and do not explain again what the ledger is or where answers come from.',
   'Vary your openings; never begin two answers the same way. On a follow-up ("and last month?", "why?", "and Spotify?") answer only what is new.',
   'When the calendar lines say what a kind of event usually costs, you may say what the days ahead are likely to cost, always as "usually about", never as a promise.',
-  'When a figure would show the thing better than words, ask for it by kind. Kinds: months (spent per month), shares (where a month went; add month, and by: "merchant" for places), weekdays (spend by weekday), recurring (what comes back), band (this month so far and likely), history (one merchant over time; add merchant). Ask for at most two, and only when they add something.',
+  'Never ask whether they would like a figure or a chart: when one would help, ask for it by kind and it is drawn under your words. When a figure would show the thing better than words, ask for it by kind. Kinds: months (spent per month), shares (where a month went; add month, and by: "merchant" for places), weekdays (spend by weekday), recurring (what comes back), band (this month so far and likely), history (one merchant over time; add merchant). Ask for at most two, and only when they add something.',
   'Actions are offers the person taps, never things you did: the text must not claim to have changed, marked or recorded anything. Say something like "If that is right, mark it below." and leave the doing to the card.',
   'Propose an action only when the person asks to fix or record something: not_me with transaction_id from the recent payments; recategorise with merchant_key from the places and a category from: ' + CATEGORIES.join(', ') + '; answer with question_id from the open questions and the value they gave; split with transaction_id from the recent payments and ways (2 to 12, the person included) when they say a payment was shared, for a dinner, a shop, a present.',
   'When the person tells you who somebody on the statement is, or what a transfer to them was for, propose person with merchant_key (the key of that person in the recent payments), role from: ' + PERSON_ROLES.join(', ') + ', and note with what they said about it. When they tell you something about their money that fits none of these (a plan, a reason, a rule of theirs), propose remember with text in their words. When they say something the ledger holds is wrong (their words, on What it knows), propose forget with the fact_id from the facts list.',
   'When the person points out a mistake, say what you will read differently once they confirm, and propose the action; do not argue. When they ask for a chart or a graph, ask for the figure kind that shows it.',
   'When they say a payment is not theirs, or is somebody else\'s, propose not_me with the transaction_id of the newest such payment in the recent payments. Propose forget only for a fact in the list of what they said, never for a payment or a charge.',
-  'Answer in the language the person wrote in. A single word like "ok" is answered in English unless the earlier turns were in Spanish.',
+  'The reply is in the language of the person\'s last message, never in the language of a name in the context: an English question gets English even when the bank is called Banco Santander. A single word like "ok" is answered in English unless the earlier turns were in Spanish.',
   'Reply with one JSON object and nothing else: {"text": string, "figures": [{"kind": string, "month"?: string, "by"?: string, "merchant"?: string}], "actions": [{"kind": string, "label": string, ...}], "cites"?: [transaction ids]}',
 ].join('\n');
 
@@ -474,7 +474,9 @@ export function parseReply(raw) {
 
 /** Prose that came back where JSON was asked for, kept readable: no markdown glyphs. */
 function plainProse(raw) {
-  return String(raw || '').replace(/[*_`#>]/g, '').replace(/\n{2,}/g, ' ').replace(/\s+/g, ' ').trim();
+  /* Prose followed by an object it could not finish: the object's start is where the prose ends. */
+  const cut = String(raw || '').split(/\{\s*"text"/)[0];
+  return cut.replace(/[*_`#>]/g, '').replace(/\n{2,}/g, ' ').replace(/\s+/g, ' ').trim();
 }
 
 /* ------------------------------------------------------------------------ short circuits */
@@ -497,7 +499,7 @@ export function isShortAsk(message) {
   if (/\b(is|are|was|were|am)\s+(my|the|a|an|our|his|her)\b/i.test(m) && !/\?/.test(m)) return false;
   /* A correction is an instruction, however short: "do not count X", "that is wrong". */
   if (/\b(do not|don'?t|never|wrong|not mine|isn'?t|is not|stop)\b/i.test(m)) return false;
-  return /\?$/.test(m) || /^(what|which|how|show|list|tell|do|does|can|any|que|qu\u00e9|cu\u00e1l|cual|cu\u00e1nto|cuanto|dime|muestra)\b/i.test(m) || words.length <= 6;
+  return /\?$/.test(m) || /^(what|which|how|show|list|tell|do|does|can|any|give|draw|make|compare|plot|chart|graph|explain|why|when|where|who|que|qu\u00e9|cu\u00e1l|cual|cu\u00e1nto|cuanto|dime|muestra|dame|ens\u00e9\u00f1ame|ensename)\b/i.test(m) || words.length <= 6;
 }
 
 export function shortCircuit(message, ctx) {
@@ -528,6 +530,15 @@ export function shortCircuit(message, ctx) {
 }
 
 /* ------------------------------------------------------------------------ answer */
+
+/** The offers through which the ledger learns; a statement without one of these is a lesson lost. */
+const LEARNING_KINDS = Object.freeze(['remember', 'person', 'answer', 'not_me', 'recategorise', 'split']);
+
+/** A message that tells the ledger something rather than asking it: not a short ask, no question mark, at least four words. Pure. */
+export function isStatement(message) {
+  const m = String(message || '').trim();
+  return !isShortAsk(m) && !/\?/.test(m) && m.split(/\s+/).filter(Boolean).length >= 4;
+}
 
 /** Does a message ask where the money went, or speak in categories? */
 export function asksWhereItWent(message) {
@@ -564,6 +575,14 @@ export function assembleReply(parsed, ctx, message = '') {
   }
   const built = requests.slice(0, 2).map((r) => buildFigure(r, ctx)).filter(Boolean);
   const actions = (parsed.actions || []).slice(0, 3).map((a) => validateAction(a, ctx)).filter(Boolean);
+  /* A statement always carries a way to keep it. The model writes "if that is right, mark it
+     below" and, one time in three, attaches no offer; the person then has nothing to tap and
+     the ledger learns nothing. When they told the ledger something and no learning offer
+     survived, their own words are offered as a note. */
+  if (isStatement(message) && !actions.some((a) => LEARNING_KINDS.includes(a.kind))) {
+    const note = validateAction({ kind: 'remember', text: String(message).trim().slice(0, 200), label: 'Remember this' }, ctx);
+    if (note) actions.push(note);
+  }
   return {
     text: euroGlyphs(parsed.text),
     figures: built.map((b) => b.figure),
@@ -644,7 +663,9 @@ export async function answer(userId, message, history = [], { now = new Date() }
     const prose = plainProse(raw);
     const grounded = prose ? dropUngrounded(euroGlyphs(prose), ctx) : { text: '', dropped: 0 };
     const said = grounded.text || (grounded.dropped ? NO_TOTAL : NO_ANSWER);
-    return keep({ text: said, figures: [], actions: [], receipts: [], basis: basisOf(said, ctx) });
+    /* Prose still earns the figure the question asks for ("where did it go" draws the shares). */
+    const shaped = prose ? assembleReply({ text: said, figures: [], actions: [], cites: [] }, ctx, text) : { text: said, figures: [], actions: [], receipts: [] };
+    return keep({ ...shaped, text: said, basis: basisOf(said, ctx) });
   }
   const reply = assembleReply(parsed, ctx, text);
   const grounded = dropUngrounded(withoutRepeats(reply.text, history), ctx);
@@ -988,7 +1009,9 @@ export async function answerStream(userId, message, history = [], { now = new Da
     const text = g.text || (g.dropped ? NO_TOTAL : NO_ANSWER);
     if (!shown.length) whole(text);
     const said = shown.length ? asShown(shown) : text;
-    return closeWith({ text: said, figures: [], actions: [], receipts: [], basis: basisOf(said, ctx) });
+    /* Prose still earns the figure the question asks for ("where did it go" draws the shares). */
+    const shaped = prose ? assembleReply({ text: said, figures: [], actions: [], cites: [] }, ctx, asked) : { text: said, figures: [], actions: [], receipts: [] };
+    return closeWith({ ...shaped, text: said, basis: basisOf(said, ctx) });
   }
 
   const reply = assembleReply(parsed, ctx, asked);
