@@ -167,7 +167,20 @@ export default function MoneyV2Page({ view = 'today' }: { view?: MoneyView } = {
     if (u.status === 'fulfilled') setUsage(u.value);
     setLoaded(true);
   }, []);
-  useEffect(() => { void load(); }, [load]);
+  /* Read again on every page (the three views share one mounted component, so a switch
+     alone reloaded nothing) and when the tab comes back after a minute away: a bank read
+     from the phone or another tab was showing on one page and not the next. */
+  useEffect(() => { void load(); }, [load, view]);
+  useEffect(() => {
+    let hiddenAt = 0;
+    const onVisibility = () => {
+      if (document.visibilityState === 'hidden') { hiddenAt = Date.now(); return; }
+      if (hiddenAt && Date.now() - hiddenAt > 60000) void load();
+      hiddenAt = 0;
+    };
+    document.addEventListener('visibilitychange', onVisibility);
+    return () => document.removeEventListener('visibilitychange', onVisibility);
+  }, [load]);
   useEffect(() => { moneyAPI.inbox().then(setInbox).catch(() => setInbox(null)); }, []);
   const loadCalendar = useCallback(() => moneyAPI.calendar().then(setCalendar).catch(() => setCalendar({ connected: false })), []);
   /* Only You shows the calendar, and reading it fetches every pasted link: not on every page. */
