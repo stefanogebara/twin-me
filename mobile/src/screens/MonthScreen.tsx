@@ -112,6 +112,8 @@ export default function MonthScreen({ onOpenQuestions, questionCount, onOpenLedg
 }) {
   const [forecast, setForecast] = useState<MoneyForecast | null>(null);
   const [ledgerLines, setLedgerLines] = useState<number | null>(null);
+  /* Today's pending alerts, signed, for the balance line: the bank's booked figure minus them. */
+  const [pending, setPending] = useState<{ count: number; net: number }>({ count: 0, net: 0 });
   const [readings, setReadings] = useState<MoneyReading[]>([]);
   const [categories, setCategories] = useState<MoneyCategories | null>(null);
   const [months, setMonths] = useState<MoneyMonth[]>([]);
@@ -131,8 +133,12 @@ export default function MonthScreen({ onOpenQuestions, questionCount, onOpenLedg
     const when = d.toDateString() === new Date().toDateString() ? `read at ${d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}` : `read ${dayMonth(newest)}`;
     const pendingIn = fresh.some((a) => /^(XPCD|ITAV)/.test(a.balance_type || ''));
     const anyNegative = fresh.some((a) => Number(a.balance) < 0);
+    if (!pendingIn && pending.count > 0 && fresh.length === 1) {
+      const after = Number(fresh[0].balance) + pending.net;
+      return `${signed(Number(fresh[0].balance))} booked in ${bankLabel(fresh[0].bank_name)}, about ${signed(after)} after today's ${pending.count} pending, ${when}.`;
+    }
     return `${parts.join(', ')}${anyNegative ? '' : ' available'}, ${when}${pendingIn ? ', pending charges included.' : ', pending charges not yet counted.'}`;
-  }, [accounts]);
+  }, [accounts, pending]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [unreachable, setUnreachable] = useState(false);
@@ -158,7 +164,12 @@ export default function MonthScreen({ onOpenQuestions, questionCount, onOpenLedg
        last recorded outcome, so the month still says why it stopped moving. */
     if (ac.status === 'fulfilled') { setAccounts(ac.value); if (ac.value.some((a) => a.needs_reconnect)) setNeedsReconnect(true); }
     if (f.status === 'fulfilled') setForecast(f.value);
-    if (l.status === 'fulfilled') setLedgerLines(l.value.length);
+    if (l.status === 'fulfilled') {
+      setLedgerLines(l.value.length);
+      const bookedTo = l.value.reduce<string | null>((m, t) => (t.posted_at && (!m || t.occurred_at > m) ? t.occurred_at : m), null);
+      const rows = bookedTo ? l.value.filter((t) => !t.posted_at && t.occurred_at > bookedTo) : [];
+      setPending({ count: rows.length, net: rows.reduce((sum, t) => sum + Number(t.amount || 0), 0) });
+    }
     if (rd.status === 'fulfilled') setReadings(rd.value);
     if (c.status === 'fulfilled') setCategories(c.value);
     if (rc.status === 'fulfilled') setRecurring(rc.value);

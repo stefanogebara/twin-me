@@ -70,7 +70,8 @@ describe('cron-money-pull', () => {
     const res = await request(app()).get('/api/cron/money-pull').set(AUTH);
     expect(res.body).toMatchObject({ read: 1, skipped: 1, created: 0, refreshed: 2, daily: true });
     expect(refresh.mock.calls.map((c) => c[0])).toEqual(['u1', 'u2']);
-    expect(places).not.toHaveBeenCalled();
+    /* No new rows, but the day's first run still looks up what no provider has placed. */
+    expect(places.mock.calls.map((c) => [c[0], c[1].limit])).toEqual([['u1', 20], ['u2', 20]]);
     expect(learn).toHaveBeenCalledTimes(2);
     expect(calendar.mock.calls.map((c) => c[0])).toEqual(['u1', 'u2']);
   });

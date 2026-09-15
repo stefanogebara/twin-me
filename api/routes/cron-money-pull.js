@@ -35,6 +35,8 @@ export const PLACE_LOOKUPS_PER_RUN = 8;
 /** The run before this hour (UTC) is the day's first, and recomputes every reading. */
 export const DAILY_REFRESH_BEFORE_HOUR = 8;
 export const isDailyRun = (now = new Date()) => now.getUTCHours() < DAILY_REFRESH_BEFORE_HOUR;
+/** Merchants looked up on the day's first run whether or not the bank had news. */
+export const DAILY_PLACE_LOOKUPS = 20;
 
 router.all('/', async (req, res) => {
   const startedAt = Date.now();
@@ -76,10 +78,16 @@ router.all('/', async (req, res) => {
       /* New rows, or the day's first run: what the ledger says is recomputed. A bank that
          refused the read does not stop the clock-driven readings from moving. */
       /* The calendar's read, once a day, so the diary cost and the covariates move for a
-         person who never opens the calendar. Google or a pasted link; quiet without either. */
+         person who never opens the calendar. Google or a pasted link; quiet without either.
+         And the places nobody has looked up yet, twenty a day, so "not read yet" is a merchant
+         no provider knows and never a lookup that did not happen. */
       if (daily) {
         await refreshCalendar(userId)
           .catch((e) => log.warn('calendar refresh failed', { userId, error: e.message }));
+        if (fresh === 0) {
+          await enrichPlaces(userId, { limit: DAILY_PLACE_LOOKUPS })
+            .catch((e) => log.warn('daily places failed', { userId, error: e.message }));
+        }
       }
       if (fresh > 0 || daily) {
         const ok = await refreshReadings(userId).then(() => true)
