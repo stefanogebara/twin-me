@@ -456,8 +456,11 @@ export async function feedBudget(userId, now = new Date()) {
 
 /** A bank authorisation that came back and could not be saved, kept where the reads are, so
     it can be seen later without the platform's logs. The message is trimmed and has no ids. */
-export async function recordCallbackFailure(userId, message) {
-  await recordAccess(userId, null, { attended: true, rowsSeen: 0, outcome: `callback_failed: ${String(message || '').replace(/[0-9a-f-]{20,}/g, '').slice(0, 120)}` });
+export async function recordCallbackFailure(userId, message, { keepIds = false } = {}) {
+  /* Ids are stripped and the line kept short, unless the caller wants the whole thing kept
+     for reading later (a bank's session object, which is not a secret). */
+  const said = keepIds ? String(message || '').slice(0, 4000) : String(message || '').replace(/[0-9a-f-]{20,}/g, '').slice(0, 120);
+  await recordAccess(userId, null, { attended: true, rowsSeen: 0, outcome: `callback_failed: ${said}` });
 }
 
 async function recordAccess(userId, accountId, { attended = false, rowsSeen = null, outcome = 'ok' } = {}) {

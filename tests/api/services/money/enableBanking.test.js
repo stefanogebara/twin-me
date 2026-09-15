@@ -211,6 +211,29 @@ describe('pickBalance', () => {
   });
 });
 
+describe('getSession', () => {
+  it('reads a session again by id and shapes it like createSession', async () => {
+    const saved = { fetch: global.fetch, id: process.env.ENABLE_BANKING_APP_ID, key: process.env.ENABLE_BANKING_PRIVATE_KEY }; let url = null;
+    const { generateKeyPairSync } = await import('node:crypto');
+    const { privateKey } = generateKeyPairSync('rsa', { modulusLength: 2048, privateKeyEncoding: { type: 'pkcs8', format: 'pem' }, publicKeyEncoding: { type: 'spki', format: 'pem' } });
+    process.env.ENABLE_BANKING_APP_ID = 'test-app';
+    process.env.ENABLE_BANKING_PRIVATE_KEY = privateKey;
+    global.fetch = async (u) => { url = String(u); return { ok: true, status: 200, text: async () => JSON.stringify({ session_id: 's9', status: 'AUTHORIZED', access: { valid_until: '2027-03-01T00:00:00Z' }, aspsp: { name: 'Revolut', country: 'ES' }, accounts: [{ uid: 'u-2', account_id: { iban: 'LT12' }, name: 'Main', currency: 'EUR' }] }) }; };
+    try {
+      const { getSession } = await import('../../../../api/services/money/feeds/enableBanking.js');
+      const s = await getSession('s9');
+      expect(url).toMatch(/\/sessions\/s9$/);
+      expect(s.bankName).toBe('Revolut');
+      expect(s.accounts).toEqual([{ uid: 'u-2', iban: 'LT12', name: 'Main', currency: 'EUR' }]);
+      expect(s.raw.status).toBe('AUTHORIZED');
+    } finally {
+      global.fetch = saved.fetch;
+      if (saved.id) process.env.ENABLE_BANKING_APP_ID = saved.id; else delete process.env.ENABLE_BANKING_APP_ID;
+      if (saved.key) process.env.ENABLE_BANKING_PRIVATE_KEY = saved.key; else delete process.env.ENABLE_BANKING_PRIVATE_KEY;
+    }
+  });
+});
+
 describe('createSession', () => {
   it('keeps the bank\'s name the session came back with, so a second bank is told apart', async () => {
     const saved = { fetch: global.fetch, id: process.env.ENABLE_BANKING_APP_ID, key: process.env.ENABLE_BANKING_PRIVATE_KEY };
