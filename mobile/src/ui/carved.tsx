@@ -6,23 +6,38 @@
  */
 import React from 'react';
 import { Image, StyleSheet, View } from 'react-native';
+import barPng from '../../assets/carved/bar.png';
+import cashPng from '../../assets/carved/cash.png';
+import coffeePng from '../../assets/carved/coffee.png';
+import diaryPng from '../../assets/carved/diary.png';
+import eating_outPng from '../../assets/carved/eating_out.png';
+import entertainmentPng from '../../assets/carved/entertainment.png';
+import groceriesPng from '../../assets/carved/groceries.png';
+import keepPng from '../../assets/carved/keep.png';
+import pharmacyPng from '../../assets/carved/pharmacy.png';
+import rentPng from '../../assets/carved/rent.png';
+import softwarePng from '../../assets/carved/software.png';
+import sportPng from '../../assets/carved/sport.png';
+import taxiPng from '../../assets/carved/taxi.png';
+import transferPng from '../../assets/carved/transfer.png';
+import transportPng from '../../assets/carved/transport.png';
 
 const MARKS = {
-  bar: require('../../assets/carved/bar.png'),
-  cash: require('../../assets/carved/cash.png'),
-  coffee: require('../../assets/carved/coffee.png'),
-  diary: require('../../assets/carved/diary.png'),
-  eating_out: require('../../assets/carved/eating_out.png'),
-  entertainment: require('../../assets/carved/entertainment.png'),
-  groceries: require('../../assets/carved/groceries.png'),
-  keep: require('../../assets/carved/keep.png'),
-  pharmacy: require('../../assets/carved/pharmacy.png'),
-  rent: require('../../assets/carved/rent.png'),
-  software: require('../../assets/carved/software.png'),
-  sport: require('../../assets/carved/sport.png'),
-  taxi: require('../../assets/carved/taxi.png'),
-  transfer: require('../../assets/carved/transfer.png'),
-  transport: require('../../assets/carved/transport.png'),
+  bar: barPng,
+  cash: cashPng,
+  coffee: coffeePng,
+  diary: diaryPng,
+  eating_out: eating_outPng,
+  entertainment: entertainmentPng,
+  groceries: groceriesPng,
+  keep: keepPng,
+  pharmacy: pharmacyPng,
+  rent: rentPng,
+  software: softwarePng,
+  sport: sportPng,
+  taxi: taxiPng,
+  transfer: transferPng,
+  transport: transportPng,
 } as const;
 type MarkName = keyof typeof MARKS;
 
