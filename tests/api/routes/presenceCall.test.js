@@ -14,7 +14,7 @@ const PRESENCE = { id: '11111111-1111-4111-8111-111111111111', owner_user_id: 'u
 const ok = (data) => ({ data, error: null });
 const fail = (message) => ({ data: null, error: { message } });
 
-const { store, log, llm, brief } = vi.hoisted(() => ({
+const { store, log, llm, brief, voiceService } = vi.hoisted(() => ({
   store: {
     findPresenceByCallToken: vi.fn(),
     getElderHome: vi.fn(),
@@ -26,12 +26,14 @@ const { store, log, llm, brief } = vi.hoisted(() => ({
   log: { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() },
   llm: { complete: vi.fn() },
   brief: { compileCallBrief: vi.fn() },
+  voiceService: { isEnabled: vi.fn(), getConversationToken: vi.fn(), getConversation: vi.fn() },
 }));
 
 vi.mock('../../../api/services/presenceStore.js', () => store);
 vi.mock('../../../api/services/logger.js', () => ({ createLogger: () => log }));
 vi.mock('../../../api/services/llmGateway.js', () => ({ complete: llm.complete, TIER_ANALYSIS: 'analysis' }));
 vi.mock('../../../api/services/presenceCallBrief.js', () => brief);
+vi.mock('../../../api/services/voiceService.js', () => ({ voiceService }));
 
 const callRoutes = (await import('../../../api/routes/presence-call.js')).default;
 
@@ -54,6 +56,10 @@ beforeEach(() => {
   store.findPresenceByCallToken.mockResolvedValue(ok(PRESENCE));
   store.createConversation.mockResolvedValue(ok({ id: 'conv-1' }));
   store.getElderHome.mockResolvedValue({ notes: ok([]), conversations: ok([]), error: null });
+  // No ElevenLabs key in most tests: the session uses the public agent id and the
+  // transcript the browser sent, as in local development.
+  voiceService.isEnabled.mockReturnValue(false);
+  brief.compileCallBrief.mockResolvedValue({ prompt: 'PROMPT', firstMessage: 'Oi, Lurdes!', voiceId: null, queuedNoteIds: [] });
   llm.complete.mockResolvedValue({
     content: JSON.stringify({
       summary: 'She talked about the beach.',
@@ -80,6 +86,118 @@ describe('GET /:token', () => {
     expect(res.status).toBe(500);
     expect(res.body.call).toBeUndefined();
     expect(log.error).toHaveBeenCalledWith(expect.any(String), loggedError('statement timeout'));
+  });
+});
+
+describe('GET /:token — a private agent and a server-issued session', () => {
+  beforeEach(() => {
+    process.env.ELEVENLABS_PRESENCE_AGENT_ID = 'agent-1';
+  });
+  afterEach(() => {
+    delete process.env.ELEVENLABS_PRESENCE_AGENT_ID;
+  });
+
+  it('returns a conversation token, the presence id and Brazilian Portuguese', async () => {
+    voiceService.isEnabled.mockReturnValue(true);
+    voiceService.getConversationToken.mockResolvedValue({ success: true, token: 'tok-1', conversationId: 'conv-1' });
+
+    const res = await request(createApp()).get(`/api/presence-call/${TOKEN}`);
+
+    expect(res.status).toBe(200);
+    expect(res.body.call).toMatchObject({ conversation_token: 'tok-1', presence_id: PRESENCE.id, language: 'pt-br', agent_id: 'agent-1' });
+    expect(voiceService.getConversationToken).toHaveBeenCalledWith('agent-1');
+  });
+
+  it('answers 502 when ElevenLabs will not issue a session', async () => {
+    voiceService.isEnabled.mockReturnValue(true);
+    voiceService.getConversationToken.mockResolvedValue({ success: false, error: 'invalid key' });
+
+    const res = await request(createApp()).get(`/api/presence-call/${TOKEN}`);
+
+    expect(res.status).toBe(502);
+    expect(res.body.call).toBeUndefined();
+  });
+
+  it('falls back to the public agent id without a key, as in local development', async () => {
+    const res = await request(createApp()).get(`/api/presence-call/${TOKEN}`);
+
+    expect(res.status).toBe(200);
+    expect(res.body.call.conversation_token).toBeNull();
+    expect(res.body.call.agent_id).toBe('agent-1');
+  });
+});
+
+describe('POST /:token/complete — the transcript ElevenLabs holds, not the one the browser sent', () => {
+  const record = (overrides = {}) => ({
+    agent_id: 'agent-1',
+    conversation_id: 'conv-1',
+    status: 'done',
+    transcript: [
+      { role: 'agent', message: 'Oi, Lurdes!', time_in_call_secs: 0 },
+      { role: 'user', message: 'Oi, filha', time_in_call_secs: 3 },
+      { role: 'agent', message: null, time_in_call_secs: 5 },
+    ],
+    metadata: { call_duration_secs: 95 },
+    ...overrides,
+  });
+
+  beforeEach(() => {
+    process.env.ELEVENLABS_PRESENCE_AGENT_ID = 'agent-1';
+    voiceService.isEnabled.mockReturnValue(true);
+  });
+  afterEach(() => {
+    delete process.env.ELEVENLABS_PRESENCE_AGENT_ID;
+  });
+
+  it('answers 400 without a conversation id', async () => {
+    const res = await complete({ transcript: [{ role: 'user', content: 'x' }], duration_seconds: 10 });
+
+    expect(res.status).toBe(400);
+    expect(store.createConversation).not.toHaveBeenCalled();
+  });
+
+  it('answers 409 and stores nothing when ElevenLabs does not know the conversation', async () => {
+    voiceService.getConversation.mockResolvedValue({ success: false, error: 'not found' });
+
+    const res = await complete({ conversation_id: 'conv-x', transcript: [{ role: 'user', content: 'FAKE' }], duration_seconds: 10 });
+
+    expect(res.status).toBe(409);
+    expect(store.createConversation).not.toHaveBeenCalled();
+  });
+
+  it('answers 409 when the conversation belongs to another agent', async () => {
+    voiceService.getConversation.mockResolvedValue({ success: true, conversation: record({ agent_id: 'agent-other' }) });
+
+    const res = await complete({ conversation_id: 'conv-1', transcript: [], duration_seconds: 10 });
+
+    expect(res.status).toBe(409);
+    expect(store.createConversation).not.toHaveBeenCalled();
+  });
+
+  it('stores the transcript and duration ElevenLabs holds, with its id', async () => {
+    voiceService.getConversation.mockResolvedValue({ success: true, conversation: record() });
+
+    const res = await complete({ conversation_id: 'conv-1', transcript: [{ role: 'user', content: 'FAKE' }], duration_seconds: 1 });
+
+    expect(res.status).toBe(201);
+    expect(store.createConversation.mock.calls[0][0]).toMatchObject({
+      transcript: [{ role: 'assistant', content: 'Oi, Lurdes!' }, { role: 'user', content: 'Oi, filha' }],
+      turn_count: 2,
+      duration_seconds: 95,
+      provider_conversation_id: 'conv-1',
+    });
+  });
+
+  it('keeps the transcript the browser sent, and logs, while ElevenLabs is still processing the call', async () => {
+    voiceService.getConversation.mockResolvedValue({ success: true, conversation: record({ status: 'processing', transcript: [], metadata: {} }) });
+
+    const res = await complete({ conversation_id: 'conv-1', transcript: [{ role: 'user', content: 'Oi, filha' }], duration_seconds: 40 });
+
+    expect(res.status).toBe(201);
+    expect(store.createConversation.mock.calls[0][0]).toMatchObject({
+      transcript: [{ role: 'user', content: 'Oi, filha' }], duration_seconds: 40, provider_conversation_id: 'conv-1',
+    });
+    expect(log.warn).toHaveBeenCalledWith(expect.any(String), expect.objectContaining({ conversationId: 'conv-1' }));
   });
 });
 

@@ -225,6 +225,47 @@ class VoiceService {
   }
 
   /**
+   * A WebRTC conversation token for a private agent, fetched server-side so
+   * the browser never needs a public agent id. ElevenLabs also returns the
+   * conversation id the session will have.
+   */
+  async getConversationToken(agentId) {
+    if (!this.enabled) {
+      throw new Error('Voice service not available - API key not configured');
+    }
+    try {
+      const response = await axios.get(
+        `${this.baseUrl}/convai/conversation/token?agent_id=${encodeURIComponent(agentId)}`,
+        { headers: { 'xi-api-key': this.apiKey } }
+      );
+      return { success: true, token: response.data.token, conversationId: response.data.conversation_id };
+    } catch (error) {
+      log.error('Conversation token request failed:', error);
+      return { success: false, error: error.response?.data?.detail || error.message };
+    }
+  }
+
+  /**
+   * The record ElevenLabs holds for a conversation: agent id, status, transcript
+   * (role user|agent, message, time_in_call_secs) and metadata.call_duration_secs.
+   */
+  async getConversation(conversationId) {
+    if (!this.enabled) {
+      throw new Error('Voice service not available - API key not configured');
+    }
+    try {
+      const response = await axios.get(
+        `${this.baseUrl}/convai/conversations/${encodeURIComponent(conversationId)}`,
+        { headers: { 'xi-api-key': this.apiKey } }
+      );
+      return { success: true, conversation: response.data };
+    } catch (error) {
+      log.error('Conversation read failed:', error);
+      return { success: false, error: error.response?.data?.detail || error.message };
+    }
+  }
+
+  /**
    * Delete a cloned voice
    */
   async deleteVoice(voiceId) {

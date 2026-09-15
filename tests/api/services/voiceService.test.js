@@ -45,3 +45,43 @@ describe('voiceService.deleteVoice', () => {
     await expect(service.deleteVoice('voice-1')).resolves.toEqual({ success: false, error: 'internal error' });
   });
 });
+
+// The elder channel starts sessions against a private agent with a token the
+// server fetches, and reads the transcript ElevenLabs holds rather than the one
+// the browser sends.
+describe('voiceService conversations', () => {
+  let service;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    service = new VoiceService();
+  });
+
+  it('asks ElevenLabs for a conversation token for the agent', async () => {
+    axios.get.mockResolvedValue({ data: { token: 'tok-1', conversation_id: 'conv-1' } });
+
+    await expect(service.getConversationToken('agent-1')).resolves.toEqual({ success: true, token: 'tok-1', conversationId: 'conv-1' });
+    expect(axios.get.mock.calls[0][0]).toBe('https://api.elevenlabs.io/v1/convai/conversation/token?agent_id=agent-1');
+    expect(axios.get.mock.calls[0][1]).toMatchObject({ headers: { 'xi-api-key': 'test-key' } });
+  });
+
+  it('reports a token it could not get', async () => {
+    axios.get.mockRejectedValue(httpError(401, 'invalid key'));
+
+    await expect(service.getConversationToken('agent-1')).resolves.toEqual({ success: false, error: 'invalid key' });
+  });
+
+  it('reads a conversation record', async () => {
+    const record = { agent_id: 'agent-1', conversation_id: 'conv-1', status: 'done', transcript: [], metadata: { call_duration_secs: 90 } };
+    axios.get.mockResolvedValue({ data: record });
+
+    await expect(service.getConversation('conv-1')).resolves.toEqual({ success: true, conversation: record });
+    expect(axios.get.mock.calls[0][0]).toBe('https://api.elevenlabs.io/v1/convai/conversations/conv-1');
+  });
+
+  it('reports a conversation ElevenLabs does not have', async () => {
+    axios.get.mockRejectedValue(httpError(404, 'not found'));
+
+    await expect(service.getConversation('conv-x')).resolves.toEqual({ success: false, error: 'not found' });
+  });
+});

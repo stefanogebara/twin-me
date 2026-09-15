@@ -6,8 +6,14 @@
  * rate limiting applies; tokens are 192-bit random, unguessable, and constant-time
  * compared by the unique-index lookup.
  *
- *   GET  /api/presence-call/:token           call config: agent id + compiled brief
- *   POST /api/presence-call/:token/complete  store transcript, deliver notes, summarize
+ *   GET  /api/presence-call/:token           call config: a session token + compiled brief
+ *   POST /api/presence-call/:token/complete  store the call, deliver notes, summarize
+ *
+ * With an ElevenLabs key the agent is private: the session is started with a
+ * token this server fetches, and /complete reads the transcript ElevenLabs holds
+ * for the conversation id the browser reports, so a fabricated transcript cannot
+ * become her facts or the next call's prompt. Without a key (local development)
+ * the public agent id and the browser's transcript are used.
  *
  * All table access goes through api/services/presenceStore.js.
  */
@@ -22,12 +28,16 @@ import {
   addFacts,
 } from '../services/presenceStore.js';
 import { compileCallBrief } from '../services/presenceCallBrief.js';
+import { voiceService } from '../services/voiceService.js';
 import { createLogger } from '../services/logger.js';
 
 const log = createLogger('PresenceCall');
 const router = express.Router();
 
 const TOKEN_RE = /^[A-Za-z0-9_-]{20,64}$/;
+const CONVERSATION_ID_RE = /^[A-Za-z0-9_-]{6,80}$/;
+// ElevenLabs' language code for Brazilian Portuguese (ASR and TTS).
+const CALL_LANGUAGE = 'pt-br';
 const MAX_TRANSCRIPT_TURNS = 400;
 const MAX_TURN_CHARS = 4000;
 // A call counts as having happened (so a queued note counts as read to her) only
@@ -70,16 +80,31 @@ router.get('/:token', async (req, res) => {
     }
 
     const brief = await compileCallBrief(presence);
+
+    // A private agent refuses a bare agent id; the browser starts the session with
+    // this token instead. Without a key there is no token and the id is public.
+    let conversationToken = null;
+    if (voiceService.isEnabled()) {
+      const issued = await voiceService.getConversationToken(agentId);
+      if (!issued.success) {
+        log.error('Conversation token not issued', { presenceId: presence.id, error: issued.error });
+        return res.status(502).json({ success: false, error: 'The voice channel did not answer' });
+      }
+      conversationToken = issued.token;
+    }
+
     res.json({
       success: true,
       call: {
         agent_id: agentId,
+        conversation_token: conversationToken,
+        presence_id: presence.id,
         cared_for_name: presence.cared_for_name,
         caller_name: presence.caller_name,
         prompt: brief.prompt,
         first_message: brief.firstMessage,
         voice_id: brief.voiceId, // null until the cloned voice is ready
-        language: 'pt',
+        language: CALL_LANGUAGE,
       },
     });
   } catch (err) {
@@ -129,12 +154,41 @@ router.post('/:token/complete', async (req, res) => {
     if (!presence) return;
 
     const raw = Array.isArray(req.body?.transcript) ? req.body.transcript : [];
-    const transcript = raw
+    let transcript = raw
       .filter((t) => t && (t.role === 'user' || t.role === 'assistant') && typeof t.content === 'string')
       .slice(0, MAX_TRANSCRIPT_TURNS)
       .map((t) => ({ role: t.role, content: t.content.slice(0, MAX_TURN_CHARS) }));
+    let durationSeconds = Math.min(Math.max(parseInt(req.body?.duration_seconds, 10) || 0, 0), 4 * 3600);
 
-    const durationSeconds = Math.min(Math.max(parseInt(req.body?.duration_seconds, 10) || 0, 0), 4 * 3600);
+    const conversationId = typeof req.body?.conversation_id === 'string' && CONVERSATION_ID_RE.test(req.body.conversation_id)
+      ? req.body.conversation_id
+      : null;
+
+    // With a key, the record ElevenLabs holds is the transcript: the browser's copy is
+    // only kept while the call is still being processed there.
+    if (voiceService.isEnabled()) {
+      if (!conversationId) {
+        return res.status(400).json({ success: false, error: 'conversation_id is required' });
+      }
+      const held = await voiceService.getConversation(conversationId);
+      if (!held.success || held.conversation?.agent_id !== process.env.ELEVENLABS_PRESENCE_AGENT_ID) {
+        log.warn('Completion refused: conversation unknown or not ours', { presenceId: presence.id, conversationId, error: held.error });
+        return res.status(409).json({ success: false, error: 'Conversation not recognized' });
+      }
+      const heldTranscript = Array.isArray(held.conversation.transcript) ? held.conversation.transcript : [];
+      if (heldTranscript.length > 0) {
+        transcript = heldTranscript
+          .filter((t) => t && (t.role === 'user' || t.role === 'agent') && typeof t.message === 'string' && t.message)
+          .slice(0, MAX_TRANSCRIPT_TURNS)
+          .map((t) => ({ role: t.role === 'user' ? 'user' : 'assistant', content: t.message.slice(0, MAX_TURN_CHARS) }));
+        const heldSeconds = parseInt(held.conversation.metadata?.call_duration_secs, 10);
+        if (Number.isFinite(heldSeconds)) durationSeconds = Math.min(Math.max(heldSeconds, 0), 4 * 3600);
+      } else {
+        log.warn('Conversation still processing at ElevenLabs; keeping the transcript the browser sent', {
+          presenceId: presence.id, conversationId, status: held.conversation.status,
+        });
+      }
+    }
 
     const { data: conversation, error } = await createConversation({
       presence_id: presence.id,
@@ -142,6 +196,7 @@ router.post('/:token/complete', async (req, res) => {
       transcript,
       turn_count: transcript.length,
       duration_seconds: durationSeconds,
+      provider_conversation_id: conversationId,
     });
     if (error) throw error;
 
