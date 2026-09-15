@@ -32,7 +32,8 @@ export function inkOf(el: Element): { ink: Rgb; page: Rgb } {
     const cs = getComputedStyle(el);
     return {
       ink: parseColor(cs.color) || INK,
-      page: parseColor(cs.getPropertyValue('--page')) || parseColor(cs.getPropertyValue('--rg-page')) || PAGE,
+      /* On a photograph the ground is not the page: a surface may name its own with --orb-ground. */
+      page: parseColor(cs.getPropertyValue('--orb-ground')) || parseColor(cs.getPropertyValue('--page')) || parseColor(cs.getPropertyValue('--rg-page')) || PAGE,
     };
   } catch {
     return { ink: INK, page: PAGE };

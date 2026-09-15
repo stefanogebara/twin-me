@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { discoveryScan, type QuickEnrichmentData } from '../../services/enrichmentService';
 import { useAnalytics } from '../../contexts/AnalyticsContext';
 import RevealStory from '../../components/landing/RevealStory';
+import LedgerOrb, { type OrbState } from '../../components/LedgerOrb';
 import { Section, List, Row } from '@/components/register';
 import '../../styles/nocturne.css';
 import '../../styles/register-public.css';
@@ -26,6 +27,8 @@ const SCAN_STATUS_LINES = [
   'Piecing together your story...',
   'Writing your first portrait...',
 ];
+/* The orb over the plate while the reading runs: it searches, then works it out, then writes. */
+const SCAN_ORB_STATES: OrbState[] = ['searching', 'searching', 'solving', 'composing'];
 
 const SIGNATURES = [
   { tint: 'ember', plate: '/images/nocturne/sig-ember.jpg', glyph: 'M', domain: 'Motivation and drive', line: 'What pulls you, and when it lets go.' },
@@ -176,6 +179,9 @@ const NocturneLanding = () => {
               trackFunnel={trackFunnel}
             />
           </div>
+        )}
+        {phase === 'scanning' && (
+          <LedgerOrb state={SCAN_ORB_STATES[statusIdx] || 'searching'} size={96} label="" className="fd-orb" />
         )}
         <p className="n-micro n-rise n-rise--3 fd-status" aria-live="polite">
           {phase === 'scanning'

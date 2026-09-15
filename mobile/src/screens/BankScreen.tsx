@@ -14,6 +14,7 @@ import * as WebBrowser from 'expo-web-browser';
 import { cosmos, dayMonth } from '../constants/cosmos';
 import { authFetch } from '../services/api';
 import { Body, Enter, Hairline, Page, Pill, Row, Small, Title } from '../ui/primitives';
+import { Orb } from '../ui/Orb';
 
 export interface BankScreenProps {
   onDone: () => void;
@@ -85,7 +86,10 @@ export default function BankScreen({ onDone, onSkip }: BankScreenProps) {
       <Page>
         <View style={frame}>
           <Enter index={0}>
-            <Body muted accessibilityLiveRegion="polite">Finishing at the bank.</Body>
+            <View style={s.waiting}>
+              <Orb state="connecting" size={20} label="" />
+              <Body muted accessibilityLiveRegion="polite">Finishing at the bank.</Body>
+            </View>
           </Enter>
         </View>
       </Page>
@@ -151,6 +155,7 @@ export default function BankScreen({ onDone, onSkip }: BankScreenProps) {
 
 const s = StyleSheet.create({
   column: { flex: 1, paddingHorizontal: cosmos.space.lg },
+  waiting: { flexDirection: 'row', alignItems: 'center', gap: cosmos.space.sm },
   /* Same composition as the front door: the words rest in the room above the controls. */
   headline: { flex: 1, justifyContent: 'center', gap: cosmos.space.md, paddingBottom: cosmos.space.xl },
   controls: { gap: cosmos.space.md },

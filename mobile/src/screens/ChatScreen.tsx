@@ -21,6 +21,7 @@ import { cosmos, dayMonth, euro } from '../constants/cosmos';
 import { Body, Card, Enter, Hairline, Heading, Label, Micro, Page, Pill, Press, Row, Small, Title } from '../ui/primitives';
 import { Figure, HomeMap } from '../ui/figures';
 import { Prompt, Shimmer } from '../ui/prompt';
+import { Orb } from '../ui/Orb';
 import { useReducedMotion } from '../ui/motion';
 import {
   moneyApi, readLedgerStream, chatStream,
@@ -201,6 +202,8 @@ export default function ChatScreen({ mode, onDone, onClose }: { mode: 'onboardin
   const [text, setText] = useState('');
   const [rows, setRows] = useState<ListRow[]>([]);
   const [busy, setBusy] = useState(false);
+  /* The twin line whose answer is still arriving, so a small orb can write at its end. */
+  const [writingId, setWritingId] = useState<string | null>(null);
   const [note, setNote] = useState<string | null>(null);
   const [home, setHome] = useState<HomeStage>({ stage: 'off' });
   const queueRef = useRef<MoneyQuestion[]>([]);
@@ -581,6 +584,7 @@ export default function ChatScreen({ mode, onDone, onClose }: { mode: 'onboardin
         onEvent: (e) => {
           if (e.phase === 'text') {
             grown += e.delta || '';
+            setWritingId(pendingId);
             amend(pendingId, { pending: false, text: grown, lead: leadOf(grown) });
           } else if (e.phase === 'thinking') {
             setLines((all) => all.map((l) => (l.id === pendingId ? { ...l, thinking: (l.thinking || '') + (e.delta || '') } : l)));
@@ -594,6 +598,7 @@ export default function ChatScreen({ mode, onDone, onClose }: { mode: 'onboardin
         },
         onEnd: (ok) => {
           streamStop.current = null;
+          setWritingId(null);
           /* Prose on the screen stays on the screen, finished or not. Only an answer that
              never began is asked for again the plain way. */
           if (grown.trim() && (finished || ok)) { done(); return; }
@@ -602,6 +607,7 @@ export default function ChatScreen({ mode, onDone, onClose }: { mode: 'onboardin
         },
       });
     });
+    setWritingId(null);
     setBusy(false);
   }
 
@@ -734,7 +740,7 @@ export default function ChatScreen({ mode, onDone, onClose }: { mode: 'onboardin
           scrollEventThrottle={16}
           onContentSizeChange={keepAtFoot}
         >
-          {phase === 'loading' ? <Enter><Shimmer text="Reading the ledger." /></Enter> : null}
+          {phase === 'loading' ? <Enter><View style={s.loading}><Orb state="breathing" size={64} label="One moment" /></View></Enter> : null}
 
           {lines.map((l, i) => {
             const speakerChanged = i === 0 || lines[i - 1].who !== l.who;
@@ -744,7 +750,21 @@ export default function ChatScreen({ mode, onDone, onClose }: { mode: 'onboardin
                 {l.chapter && !l.pending ? <Micro quiet>{l.chapter}</Micro> : speakerChanged && !l.quiet ? <Micro quiet>{l.who === 'you' ? 'You' : 'The ledger'}</Micro> : null}
                 {l.lead ? <Title tabular>{l.lead}</Title> : null}
                 {l.heading && !l.pending ? <Heading accessibilityRole="header">{l.heading}</Heading> : null}
-                {l.pending ? <Shimmer text={l.text} /> : l.quiet ? <Small>{l.text}</Small> : <Body muted={l.who === 'you'}>{l.text}</Body>}
+                {l.pending ? (
+                  /* The ledger at work, beside the words: reading until the model starts to
+                     reason, working it out once its thinking arrives. */
+                  <View style={s.pendingRow}>
+                    <Orb state={l.thinking && l.thinking.trim() ? 'solving' : 'searching'} size={20} label="" />
+                    <Small>{l.text}</Small>
+                  </View>
+                ) : l.quiet ? <Small>{l.text}</Small> : (
+                  <Body muted={l.who === 'you'}>
+                    {l.text}
+                    {/* `working`, not `composing`: the ribbon is 208 dots even at 16 points, too many
+                        views for a line that is re-rendering with every delta; the orbits are 39. */}
+                    {writingId === l.id ? <Orb state="working" size={16} label="" style={s.writing} /> : null}
+                  </Body>
+                )}
                 {l.small?.map((t, k) => <Small key={k} quiet>{t}</Small>)}
                 {l.home && !l.pending ? <HomeMap lat={l.home.lat} lng={l.home.lng} district={l.home.district} basis={l.home.basis} /> : null}
                 {l.home?.open && question?.kind === 'home_area' ? (
@@ -889,6 +909,10 @@ const s = StyleSheet.create({
      just above the field, not at the top of an empty page. */
   transcript: { flexGrow: 1, justifyContent: 'flex-end', paddingHorizontal: cosmos.space.lg, paddingTop: cosmos.space.xl, gap: cosmos.space.lg },
   line: { gap: cosmos.space.sm },
+  loading: { alignItems: 'center', paddingVertical: cosmos.space.xxl * 2 },
+  pendingRow: { flexDirection: 'row', alignItems: 'center', gap: cosmos.space.sm },
+  /* Inline in the text, on the baseline's side, a little clear of the last letter. */
+  writing: { marginLeft: cosmos.space.xs, marginBottom: -2 },
   /* The person's own words sit a step in from the margin: the same column, a quieter place in it. */
   lineYou: { paddingLeft: cosmos.space.lg },
   answer: { gap: cosmos.space.md, paddingTop: cosmos.space.xs },
