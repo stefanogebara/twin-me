@@ -123,7 +123,11 @@ export default function MoneyV2Page({ view = 'today' }: { view?: MoneyView } = {
   /* How far the bank has booked, and what the phone or the inbox saw after that. The bank
      posts card payments on working days, so a weekend's spending is here before it is there. */
   const bookedTo = ledger.reduce<string | null>((m, t) => (t.posted_at && (!m || t.occurred_at > m) ? t.occurred_at : m), null);
-  const since = bookedTo ? ledger.filter((t) => !t.posted_at && t.occurred_at > bookedTo).length : 0;
+  const sinceRows = bookedTo ? ledger.filter((t) => !t.posted_at && t.occurred_at > bookedTo) : [];
+  const since = sinceRows.length;
+  /* What the pending alerts add up to, signed: the bank's booked figure minus these is about
+     what is really left, and the bank does not say it. */
+  const pendingNet = sinceRows.reduce((sum, t) => sum + Number(t.amount || 0), 0);
   /* "Booked to yesterday" on a working day is the bank's normal lag, not a stale read: today's
      card payments are here from the alerts and book tomorrow. Said as that. */
   const bookedDay = bookedTo ? shortDay(bookedTo) : null;
@@ -227,8 +231,14 @@ export default function MoneyV2Page({ view = 'today' }: { view?: MoneyView } = {
     const when = today ? `read at ${d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}` : `read ${shortDay(newest)}`;
     const pendingIn = fresh.some((a) => /^(XPCD|ITAV)/.test(a.balance_type || ''));
     const anyNegative = fresh.some((a) => Number(a.balance) < 0);
+    /* A booked figure with pending alerts behind it: say about what is left once they land.
+       Only when there is one account, since the alerts do not say which account they hit. */
+    if (!pendingIn && since > 0 && fresh.length === 1) {
+      const after = Number(fresh[0].balance) + pendingNet;
+      return `${signed(Number(fresh[0].balance))} booked in ${bankLabel(fresh[0].bank_name)}, about ${signed(after)} after today's ${since} pending, ${when}.`;
+    }
     return `${parts.join(', ')}${anyNegative ? '' : ' available'}, ${when}${pendingIn ? ', pending charges included' : ', pending charges not yet counted'}.`;
-  }, [accounts]);
+  }, [accounts, since, pendingNet]);
   /* The same days of every month, for the pair bars on the month rows. */
   const todayDay = new Date().getUTCDate();
   const pairMax = Math.max(0, ...months.map((m) => Number(m.spent_to_day) || 0));
