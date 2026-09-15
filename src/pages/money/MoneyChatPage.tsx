@@ -469,14 +469,14 @@ export default function MoneyChatPage() {
                   <button type="button" className="mc-attach" aria-label="Add a photo or a file" disabled={asking} onClick={() => fileRef.current?.click()}>
                     <Paperclip size={16} strokeWidth={1.75} aria-hidden="true" />
                   </button>
-                  <label className="mv-sr" htmlFor="mc-say">Ask about your money, or add a receipt</label>
+                  <label className="mv-sr" htmlFor="mc-say">Ask about your money</label>
                   <textarea
                     id="mc-say"
                     ref={boxRef}
                     className="mc-say"
                     rows={1}
                     value={text}
-                    placeholder="Ask about your money, or add a receipt"
+                    placeholder="Ask about your money"
                     disabled={asking}
                     onChange={(e) => setText(e.target.value)}
                     onPaste={(e) => { const f = e.clipboardData.files?.[0]; if (f) { e.preventDefault(); void attach(f); } }}
