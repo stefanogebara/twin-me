@@ -594,18 +594,22 @@ router.post('/:id/about', authenticateUser, aboutUpload.single('audio'), async (
 });
 
 // ====================================================================
-// POST /:id/voice-samples — upload a sample; clone (flagged) or queue
+// POST /:id/voice-samples — upload a sample; clone it, or add it to the clone
 // ====================================================================
 // Policy: cloning spends real money and creates a voice on the ElevenLabs
-// account, so it runs only when PRESENCE_VOICE_CLONE_ENABLED=true. Otherwise
-// the state is 'queued' and the UI says so honestly. Consent is checked either
-// way; samples are never stored server-side — the temp file is deleted after.
+// account, so it runs only when PRESENCE_VOICE_CLONE_ENABLED=true. Without it
+// the sample is refused: a "queued" state had no worker behind it and the file
+// was deleted, so it was a dead end shown as progress. Consent is checked
+// first; samples are never stored server-side — the temp file is deleted after.
 router.post('/:id/voice-samples', authenticateUser, aboutUpload.single('audio'), async (req, res) => {
   const filePath = req.file?.path;
   try {
     const owned = await loadOwned(req, res);
     if (!owned) return;
     if (!filePath) return res.status(400).json({ success: false, error: 'An audio sample is required' });
+
+    const cloneEnabled = process.env.PRESENCE_VOICE_CLONE_ENABLED === 'true' && voiceService.isEnabled();
+    if (!cloneEnabled) return res.status(503).json({ success: false, error: 'Voice build is not available yet' });
 
     const { data: consents, error: consentError } = await getLatestVoiceConsentKind(owned.id);
     if (consentError) throw consentError;
@@ -618,41 +622,37 @@ router.post('/:id/voice-samples', authenticateUser, aboutUpload.single('audio'),
     const { data: current, error: voiceError } = await getVoiceState(owned.id);
     if (voiceError) throw voiceError;
     let sampleTaken = true;
-
-    const cloneEnabled = process.env.PRESENCE_VOICE_CLONE_ENABLED === 'true' && voiceService.isEnabled();
-    let status = 'queued';
+    let status;
     let voiceId = current?.elevenlabs_voice_id || null;
-    let note = 'Sample received. Voice build queued.';
+    let note;
 
-    if (cloneEnabled) {
-      const voiceName = `Presence · ${owned.caller_name?.trim() || 'family'} → ${owned.cared_for_name?.trim() || 'her'}`;
-      if (voiceId && current?.status === 'ready') {
-        const added = await voiceService.addSamplesToVoice(voiceId, filePath, voiceName);
-        // A rejected sample leaves the cloned voice unchanged and still on her calls, so
-        // it stays 'ready' ('failed' would drop it from the call brief and make the next
-        // upload clone a new voice, orphaning this one); the sample is just not counted.
+    const voiceName = `Presence · ${owned.caller_name?.trim() || 'family'} → ${owned.cared_for_name?.trim() || 'her'}`;
+    if (voiceId && current?.status === 'ready') {
+      const added = await voiceService.addSamplesToVoice(voiceId, filePath, voiceName);
+      // A rejected sample leaves the cloned voice unchanged and still on her calls, so
+      // it stays 'ready' ('failed' would drop it from the call brief and make the next
+      // upload clone a new voice, orphaning this one); the sample is just not counted.
+      status = 'ready';
+      sampleTaken = added.success;
+      note = added.success ? 'Sample added to your voice.' : `Kept existing voice; new sample not added (${String(added.error).slice(0, 120)})`;
+    } else {
+      // An id still here belongs to a voice that is not on her calls (most often a
+      // revoke whose delete did not finish). Cloning would overwrite it and orphan
+      // that voice at ElevenLabs, so it is deleted first, or the sample waits.
+      if (voiceId) {
+        if (!(await deleteClonedVoice(owned.id, voiceId))) {
+          return res.status(502).json({ success: false, error: 'Your earlier voice is still being removed. Try again in a few minutes.' });
+        }
+        voiceId = null;
+      }
+      const cloned = await voiceService.cloneVoice(filePath, voiceName, `Presence voice, consent recorded. Presence ${owned.id}`);
+      if (cloned.success) {
+        voiceId = cloned.voiceId;
         status = 'ready';
-        sampleTaken = added.success;
-        note = added.success ? 'Sample added to your voice.' : `Kept existing voice; new sample not added (${String(added.error).slice(0, 120)})`;
+        note = 'Your voice is ready. Her calls use it from now on.';
       } else {
-        // An id still here belongs to a voice that is not on her calls (most often a
-        // revoke whose delete did not finish). Cloning would overwrite it and orphan
-        // that voice at ElevenLabs, so it is deleted first, or the sample waits.
-        if (voiceId) {
-          if (!(await deleteClonedVoice(owned.id, voiceId))) {
-            return res.status(502).json({ success: false, error: 'Your earlier voice is still being removed. Try again in a few minutes.' });
-          }
-          voiceId = null;
-        }
-        const cloned = await voiceService.cloneVoice(filePath, voiceName, `Presence voice, consent recorded. Presence ${owned.id}`);
-        if (cloned.success) {
-          voiceId = cloned.voiceId;
-          status = 'ready';
-          note = 'Your voice is ready. Her calls use it from now on.';
-        } else {
-          status = 'failed';
-          note = `Clone failed: ${String(cloned.error).slice(0, 160)}`;
-        }
+        status = 'failed';
+        note = `Clone failed: ${String(cloned.error).slice(0, 160)}`;
       }
     }
 
@@ -667,7 +667,7 @@ router.post('/:id/voice-samples', authenticateUser, aboutUpload.single('audio'),
     });
     if (error) throw error;
 
-    res.status(201).json({ success: true, voice: data, clone_enabled: cloneEnabled });
+    res.status(201).json({ success: true, voice: data, clone_enabled: true });
   } catch (err) {
     log.error('POST voice-samples failed', { error: err.message });
     res.status(500).json({ success: false, error: 'Failed to process the sample' });

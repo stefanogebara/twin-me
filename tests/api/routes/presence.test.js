@@ -285,6 +285,7 @@ describe('POST /:id/voice-samples', () => {
     .attach('audio', audio, { filename: 'sample.webm', contentType: 'audio/webm' });
 
   it('answers 500, not "consent required", when the consent read fails', async () => {
+    process.env.PRESENCE_VOICE_CLONE_ENABLED = 'true';
     store.getLatestVoiceConsentKind.mockResolvedValue(fail('connection reset'));
 
     const res = await upload();
@@ -332,7 +333,9 @@ describe('POST /:id/voice-samples', () => {
 
   // presence_voice: CHECK (sample_count BETWEEN 0 AND 20), CHECK (sample_seconds BETWEEN 0 AND 3600).
   it('stops counting at 20 samples, the most presence_voice holds', async () => {
-    store.getVoiceState.mockResolvedValue(ok({ status: 'queued', sample_count: 20, sample_seconds: 400, elevenlabs_voice_id: null }));
+    process.env.PRESENCE_VOICE_CLONE_ENABLED = 'true';
+    store.getVoiceState.mockResolvedValue(ok({ status: 'ready', sample_count: 20, sample_seconds: 400, elevenlabs_voice_id: 'voice-1' }));
+    voiceService.addSamplesToVoice.mockResolvedValue({ success: true });
 
     const res = await upload();
 
@@ -341,7 +344,9 @@ describe('POST /:id/voice-samples', () => {
   });
 
   it('stops adding seconds at 3600, the most presence_voice holds', async () => {
-    store.getVoiceState.mockResolvedValue(ok({ status: 'queued', sample_count: 5, sample_seconds: 3595, elevenlabs_voice_id: null }));
+    process.env.PRESENCE_VOICE_CLONE_ENABLED = 'true';
+    store.getVoiceState.mockResolvedValue(ok({ status: 'ready', sample_count: 5, sample_seconds: 3595, elevenlabs_voice_id: 'voice-1' }));
+    voiceService.addSamplesToVoice.mockResolvedValue({ success: true });
 
     const res = await upload();
 
@@ -375,13 +380,16 @@ describe('POST /:id/voice-samples', () => {
     expect(store.recordVoiceSample).not.toHaveBeenCalled();
   });
 
-  it('carries an undeleted voice id forward when the sample is only queued', async () => {
-    store.getVoiceState.mockResolvedValue(ok({ status: 'revoked', sample_count: 0, sample_seconds: 0, elevenlabs_voice_id: 'voice-old' }));
+  // "Queued" had no worker behind it and the sample file was deleted: a dead end
+  // presented as progress. Without cloning, the sample is refused up front.
+  it('answers 503 and stores nothing when cloning is not enabled', async () => {
+    delete process.env.PRESENCE_VOICE_CLONE_ENABLED;
 
     const res = await upload();
 
-    expect(res.status).toBe(201);
-    expect(store.recordVoiceSample).toHaveBeenCalledWith(expect.objectContaining({ status: 'queued', elevenlabs_voice_id: 'voice-old' }));
+    expect(res.status).toBe(503);
+    expect(store.recordVoiceSample).not.toHaveBeenCalled();
+    expect(voiceService.cloneVoice).not.toHaveBeenCalled();
   });
 });
 
