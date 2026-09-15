@@ -203,6 +203,37 @@ export async function searchAreas(q, { key = process.env.GOOGLE_PLACES_API_KEY, 
   return filterAreas(Array.isArray(data?.places) ? data.places : []);
 }
 
+/**
+ * A campus, a school, an employer, by name. The same text search as the areas, but keeping
+ * institutions and businesses rather than districts. Six at most, name and one line of
+ * address; the location stays here.
+ */
+export async function searchPlaces(q, { key = process.env.GOOGLE_PLACES_API_KEY, fetchImpl = fetch } = {}) {
+  const query = String(q || '').trim();
+  if (!key || query.length < 2) return [];
+  const data = await fetchJson(fetchImpl, PLACES_SEARCH_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-Goog-Api-Key': key, 'X-Goog-FieldMask': 'places.id,places.displayName,places.formattedAddress,places.types,places.primaryType' },
+    body: JSON.stringify({ textQuery: query, regionCode: 'ES', languageCode: 'es', maxResultCount: 8 }),
+  });
+  return filterPlaces(Array.isArray(data?.places) ? data.places : []);
+}
+
+/** Keep the results that are somewhere a person studies or works, never a district or a street. Pure. */
+export function filterPlaces(places) {
+  const out = [];
+  for (const p of places) {
+    const types = p.types || [];
+    if (types.some((t) => AREA_TYPES.includes(t) || t === 'route' || t === 'street_address')) continue;
+    const label = p.displayName?.text || p.displayName || '';
+    if (!label) continue;
+    const secondary = String(p.formattedAddress || '').replace(/,?\s*(Espa[n\u00f1]a|Spain)\s*$/i, '').trim();
+    out.push({ id: p.id || label, label, secondary: secondary === label ? '' : secondary, kind: p.primaryType || types[0] || null });
+    if (out.length === 6) break;
+  }
+  return out;
+}
+
 /** Keep the results that are places to live in, not shops. Pure. */
 export function filterAreas(places) {
   const out = [];

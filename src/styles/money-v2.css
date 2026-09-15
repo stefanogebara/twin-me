@@ -370,3 +370,12 @@
   .mv .mv-globe-slot, .mv .mv-planet-slot { grid-column: 1; grid-row: auto; justify-self: center; margin: 0 0 8px; }
   .mv .mv-fortnight-foot { flex-direction: column; }
 }
+
+/* The onboarding's wider steps: the banks and the three places. */
+.la-col--wide { width: min(36rem, 100%); }
+.mv .la-slot { display: grid; gap: 8px; border-bottom: 1px solid var(--rule); padding-bottom: 12px; }
+.mv .la-slot > .mv-item { border-bottom: 0; }
+.mv .la-search { display: grid; gap: 8px; padding: 0 12px 4px; }
+.mv .la-hits { border-top: 1px solid var(--rule); }
+.mv .la-hit { width: 100%; text-align: left; cursor: pointer; min-height: 57px; padding: 10px 12px; }
+.mv .la-hit:hover { background: rgb(37 31 33 / 5%); }

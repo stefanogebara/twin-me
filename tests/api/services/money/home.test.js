@@ -21,7 +21,7 @@ vi.mock('../../../../api/services/money/store.js', () => store);
 const home = await import('../../../../api/services/money/home.js');
 const { describeContext } = await import('../../../../api/services/money/context.js');
 const {
-  weighPlaces, clusterHome, circlePolygon, filterAreas, staticMapUrl, pickDistrict, saveHome, savedHome, homeValue, distanceM,
+  weighPlaces, clusterHome, circlePolygon, filterAreas, filterPlaces, staticMapUrl, pickDistrict, saveHome, savedHome, homeValue, distanceM,
   RING_POINTS, CLUSTER_RADIUS_M,
 } = home;
 
@@ -175,5 +175,19 @@ describe('keeping a home', () => {
     const saved = await savedHome('u1');
     expect(saved).toMatchObject({ district: 'Chamberi', city: 'Madrid', lat: 40.4343, lng: -3.7031, value: 'Chamberi, Madrid' });
     expect(store.listFacts).toHaveBeenCalledWith('u1', { includeInternal: true });
+  });
+});
+
+describe('filterPlaces', () => {
+  it('keeps a campus or an office by name and drops districts and streets', () => {
+    const out = filterPlaces([
+      { id: 'p1', displayName: { text: 'IE University' }, formattedAddress: 'Paseo de la Castellana 259, Madrid, Espa\u00f1a', types: ['university', 'point_of_interest'], primaryType: 'university' },
+      { id: 'p2', displayName: { text: 'Recoletos' }, formattedAddress: 'Madrid', types: ['sublocality_level_1', 'political'] },
+      { id: 'p3', displayName: { text: 'Calle de Alcala' }, formattedAddress: 'Madrid', types: ['route'] },
+      { id: 'p4', displayName: { text: 'InnerAI' }, formattedAddress: 'Calle Serrano 1, Madrid, Spain', types: ['corporate_office'], primaryType: 'corporate_office' },
+    ]);
+    expect(out.map((p) => p.label)).toEqual(['IE University', 'InnerAI']);
+    expect(out[0]).toEqual({ id: 'p1', label: 'IE University', secondary: 'Paseo de la Castellana 259, Madrid', kind: 'university' });
+    expect(out[1].secondary).toBe('Calle Serrano 1, Madrid');
   });
 });

@@ -11,7 +11,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { LANGUAGES, saveLanguage, type LanguageCode } from '@/lib/language';
 import '@/styles/money-v2.css';
 
-export default function LanguageAsk() {
+export default function LanguageAsk({ onDone }: { onDone?: () => void } = {}) {
   const { user } = useAuth();
   const [picked, setPicked] = useState<LanguageCode>('en');
   const [busy, setBusy] = useState(false);
@@ -24,7 +24,7 @@ export default function LanguageAsk() {
   async function keep() {
     if (busy) return;
     setBusy(true); setError(null);
-    try { await saveLanguage(picked); setDone(true); } catch (e) { setError((e as Error).message); } finally { setBusy(false); }
+    try { await saveLanguage(picked); setDone(true); onDone?.(); } catch (e) { setError((e as Error).message); } finally { setBusy(false); }
   }
 
   return (
