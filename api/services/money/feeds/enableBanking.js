@@ -87,9 +87,8 @@ export async function startAuthorisation({ bankName = 'Banco Santander', country
   return { url: j.url, authorizationId: j.authorization_id };
 }
 
-/** Exchange the code from the redirect for a session and its accounts. */
-export async function createSession(code) {
-  const j = await api('/sessions', { method: 'POST', body: JSON.stringify({ code }) });
+/** The session's shape as the store reads it. Pure. */
+function sessionShape(j) {
   return {
     sessionId: j.session_id,
     validUntil: j.access?.valid_until || null,
@@ -99,6 +98,20 @@ export async function createSession(code) {
        access it granted, the bank, the kind of user. No secret lives in a session object. */
     raw: { keys: Object.keys(j || {}), status: j.status || null, access: j.access || null, aspsp: j.aspsp || null, psu_type: j.psu_type || null, accounts: j.accounts || null },
   };
+}
+
+/** Exchange the code from the redirect for a session and its accounts. */
+export async function createSession(code) {
+  return sessionShape(await api('/sessions', { method: 'POST', body: JSON.stringify({ code }) }));
+}
+
+/**
+ * The session read again. Revolut's session was created with an empty account list three
+ * times on 2026-09-15 although the person had picked an account; a second read is the
+ * cheapest thing to try before calling it refused.
+ */
+export async function getSession(sessionId) {
+  return sessionShape(await api(`/sessions/${encodeURIComponent(sessionId)}`, { method: 'GET' }));
 }
 
 /**

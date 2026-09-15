@@ -49,7 +49,7 @@ import { createLogger } from '../services/logger.js';
 import { parseCapture, parseStructured } from '../services/money/captureParser.js';
 import { ingestSighting, ingestSightings, listTransactions, sightingsFor, refreshRecurring, forecast, setVerdict, userForCaptureKey, saveBankAccounts, listBankAccounts, pullBankFeed, refreshReadings, listReadings, setReadingVerdict, months, feedBudget, categorySpend, listPlaces, setPlaceCategory, enrichPlaces, subscriptionUsage, questionsFor, answerQuestion, skipQuestion, listFacts, deleteFact, recordCallbackFailure, listChatTurns, saveChatTurn, learn } from '../services/money/store.js';
 import { parseDelimited, parseWorkbook, toSightings } from '../services/money/statements/importer.js';
-import { isConfigured, listBanks, startAuthorisation, createSession } from '../services/money/feeds/enableBanking.js';
+import { isConfigured, listBanks, startAuthorisation, createSession, getSession } from '../services/money/feeds/enableBanking.js';
 import { answer as chatAnswer, answerStream as chatAnswerStream, act as chatAct } from '../services/money/chat.js';
 import { ahead as calendarAhead, learnEventSpend, addFeed as addCalendarFeed, removeFeed as removeCalendarFeed } from '../services/money/calendar.js';
 import { todayAllowance } from '../services/money/allowance.js';
@@ -828,15 +828,27 @@ bankCallback.get('/bank/callback', async (req, res) => {
     return res.redirect(302, `/money/you?bank=failed${refused ? `&why=${encodeURIComponent(refused)}` : ''}`);
   }
   try {
-    const session = await createSession(code);
+    let session = await createSession(code);
     log.info('bank session created', { bank: session.bankName, accounts: session.accounts.length });
+    if (!session.accounts.length && session.sessionId) {
+      /* Read it again before calling it empty: some banks list the accounts only on the
+         second read. What came back both times is kept in the feed log, not only in a log
+         that is gone in an hour. */
+      const first = JSON.stringify(session.raw || {});
+      await new Promise((r) => setTimeout(r, 1500));
+      const again = await getSession(session.sessionId).catch((e) => { log.warn('bank session re-read failed', { error: e.message }); return null; });
+      if (again) { log.info('bank session re-read', { accounts: again.accounts.length }); if (again.accounts.length) session = { ...again, sessionId: session.sessionId }; }
+      if (!session.accounts.length) {
+        await recordCallbackFailure(userId, `no accounts: ${session.bankName || 'bank'} session=${session.sessionId} first=${first} again=${JSON.stringify(again ? again.raw : null)}`, { keepIds: true }).catch(() => {});
+      }
+    }
     if (!session.accounts.length) {
       /* The bank said yes and listed nothing: a Revolut with no account under the chosen
          kind, or a consent that selected none. Said "connected" here, the page had nothing
          to read and no row to show, which is what a Revolut looked like on 2026-09-15. The
          whole session object goes to the log, so the next one can be read, not guessed. */
       log.warn('bank session without accounts', { session: JSON.stringify(session.raw || {}).slice(0, 1500) });
-      await recordCallbackFailure(userId, `no accounts: ${session.bankName || 'bank'}`).catch(() => {});
+      if (!session.sessionId) await recordCallbackFailure(userId, `no accounts: ${session.bankName || 'bank'}`).catch(() => {});
       return res.redirect(302, `/money/you?bank=failed&why=${encodeURIComponent('no accounts were shared')}`);
     }
     await saveBankAccounts(userId, session);
