@@ -11,7 +11,7 @@ vi.mock('../../../../api/services/logger.js', () => ({ createLogger: () => ({ wa
 const store = {
   listTransactions: vi.fn(), months: vi.fn(), forecast: vi.fn(), categorySpend: vi.fn(), refreshRecurring: vi.fn(),
   listReadings: vi.fn(), listFacts: vi.fn(), questionsFor: vi.fn(), listPlaces: vi.fn(),
-  setVerdict: vi.fn(), setPlaceCategory: vi.fn(), answerQuestion: vi.fn(), listBankAccounts: vi.fn(),
+  setVerdict: vi.fn(), setPlaceCategory: vi.fn(), answerQuestion: vi.fn(), listBankAccounts: vi.fn(), userLanguage: vi.fn(),
 };
 /* One kind for a payment, and the real resolver decides it: the month page and the chat
    disagreed about the same euros while each had its own copy, so the mock must not hold a
@@ -295,6 +295,15 @@ describe('dropUngrounded', () => {
     /* The second sentence carried the invented 283,51: the whole sentence goes, the first stays. */
     expect(reply.text).toBe('Clothing took 116,76 \u20ac.');
     expect(reply.basis.length).toBeGreaterThan(0);
+  });
+});
+
+describe('contextText, the language', () => {
+  it('names the language the person chose, and says nothing when never asked', () => {
+    const base = { transactions, segments, recurring, places, questions, categories, now: NOW };
+    expect(contextText(assemble({ ...base, language: 'pt-BR' }))).toMatch(/The person chose Brazilian Portuguese for TwinMe\./);
+    expect(contextText(assemble({ ...base, language: 'es' }))).toMatch(/chose Spanish/);
+    expect(contextText(assemble(base))).not.toMatch(/chose/);
   });
 });
 

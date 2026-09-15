@@ -31,7 +31,7 @@ import crypto from 'node:crypto';
 import { createLogger } from '../logger.js';
 import {
   listTransactions, months, forecast, categorySpend, refreshRecurring, listReadings, listFacts,
-  questionsFor, listPlaces, setVerdict, setPlaceCategory, answerQuestion, categoryOfPayment, deleteFact, saveChatTurn, listBankAccounts,
+  questionsFor, listPlaces, setVerdict, setPlaceCategory, answerQuestion, categoryOfPayment, deleteFact, saveChatTurn, listBankAccounts, userLanguage,
 } from './store.js';
 import { learnMerchants, learnPatterns, predictNext, describeForTwin } from './brain.js';
 import { describeContext, PERSON_ROLES } from './context.js';
@@ -111,7 +111,7 @@ export async function gather(userId, now = new Date()) {
     settled(questionsFor(userId, now), { opening: [], fromLedger: [], answered: 0 }),
     settled(listPlaces(userId), []),
   ]);
-  const accounts = await settled(Promise.resolve().then(() => listBankAccounts(userId)), []);
+  const [accounts, language] = await Promise.all([settled(Promise.resolve().then(() => listBankAccounts(userId)), []), settled(Promise.resolve().then(() => userLanguage(userId)), null)]);
   const thisMonth = cast?.month || `${now.toISOString().slice(0, 7)}-01`;
   const lastMonth = (() => { const d = new Date(`${thisMonth}T12:00:00Z`); d.setUTCMonth(d.getUTCMonth() - 1); return d.toISOString().slice(0, 8) + '01'; })();
   /* Last month's kinds of place go in beside this month's: asked "and last month?" the model
@@ -120,14 +120,14 @@ export async function gather(userId, now = new Date()) {
     settled(categorySpend(userId, { month: thisMonth }), { month: thisMonth, total: 0, read: 0, groups: [] }),
     settled(categorySpend(userId, { month: lastMonth }), { month: lastMonth, total: 0, read: 0, groups: [] }),
   ]);
-  return assemble({ transactions, segments, forecast: cast, recurring, readings, facts, questions, places, categories, lastCategories, accounts, now });
+  return assemble({ transactions, segments, forecast: cast, recurring, readings, facts, questions, places, categories, lastCategories, accounts, language, now });
 }
 
 /**
  * The pure half of gathering: the same rows, learned and indexed. Tests hand rows straight
  * to this and skip the database.
  */
-export function assemble({ transactions: rawTransactions = [], segments = [], forecast: cast = null, recurring = [], readings = [], facts = [], questions = null, places = [], categories = null, lastCategories = null, accounts = [], now = new Date() } = {}) {
+export function assemble({ transactions: rawTransactions = [], segments = [], forecast: cast = null, recurring = [], readings = [], facts = [], questions = null, places = [], categories = null, lastCategories = null, accounts = [], language = null, now = new Date() } = {}) {
   /* The same rule the month page uses decides which transfers are spending, so a share the
      twin quotes and the hero above it are the same euros. */
   const transactions = markCounted(rawTransactions, facts);
@@ -140,7 +140,7 @@ export function assemble({ transactions: rawTransactions = [], segments = [], fo
   const open = [...(questions?.opening || []), ...(questions?.fromLedger || [])];
   return {
     now, transactions, byId, segments, forecast: cast, recurring, readings, facts,
-    questions: open, places: places || [], placeByKey, categories, lastCategories, accounts: accounts || [], profiles, patterns, predictions,
+    questions: open, places: places || [], placeByKey, categories, lastCategories, accounts: accounts || [], language: language || null, profiles, patterns, predictions,
   };
 }
 
@@ -344,6 +344,8 @@ export function contextText(ctx) {
   const lines = [];
   const today = ctx.now;
   lines.push(`Today is ${dayMonth(today.toISOString())} ${today.getUTCFullYear()}. Amounts are in EUR.`);
+  const LANGUAGE_NAMES = { en: 'English', es: 'Spanish', 'pt-BR': 'Brazilian Portuguese' };
+  if (ctx.language && LANGUAGE_NAMES[ctx.language]) lines.push(`The person chose ${LANGUAGE_NAMES[ctx.language]} for TwinMe.`);
 
   /* What the bank says is in the account, when it was read in the last two days: the one
      figure the person means by "how much do I have". A balance with a credit line inside
@@ -446,7 +448,7 @@ export const RULES = [
   'When the person tells you who somebody on the statement is, or what a transfer to them was for, propose person with merchant_key (the key of that person in the recent payments), role from: ' + PERSON_ROLES.join(', ') + ', and note with what they said about it. When they tell you something about their money that fits none of these (a plan, a reason, a rule of theirs), propose remember with text in their words. When they say something the ledger holds is wrong (their words, on What it knows), propose forget with the fact_id from the facts list.',
   'When the person points out a mistake, say what you will read differently once they confirm, and propose the action; do not argue. When they ask for a chart or a graph, ask for the figure kind that shows it.',
   'When they say a payment is not theirs, or is somebody else\'s, propose not_me with the transaction_id of the newest such payment in the recent payments. Propose forget only for a fact in the list of what they said, never for a payment or a charge.',
-  'The reply is in the language of the person\'s last message, never in the language of a name in the context: an English question gets English even when the bank is called Banco Santander. A single word like "ok" is answered in English unless the earlier turns were in Spanish.',
+  'Reply in the language the person chose for TwinMe when the context names one. If they wrote their last message in another language, answer in the one they wrote. Never take a language from a name in the context: a bank called Banco Santander does not make the reply Spanish. Without a chosen language, a single word like "ok" is answered in English unless the earlier turns were in Spanish.',
   'Reply with one JSON object and nothing else: {"text": string, "figures": [{"kind": string, "month"?: string, "by"?: string, "merchant"?: string}], "actions": [{"kind": string, "label": string, ...}], "cites"?: [transaction ids]}',
 ].join('\n');
 

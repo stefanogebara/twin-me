@@ -327,3 +327,14 @@
 .mv .mv-link { padding: 0; border: 0; background: none; font: inherit; letter-spacing: inherit; color: var(--ink-2); text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
 .mv .mv-link:hover { color: var(--ink); }
 .mv .mv-link:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+
+/* ------------------------------------------------------- the language, asked once
+   Over the page, on the page's own ground: a heading, three rows under the ink rule, one
+   primary. Nothing else moves until it is answered. */
+.mv.la { position: fixed; inset: 0; z-index: 60; display: grid; place-items: center; padding: 24px; background: var(--page); overflow: auto; }
+.la-col { width: min(30rem, 100%); display: grid; gap: 16px; }
+.mv .la-choice { width: 100%; text-align: left; cursor: pointer; }
+.mv .la-choice:hover { background: rgb(37 31 33 / 5%); }
+.mv .la-choice:focus-visible { outline: 2px solid var(--ink); outline-offset: -2px; }
+.la-dot { width: 16px; height: 16px; border-radius: 50%; border: 1px solid var(--ink-3); box-sizing: border-box; flex: none; }
+.mv .la-choice.is-picked .la-dot { border: 5px solid var(--ink); }

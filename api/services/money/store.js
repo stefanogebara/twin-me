@@ -1229,6 +1229,12 @@ export async function listChatTurns(userId, { limit = 30 } = {}) {
   });
 }
 
+/** The language the person chose for TwinMe (en, es, pt-BR), or null when never asked. */
+export async function userLanguage(userId) {
+  const { data } = await supabaseAdmin.from('users').select('preferred_language').eq('id', userId).maybeSingle();
+  return data?.preferred_language || null;
+}
+
 /** The person's own words about their money, for the twin. */
 export async function contextBlock(userId) {
   const facts = await listFacts(userId);
