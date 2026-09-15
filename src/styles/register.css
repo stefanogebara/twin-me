@@ -98,8 +98,8 @@
   --rg-side: 200px;          /* the sidebar of plain text links */
   --rg-side-gap: 80px;       /* sidebar to column */
   --rg-gutter: 24px;         /* phone side gutter */
-  --rg-section: 72px;        /* between sections; 56 on a phone */
-  --rg-section-phone: 56px;
+  --rg-section: 128px;       /* between sections; 96 on a phone (2026-09-15: the pages breathe) */
+  --rg-section-phone: 96px;
   --rg-title-to-line: 4px;   /* heading to its grey line */
   --rg-line-to-rule: 24px;   /* grey line to the list's ink rule */
   --rg-row: 80px;            /* a row's minimum height; padding 20px 12px */

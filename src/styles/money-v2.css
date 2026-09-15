@@ -130,7 +130,7 @@
    rule 24px further down. Sections sit 72px apart. */
 .mv-section { margin-top: var(--section); }
 .mv-head { display: flex; align-items: center; justify-content: space-between; gap: 8px 16px; flex-wrap: wrap; }
-.mv-list { margin-top: 24px; border-top: 1px solid var(--ink); }
+.mv-list { margin-top: 32px; border-top: 1px solid var(--ink); }
 .mv-list > li { border-bottom: 1px solid var(--rule); }
 .mv-sublist > li { border-top: 1px solid var(--rule); }
 
@@ -256,7 +256,7 @@
 
 /* Phone: 24px gutters, the navigation behind a menu button, every other size unchanged. */
 @media (max-width: 767px) {
-  .mv { --section: 56px; }
+  .mv { --section: var(--rg-section-phone); }
   .mv-shell { grid-template-columns: minmax(0, 1fr); }
   .mv-side { position: static; gap: 0; padding-top: 12px; }
   .mv .mv-side-toggle { display: inline-flex; }
@@ -276,6 +276,9 @@
 .mv-wait { min-height: 100vh; min-height: 100dvh; display: grid; place-items: center; box-sizing: border-box; padding: 24px; background: var(--page); color: var(--ink); }
 .mv-wait-col { width: min(24rem, 100%); display: grid; gap: 12px; justify-items: center; text-align: center; }
 .mv-wait-col.is-bare { width: auto; }
+/* The same wait inside a page's column while its first read is in flight: the orb, one line. */
+.mv-wait.is-inline { min-height: 0; padding: 96px 0; background: none; }
+@media (max-width: 767px) { .mv-wait.is-inline { padding: 64px 0; } }
 .mv-wait-col > .orb { margin-bottom: 12px; }
 .mv .mv-wait-line { font-weight: 500; }
 

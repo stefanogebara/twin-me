@@ -45,7 +45,7 @@ export const ES: Record<string, string> = {
   /* today and month */
   '{amount} today.': '{amount} hoy.', 'Nothing today.': 'Nada hoy.', '{amount} so far.': '{amount} hasta ahora.',
   'Spent {amount}': 'Gastado {amount}', 'Still to come this month': 'Lo que queda este mes', 'What changed': 'Qu\u00e9 cambi\u00f3',
-  'Reading your month.': 'Leyendo tu mes.', 'Nothing read yet.': 'Nada le\u00eddo a\u00fan.',
+  'Reading your month.': 'Leyendo tu mes.', 'Reading your payments.': 'Leyendo tus pagos.', 'Reading the plan.': 'Leyendo el plan.', 'Nothing read yet.': 'Nada le\u00eddo a\u00fan.',
   'Read now': 'Leer ahora', 'Reading the bank.': 'Leyendo el banco.', 'Opening the bank.': 'Abriendo el banco.',
   'Columns': 'Columnas', 'Wave': 'Ola', 'The last thirty days': 'Los \u00faltimos treinta d\u00edas', 'Tomorrow': 'Ma\u00f1ana',
   'left today': 'te quedan hoy', 'over today': 'de m\u00e1s hoy',

@@ -14,16 +14,17 @@ import { useT } from '@/lib/i18n';
 
 type Action = { label: string; onClick: () => void };
 
-export default function Wait({ line = 'One moment.', sub = null, action = null, state = 'breathing' }: { line?: string; sub?: string | null; action?: Action | null; state?: OrbState }) {
+export default function Wait({ line = 'One moment.', sub = null, action = null, state = 'breathing', inline = false }: { line?: string; sub?: string | null; action?: Action | null; state?: OrbState; /** Inside a page's column, while its first read is in flight. */ inline?: boolean }) {
   const t = useT();
+  const Tag = inline ? 'div' : 'main';
   return (
-    <main className="mv mv-wait" role="status" aria-live="polite">
+    <Tag className={`mv mv-wait${inline ? ' is-inline' : ''}`} role="status" aria-live="polite">
       <div className={`mv-wait-col${line ? '' : ' is-bare'}`}>
         {action ? null : <LedgerOrb state={state} size={64} label={t(line || 'One moment.')} />}
         {line ? <p className="mv-wait-line">{t(line)}</p> : null}
         {sub ? <p className="mv-sub">{sub}</p> : null}
         {action ? <div className="mv-ctas"><button type="button" className="mv-pill" onClick={action.onClick}>{action.label}</button></div> : null}
       </div>
-    </main>
+    </Tag>
   );
 }

@@ -39,7 +39,7 @@ export const PT_BR: Record<string, string> = {
   'Add a photo or a file': 'Adicione uma foto ou um arquivo', 'Sent {name}': 'Enviado {name}',
   '{amount} today.': '{amount} hoje.', 'Nothing today.': 'Nada hoje.', '{amount} so far.': '{amount} at\u00e9 agora.',
   'Spent {amount}': 'Gasto {amount}', 'Still to come this month': 'O que ainda vem este m\u00eas', 'What changed': 'O que mudou',
-  'Reading your month.': 'Lendo seu m\u00eas.', 'Nothing read yet.': 'Nada lido ainda.',
+  'Reading your month.': 'Lendo seu m\u00eas.', 'Reading your payments.': 'Lendo seus pagamentos.', 'Reading the plan.': 'Lendo o plano.', 'Nothing read yet.': 'Nada lido ainda.',
   'Read now': 'Ler agora', 'Reading the bank.': 'Lendo o banco.', 'Opening the bank.': 'Abrindo o banco.',
   'Columns': 'Colunas', 'Wave': 'Onda', 'The last thirty days': 'Os \u00faltimos trinta dias', 'Tomorrow': 'Amanh\u00e3',
   'left today': 'sobram hoje', 'over today': 'a mais hoje',

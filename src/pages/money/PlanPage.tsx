@@ -15,6 +15,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import '../../styles/money-v2.css';
 import MoneyNav, { type MoneyNavLink } from './MoneyNav';
+import Wait from '../../components/Wait';
 import { MONEY_NAV } from './navLinks';
 import { moneyAPI, euro, type MoneyPlan, type MoneyPlanCell, type MoneyPlanItem } from '../../services/api/moneyAPI';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
@@ -140,7 +141,7 @@ export default function PlanPage() {
                         {c.items.slice(0, 4).map((i, k) => <i key={k} className={`mv-plan-mark mv-plan-mark--${i.kind}`} />)}
                         {c.note ? <i className="mv-plan-mark mv-plan-mark--note" /> : null}
                       </span>
-                    ) : null}
+                    ) : failed ? null : <Wait inline state="searching" line="Reading the plan." />}
                     {c.said ? <i className="mv-plan-said" style={{ bottom: px(c.said.low), height: Math.max(2, px(c.said.high) - px(c.said.low)) }} /> : null}
                     {v > 0 ? <b className="mv-plan-bar" style={{ height: Math.max(2, px(v)) }} /> : null}
                   </button>
