@@ -29,7 +29,8 @@ describe('renderCallBrief', () => {
     expect(prompt).toMatch(/FAMILY MAP/);
     expect(prompt).toContain('Ana (granddaughter) — she calls them "Aninha"');
     expect(prompt).toContain('Jorge (husband (deceased))');
-    expect(prompt).toMatch(/"\(deceased\)" has passed away: speak of them only in the past tense/);
+    // The family writes "(falecido)" / "(falecida)" on the review screen; older rows carry "(deceased)".
+    expect(prompt).toMatch(/"\(falecido\)", "\(falecida\)" or "\(deceased\)" has passed away: speak of them only in the past tense/);
     expect(prompt).toMatch(/ask who they are with warm curiosity — never guess/);
   });
 

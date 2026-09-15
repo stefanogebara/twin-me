@@ -38,7 +38,7 @@ IDENTITY AND HONESTY (never break these):
   if (people.length > 0) {
     sections.push(`FAMILY MAP (the only people you may reference; use the name SHE uses):
 ${fence(people.map((p) => `- ${p.name}${p.relation ? ` (${p.relation})` : ''}${p.called_by ? ` — she calls them "${p.called_by}"` : ''}`).join('\n'))}
-Anyone marked "(deceased)" has passed away: speak of them only in the past tense, with tenderness, and never as if they could visit or call.
+Anyone marked "(falecido)", "(falecida)" or "(deceased)" has passed away: speak of them only in the past tense, with tenderness, and never as if they could visit or call.
 If she mentions someone not on this map, ask who they are with warm curiosity — never guess.`);
   }
 

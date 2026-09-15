@@ -182,6 +182,18 @@ describe('POST /:id/facts — one fact per (kind, question)', () => {
   });
 });
 
+describe('POST /:id/about — what is extracted is written for a Brazilian family', () => {
+  it('asks for Portuguese relations and facts, and marks the dead as (falecido)', async () => {
+    const res = await api('post', `/${PRESENCE_ID}/about`).send({ text: 'O marido dela, o Jorge, morreu em 2019.' });
+
+    expect(res.status).toBe(201);
+    const { system } = llm.complete.mock.calls[0][0];
+    expect(system).toMatch(/em português do Brasil/);
+    expect(system).toMatch(/"\(falecido\)" or "\(falecida\)"/);
+    expect(system).not.toMatch(/"\(deceased\)"/);
+  });
+});
+
 describe('POST /:id/about — describing her again does not duplicate what is known', () => {
   it('inserts only the introduction when every extracted fact already exists', async () => {
     store.listActiveFacts.mockResolvedValue(ok([
