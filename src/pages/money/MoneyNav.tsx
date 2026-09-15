@@ -7,6 +7,7 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Menu, X } from 'lucide-react';
 import MoneyOnboarding from '../../components/MoneyOnboarding';
+import { useT } from '@/lib/i18n';
 
 export type MoneyNavLink = { to: string; label: string; current?: boolean; sub?: boolean };
 
@@ -14,6 +15,7 @@ export type MoneyNavLink = { to: string; label: string; current?: boolean; sub?:
 
 export default function MoneyNav({ links }: { links: MoneyNavLink[] }) {
   const [open, setOpen] = useState(false);
+  const t = useT();
   const close = () => setOpen(false);
   return (
     <>
@@ -34,9 +36,9 @@ export default function MoneyNav({ links }: { links: MoneyNavLink[] }) {
       </div>
       <nav id="mv-side-links" className="mv-side-links" aria-label="Money">
         {links.map((l) => (l.to.startsWith('#') ? (
-          <a key={l.to} href={l.to} className={l.sub ? 'is-sub' : undefined} onClick={close}>{l.label}</a>
+          <a key={l.to} href={l.to} className={l.sub ? 'is-sub' : undefined} onClick={close}>{t(l.label)}</a>
         ) : (
-          <Link key={l.to} to={l.to} className={l.sub ? 'is-sub' : undefined} aria-current={l.current ? 'page' : undefined} onClick={close}>{l.label}</Link>
+          <Link key={l.to} to={l.to} className={l.sub ? 'is-sub' : undefined} aria-current={l.current ? 'page' : undefined} onClick={close}>{t(l.label)}</Link>
         )))}
       </nav>
     </aside>

@@ -11,6 +11,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { useAuth } from '@/contexts/AuthContext';
+import { useLocale, useT } from '@/lib/i18n';
 import { ChevronRight, FileText, Landmark, Mail, Smartphone } from 'lucide-react';
 import '../../styles/money-v2.css';
 import MoneyNav from './MoneyNav';
@@ -26,6 +27,8 @@ import DayGlobe from './figures/DayGlobe';
 import Fortnight from './figures/Fortnight';
 import MonthPlanet from './figures/MonthPlanet';
 
+/* The English source strings; the page says them through t(), so the dictionaries hold them. */
+type T = (source: string, holes?: Record<string, string | number>) => string;
 const CADENCE: Record<string, string> = { weekly: 'every week', biweekly: 'every two weeks', monthly: 'every month', quarterly: 'every quarter', yearly: 'every year' };
 const SOURCE: Record<string, string> = { phone: 'Your phone', bizum: 'Bizum', bankfeed: 'Santander', gmail: 'Gmail', statement: 'Statement' };
 
@@ -37,17 +40,21 @@ type Ahead = { on: string; name: string; amount: number; kind: 'charge' | 'state
 /* Each row says why the ledger expects it: a charge that has come back so many times, a
    commitment they stated, an income seen or said, a diary event with a learned cost. A date
    and a name alone read as random; the reason is what makes it a forecast. */
-function stillToCome(f: MoneyForecast): Ahead[] {
+function stillToCome(t: T, f: MoneyForecast): Ahead[] {
   const rows: Ahead[] = [];
   for (const c of f.committed_items || []) {
     const times = Number(c.occurrences) || 0;
     rows.push({ on: c.next_expected.slice(0, 10), name: merchantLabel(c), amount: -Math.abs(Number(c.typical_amount)), kind: 'charge',
-      why: `${c.cadence ? cap(CADENCE[c.cadence] || c.cadence) : 'Comes back'}${times ? `, ${times} ${times === 1 ? 'time' : 'times'} so far` : ''}${c.last_seen ? `, last ${shortDay(c.last_seen)}` : ''}` });
+      why: [
+        c.cadence ? cap(CADENCE[c.cadence] ? t(CADENCE[c.cadence]) : c.cadence) : t('Comes back'),
+        times ? t(times === 1 ? '{n} time so far' : '{n} times so far', { n: times }) : '',
+        c.last_seen ? t('last {day}', { day: shortDay(c.last_seen) }) : '',
+      ].filter(Boolean).join(', ') });
   }
-  for (const c of f.commitment_items || []) rows.push({ on: c.due_on, name: c.subject || 'A standing charge', amount: -Math.abs(Number(c.amount)), kind: 'stated', why: 'You said it leaves every month' });
-  for (const i of f.income_items || []) rows.push({ on: i.due_on, name: i.subject || i.source || 'Comes in', amount: Math.abs(Number(i.amount)), kind: 'income',
-    why: i.basis ? `Comes in, ${i.basis}` : 'Comes in, as you said' });
-  for (const e of f.calendar_items || []) if (e.expected && Number(e.expected.amount) > 0) rows.push({ on: e.on.slice(0, 10), name: e.label || e.title || 'In the diary', amount: -Math.abs(Number(e.expected.amount)), kind: 'diary', why: 'In the diary; this kind of day usually costs about this' });
+  for (const c of f.commitment_items || []) rows.push({ on: c.due_on, name: c.subject || t('A standing charge'), amount: -Math.abs(Number(c.amount)), kind: 'stated', why: t('You said it leaves every month') });
+  for (const i of f.income_items || []) rows.push({ on: i.due_on, name: i.subject || i.source || t('Comes in'), amount: Math.abs(Number(i.amount)), kind: 'income',
+    why: i.basis ? t('Comes in, {basis}', { basis: i.basis }) : t('Comes in, as you said') });
+  for (const e of f.calendar_items || []) if (e.expected && Number(e.expected.amount) > 0) rows.push({ on: e.on.slice(0, 10), name: e.label || e.title || t('In the diary'), amount: -Math.abs(Number(e.expected.amount)), kind: 'diary', why: t('In the diary; this kind of day usually costs about this') });
   return rows.filter((r) => Number.isFinite(r.amount) && r.on).sort((a, b) => (a.on < b.on ? -1 : a.on > b.on ? 1 : Math.abs(b.amount) - Math.abs(a.amount))).slice(0, 8);
 }
 
@@ -57,21 +64,22 @@ function merchantLabel(t: { merchant_name?: string | null; merchant_raw?: string
   return base.charAt(0).toUpperCase() + base.slice(1);
 }
 /** Two names read with an "and"; more than three become a count, so the line stays a sentence. */
-function nameList(names: string[]) {
+function nameList(t: T, names: string[]) {
   if (names.length <= 1) return names[0] || '';
-  if (names.length === 2) return `${names[0]} and ${names[1]}`;
-  if (names.length === 3) return `${names[0]}, ${names[1]} and ${names[2]}`;
-  return `${names[0]}, ${names[1]} and ${names.length - 2} more`;
+  if (names.length === 2) return t('{a} and {b}', { a: names[0], b: names[1] });
+  if (names.length === 3) return t('{a}, {b} and {c}', { a: names[0], b: names[1], c: names[2] });
+  return t('{a}, {b} and {n} more', { a: names[0], b: names[1], n: names.length - 2 });
 }
-function ordinalSuffix(n: number) {
-  if (n % 10 === 1 && n !== 11) return 'st';
-  if (n % 10 === 2 && n !== 12) return 'nd';
-  if (n % 10 === 3 && n !== 13) return 'rd';
-  return 'th';
+/** The 30th in English; a language without the suffix writes the bare day in its dictionary. */
+function ordinalDay(t: T, n: number) {
+  if (n % 10 === 1 && n !== 11) return t('{n}st', { n });
+  if (n % 10 === 2 && n !== 12) return t('{n}nd', { n });
+  if (n % 10 === 3 && n !== 13) return t('{n}rd', { n });
+  return t('{n}th', { n });
 }
 function cap(s: string) { return s ? s.charAt(0).toUpperCase() + s.slice(1) : s; }
-function monthName(iso: string) { return new Date(iso).toLocaleDateString('en-GB', { month: 'long' }); }
-function monthYear(iso: string) { return new Date(iso).toLocaleDateString('en-GB', { month: 'long', year: 'numeric', timeZone: 'UTC' }); }
+function monthName(locale: string, iso: string) { return new Date(iso).toLocaleDateString(locale, { month: 'long' }); }
+function monthYear(locale: string, iso: string) { return new Date(iso).toLocaleDateString(locale, { month: 'long', year: 'numeric', timeZone: 'UTC' }); }
 function lastDay(iso: string) { const d = new Date(iso); return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 1, 0)).getUTCDate(); }
 
 function Chevron() { return <ChevronRight className="mv-chev" size={16} strokeWidth={1.75} aria-hidden="true" />; }
@@ -79,7 +87,9 @@ function Chevron() { return <ChevronRight className="mv-chev" size={16} strokeWi
 export default function MoneyV2Page({ view = 'today' }: { view?: MoneyView } = {}) {
   /* The tab said "Discover Your Soul Signature" over a page of euros, which is the front
      door's old promise showing through the new product. */
-  useDocumentTitle(view === 'today' ? 'Money' : view === 'month' ? 'Money, the month' : 'Money, you');
+  const t = useT();
+  const locale = useLocale();
+  useDocumentTitle(view === 'today' ? t('Money') : view === 'month' ? t('Money, the month') : t('Money, you'));
   const { user } = useAuth();
   const [forecast, setForecast] = useState<MoneyForecast | null>(null);
   /* The one number a person opens the app for. It leads Today; the month sits under it. */
@@ -142,13 +152,17 @@ export default function MoneyV2Page({ view = 'today' }: { view?: MoneyView } = {
   const bookedIsYesterday = bookedTo ? new Date(bookedTo).toDateString() === new Date(Date.now() - 86400000).toDateString() : false;
   const bookedLine = bookedTo
     ? bookedIsYesterday
-      ? `Booked to yesterday${since ? `; today's ${since} ${since === 1 ? 'payment is' : 'payments are'} here from the alerts and book tomorrow` : '; nothing yet today'}.`
-      : `Booked to ${bookedDay}${since ? `, ${since} ${since === 1 ? 'alert' : 'alerts'} since` : ''}. Cards post on working days.`
-    : 'Read four times a day. You confirm it every six months.';
-  const bankLine = !bankReady ? 'The bank feed is not switched on yet.'
-    : busy === 'connect' ? 'Opening the bank.'
-    : busy === 'pull' ? 'Reading the bank.'
-    : read ? (read.created ? `${read.created} new just now.` : `Nothing new just now. ${bookedLine}`)
+      ? since
+        ? t(since === 1 ? "Booked to yesterday; today's {n} payment is here from the alerts and book tomorrow." : "Booked to yesterday; today's {n} payments are here from the alerts and book tomorrow.", { n: since })
+        : t('Booked to yesterday; nothing yet today.')
+      : since
+        ? t(since === 1 ? 'Booked to {day}, {n} alert since. Cards post on working days.' : 'Booked to {day}, {n} alerts since. Cards post on working days.', { day: bookedDay as string, n: since })
+        : t('Booked to {day}. Cards post on working days.', { day: bookedDay as string })
+    : t('Read four times a day. You confirm it every six months.');
+  const bankLine = !bankReady ? t('The bank feed is not switched on yet.')
+    : busy === 'connect' ? t('Opening the bank.')
+    : busy === 'pull' ? t('Reading the bank.')
+    : read ? (read.created ? t('{n} new just now.', { n: read.created }) : t('Nothing new just now. {line}', { line: bookedLine }))
     : bookedLine;
 
   const load = useCallback(async () => {
@@ -195,9 +209,9 @@ export default function MoneyV2Page({ view = 'today' }: { view?: MoneyView } = {
     setBusy(`forget:${f.id}`); setNote(null);
     try {
       const r = await moneyAPI.deleteFact(f.id);
-      if (!r.deleted) setNote('That one is not yours to forget here.');
+      if (!r.deleted) setNote(t('That one is not yours to forget here.'));
       await loadYou(); await load();
-    } catch { setNote('That could not be forgotten. Try again.'); }
+    } catch { setNote(t('That could not be forgotten. Try again.')); }
     finally { setBusy(null); }
   }
   const copyInbox = useCallback(async () => {
@@ -230,11 +244,11 @@ export default function MoneyV2Page({ view = 'today' }: { view?: MoneyView } = {
     /* The bank's own word for a refusal, when it gave one: plain letters only, so the URL cannot put a sentence here. */
     const why = (params.get('why') || '').replace(/[^a-z0-9_ .-]/gi, '').replace(/_/g, ' ').trim().slice(0, 80);
     setNote(outcome === 'connected'
-      ? `${known ? known.label : 'The bank'} is connected. The first read is on its way.`
-      : `The bank connection did not go through${why ? ` (the bank said: ${why})` : ''}. Try it again.`);
+      ? t('{bank} is connected. The first read is on its way.', { bank: known ? known.label : t('The bank') })
+      : why ? t('The bank connection did not go through (the bank said: {why}). Try it again.', { why }) : t('The bank connection did not go through. Try it again.'));
     window.history.replaceState(null, '', window.location.pathname + window.location.hash);
     if (outcome === 'connected') void moneyAPI.pull().then(() => load()).catch(() => { /* the note already says where we are */ });
-  }, [load]);
+  }, [load, t]);
 
   const empty = loaded && ledger.length === 0;
   /* What they said comes in each month is the band's right edge; the month is drawn against
@@ -248,22 +262,24 @@ export default function MoneyV2Page({ view = 'today' }: { view?: MoneyView } = {
     const fresh = accounts.filter((a) => a.balance !== null && a.balance !== undefined && !(a.balance_type || '').includes('/credit') && a.balance_at && Date.now() - new Date(a.balance_at).getTime() < 48 * 3600000);
     if (!fresh.length) return null;
     /* A signed figure: an account in its overdraft is said as overdrawn, never as money in it. */
-    const signed = (n: number) => (n < 0 ? `${euro(Math.abs(n))} overdrawn` : euro(n));
-    const parts = fresh.map((a) => `${signed(Number(a.balance))} in ${bankLabel(a.bank_name)}${fresh.filter((b) => (b.bank_name || null) === (a.bank_name || null)).length > 1 && a.iban_mask ? ` ${a.iban_mask.slice(-4)}` : ''}`);
+    const signed = (n: number) => (n < 0 ? t('{amount} overdrawn', { amount: euro(Math.abs(n)) }) : euro(n));
+    const parts = fresh.map((a) => t('{amount} in {bank}', { amount: signed(Number(a.balance)), bank: `${bankLabel(a.bank_name)}${fresh.filter((b) => (b.bank_name || null) === (a.bank_name || null)).length > 1 && a.iban_mask ? ` ${a.iban_mask.slice(-4)}` : ''}` }));
     const newest = fresh.map((a) => a.balance_at as string).sort().pop() as string;
     const d = new Date(newest);
     const today = d.toDateString() === new Date().toDateString();
-    const when = today ? `read at ${d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}` : `read ${shortDay(newest)}`;
+    const when = today ? t('read at {time}', { time: d.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' }) }) : t('read {day}', { day: shortDay(newest) });
     const pendingIn = fresh.some((a) => /^(XPCD|ITAV)/.test(a.balance_type || ''));
     const anyNegative = fresh.some((a) => Number(a.balance) < 0);
     /* A booked figure with pending alerts behind it: say about what is left once they land.
        Only when there is one account, since the alerts do not say which account they hit. */
     if (!pendingIn && since > 0 && fresh.length === 1) {
       const after = Number(fresh[0].balance) + pendingNet;
-      return `${signed(Number(fresh[0].balance))} booked in ${bankLabel(fresh[0].bank_name)}, about ${signed(after)} after today's ${since} pending, ${when}.`;
+      return t("{amount} booked in {bank}, about {after} after today's {n} pending, {when}.", { amount: signed(Number(fresh[0].balance)), bank: bankLabel(fresh[0].bank_name), after: signed(after), n: since, when });
     }
-    return `${parts.join(', ')}${anyNegative ? '' : ' available'}, ${when}${pendingIn ? ', pending charges included' : ', pending charges not yet counted'}.`;
-  }, [accounts, since, pendingNet]);
+    const holes = { parts: parts.join(', '), when };
+    if (anyNegative) return pendingIn ? t('{parts}, {when}, pending charges included.', holes) : t('{parts}, {when}, pending charges not yet counted.', holes);
+    return pendingIn ? t('{parts} available, {when}, pending charges included.', holes) : t('{parts} available, {when}, pending charges not yet counted.', holes);
+  }, [accounts, since, pendingNet, t, locale]);
   /* The same days of every month, for the pair bars on the month rows. */
   const todayDay = new Date().getUTCDate();
   const pairMax = Math.max(0, ...months.map((m) => Number(m.spent_to_day) || 0));
@@ -321,14 +337,14 @@ export default function MoneyV2Page({ view = 'today' }: { view?: MoneyView } = {
     catch (e) {
       const err = e as Error & { status?: number };
       if (err.status === 503) setBankReady(false);
-      setNote(err.status === 503 ? 'The bank feed is not switched on yet.' : 'The bank did not answer. Try again in a moment.');
+      setNote(err.status === 503 ? t('The bank feed is not switched on yet.') : t('The bank did not answer. Try again in a moment.'));
       setBusy(null); setConnecting(null);
     }
   }
   async function connectCalendar() {
     setBusy('calendar'); setNote(null);
     try { const { url } = await moneyAPI.calendarConnect(); window.location.assign(url); }
-    catch { setNote('The calendar connection is not switched on yet.'); }
+    catch { setNote(t('The calendar connection is not switched on yet.')); }
     finally { setBusy(null); }
   }
   async function addFeed(e: React.FormEvent) {
@@ -339,15 +355,15 @@ export default function MoneyV2Page({ view = 'today' }: { view?: MoneyView } = {
     try {
       const f = await moneyAPI.addCalendarFeed(url);
       setFeedUrl('');
-      setNote(f.already ? 'That link is already here.' : `${f.label} added: ${f.events ?? 0} events read.`);
+      setNote(f.already ? t('That link is already here.') : t('{label} added: {n} events read.', { label: f.label, n: f.events ?? 0 }));
       await loadCalendar();
-    } catch (err) { setNote((err as Error).message || 'That link could not be read.'); }
+    } catch (err) { setNote((err as Error).message || t('That link could not be read.')); }
     finally { setBusy(null); }
   }
   async function removeFeed(id: string) {
     setBusy('feed'); setNote(null);
     try { await moneyAPI.removeCalendarFeed(id); await loadCalendar(); }
-    catch { setNote('That link could not be removed. Try again.'); }
+    catch { setNote(t('That link could not be removed. Try again.')); }
     finally { setBusy(null); }
   }
   async function pull() {
@@ -355,9 +371,9 @@ export default function MoneyV2Page({ view = 'today' }: { view?: MoneyView } = {
     try {
       const r = await moneyAPI.pull();
       if (r.length) setRead({ seen: r.reduce((n, x) => n + x.seen, 0), created: r.reduce((n, x) => n + x.created, 0) });
-      else setNote('No account to pull from yet.');
+      else setNote(t('No account to pull from yet.'));
       await load();
-    } catch { setNote('The pull did not go through.'); }
+    } catch { setNote(t('The pull did not go through.')); }
     finally { setBusy(null); }
   }
   async function importStatement(file: File | null) {
@@ -365,7 +381,7 @@ export default function MoneyV2Page({ view = 'today' }: { view?: MoneyView } = {
     setBusy('statement'); setNote(null);
     try {
       const r = await moneyAPI.importStatement(file);
-      setNote(`${r.read} rows read, ${r.created} new${r.skipped ? `, ${r.skipped} lines skipped` : ''}.`);
+      setNote(r.skipped ? t('{read} rows read, {created} new, {skipped} lines skipped.', { read: r.read, created: r.created, skipped: r.skipped }) : t('{read} rows read, {created} new.', { read: r.read, created: r.created }));
       await load();
     } catch (e) { setNote((e as Error).message); } finally { setBusy(null); }
   }
@@ -377,7 +393,7 @@ export default function MoneyV2Page({ view = 'today' }: { view?: MoneyView } = {
     try {
       await moneyAPI.setPlaceCategory(merchantKey, category, name);
       setCategories(await moneyAPI.categories(`${new Date().toISOString().slice(0, 7)}-01`));
-    } catch { setNote('That could not be saved. Try again.'); }
+    } catch { setNote(t('That could not be saved. Try again.')); }
     finally { setBusy(null); }
   }
   async function lookupPlaces() {
@@ -391,18 +407,21 @@ export default function MoneyV2Page({ view = 'today' }: { view?: MoneyView } = {
         left = r.left;
         if (r.provider === 'none') break;
       }
-      setNote(`${placed} more ${placed === 1 ? 'merchant' : 'merchants'} placed${left ? `, ${left} still to go` : ''}.`);
+      setNote(left
+        ? t(placed === 1 ? '{n} more merchant placed, {left} still to go.' : '{n} more merchants placed, {left} still to go.', { n: placed, left })
+        : t(placed === 1 ? '{n} more merchant placed.' : '{n} more merchants placed.', { n: placed }));
       await load();
-    } catch { setNote('The place lookup did not answer.'); } finally { setBusy(null); }
+    } catch { setNote(t('The place lookup did not answer.')); } finally { setBusy(null); }
   }
   async function makeKey() {
     setBusy('key'); setNote(null);
     try { setKey(await moneyAPI.createCaptureKey()); } catch (e) { setNote((e as Error).message); } finally { setBusy(null); }
   }
 
-  const monthLabel = forecast ? monthName(forecast.month) : new Date().toLocaleDateString('en-GB', { month: 'long' });
+  const monthLabel = forecast ? monthName(locale, forecast.month) : new Date().toLocaleDateString(locale, { month: 'long' });
   const last = forecast ? lastDay(forecast.month) : 30;
   const unmeasured = usage?.unmeasurable || [];
+  const ahead = forecast ? stillToCome(t, forecast) : [];
 
   /* What the ledger says, with the payments that say it one press away. Today carries the
      three that changed something today, the one that moved most as the heading; the month
@@ -413,7 +432,7 @@ export default function MoneyV2Page({ view = 'today' }: { view?: MoneyView } = {
                 <>
                   {/* The reading that moved the most money is the heading, not a row among rows: it is
                       the one sentence to read on the way out. Its receipts open under it. */}
-                  <p className="mv-eyebrow">What changed</p>
+                  <p className="mv-eyebrow">{t('What changed')}</p>
                   <button type="button" className="mv-lead" aria-expanded={openReading === lead.id} onClick={() => setOpenReading(openReading === lead.id ? null : lead.id)}>
                     <h2>{lead.sentence}</h2>
                     {lead.detail ? <p className="mv-sub">{lead.detail}</p> : null}
@@ -421,11 +440,11 @@ export default function MoneyV2Page({ view = 'today' }: { view?: MoneyView } = {
                   {openReading === lead.id ? <ReadingBody r={lead} /> : null}
                 </>
               ) : (
-                <h2>What the money says.</h2>
+                <h2>{t('What the money says.')}</h2>
               )}
               {/* Quiet is a feature. Every other app manufactures a daily line; this one says how
                   long it has had nothing new to say, from the day each reading was first said. */}
-              {quietDays !== null && quietDays >= 2 && !lead ? <p className="mv-sub">{`Nothing new for ${quietDays} days.`}</p> : null}
+              {quietDays !== null && quietDays >= 2 && !lead ? <p className="mv-sub">{t('Nothing new for {n} days.', { n: quietDays })}</p> : null}
               <ul className="mv-list">
                 {(view === 'today' ? rest : readings).map((r) => {
                   const isOpen = openReading === r.id;
@@ -445,7 +464,7 @@ export default function MoneyV2Page({ view = 'today' }: { view?: MoneyView } = {
                 {view === 'today' && readings.length > shown.length ? (
                   <li>
                     <Link to="/money/month#readings" className="mv-item">
-                      <span className="mv-item-text"><span className="mv-item-title">{`All ${readings.length} readings`}</span></span>
+                      <span className="mv-item-text"><span className="mv-item-title">{t('All {n} readings', { n: readings.length })}</span></span>
                       <span className="mv-item-end"><Chevron /></span>
                     </Link>
                   </li>
@@ -468,15 +487,15 @@ export default function MoneyV2Page({ view = 'today' }: { view?: MoneyView } = {
             {!loaded ? (
               /* The first seconds of a new account are the month being read; an ellipsis
                  where the number goes read as a broken figure to a stranger. */
-              <h1>Reading your month.</h1>
+              <h1>{t('Reading your month.')}</h1>
             ) : empty ? (
               <>
-                <h1>Nothing read yet.</h1>
-                <p className="mv-sub">Connect Santander or Revolut, or let your phone send each purchase as it happens.</p>
+                <h1>{t('Nothing read yet.')}</h1>
+                <p className="mv-sub">{t('Connect Santander or Revolut, or let your phone send each purchase as it happens.')}</p>
                 <div className="mv-ctas">
-                  <button type="button" className="mv-pill" onClick={() => void connect(BANKS[0].name)} disabled={busy === 'connect' || !bankReady}>Connect Santander</button>
-                  <button type="button" className="mv-pill mv-pill--ghost" onClick={() => void connect(BANKS[1].name)} disabled={busy === 'connect' || !bankReady}>Or Revolut</button>
-                  <Link to="/money/you#sources" className="mv-pill mv-pill--ghost">Set up the phone</Link>
+                  <button type="button" className="mv-pill" onClick={() => void connect(BANKS[0].name)} disabled={busy === 'connect' || !bankReady}>{t('Connect Santander')}</button>
+                  <button type="button" className="mv-pill mv-pill--ghost" onClick={() => void connect(BANKS[1].name)} disabled={busy === 'connect' || !bankReady}>{t('Or Revolut')}</button>
+                  <Link to="/money/you#sources" className="mv-pill mv-pill--ghost">{t('Set up the phone')}</Link>
                 </div>
               </>
             ) : (
@@ -496,14 +515,16 @@ export default function MoneyV2Page({ view = 'today' }: { view?: MoneyView } = {
                             left={today.over ? -(today.free ?? 0) : today.amount}
                             spent={spentToday}
                             over={Boolean(today.over)}
-                            label={`${today.over ? 'Over today' : `${euro(today.amount)} left today`}, ${euro(spentToday)} spent. Tap to see the payments.`}
+                            label={today.over
+                              ? t('Over today, {spent} spent. Tap to see the payments.', { spent: euro(spentToday) })
+                              : t('{left} left today, {spent} spent. Tap to see the payments.', { left: euro(today.amount), spent: euro(spentToday) })}
                             onTap={() => setDayOpen((o) => !o)}
                             open={dayOpen}
                           />
                         </div>
                       );
                     })()}
-                    <h1>{today.over ? 'Nothing today.' : `${euro(today.amount)} today.`}</h1>
+                    <h1>{today.over ? t('Nothing today.') : t('{amount} today.', { amount: euro(today.amount) })}</h1>
                     {/* One line: the basis. The month lives in the band's two labels below. */}
                     {today.sentence ? <p className="mv-sub">{today.sentence}</p> : null}
                     {/* The real thing under it: what the bank says is in the account, read with you
@@ -513,28 +534,28 @@ export default function MoneyV2Page({ view = 'today' }: { view?: MoneyView } = {
                       const todayKey = new Date().toISOString().slice(0, 10);
                       const rows = ledger.filter((t) => t.occurred_at.slice(0, 10) === todayKey && Number(t.amount) < 0);
                       return rows.length ? (
-                        <ul className="mv-list mv-day-rows" aria-label="Today's payments">
-                          {rows.map((t) => (
-                            <li key={t.id} className="mv-item mv-item--tight">
+                        <ul className="mv-list mv-day-rows" aria-label={t("Today's payments")}>
+                          {rows.map((row) => (
+                            <li key={row.id} className="mv-item mv-item--tight">
                               <span className="mv-item-text">
-                                <span className="mv-item-title">{t.merchant_name || t.merchant_raw || 'Unknown'}</span>
-                                <span className="mv-item-sub">{new Date(t.occurred_at).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}</span>
+                                <span className="mv-item-title">{row.merchant_name || row.merchant_raw || t('Unknown')}</span>
+                                <span className="mv-item-sub">{new Date(row.occurred_at).toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' })}</span>
                               </span>
-                              <span className="mv-item-end">{euro(Math.abs(Number(t.amount)))}</span>
+                              <span className="mv-item-end">{euro(Math.abs(Number(row.amount)))}</span>
                             </li>
                           ))}
                         </ul>
-                      ) : <p className="mv-sub">Nothing paid yet today.</p>;
+                      ) : <p className="mv-sub">{t('Nothing paid yet today.')}</p>;
                     })() : null}
                   </>
                 ) : (
                   <>
-                    <h1>{forecast ? euro(forecast.spent) : '\u2026'} so far.</h1>
+                    <h1>{t('{amount} so far.', { amount: forecast ? euro(forecast.spent) : '\u2026' })}</h1>
                     {forecast ? (
                       <p className="mv-sub">
                         {projectable
-                          ? `Likely ${euro(forecast.projected_p50)} by the ${last}${ordinalSuffix(last)}, somewhere from ${euro(forecast.projected_p10)} to ${euro(forecast.projected_p90)}.`
-                          : 'Too early to say where the month lands.'}
+                          ? t('Likely {amount} by the {day}, somewhere from {low} to {high}.', { amount: euro(forecast.projected_p50), day: ordinalDay(t, last), low: euro(forecast.projected_p10), high: euro(forecast.projected_p90) })
+                          : t('Too early to say where the month lands.')}
                       </p>
                     ) : null}
                     {today && today.why ? <p className="mv-sub">{today.why}</p> : null}
@@ -544,11 +565,11 @@ export default function MoneyV2Page({ view = 'today' }: { view?: MoneyView } = {
                     against, and how many it held. A range nobody scores is a range nobody
                     should trust, so the number is printed as soon as there is one. */}
                 {forecast?.band_calibration && forecast.band_calibration.days >= 14 && forecast.band_calibration.coverage !== null ? (
-                  <p className="mv-sub">{`The range has held on ${Math.round(forecast.band_calibration.coverage * forecast.band_calibration.days)} of the last ${forecast.band_calibration.days} days.`}</p>
+                  <p className="mv-sub">{t('The range has held on {held} of the last {days} days.', { held: Math.round(forecast.band_calibration.coverage * forecast.band_calibration.days), days: forecast.band_calibration.days })}</p>
                 ) : null}
                 {/* A month that stopped moving must say why: the bank ends its session on its
                     own schedule, and nothing can be read until it is authorised again. */}
-                {reconnect ? <p className="mv-sub">The bank connection has ended. Reconnect it under Sources.</p> : null}
+                {reconnect ? <p className="mv-sub">{t('The bank connection has ended. Reconnect it under Sources.')}</p> : null}
               </>
             )}
             {forecast && !empty ? (
@@ -560,24 +581,26 @@ export default function MoneyV2Page({ view = 'today' }: { view?: MoneyView } = {
                   <div className="mv-band-spent" style={{ width: `${pct(forecast.spent, forecast, edge)}%` }} />
                   {/* Where what they want left begins, when they said so: the month has a wall
                       before the end of the track. */}
-                  {incomeEdge && today?.keep ? <i className="mv-band-mark" style={{ left: `${pct(incomeEdge - today.keep, forecast, edge)}%` }} title={`Keeping ${euro(today.keep)}`} /> : null}
+                  {incomeEdge && today?.keep ? <i className="mv-band-mark" style={{ left: `${pct(incomeEdge - today.keep, forecast, edge)}%` }} title={t('Keeping {amount}', { amount: euro(today.keep) })} /> : null}
                 </div>
                 <div className="mv-band-labels">
-                  <span>{`Spent ${euro(forecast.spent)}`}</span>
+                  <span>{t('Spent {amount}', { amount: euro(forecast.spent) })}</span>
                   {/* The track ends at what comes in when they said it; the likely figure and its
                       reach stay in the label so the band reads as spent, likely, and the wall. */}
                   <span>
-                    {incomeEdge
-                      ? `Likely ${euro(Math.max(forecast.projected_p50, forecast.spent + forecast.committed))}${projectable ? `, up to ${euro(forecast.projected_p90)}` : ''}; ${euro(incomeEdge)} comes in`
-                      : `Likely ${euro(Math.max(forecast.projected_p50, forecast.spent + forecast.committed))} by the ${last}${ordinalSuffix(last)}${projectable ? `, up to ${euro(forecast.projected_p90)}` : ''}`}
+                    {(() => {
+                      const likely = { amount: euro(Math.max(forecast.projected_p50, forecast.spent + forecast.committed)), high: euro(forecast.projected_p90), day: ordinalDay(t, last), income: euro(incomeEdge || 0) };
+                      if (incomeEdge) return projectable ? t('Likely {amount}, up to {high}; {income} comes in', likely) : t('Likely {amount}; {income} comes in', likely);
+                      return projectable ? t('Likely {amount} by the {day}, up to {high}', likely) : t('Likely {amount} by the {day}', likely);
+                    })()}
                   </span>
                 </div>
                 {forecast.days && forecast.days.days.length ? <Fortnight strip={forecast.days} tomorrow={forecast.tomorrow ?? null} /> : null}
-                {stillToCome(forecast).length ? (
+                {ahead.length ? (
                   <>
-                  <p className="mv-sub mv-ahead-head">Still to come this month</p>
-                  <ul className="mv-list mv-ahead" aria-label="Still to come this month">
-                    {stillToCome(forecast).map((r) => (
+                  <p className="mv-sub mv-ahead-head">{t('Still to come this month')}</p>
+                  <ul className="mv-list mv-ahead" aria-label={t('Still to come this month')}>
+                    {ahead.map((r) => (
                       <li key={`${r.kind}-${r.on}-${r.name}`} className="mv-item mv-item--tight">
                         <span className="mv-ahead-day">{shortDay(r.on)}</span>
                         <KindTile kind={r.kind === 'income' ? 'income' : r.kind === 'stated' ? 'commitment' : r.kind === 'diary' ? 'diary' : 'software'} label={r.name} />
@@ -602,18 +625,23 @@ export default function MoneyV2Page({ view = 'today' }: { view?: MoneyView } = {
             {(() => {
               const key = (forecast?.month || new Date().toISOString()).slice(0, 7);
               const rows = ledger.filter((t) => t.occurred_at.slice(0, 7) === key);
-              return rows.length ? <div className="mv-planet-slot"><MonthPlanet rows={rows} size={220} label={`${monthLabel} as a globe of payments`} /></div> : null;
+              return rows.length ? <div className="mv-planet-slot"><MonthPlanet rows={rows} size={220} label={t('{month} as a globe of payments', { month: monthLabel })} /></div> : null;
             })()}
-            <p className="mv-eyebrow">Month</p>
-            <h1>{`${monthLabel}, ${forecast ? euro(forecast.spent) : (months[0] ? euro(months[0].spent) : '\u2026')}${incomeEdge ? ` of ${euro(incomeEdge)}` : ''}.`}</h1>
-            {incomeEdge ? <p className="mv-sub">{`${euro(incomeEdge)} is what you said comes in${today?.keep ? `, ${euro(today.keep)} of it to keep` : ''}.`}</p> : null}
+            <p className="mv-eyebrow">{t('Month')}</p>
+            <h1>{(() => {
+              const amount = forecast ? euro(forecast.spent) : (months[0] ? euro(months[0].spent) : '\u2026');
+              return incomeEdge ? t('{month}, {amount} of {income}.', { month: monthLabel, amount, income: euro(incomeEdge) }) : t('{month}, {amount}.', { month: monthLabel, amount });
+            })()}</h1>
+            {incomeEdge ? <p className="mv-sub">{today?.keep
+              ? t('{income} is what you said comes in, {keep} of it to keep.', { income: euro(incomeEdge), keep: euro(today.keep) })
+              : t('{income} is what you said comes in.', { income: euro(incomeEdge) })}</p> : null}
             {months[0] && months[1] && typeof months[1].spent_to_day === 'number' ? (
               <>
-                <p className="mv-sub">{`By the ${todayDay}${ordinalSuffix(todayDay)}: ${euro(months[0].spent_to_day ?? months[0].spent)}; by the ${todayDay}${ordinalSuffix(todayDay)} of ${monthName(months[1].month)}, ${euro(months[1].spent_to_day)}.`}</p>
+                <p className="mv-sub">{t('By the {day}: {amount}; by the {day} of {month}, {other}.', { day: ordinalDay(t, todayDay), amount: euro(months[0].spent_to_day ?? months[0].spent), month: monthName(locale, months[1].month), other: euro(months[1].spent_to_day) })}</p>
                 <div className="mv-pairs" aria-hidden="true">
                   {[months[0], months[1]].map((m) => (
                     <div key={m.month} className="mv-pairs-row">
-                      <span className="mv-pairs-label">{monthName(m.month)}</span>
+                      <span className="mv-pairs-label">{monthName(locale, m.month)}</span>
                       <span className="mv-pair mv-pair--wide"><i style={{ width: `${pairMax > 0 ? ((Number(m.spent_to_day) || 0) / pairMax) * 100 : 0}%` }} /></span>
                       <span className="mv-pairs-end mv-figures">{euro(m.spent_to_day ?? 0)}</span>
                     </div>
@@ -626,9 +654,9 @@ export default function MoneyV2Page({ view = 'today' }: { view?: MoneyView } = {
           {view === 'you' ? (
           <section className="mv-hero" id="you-title">
             <Stamp mark="rent" />
-            <p className="mv-eyebrow">You</p>
-            <h1>{user?.firstName ? `${user.firstName}.` : 'You.'}</h1>
-            <p className="mv-sub">What it knows in your words, and where it reads from.</p>
+            <p className="mv-eyebrow">{t('You')}</p>
+            <h1>{user?.firstName ? t('{name}.', { name: user.firstName }) : t('You.')}</h1>
+            <p className="mv-sub">{t('What it knows in your words, and where it reads from.')}</p>
           </section>
           ) : null}
 
@@ -636,17 +664,17 @@ export default function MoneyV2Page({ view = 'today' }: { view?: MoneyView } = {
           {view === 'month' && categories && categories.groups.length ? (
             <section className="mv-section" id="where">
               <div className="mv-head">
-                <h2>Where it went this month.</h2>
+                <h2>{t('Where it went this month.')}</h2>
                 {categories.read < categories.total ? (
                   <button type="button" className="mv-pill mv-pill--ghost" onClick={() => void lookupPlaces()} disabled={busy === 'places'}>
-                    {busy === 'places' ? 'Looking up…' : 'Look up the rest'}
+                    {busy === 'places' ? t('Looking up\u2026') : t('Look up the rest')}
                   </button>
                 ) : null}
               </div>
               <p className="mv-sub">
                 {categories.read < categories.total
-                  ? `${euro(categories.read)} of ${euro(categories.total)} placed so far.`
-                  : 'Every payment this month is placed.'}
+                  ? t('{read} of {total} placed so far.', { read: euro(categories.read), total: euro(categories.total) })
+                  : t('Every payment this month is placed.')}
               </p>
               <ol className="mv-list mv-where">
                 {categories.groups.map((g) => (
@@ -654,7 +682,7 @@ export default function MoneyV2Page({ view = 'today' }: { view?: MoneyView } = {
                     <div className="mv-item">
                       <KindTile kind={g.known ? g.category : null} label={g.category} />
                       <span className="mv-item-text">
-                        <span className="mv-item-title">{cap(g.category)}</span>
+                        <span className="mv-item-title">{cap(t(g.category))}</span>
                         <span className="mv-item-sub">{g.share}%{g.merchants.length ? `, ${g.merchants.map((m) => m.name).slice(0, 3).join(', ')}` : ''}</span>
                         {/* Two pixels of ink for the share: the number above it, drawn. */}
                         <span className="mv-share" aria-hidden="true"><i style={{ width: `${Math.max(0, Math.min(100, Number(g.share) || 0))}%` }} /></span>
@@ -672,10 +700,10 @@ export default function MoneyV2Page({ view = 'today' }: { view?: MoneyView } = {
                               <span className="mv-item-sub">{euro(m.spent)}</span>
                             </span>
                             <span className="mv-item-end">
-                              <label className="mv-sr" htmlFor={`cat-${m.merchant_key || m.name}`}>What kind of place is {m.name}?</label>
+                              <label className="mv-sr" htmlFor={`cat-${m.merchant_key || m.name}`}>{t('What kind of place is {name}?', { name: m.name })}</label>
                               <select id={`cat-${m.merchant_key || m.name}`} className="mv-field mv-field--select" defaultValue="" disabled={busy === 'category'} onChange={(e) => void placeAs(m.merchant_key || m.name, e.target.value, m.name)}>
-                                <option value="" disabled>Kind of place</option>
-                                {moneyAPI.CATEGORIES.map((c) => <option key={c} value={c}>{cap(c)}</option>)}
+                                <option value="" disabled>{t('Kind of place')}</option>
+                                {moneyAPI.CATEGORIES.map((c) => <option key={c} value={c}>{cap(t(c))}</option>)}
                               </select>
                             </span>
                           </li>
@@ -691,33 +719,34 @@ export default function MoneyV2Page({ view = 'today' }: { view?: MoneyView } = {
           {/* Ledger */}
           {view === 'month' ? (
           <section className="mv-section" id="ledger">
-            <h2>Every euro, with its receipts.</h2>
+            <h2>{t('Every euro, with its receipts.')}</h2>
             {ledger.length === 0 ? (
-              <div className="mv-list"><p className="mv-empty">Fills as the bank and the phone send what they saw.</p></div>
+              <div className="mv-list"><p className="mv-empty">{t('Fills as the bank and the phone send what they saw.')}</p></div>
             ) : (
               <>
-                <p className="mv-sub">Open a month, then a payment, to see what the bank and the phone saw.</p>
+                <p className="mv-sub">{t('Open a month, then a payment, to see what the bank and the phone saw.')}</p>
                 <ol className="mv-list">
                   {byMonth.map((group) => {
                     /* Closed until opened: the month page is for reading the month, and sixty
                        rows of it open by default were 4 400 px before the next heading. */
                     const isOpen = monthOpen[group.key] ?? false;
                     const seg = group.segment;
+                    /* One sentence: how many payments, over how many days when the month is still
+                       running, and what came in. */
+                    let countLine = t(group.rows.length === 1 ? '{n} payment' : '{n} payments', { n: group.rows.length });
+                    if (seg && !seg.complete && seg.days_covered) countLine = t('{payments} in {covered} of {total} days', { payments: countLine, covered: seg.days_covered, total: seg.days_in_month });
+                    if (seg && seg.received) countLine = t('{line}, {amount} in', { line: countLine, amount: euro(seg.received) });
                     return (
                       <li key={group.key}>
                         <button type="button" className="mv-item" aria-expanded={isOpen} onClick={() => setMonthOpen((all) => ({ ...all, [group.key]: !isOpen }))}>
                           <span className="mv-item-text">
-                            <span className="mv-item-title">{monthYear(`${group.key}-01T12:00:00Z`)}</span>
-                            <span className="mv-item-sub">
-                              {group.rows.length} {group.rows.length === 1 ? 'payment' : 'payments'}
-                              {seg && !seg.complete && seg.days_covered ? ` in ${seg.days_covered} of ${seg.days_in_month} days` : ''}
-                              {seg && seg.received ? `, ${euro(seg.received)} in` : ''}
-                            </span>
+                            <span className="mv-item-title">{monthYear(locale, `${group.key}-01T12:00:00Z`)}</span>
+                            <span className="mv-item-sub">{countLine}</span>
                             {/* Two short bars: this month to today's date, and the same days of that
                                 month, against the largest of them. What "By the 14th you had spent"
                                 says, drawn, on every month at once. */}
                             {seg && typeof seg.spent_to_day === 'number' && pairMax > 0 ? (
-                              <span className="mv-pair" aria-hidden="true" title={`${euro(seg.spent_to_day)} by the ${todayDay}${ordinalSuffix(todayDay)}`}>
+                              <span className="mv-pair" aria-hidden="true" title={t('{amount} by the {day}', { amount: euro(seg.spent_to_day), day: ordinalDay(t, todayDay) })}>
                                 <i style={{ width: `${(seg.spent_to_day / pairMax) * 100}%` }} />
                               </span>
                             ) : null}
@@ -726,34 +755,32 @@ export default function MoneyV2Page({ view = 'today' }: { view?: MoneyView } = {
                         </button>
                         {isOpen ? (
                           <ol className="mv-sublist">
-                            {group.rows.map((t) => (
-                              <li key={t.id} className={Number(t.amount) > 0 ? 'is-in' : undefined}>
-                                <button type="button" className="mv-item mv-item--sub" onClick={() => void toggle(t.id)} aria-expanded={open === t.id}>
+                            {group.rows.map((row) => (
+                              <li key={row.id} className={Number(row.amount) > 0 ? 'is-in' : undefined}>
+                                <button type="button" className="mv-item mv-item--sub" onClick={() => void toggle(row.id)} aria-expanded={open === row.id}>
                                   <span className="mv-item-text">
-                                    <span className="mv-item-title">{merchantLabel(t)}</span>
+                                    <span className="mv-item-title">{merchantLabel(row)}</span>
                                     <span className="mv-item-sub">
-                                      {shortDay(t.occurred_at)}
-                                      {t.posted_at ? '' : ', pending'}{t.is_recurring ? ', recurring' : ''}
-                                      {t.verdict ? `, ${t.verdict === 'worth_it' ? 'worth it' : 'not me'}` : ''}
+                                      {[shortDay(row.occurred_at), row.posted_at ? '' : t('pending'), row.is_recurring ? t('recurring') : '', row.verdict ? t(row.verdict === 'worth_it' ? 'worth it' : 'not me') : ''].filter(Boolean).join(', ')}
                                     </span>
                                   </span>
-                                  <span className="mv-item-end mv-amount">{Number(t.amount) > 0 ? '+' : ''}{euro(t.amount)}</span>
+                                  <span className="mv-item-end mv-amount">{Number(row.amount) > 0 ? '+' : ''}{euro(row.amount)}</span>
                                 </button>
-                                {open === t.id ? (
+                                {open === row.id ? (
                                   <div className="mv-body mv-body--sub">
                                     <ul className="mv-receipts">
-                                      {(receipts[t.id] || []).map((s) => (
+                                      {(receipts[row.id] || []).map((s) => (
                                         <li key={s.id}>
-                                          <span className="mv-quiet">{SOURCE[s.source] || s.source}, read {shortDay(s.seen_at)}</span>
+                                          <span className="mv-quiet">{t('{source}, read {day}', { source: SOURCE[s.source] ? t(SOURCE[s.source]) : s.source, day: shortDay(s.seen_at) })}</span>
                                           <p>{s.raw_text || `${euro(s.amount)} ${s.currency || ''}`}</p>
                                         </li>
                                       ))}
-                                      {receipts[t.id] && receipts[t.id].length === 0 ? <li><p>No receipt kept for this one.</p></li> : null}
+                                      {receipts[row.id] && receipts[row.id].length === 0 ? <li><p>{t('No receipt kept for this one.')}</p></li> : null}
                                     </ul>
-                                    {Number(t.amount) < 0 ? (
+                                    {Number(row.amount) < 0 ? (
                                       <div className="mv-verdicts">
-                                        <button type="button" className="mv-pill mv-pill--ghost" aria-pressed={t.verdict === 'worth_it'} onClick={() => void verdict(t, 'worth_it')}>Worth it</button>
-                                        <button type="button" className="mv-pill mv-pill--ghost" aria-pressed={t.verdict === 'not_me'} onClick={() => void verdict(t, 'not_me')}>Not me</button>
+                                        <button type="button" className="mv-pill mv-pill--ghost" aria-pressed={row.verdict === 'worth_it'} onClick={() => void verdict(row, 'worth_it')}>{t('Worth it')}</button>
+                                        <button type="button" className="mv-pill mv-pill--ghost" aria-pressed={row.verdict === 'not_me'} onClick={() => void verdict(row, 'not_me')}>{t('Not me')}</button>
                                       </div>
                                     ) : null}
                                   </div>
@@ -774,20 +801,24 @@ export default function MoneyV2Page({ view = 'today' }: { view?: MoneyView } = {
           {/* Recurring */}
           {view === 'month' ? (
           <section className="mv-section" id="recurring">
-            <h2>What comes back on its own.</h2>
+            <h2>{t('What comes back on its own.')}</h2>
             {recurring.length === 0 ? (
-              <div className="mv-list"><p className="mv-empty">A charge counts once it has come back three times at the same rhythm.</p></div>
+              <div className="mv-list"><p className="mv-empty">{t('A charge counts once it has come back three times at the same rhythm.')}</p></div>
             ) : (
               <>
-                {monthlyLoad ? <p className="mv-sub">{`${euro(monthlyLoad)} of it leaves every month.`}</p> : null}
+                {monthlyLoad ? <p className="mv-sub">{t('{amount} of it leaves every month.', { amount: euro(monthlyLoad) })}</p> : null}
                 <ul className="mv-list">
                   {[...subscriptions, ...bills].map((r) => {
                     const isOpen = openSeries === r.merchant_key;
                     const name = merchantLabel({ merchant_name: r.merchant_name, merchant_key: r.merchant_key });
                     const more = [
-                      r.day_of_month ? `Lands on the ${r.day_of_month}${ordinalSuffix(r.day_of_month)}.` : '',
-                      typeof r.total_paid === 'number' ? `${euro(r.total_paid)} so far, over ${r.occurrences} ${r.occurrences === 1 ? 'charge' : 'charges'}.` : '',
-                      typeof r.uses === 'number' ? `Used ${r.uses} time${r.uses === 1 ? '' : 's'} this month${r.cost_per_use ? `, ${euro(r.cost_per_use)} a use` : ''}.` : '',
+                      r.day_of_month ? t('Lands on the {day}.', { day: ordinalDay(t, r.day_of_month) }) : '',
+                      typeof r.total_paid === 'number' ? t(r.occurrences === 1 ? '{amount} so far, over {n} charge.' : '{amount} so far, over {n} charges.', { amount: euro(r.total_paid), n: r.occurrences }) : '',
+                      typeof r.uses === 'number'
+                        ? r.cost_per_use
+                          ? t(r.uses === 1 ? 'Used {n} time this month, {amount} a use.' : 'Used {n} times this month, {amount} a use.', { n: r.uses, amount: euro(r.cost_per_use) })
+                          : t(r.uses === 1 ? 'Used {n} time this month.' : 'Used {n} times this month.', { n: r.uses })
+                        : '',
                     ].filter(Boolean).join(' ');
                     return (
                       <li key={r.merchant_key}>
@@ -796,8 +827,7 @@ export default function MoneyV2Page({ view = 'today' }: { view?: MoneyView } = {
                           <span className="mv-item-text">
                             <span className="mv-item-title">{name}</span>
                             <span className="mv-item-sub">
-                              {r.is_subscription ? 'Subscription' : 'Recurring'}, {CADENCE[r.cadence] || r.cadence}
-                              {r.next_expected ? `, next around ${shortDay(r.next_expected)}` : ''}
+                              {[t(r.is_subscription ? 'Subscription' : 'Recurring'), CADENCE[r.cadence] ? t(CADENCE[r.cadence]) : r.cadence, r.next_expected ? t('next around {day}', { day: shortDay(r.next_expected) }) : ''].filter(Boolean).join(', ')}
                             </span>
                           </span>
                           <span className="mv-item-end">{euro(r.typical_amount)}<Chevron /></span>
@@ -829,8 +859,8 @@ export default function MoneyV2Page({ view = 'today' }: { view?: MoneyView } = {
               <>
               <p className="mv-sub mv-more" id="usage">
                 {unmeasured.length
-                  ? `Whether it gets used: ${euro(unmeasured.reduce((sum, x) => sum + Number(x.typical_amount || 0), 0))} a month goes where nothing here can look.`
-                  : 'Whether it gets used, read from the accounts it can see.'}
+                  ? t('Whether it gets used: {amount} a month goes where nothing here can look.', { amount: euro(unmeasured.reduce((sum, x) => sum + Number(x.typical_amount || 0), 0)) })
+                  : t('Whether it gets used, read from the accounts it can see.')}
               </p>
               <ul className="mv-list">
                 {usage.findings.map((f) => (
@@ -844,8 +874,8 @@ export default function MoneyV2Page({ view = 'today' }: { view?: MoneyView } = {
                 {unmeasured.length ? (
                   <li className="mv-item">
                     <span className="mv-item-text">
-                      <span className="mv-item-title">{nameList(unmeasured.map((x) => x.name))}</span>
-                      <span className="mv-item-sub">No connected account shows their use, so nothing is guessed.</span>
+                      <span className="mv-item-title">{nameList(t, unmeasured.map((x) => x.name))}</span>
+                      <span className="mv-item-sub">{t('No connected account shows their use, so nothing is guessed.')}</span>
                     </span>
                   </li>
                 ) : null}
@@ -862,11 +892,11 @@ export default function MoneyV2Page({ view = 'today' }: { view?: MoneyView } = {
               is the ledger's verdict when it has one. */}
           {view === 'you' ? (
           <section className="mv-section" id="knows">
-            <h2>What it knows.</h2>
-            <p className="mv-sub">Forget one and it asks again.</p>
+            <h2>{t('What it knows.')}</h2>
+            <p className="mv-sub">{t('Forget one and it asks again.')}</p>
             <ul className="mv-list">
               {facts === null ? null : facts.length === 0 ? (
-                <li><p className="mv-empty">Nothing yet. The questions are where this fills.</p></li>
+                <li><p className="mv-empty">{t('Nothing yet. The questions are where this fills.')}</p></li>
               ) : [...facts].sort((a, b) => factRank(a) - factRank(b)).map((f) => {
                 /* A row of fifteen identical buttons is a form, not a list: the fact opens, and
                    Forget waits inside it with the ledger's note. */
@@ -884,8 +914,8 @@ export default function MoneyV2Page({ view = 'today' }: { view?: MoneyView } = {
                     {isOpen ? (
                       <div className="mv-body">
                         <div className="mv-body-foot">
-                          <span className="mv-quiet">{f.check_status ? `The ledger has it as ${f.check_status}.` : 'Said, not yet seen in the ledger.'}</span>
-                          <button type="button" className="mv-pill mv-pill--ghost" onClick={() => void forget(f)} disabled={busy === `forget:${f.id}`}>Forget</button>
+                          <span className="mv-quiet">{f.check_status ? t('The ledger has it as {status}.', { status: f.check_status }) : t('Said, not yet seen in the ledger.')}</span>
+                          <button type="button" className="mv-pill mv-pill--ghost" onClick={() => void forget(f)} disabled={busy === `forget:${f.id}`}>{t('Forget')}</button>
                         </div>
                       </div>
                     ) : null}
@@ -898,10 +928,10 @@ export default function MoneyV2Page({ view = 'today' }: { view?: MoneyView } = {
                     <span className="mv-item-text">
                       <span className="mv-item-title">
                         {questions.opening.length + questions.fromLedger.length
-                          ? `${questions.opening.length + questions.fromLedger.length} ${questions.opening.length + questions.fromLedger.length === 1 ? 'question' : 'questions'} it still has`
-                          : 'Nothing to ask right now'}
+                          ? t(questions.opening.length + questions.fromLedger.length === 1 ? '{n} question it still has' : '{n} questions it still has', { n: questions.opening.length + questions.fromLedger.length })
+                          : t('Nothing to ask right now')}
                       </span>
-                      <span className="mv-item-sub">{(questions.opening[0] || questions.fromLedger[0])?.ask || 'When a payment arrives that it cannot read, it asks.'}</span>
+                      <span className="mv-item-sub">{(questions.opening[0] || questions.fromLedger[0])?.ask || t('When a payment arrives that it cannot read, it asks.')}</span>
                     </span>
                     <span className="mv-item-end"><Chevron /></span>
                   </Link>
@@ -915,9 +945,9 @@ export default function MoneyV2Page({ view = 'today' }: { view?: MoneyView } = {
           {view === 'you' ? (
           <section className="mv-section" id="sources">
             <div className="mv-head">
-              <h2>Read from a few places.</h2>
+              <h2>{t('Read from a few places.')}</h2>
             </div>
-            <p className="mv-sub">Counts and amounts only. Remove a source and what it read goes too.</p>
+            <p className="mv-sub">{t('Counts and amounts only. Remove a source and what it read goes too.')}</p>
             <ul className="mv-list">
               {BANKS.map((bank, i) => {
                 /* Rows from before the second bank carry no name; they were all Santander. */
@@ -932,7 +962,7 @@ export default function MoneyV2Page({ view = 'today' }: { view?: MoneyView } = {
                         {/* The booked line describes the accounts under this row, not the other bank's. */}
                         <span className="mv-item-sub mv-item-sub--live" aria-live="polite">
                           {(mine.length && busy === 'pull') || (busy === 'connect' && connecting === bank.name) ? <LedgerOrb state={busy === 'pull' ? 'searching' : 'connecting'} size={20} label="" /> : null}
-                          {mine.length ? bankLine : first ? 'Read four times a day. You confirm it every six months.' : 'Read four times a day, like the other.'}
+                          {mine.length ? bankLine : first ? t('Read four times a day. You confirm it every six months.') : t('Read four times a day, like the other.')}
                         </span>
                       </span>
                       {/* Only once the accounts are in: before that the row offered a black Connect
@@ -940,10 +970,10 @@ export default function MoneyV2Page({ view = 'today' }: { view?: MoneyView } = {
                       <span className="mv-item-end">
                         {!loaded ? null : mine.length ? (
                           first || !accounts.some((a) => (a.bank_name || BANKS[0].name) === BANKS[0].name)
-                            ? <button key="read" type="button" className="mv-pill mv-pill--ghost" onClick={pull} disabled={busy === 'pull'}>Read now</button>
+                            ? <button key="read" type="button" className="mv-pill mv-pill--ghost" onClick={pull} disabled={busy === 'pull'}>{t('Read now')}</button>
                             : null
                         ) : (
-                          <button key="connect" type="button" className={`mv-pill ${empty && first ? 'mv-pill--ghost' : 'mv-pill--ghost'}`} onClick={() => void connect(bank.name)} disabled={busy === 'connect' || !bankReady}>Connect</button>
+                          <button key="connect" type="button" className={`mv-pill ${empty && first ? 'mv-pill--ghost' : 'mv-pill--ghost'}`} onClick={() => void connect(bank.name)} disabled={busy === 'connect' || !bankReady}>{t('Connect')}</button>
                         )}
                       </span>
                     </div>
@@ -952,9 +982,9 @@ export default function MoneyV2Page({ view = 'today' }: { view?: MoneyView } = {
                         {mine.map((a) => (
                           <li key={a.id} className="mv-item mv-item--sub">
                             <span className="mv-item-text">
-                              <span className="mv-item-title">{a.name || 'Account'} {a.iban_mask || ''}</span>
+                              <span className="mv-item-title">{a.name || t('Account')} {a.iban_mask || ''}</span>
                               <span className="mv-item-sub">
-                                {[a.consent_expires_at ? `Confirmed to ${shortDay(a.consent_expires_at)}` : '', a.last_pulled_at ? `last read ${shortDay(a.last_pulled_at)}` : ''].filter(Boolean).join(', ')}
+                                {[a.consent_expires_at ? t('Confirmed to {day}', { day: shortDay(a.consent_expires_at) }) : '', a.last_pulled_at ? t('last read {day}', { day: shortDay(a.last_pulled_at) }) : ''].filter(Boolean).join(', ')}
                               </span>
                             </span>
                           </li>
@@ -968,13 +998,13 @@ export default function MoneyV2Page({ view = 'today' }: { view?: MoneyView } = {
                 <div className="mv-item mv-item--icon">
                   <span className="mv-icon" aria-hidden="true">{calendar?.google ? <Mark name="google_calendar" /> : <img className="mv-carved" src={`/images/money/carved/${markFor('diary')}.png`} alt="" width={26} height={26} />}</span>
                   <span className="mv-item-text">
-                    <span className="mv-item-title">Your calendar</span>
+                    <span className="mv-item-title">{t('Your calendar')}</span>
                     <span className="mv-item-sub">
-                      {calendar?.google ? 'Google connected. The diary says what a week usually costs.' : 'What a week costs, and when a quiet habit is only a trip.'}
+                      {calendar?.google ? t('Google connected. The diary says what a week usually costs.') : t('What a week costs, and when a quiet habit is only a trip.')}
                     </span>
                   </span>
                   <span className="mv-item-end">
-                    {calendar && !calendar.google ? <button type="button" className="mv-pill mv-pill--ghost" onClick={() => void connectCalendar()} disabled={busy === 'calendar'}>Connect Google</button> : null}
+                    {calendar && !calendar.google ? <button type="button" className="mv-pill mv-pill--ghost" onClick={() => void connectCalendar()} disabled={busy === 'calendar'}>{t('Connect Google')}</button> : null}
                   </span>
                 </div>
                 <ul className="mv-sublist">
@@ -982,19 +1012,19 @@ export default function MoneyV2Page({ view = 'today' }: { view?: MoneyView } = {
                     <li key={f.id} className="mv-item mv-item--sub">
                       <span className="mv-item-text">
                         <span className="mv-item-title">{hasMark(f.kind) ? <span className="mv-mark-small" aria-hidden="true"><Mark name={f.kind} size={12} /></span> : null}{f.label}</span>
-                        <span className="mv-item-sub">{f.added_at ? `Added ${shortDay(f.added_at)}, read once a day.` : 'Read once a day.'}</span>
+                        <span className="mv-item-sub">{f.added_at ? t('Added {day}, read once a day.', { day: shortDay(f.added_at) }) : t('Read once a day.')}</span>
                       </span>
-                      <span className="mv-item-end"><button type="button" className="mv-pill mv-pill--ghost" onClick={() => void removeFeed(f.id)} disabled={busy === 'feed'}>Remove</button></span>
+                      <span className="mv-item-end"><button type="button" className="mv-pill mv-pill--ghost" onClick={() => void removeFeed(f.id)} disabled={busy === 'feed'}>{t('Remove')}</button></span>
                     </li>
                   ))}
                   <li className="mv-item mv-item--sub">
                     <form className="mv-feed" onSubmit={(e) => void addFeed(e)}>
-                      <label className="mv-label" htmlFor="mv-feed-url">A Canvas or Blackboard link</label>
+                      <label className="mv-label" htmlFor="mv-feed-url">{t('A Canvas or Blackboard link')}</label>
                       <div className="mv-feed-row">
                         <input id="mv-feed-url" className="mv-field" type="url" inputMode="url" placeholder="https://" value={feedUrl} onChange={(e) => setFeedUrl(e.target.value)} disabled={busy === 'feed'} />
-                        <button type="submit" className="mv-pill mv-pill--ghost" disabled={busy === 'feed' || !feedUrl.trim()}>{busy === 'feed' ? 'Reading' : 'Add'}</button>
+                        <button type="submit" className="mv-pill mv-pill--ghost" disabled={busy === 'feed' || !feedUrl.trim()}>{busy === 'feed' ? t('Reading') : t('Add')}</button>
                       </div>
-                      <p className="mv-quiet">Canvas: Calendar, Calendar feed. Blackboard: Calendar, Get external calendar link. Read once a day; nothing goes out.</p>
+                      <p className="mv-quiet">{t('Canvas: Calendar, Calendar feed. Blackboard: Calendar, Get external calendar link. Read once a day; nothing goes out.')}</p>
                     </form>
                   </li>
                 </ul>
@@ -1003,12 +1033,12 @@ export default function MoneyV2Page({ view = 'today' }: { view?: MoneyView } = {
                 <div className="mv-item mv-item--icon">
                   <span className="mv-icon" aria-hidden="true"><FileText size={16} /></span>
                   <span className="mv-item-text">
-                    <span className="mv-item-title">Older months</span>
-                    <span className="mv-item-sub">The bank opens 90 days. A Santander Excel or CSV adds the rest.</span>
+                    <span className="mv-item-title">{t('Older months')}</span>
+                    <span className="mv-item-sub">{t('The bank opens 90 days. A Santander Excel or CSV adds the rest.')}</span>
                   </span>
                   <span className="mv-item-end">
                     <label className="mv-pill mv-pill--ghost mv-pill--file">
-                      {busy === 'statement' ? 'Reading…' : 'Add a statement'}
+                      {busy === 'statement' ? t('Reading\u2026') : t('Add a statement')}
                       <input
                         type="file"
                         accept=".xlsx,.xls,.csv,.txt,.tsv"
@@ -1024,11 +1054,11 @@ export default function MoneyV2Page({ view = 'today' }: { view?: MoneyView } = {
                   <div className="mv-item mv-item--icon">
                     <span className="mv-icon" aria-hidden="true"><Mail size={16} /></span>
                     <span className="mv-item-text">
-                      <span className="mv-item-title">Receipts by email</span>
-                      <span className="mv-item-sub">{inbox.receiving ? 'Forward a receipt or invoice; the line items join the ledger.' : 'Forward receipts here once the domain is switched on.'}</span>
+                      <span className="mv-item-title">{t('Receipts by email')}</span>
+                      <span className="mv-item-sub">{inbox.receiving ? t('Forward a receipt or invoice; the line items join the ledger.') : t('Forward receipts here once the domain is switched on.')}</span>
                     </span>
                     <span className="mv-item-end">
-                      <button type="button" className="mv-pill mv-pill--ghost" onClick={() => void copyInbox()}>{copied ? 'Copied' : 'Copy address'}</button>
+                      <button type="button" className="mv-pill mv-pill--ghost" onClick={() => void copyInbox()}>{copied ? t('Copied') : t('Copy address')}</button>
                     </span>
                   </div>
                   <div className="mv-body mv-body--icon"><code className="mv-code">{inbox.address}</code></div>
@@ -1038,31 +1068,40 @@ export default function MoneyV2Page({ view = 'today' }: { view?: MoneyView } = {
                 <div className="mv-item mv-item--icon">
                   <span className="mv-icon" aria-hidden="true"><Smartphone size={16} /></span>
                   <span className="mv-item-text">
-                    <span className="mv-item-title">Your phone</span>
-                    <span className="mv-item-sub">Each bank alert lands here in seconds, through a key.</span>
+                    <span className="mv-item-title">{t('Your phone')}</span>
+                    <span className="mv-item-sub">{t('Each bank alert lands here in seconds, through a key.')}</span>
                   </span>
                   <span className="mv-item-end">
-                    {key ? null : <button type="button" className="mv-pill mv-pill--ghost" onClick={makeKey} disabled={busy === 'key'}>Make a key</button>}
+                    {key ? null : <button type="button" className="mv-pill mv-pill--ghost" onClick={makeKey} disabled={busy === 'key'}>{t('Make a key')}</button>}
                   </span>
                 </div>
                 {key ? (
                   <div className="mv-body mv-body--icon">
                     <code className="mv-code">{key}</code>
-                    <p className="mv-quiet">Shown once. Copy it into the macro.</p>
+                    <p className="mv-quiet">{t('Shown once. Copy it into the macro.')}</p>
                   </div>
                 ) : null}
                 <ul className="mv-sublist">
                   <li>
                     <button type="button" className="mv-item mv-item--sub" aria-expanded={showSteps} onClick={() => setShowSteps((s) => !s)}>
-                      <span className="mv-item-text"><span className="mv-item-title">How to set it up</span></span>
+                      <span className="mv-item-text"><span className="mv-item-title">{t('How to set it up')}</span></span>
                       <span className="mv-item-end"><Chevron /></span>
                     </button>
                     {showSteps ? (
                       <ol className="mv-steps">
-                        <li>Install MacroDroid, or Tasker if you already use it.</li>
-                        <li>New macro. Trigger: notification received, from the Santander app. Allow notification access.</li>
-                        <li>Action: HTTP request, POST to <code>{`${window.location.origin}/api/money/capture`}</code>, header <code>X-TwinMe-Key</code> with the key, body <code>{'{"text": "[notification]"}'}</code>.</li>
-                        <li>Bizum and SMS alerts work the same way. They are read in Spanish: amount, shop, card, and whether it went out or came in.</li>
+                        <li>{t('Install MacroDroid, or Tasker if you already use it.')}</li>
+                        <li>{t('New macro. Trigger: notification received, from the Santander app. Allow notification access.')}</li>
+                        <li>
+                          {/* The sentence is one line in the dictionary; its three holes are code, so the
+                              translated line is split on them and each hole rendered as <code>. */}
+                          {t('Action: HTTP request, POST to {url}, header {header} with the key, body {body}.').split(/(\{url\}|\{header\}|\{body\})/).map((piece, i) => (
+                            piece === '{url}' ? <code key={i}>{`${window.location.origin}/api/money/capture`}</code>
+                            : piece === '{header}' ? <code key={i}>X-TwinMe-Key</code>
+                            : piece === '{body}' ? <code key={i}>{'{"text": "[notification]"}'}</code>
+                            : piece
+                          ))}
+                        </li>
+                        <li>{t('Bizum and SMS alerts work the same way. They are read in Spanish: amount, shop, card, and whether it went out or came in.')}</li>
                       </ol>
                     ) : null}
                   </li>
@@ -1075,10 +1114,10 @@ export default function MoneyV2Page({ view = 'today' }: { view?: MoneyView } = {
           {note ? <p className="mv-note" role="status">{note}</p> : null}
 
           <footer className="mv-foot">
-            <Link to="/privacy-policy">Privacy</Link>
-            <Link to="/terms">Terms</Link>
+            <Link to="/privacy-policy">{t('Privacy')}</Link>
+            <Link to="/terms">{t('Terms')}</Link>
             {/* The one door back to the rest of TwinMe, so Money is not a room without an exit. */}
-            <Link to="/today">Your twin</Link>
+            <Link to="/today">{t('Your twin')}</Link>
           </footer>
         </div>
       </div>
@@ -1089,6 +1128,7 @@ export default function MoneyV2Page({ view = 'today' }: { view?: MoneyView } = {
 
 /** The payments a reading stands on, and how many: shared by the lead and the rows. */
 function ReadingBody({ r }: { r: MoneyReading }) {
+  const t = useT();
   return (
     <div className="mv-body">
       {r.receipts.length ? (
@@ -1105,7 +1145,7 @@ function ReadingBody({ r }: { r: MoneyReading }) {
         </ul>
       ) : null}
       <div className="mv-body-foot">
-        <span className="mv-quiet">From {r.evidence_count} {r.evidence_count === 1 ? 'payment' : 'payments'}</span>
+        <span className="mv-quiet">{t(r.evidence_count === 1 ? 'From {n} payment' : 'From {n} payments', { n: r.evidence_count })}</span>
       </div>
     </div>
   );

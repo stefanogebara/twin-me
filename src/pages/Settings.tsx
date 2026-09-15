@@ -22,6 +22,7 @@ import '@/styles/register-settings.css';
 import { LANGUAGES, saveLanguage, readLanguage, type LanguageCode } from '@/lib/language';
 import { moneyAPI, type MoneyFact } from '@/services/api/moneyAPI';
 import { factTitle, factWord } from '@/pages/money/factWords';
+import { useT } from '@/lib/i18n';
 
 
 const getAuthHeaders = () => {
@@ -330,6 +331,7 @@ const Settings = () => {
   ];
 
   const [activeSection, setActiveSection] = useState<string>(sections[0]?.id || '');
+  const t = useT();
 
   /* The language TwinMe speaks to this person, and what the ledger holds in their words. */
   const [language, setLanguage] = useState<LanguageCode | null>(((user as { preferred_language?: string | null } | null)?.preferred_language as LanguageCode | null | undefined) ?? null);
@@ -445,7 +447,7 @@ const Settings = () => {
           </div>
 
           {/* ── LANGUAGE ── */}
-          <Section id="section-language" title="Language" line="What TwinMe speaks to you. The twin answers in it; the pages follow as they learn to.">
+          <Section id="section-language" title={t('Language')} line={t('What TwinMe speaks to you. The twin answers in it; the pages follow as they learn to.')}>
             <List label="Language" className="pb-stack">
               {LANGUAGES.map((l) => (
                 <Row
@@ -454,7 +456,7 @@ const Settings = () => {
                   line={l.line}
                   action={
                     <button type="button" className={`n-btn ${language === l.code ? 'n-btn--primary' : 'n-btn--ghost'}`} disabled={savingLanguage} onClick={() => void chooseLanguage(l.code)} aria-pressed={language === l.code}>
-                      {language === l.code ? 'Chosen' : 'Choose'}
+                      {language === l.code ? t('Chosen') : t('Choose')}
                     </button>
                   }
                 />
@@ -463,14 +465,14 @@ const Settings = () => {
           </Section>
 
           {/* ── WHAT THE LEDGER KNOWS ── */}
-          <Section id="section-ledger" title="What it knows about you." line="Everything the ledger holds in your words. Forget one and it stops reading with it.">
+          <Section id="section-ledger" title={t('What it knows about you.')} line={t('Everything the ledger holds in your words. Forget one and it stops reading with it.')}>
             <List label="What the ledger knows" className="pb-stack">
-              {facts === null ? <Row title="Reading" line="One moment." /> : facts.length === 0 ? <Row title="Nothing yet" line="Answer a question on Money, You, or tell the chat something." /> : facts.map((f) => (
+              {facts === null ? <Row title={t('Reading')} line={t('One moment.')} /> : facts.length === 0 ? <Row title={t('Nothing yet')} line={t('Answer a question on Money, You, or tell the chat something.')} /> : facts.map((f) => (
                 <Row
                   key={f.id}
                   title={factTitle(f)}
                   line={factWord(f)}
-                  action={<button type="button" className="n-btn n-btn--ghost" disabled={forgetting === f.id} onClick={() => void forget(f)}>{forgetting === f.id ? 'Forgetting' : 'Forget'}</button>}
+                  action={<button type="button" className="n-btn n-btn--ghost" disabled={forgetting === f.id} onClick={() => void forget(f)}>{forgetting === f.id ? t('Forgetting') : t('Forget')}</button>}
                 />
               ))}
             </List>
