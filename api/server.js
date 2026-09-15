@@ -341,6 +341,9 @@ app.use('/api/whatsapp/import', express.text({ limit: '10mb', type: 'text/plain'
 // specific 5mb limit wins for /api/extension/*.
 // audit-2026-05-28: extension v3.9.1 in prod hit 413 + 500 on every batch.
 app.use('/api/extension', express.json({ limit: '5mb' }));
+// The elder channel posts a whole call's transcript (up to 400 turns x 4,000 chars,
+// 1.6 MB); under the 100 kB default a 40-minute call was refused with 413 and lost.
+app.use('/api/presence-call', express.json({ limit: '2mb' }));
 
 // Parse JSON bodies — capture raw body for webhook signature verification
 app.use(express.json({
@@ -553,6 +556,8 @@ import telegramLinkRoutes from './routes/telegram-link.js';
 import whatsappLinkRoutes from './routes/whatsapp-link.js';
 import inngestRoutes from './routes/inngest.js';
 import skillsRoutes from './routes/skills.js';
+import presenceRoutes from './routes/presence.js';
+import presenceCallRoutes from './routes/presence-call.js';
 import twinScalingRoutes from './routes/twin-scaling.js';
 import multimodalRoutes from './routes/multimodal.js';
 import morningBriefingRoutes from './routes/morning-briefing.js';
@@ -696,6 +701,8 @@ app.use('/api/costs', (await import('./routes/cost-dashboard.js')).default); // 
 app.use('/api/insights', platformInsightsRoutes); // Platform-specific conversational insights
 app.use('/api/goals', goalsRoutes); // Twin-driven goal tracking (suggestions, progress, accountability)
 app.use('/api/twin-directives', twinDirectivesRoutes); // pi-reflect — learned directives from user corrections
+app.use('/api/presence', presenceRoutes); // Presence family relay (plan 2026-09-15-presence-forward)
+app.use('/api/presence-call', presenceCallRoutes); // Presence elder channel: public, token-authed
 app.use('/api/actions', actionsRoutes); // M1 action inbox — list + send/edit/reject voice-reply drafts
 app.use('/api/onboarding', onboardingWowRoutes); // M1 activation — POST /api/onboarding/wow (Gmail -> instant drafts + voice read)
 app.use('/api/observations', observationsClipRoutes); // TwinMe Desktop: batch clip sync (foreground app + window title -> observation memories)

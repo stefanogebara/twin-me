@@ -1,0 +1,85 @@
+/* ============================================================================
+   PRESENCE HOME — the family's page, in the register
+   ============================================================================
+   /presence/home is an app screen, so it is built from the register's
+   primitives in presence-cosmos.css (.pc-app, .pc-shell, .pc-apphead,
+   .pc-appsection, .pc-list, .pc-row, .pc-subrow, .pc-field, .pc-empty; spec in
+   .claude/plans/2026-09-11-instinct-register/README.md): the flat #fbfaf9
+   page, a 200px sidebar of plain links (a menu on phones), and every former
+   card a section of rows under a 1px ink rule.
+
+   What went on 2026-09-11, and why:
+     - the room photograph and its paper veil: app screens have no
+       photography, and text no longer needs an on-room ink (--dsh-ink-on-room
+       is gone with the room it was measured on)
+     - the frosted plate and cards, their blur and radii: rows, not cards
+     - the Instrument Serif heads and the mono uppercase labels: headings are
+       Geist (Cosmos), labels are sentence case
+     - the plate's fact ledger became the title's one grey line; the call link
+       is the first section and still the page's one primary action
+
+   What is left here is only what the primitives do not cover: text that must
+   be read in full under a row, the two forms that live inside a list, and the
+   transcript. Every rule is scoped `.presence-cosmos .dsh-*` because the base
+   sheet colours p by element at (0,1,1), which beats a bare class.
+   ========================================================================= */
+
+/* A line under a row that is read in full, not skimmed: something a person
+   has to do, the whole summary, one turn of the conversation. It is the
+   content, so it is ink at 400, not the grey line. */
+.presence-cosmos .dsh-detail {
+  margin: 0;
+  font-size: var(--c-text);
+  line-height: var(--c-lh-text);
+  font-weight: 400;
+  color: var(--c-ink);
+  overflow-wrap: anywhere;
+}
+
+/* In the transcript the Presence's turns step back a shade; hers stay ink. */
+.presence-cosmos .dsh-turn {
+  display: grid;
+  gap: 2px;
+}
+
+.presence-cosmos .dsh-who {
+  font-size: var(--c-text);
+  line-height: var(--c-lh-title);
+  font-weight: 500;
+  color: var(--c-ink);
+}
+
+.presence-cosmos .dsh-turn.is-ai .dsh-detail {
+  color: var(--c-ink-2);
+}
+
+/* The note composer and the ask form: one full-width row inside the list. */
+.presence-cosmos .dsh-form {
+  grid-template-columns: minmax(0, 1fr);
+  row-gap: 12px;
+}
+
+.presence-cosmos .dsh-form-fields {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.presence-cosmos .dsh-form-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+/* A row's icon slot carrying state: green as a mark only, never as text
+   (--c-live-mark is 2.58:1 on the page; the words beside it say "Ready"). */
+.presence-cosmos .dsh-live {
+  color: var(--c-live);
+}
+
+@media (max-width: 767px) {
+  .presence-cosmos .dsh-form-fields {
+    grid-template-columns: 1fr;
+  }
+}
