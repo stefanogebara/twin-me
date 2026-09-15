@@ -336,6 +336,138 @@ describe('presenceStore', () => {
     });
   });
 
+  describe('the schedule and the calls (Phase 1)', () => {
+    it('listCallablePresences reads the active presences that have her phone', async () => {
+      await store.listCallablePresences();
+
+      expect(calls[0].table).toBe('presences');
+      expect(calls[0].ops).toEqual([
+        ['select', 'id, owner_user_id, cared_for_name, caller_name, tone, elder_phone, call_hour, call_days, call_timezone, elder_assent_at'],
+        ['eq', 'status', 'active'],
+        ['not', 'elder_phone', 'is', null],
+      ]);
+    });
+
+    it('listCallsSince reads the calls of these presences from a moment on', async () => {
+      await store.listCallsSince(['p-1', 'p-2'], '2026-09-16T03:00:00.000Z');
+
+      expect(calls[0].table).toBe('presence_calls');
+      expect(calls[0].ops).toEqual([
+        ['select', 'presence_id, status, attempt, scheduled_for, direction'],
+        ['in', 'presence_id', ['p-1', 'p-2']],
+        ['gte', 'scheduled_for', '2026-09-16T03:00:00.000Z'],
+      ]);
+    });
+
+    it('createCall inserts the dial and returns its id', async () => {
+      const row = { presence_id: PRESENCE_ID, scheduled_for: 'now', attempt: 1, status: 'dialing', provider_conversation_id: 'conv-1', call_sid: 'CA1' };
+
+      await store.createCall(row);
+
+      expect(calls[0].table).toBe('presence_calls');
+      expect(calls[0].ops).toEqual([['insert', row], ['select', 'id'], ['single']]);
+    });
+
+    it('updateCallByConversation patches the call ElevenLabs reported on', async () => {
+      await store.updateCallByConversation('conv-1', { status: 'no_answer', failure_reason: 'no-answer' });
+
+      expect(calls[0].table).toBe('presence_calls');
+      expect(calls[0].ops).toEqual([
+        ['update', { status: 'no_answer', failure_reason: 'no-answer', updated_at: expect.any(String) }],
+        ['eq', 'provider_conversation_id', 'conv-1'],
+      ]);
+    });
+
+    it('findConversationByProviderId looks a stored conversation up by the ElevenLabs id', async () => {
+      await store.findConversationByProviderId('conv-1');
+
+      expect(calls[0].table).toBe('presence_conversations');
+      expect(calls[0].ops).toEqual([
+        ['select', 'id, presence_id'],
+        ['eq', 'provider_conversation_id', 'conv-1'],
+        ['maybeSingle'],
+      ]);
+    });
+
+    it('findPresenceByElderPhone finds the active presence she calls from', async () => {
+      await store.findPresenceByElderPhone('+5511999990000');
+
+      expect(calls[0].table).toBe('presences');
+      expect(calls[0].ops).toEqual([
+        ['select', '*'],
+        ['eq', 'elder_phone', '+5511999990000'],
+        ['eq', 'status', 'active'],
+        ['maybeSingle'],
+      ]);
+    });
+
+    it('findActivePresenceById reads the full active row for the webhook', async () => {
+      await store.findActivePresenceById(PRESENCE_ID);
+
+      expect(calls[0].table).toBe('presences');
+      expect(calls[0].ops).toEqual([
+        ['select', '*'],
+        ['eq', 'id', PRESENCE_ID],
+        ['eq', 'status', 'active'],
+        ['maybeSingle'],
+      ]);
+    });
+
+    it('setConversationDigest stores the WhatsApp message id of the digest', async () => {
+      await store.setConversationDigest('c-1', 'wamid.1');
+
+      expect(calls[0].table).toBe('presence_conversations');
+      expect(calls[0].ops).toEqual([['update', { digest_message_id: 'wamid.1' }], ['eq', 'id', 'c-1']]);
+    });
+
+    it('findConversationByDigestMessageId maps a WhatsApp reply back to her conversation', async () => {
+      await store.findConversationByDigestMessageId('wamid.1');
+
+      expect(calls[0].table).toBe('presence_conversations');
+      expect(calls[0].ops).toEqual([
+        ['select', 'id, presence_id'],
+        ['eq', 'digest_message_id', 'wamid.1'],
+        ['maybeSingle'],
+      ]);
+    });
+
+    it('getOwnerWhatsApp reads the linked, enabled WhatsApp channel of the family member', async () => {
+      await store.getOwnerWhatsApp('user-1');
+
+      expect(calls[0].table).toBe('messaging_channels');
+      expect(calls[0].ops).toEqual([
+        ['select', 'channel_id, preferences'],
+        ['eq', 'user_id', 'user-1'],
+        ['eq', 'channel', 'whatsapp'],
+        ['eq', 'is_enabled', true],
+        ['maybeSingle'],
+      ]);
+    });
+
+    it('listActivePresencesOwnedBy reads the presences a family member owns', async () => {
+      await store.listActivePresencesOwnedBy('user-1');
+
+      expect(calls[0].table).toBe('presences');
+      expect(calls[0].ops).toEqual([
+        ['select', 'id, cared_for_name'],
+        ['eq', 'owner_user_id', 'user-1'],
+        ['eq', 'status', 'active'],
+      ]);
+    });
+
+    it('listRecentCalls reads the last calls of one presence, newest first', async () => {
+      await store.listRecentCalls(PRESENCE_ID, 10);
+
+      expect(calls[0].table).toBe('presence_calls');
+      expect(calls[0].ops).toEqual([
+        ['select', 'id, scheduled_for, attempt, status, direction, failure_reason, conversation_id'],
+        ['eq', 'presence_id', PRESENCE_ID],
+        ['order', 'scheduled_for', { ascending: false }],
+        ['limit', 10],
+      ]);
+    });
+  });
+
   describe('recordElderAssent', () => {
     it('stamps her assent and the version of the text she heard on the presence', async () => {
       await store.recordElderAssent(PRESENCE_ID, 'elder-assent-v1');

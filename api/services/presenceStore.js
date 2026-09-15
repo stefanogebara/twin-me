@@ -11,7 +11,9 @@
  *
  * Tables: presences, presence_people, presence_facts, presence_notes,
  * presence_conversations, presence_voice, presence_consents
- * (20260831_create_presence_tables.sql). Functions: presence_replace_people,
+ * (20260831_create_presence_tables.sql), presence_calls
+ * (20260916_presence_calls.sql), and the app's messaging_channels for the
+ * family member's WhatsApp number. Functions: presence_replace_people,
  * presence_save_fact (20260911_presence_atomic_writes.sql).
  */
 
@@ -99,6 +101,91 @@ export async function deletePresence(presenceId) {
   return supabaseAdmin.from('presences')
     .update({ status: 'deleted', call_token: null, updated_at: new Date().toISOString() })
     .eq('id', presenceId);
+}
+
+/** The full active row by id: what the webhooks compile her brief from. */
+export async function findActivePresenceById(presenceId) {
+  return supabaseAdmin.from('presences')
+    .select('*').eq('id', presenceId).eq('status', 'active').maybeSingle();
+}
+
+/** The active presence whose elder has this phone: who is calling in. */
+export async function findPresenceByElderPhone(phone) {
+  return supabaseAdmin.from('presences')
+    .select('*').eq('elder_phone', phone).eq('status', 'active').maybeSingle();
+}
+
+/** The presences a family member owns, for a WhatsApp note that names none. */
+export async function listActivePresencesOwnedBy(userId) {
+  return supabaseAdmin.from('presences')
+    .select('id, cared_for_name').eq('owner_user_id', userId).eq('status', 'active');
+}
+
+// ====================================================================
+// The schedule and the calls
+// ====================================================================
+
+/** Every active presence with a phone to call, with what the schedule and the brief need. */
+export async function listCallablePresences() {
+  return supabaseAdmin.from('presences')
+    .select('id, owner_user_id, cared_for_name, caller_name, tone, elder_phone, call_hour, call_days, call_timezone, elder_assent_at')
+    .eq('status', 'active')
+    .not('elder_phone', 'is', null);
+}
+
+/** The calls of these presences placed since a moment (today, in the earliest local day). */
+export async function listCallsSince(presenceIds, sinceIso) {
+  return supabaseAdmin.from('presence_calls')
+    .select('presence_id, status, attempt, scheduled_for, direction')
+    .in('presence_id', presenceIds)
+    .gte('scheduled_for', sinceIso);
+}
+
+/** The last calls of one presence, newest first. */
+export async function listRecentCalls(presenceId, limit) {
+  return supabaseAdmin.from('presence_calls')
+    .select('id, scheduled_for, attempt, status, direction, failure_reason, conversation_id')
+    .eq('presence_id', presenceId)
+    .order('scheduled_for', { ascending: false })
+    .limit(limit);
+}
+
+/** Record a dial (or an inbound call) and return its id. */
+export async function createCall(row) {
+  return supabaseAdmin.from('presence_calls').insert(row).select('id').single();
+}
+
+/** Patch the call ElevenLabs reported on, by its conversation id. */
+export async function updateCallByConversation(providerConversationId, patch) {
+  return supabaseAdmin.from('presence_calls')
+    .update({ ...patch, updated_at: new Date().toISOString() })
+    .eq('provider_conversation_id', providerConversationId);
+}
+
+/** A conversation already stored for this ElevenLabs id (the webhook and /complete both try). */
+export async function findConversationByProviderId(providerConversationId) {
+  return supabaseAdmin.from('presence_conversations')
+    .select('id, presence_id').eq('provider_conversation_id', providerConversationId).maybeSingle();
+}
+
+/** Remember which WhatsApp message carried this conversation's digest to the family. */
+export async function setConversationDigest(conversationId, messageId) {
+  return supabaseAdmin.from('presence_conversations')
+    .update({ digest_message_id: messageId }).eq('id', conversationId);
+}
+
+/** The conversation whose digest a family member replied to. */
+export async function findConversationByDigestMessageId(messageId) {
+  return supabaseAdmin.from('presence_conversations')
+    .select('id, presence_id').eq('digest_message_id', messageId).maybeSingle();
+}
+
+/** The family member's linked, enabled WhatsApp number (messaging_channels, the app's linking table). */
+export async function getOwnerWhatsApp(userId) {
+  return supabaseAdmin.from('messaging_channels')
+    .select('channel_id, preferences')
+    .eq('user_id', userId).eq('channel', 'whatsapp').eq('is_enabled', true)
+    .maybeSingle();
 }
 
 /** Set the conversational tone. */
