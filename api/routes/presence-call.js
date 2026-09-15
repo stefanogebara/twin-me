@@ -7,6 +7,8 @@
  * compared by the unique-index lookup.
  *
  *   GET  /api/presence-call/:token           call config: a session token + compiled brief
+ *   GET  /api/presence-call/:token/home      her home screen (waiting notes, her recaps)
+ *   POST /api/presence-call/:token/assent    her "Sim, pode", before the first call
  *   POST /api/presence-call/:token/complete  store the call, deliver notes, summarize
  *
  * With an ElevenLabs key the agent is private: the session is started with a

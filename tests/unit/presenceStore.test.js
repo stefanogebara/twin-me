@@ -419,14 +419,14 @@ describe('presenceStore', () => {
   });
 
   describe('voice consent and upserts', () => {
-    it('getLatestVoiceConsent reads the newest own_voice/revoked record', async () => {
-      respond = () => ({ data: [{ kind: 'own_voice', accepted_at: '2026-09-10T00:00:00Z' }], error: null });
+    it('getLatestVoiceConsentKind reads the newest own_voice/revoked record', async () => {
+      respond = () => ({ data: [{ kind: 'own_voice' }], error: null });
 
-      const result = await store.getLatestVoiceConsent(PRESENCE_ID);
+      const result = await store.getLatestVoiceConsentKind(PRESENCE_ID);
 
       expect(calls[0].table).toBe('presence_consents');
       expect(calls[0].ops).toEqual([
-        ['select', 'kind, accepted_at'],
+        ['select', 'kind'],
         ['eq', 'presence_id', PRESENCE_ID],
         ['in', 'kind', ['own_voice', 'own_voice_revoked']],
         ['order', 'accepted_at', { ascending: false }],
@@ -435,15 +435,15 @@ describe('presenceStore', () => {
       expect(result.data[0].kind).toBe('own_voice');
     });
 
-    it('recordVoiceStatus upserts on presence_id', async () => {
-      const row = { presence_id: PRESENCE_ID, status: 'queued', sample_count: 2, sample_seconds: 40 };
+    it('recordVoiceSample upserts on presence_id and returns the note', async () => {
+      const row = { presence_id: PRESENCE_ID, status: 'ready', sample_count: 2, sample_seconds: 40, elevenlabs_voice_id: 'voice-1', note: 'ok' };
 
-      await store.recordVoiceStatus(row);
+      await store.recordVoiceSample(row);
 
       expect(calls[0].table).toBe('presence_voice');
       expect(calls[0].ops).toEqual([
         ['upsert', row, { onConflict: 'presence_id' }],
-        ['select', 'status, sample_count, sample_seconds'],
+        ['select', 'status, sample_count, sample_seconds, note'],
         ['single'],
       ]);
     });

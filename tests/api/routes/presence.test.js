@@ -30,8 +30,8 @@ const { store, log, voiceService, llm } = vi.hoisted(() => {
     'setCallToken', 'setPresenceTone', 'getReadinessSources', 'getResumeDetails', 'getOverview',
     'listActivePeople', 'listActiveFacts', 'replaceActivePeople', 'addPeople', 'enrichPerson', 'saveFact', 'addFacts',
     'supersedeFamilyIntroduction', 'findOpenAsk', 'dismissFact', 'supersedeFact', 'queueNote',
-    'getConversationTranscript', 'recordConsent', 'appendConsent', 'getLatestVoiceConsent',
-    'getLatestVoiceConsentKind', 'getVoiceState', 'getClonedVoiceId', 'recordVoiceStatus',
+    'getConversationTranscript', 'recordConsent', 'appendConsent',
+    'getLatestVoiceConsentKind', 'getVoiceState', 'getClonedVoiceId',
     'recordVoiceSample', 'recordVoiceRevoked', 'deletePresence',
   ];
   return {

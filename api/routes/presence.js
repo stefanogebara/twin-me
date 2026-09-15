@@ -1,22 +1,28 @@
 /**
  * Presence API
  * ============
- * Family-relay AI companion for older adults. Backs /presence/onboarding.
- * Data model: 20260831_create_presence_tables.sql. Design:
- * .claude/plans/2026-08-31-presence-onboarding-system/ (§API) and
- * .claude/plans/2026-08-31-presence-context-architecture/.
+ * Family-relay AI companion for older adults. Backs /presence/onboarding and
+ * /presence/home. Data model: database/migrations/20260831_create_presence_tables.sql
+ * and the later presence_* migrations. Plans: .claude/plans/2026-08-27-twinme-presence
+ * (thesis, safety) and .claude/plans/2026-09-15-presence-forward (the way forward).
  *
  * Endpoints (all JWT-authenticated; ownership enforced on every :id):
- *   GET    /api/presence/mine            — resume: latest presence + people + voice
- *   POST   /api/presence                 — create a draft
- *   PATCH  /api/presence/:id             — update bond/tone/status fields
- *   POST   /api/presence/:id/consent     — append a consent record (never updates)
- *   PUT    /api/presence/:id/people      — replace the family map (bounded)
- *   POST   /api/presence/:id/facts       — upsert one fact by (kind, question)
- *   POST   /api/presence/:id/notes       — queue a note for the next conversation
- *   POST   /api/presence/:id/voice-status— record sample/queue state (metadata only;
- *                                          sample file upload is the next slice, and
- *                                          'queued' requires an own_voice consent row)
+ *   GET    /api/presence/mine                    — resume: latest presence + people + voice + facts
+ *   POST   /api/presence                         — create a draft
+ *   PATCH  /api/presence/:id                     — update bond/tone/status (paused, active)
+ *   DELETE /api/presence/:id                     — soft delete; her link stops answering
+ *   POST   /api/presence/:id/consent             — append a consent record (never updates)
+ *   PUT    /api/presence/:id/people              — replace the family map (bounded, one transaction)
+ *   POST   /api/presence/:id/facts               — upsert one fact by (kind, question)
+ *   POST   /api/presence/:id/notes               — queue a note for her next conversation
+ *   POST   /api/presence/:id/about               — "me conta sobre ela": voice note or text -> people, facts
+ *   POST   /api/presence/:id/voice-samples       — clone her family member's voice (flagged)
+ *   POST   /api/presence/:id/voice-revoke        — withdraw that consent and delete the voice
+ *   POST   /api/presence/:id/call-link           — create or rotate her call link (readiness-gated)
+ *   GET    /api/presence/:id/overview            — everything the family page renders
+ *   GET    /api/presence/:id/readiness           — what she knows, what is missing, the gate
+ *   POST   /api/presence/:id/asks/:factId        — answer or dismiss a "quem é X?" card
+ *   GET    /api/presence/:id/conversations/:cid  — one transcript
  *
  * Uses public.users.id (req.user.id), NOT auth.users.id — CLAUDE.md convention.
  * All table access goes through api/services/presenceStore.js.
@@ -53,11 +59,9 @@ import {
   getConversationTranscript,
   recordConsent,
   appendConsent,
-  getLatestVoiceConsent,
   getLatestVoiceConsentKind,
   getVoiceState,
   getClonedVoiceId,
-  recordVoiceStatus,
   recordVoiceSample,
   recordVoiceRevoked,
   deletePresence,
@@ -73,7 +77,6 @@ const PATCHABLE_FIELDS = ['cared_for_name', 'relationship', 'caller_name', 'tone
 const VALID_STATUSES = new Set(['draft', 'active', 'paused', 'deleted']);
 const VALID_CONSENT_KINDS = new Set(['own_voice', 'own_voice_revoked', 'ai_disclosure']);
 const VALID_FACT_KINDS = new Set(['tone', 'language', 'boundary', 'anchor', 'biography', 'care_signal']);
-const VALID_VOICE_STATUSES = new Set(['samples_recorded', 'queued']);
 const MAX_PEOPLE = 8;
 // presence_voice CHECK (sample_count BETWEEN 0 AND 20) and CHECK (sample_seconds BETWEEN 0 AND 3600).
 const MAX_VOICE_SAMPLES = 20;
@@ -349,47 +352,6 @@ router.post('/:id/notes', authenticateUser, async (req, res) => {
   } catch (err) {
     log.error('POST notes failed', { error: err.message });
     res.status(500).json({ success: false, error: 'Failed to queue note' });
-  }
-});
-
-// ====================================================================
-// POST /:id/voice-status — sample/queue metadata (no files yet)
-// ====================================================================
-router.post('/:id/voice-status', authenticateUser, async (req, res) => {
-  try {
-    const owned = await loadOwned(req, res);
-    if (!owned) return;
-
-    const { status } = req.body || {};
-    if (!VALID_VOICE_STATUSES.has(status)) {
-      return res.status(400).json({ success: false, error: "status must be 'samples_recorded' or 'queued'" });
-    }
-
-    // Consent gate: nothing enters the build queue without an own_voice consent
-    // row that hasn't been revoked afterwards.
-    if (status === 'queued') {
-      const { data: consents, error: consentError } = await getLatestVoiceConsent(owned.id);
-      if (consentError) throw consentError;
-      if (!consents?.length || consents[0].kind !== 'own_voice') {
-        return res.status(409).json({ success: false, error: 'Voice consent is required before queueing a build' });
-      }
-    }
-
-    const sampleCount = Math.min(Math.max(parseInt(req.body?.sample_count, 10) || 0, 0), MAX_VOICE_SAMPLES);
-    const sampleSeconds = Math.min(Math.max(parseInt(req.body?.sample_seconds, 10) || 0, 0), MAX_VOICE_SECONDS);
-
-    const { data, error } = await recordVoiceStatus({
-      presence_id: owned.id,
-      status,
-      sample_count: sampleCount,
-      sample_seconds: sampleSeconds,
-      updated_at: new Date().toISOString(),
-    });
-    if (error) throw error;
-    res.json({ success: true, voice: data });
-  } catch (err) {
-    log.error('POST voice-status failed', { error: err.message });
-    res.status(500).json({ success: false, error: 'Failed to update voice status' });
   }
 });
 

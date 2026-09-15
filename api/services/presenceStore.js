@@ -364,17 +364,6 @@ export async function appendConsent(row) {
   return supabaseAdmin.from('presence_consents').insert(row);
 }
 
-/** The latest own_voice / own_voice_revoked record (kind + accepted_at), as a 0-1 row list. */
-export async function getLatestVoiceConsent(presenceId) {
-  return supabaseAdmin
-    .from('presence_consents')
-    .select('kind, accepted_at')
-    .eq('presence_id', presenceId)
-    .in('kind', VOICE_CONSENT_KINDS)
-    .order('accepted_at', { ascending: false })
-    .limit(1);
-}
-
 /** The latest own_voice / own_voice_revoked record (kind only), as a 0-1 row list. */
 export async function getLatestVoiceConsentKind(presenceId) {
   return supabaseAdmin
@@ -398,15 +387,6 @@ export async function getVoiceState(presenceId) {
 export async function getClonedVoiceId(presenceId) {
   return supabaseAdmin.from('presence_voice')
     .select('elevenlabs_voice_id').eq('presence_id', presenceId).maybeSingle();
-}
-
-/** Upsert sample/queue metadata; returns status and sample totals. */
-export async function recordVoiceStatus(row) {
-  return supabaseAdmin
-    .from('presence_voice')
-    .upsert(row, { onConflict: 'presence_id' })
-    .select('status, sample_count, sample_seconds')
-    .single();
 }
 
 /** Upsert the result of a sample upload; returns status, totals and the note. */
