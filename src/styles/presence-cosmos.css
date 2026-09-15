@@ -79,7 +79,8 @@
   --c-hover-secondary: #f1efed;
   --c-olive: #a6a698;
   --c-on-media: rgba(255, 255, 255, 0.7);
-  --c-font: 'Geist', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  /* The UI face reaches here through the token (index.css); a pasted stack drifts. */
+  --c-font: var(--font-ui, ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif);
   /* Type, the register's app text: 13px Geist everywhere, weight for
      hierarchy. 350 needs Geist's variable range (index.html loads 100..900).
      The root stays 16px so the marketing pages keep their sizes; an app
