@@ -206,7 +206,11 @@ export default function MoneyV2Page({ view = 'today' }: { view?: MoneyView } = {
     if (!outcome) return;
     /* The name comes back through the URL, so only a bank this page offers is said by name. */
     const known = BANKS.find((b) => b.name === params.get('name'));
-    setNote(outcome === 'connected' ? `${known ? known.label : 'The bank'} is connected. The first read is on its way.` : 'The bank connection did not go through. Try it again.');
+    /* The bank's own word for a refusal, when it gave one: plain letters only, so the URL cannot put a sentence here. */
+    const why = (params.get('why') || '').replace(/[^a-z0-9_ .-]/gi, '').replace(/_/g, ' ').trim().slice(0, 80);
+    setNote(outcome === 'connected'
+      ? `${known ? known.label : 'The bank'} is connected. The first read is on its way.`
+      : `The bank connection did not go through${why ? ` (the bank said: ${why})` : ''}. Try it again.`);
     window.history.replaceState(null, '', window.location.pathname + window.location.hash);
     if (outcome === 'connected') void moneyAPI.pull().then(() => load()).catch(() => { /* the note already says where we are */ });
   }, [load]);
