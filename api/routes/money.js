@@ -56,8 +56,9 @@ import { todayAllowance } from '../services/money/allowance.js';
 import { monthPlan, planLine } from '../services/money/plan.js';
 import { spendingRule } from '../services/money/spending.js';
 import { reconnectByAccount } from '../services/money/store.js';
-import { guessHome, savedHome, searchAreas, staticMap, saveHome } from '../services/money/home.js';
+import { guessHome, savedHome, searchAreas, searchPlaces, staticMap, saveHome } from '../services/money/home.js';
 import { encryptState } from '../services/encryption.js';
+import { signState, readState } from '../services/money/bankState.js';
 import { getAppUrl } from '../utils/oauthUtils.js';
 import { getGoogleWorkspaceScopes } from '../config/googleWorkspaceScopes.js';
 
@@ -202,26 +203,11 @@ router.get('/banks', async (req, res) => {
   catch (error) { log.error('banks failed', { error: error.message }); res.status(502).json({ success: false, error: 'Bank feed unavailable' }); }
 });
 
-/* The bank redirects to the callback without our session; `state` carries the user, signed. */
-function signState(userId) {
-  const nonce = crypto.randomBytes(8).toString('base64url');
-  const body = `${userId}.${nonce}`;
-  const sig = crypto.createHmac('sha256', process.env.JWT_SECRET || 'dev').update(body).digest('base64url');
-  return `${body}.${sig}`;
-}
-function readState(state) {
-  const parts = String(state || '').split('.');
-  if (parts.length !== 3) return null;
-  const body = `${parts[0]}.${parts[1]}`;
-  const sig = crypto.createHmac('sha256', process.env.JWT_SECRET || 'dev').update(body).digest('base64url');
-  return sig === parts[2] ? parts[0] : null;
-}
-
 router.post('/bank/connect', async (req, res) => {
   if (!isConfigured()) return res.status(503).json({ success: false, error: 'Bank feed not configured' });
   try {
-    const { bank = 'Banco Santander', country = 'ES' } = req.body || {};
-    const { url, authorizationId } = await startAuthorisation({ bankName: String(bank).slice(0, 80), country: String(country).slice(0, 2).toUpperCase(), state: signState(req.user.id) });
+    const { bank = 'Banco Santander', country = 'ES', back = '' } = req.body || {};
+    const { url, authorizationId } = await startAuthorisation({ bankName: String(bank).slice(0, 80), country: String(country).slice(0, 2).toUpperCase(), state: signState(req.user.id, typeof back === 'string' ? back : '') });
     res.json({ success: true, data: { url, authorizationId } });
   } catch (error) {
     log.error('bank connect failed', { error: error.message });
@@ -749,6 +735,18 @@ router.get('/home/search', async (req, res) => {
   }
 });
 
+/* A campus, a school, an office, by name: for the study and work facts. Places' text search,
+   kept to Spain, six results, name and one line of address; no ids or coordinates leave. */
+router.get('/places/search', async (req, res) => {
+  try {
+    const q = String(req.query.q || '').slice(0, 80);
+    res.json({ success: true, data: { results: await searchPlaces(q) } });
+  } catch (error) {
+    log.error('places search failed', { error: error.message });
+    res.status(502).json({ success: false, error: 'Places could not be searched right now.' });
+  }
+});
+
 router.get('/home/map', async (req, res) => {
   const lat = Number(req.query.lat);
   const lng = Number(req.query.lng);
@@ -814,7 +812,9 @@ export default router;
 /** Mounted before the session check: the bank's redirect carries no cookie. */
 export const bankCallback = Router();
 bankCallback.get('/bank/callback', async (req, res) => {
-  const userId = readState(req.query.state);
+  const read = readState(req.query.state);
+  const userId = read ? read.userId : null;
+  const back = read ? read.back : '/money/you';
   const code = typeof req.query.code === 'string' ? req.query.code : null;
   if (!userId) return res.status(400).send('This link is not valid.');
   if (!code) {
@@ -825,7 +825,7 @@ bankCallback.get('/bank/callback', async (req, res) => {
     const refused = typeof req.query.error === 'string' ? req.query.error.replace(/[^a-z0-9_ .-]/gi, '').slice(0, 80) : '';
     log.warn('bank authorisation refused', { error: refused || 'no code' });
     await recordCallbackFailure(userId, `refused: ${refused || 'no code'}`).catch(() => {});
-    return res.redirect(302, `/money/you?bank=failed${refused ? `&why=${encodeURIComponent(refused)}` : ''}`);
+    return res.redirect(302, `${back}?bank=failed${refused ? `&why=${encodeURIComponent(refused)}` : ''}`);
   }
   try {
     let session = await createSession(code);
@@ -849,15 +849,15 @@ bankCallback.get('/bank/callback', async (req, res) => {
          whole session object goes to the log, so the next one can be read, not guessed. */
       log.warn('bank session without accounts', { session: JSON.stringify(session.raw || {}).slice(0, 1500) });
       if (!session.sessionId) await recordCallbackFailure(userId, `no accounts: ${session.bankName || 'bank'}`).catch(() => {});
-      return res.redirect(302, `/money/you?bank=failed&why=${encodeURIComponent('no accounts were shared')}`);
+      return res.redirect(302, `${back}?bank=failed&why=${encodeURIComponent('no accounts were shared')}`);
     }
     await saveBankAccounts(userId, session);
     /* Back to Sources, where the connection was started, with the bank's name so the page
        can say which one is connected. */
-    res.redirect(302, `/money/you?bank=connected${session.bankName ? `&name=${encodeURIComponent(session.bankName)}` : ''}`);
+    res.redirect(302, `${back}?bank=connected${session.bankName ? `&name=${encodeURIComponent(session.bankName)}` : ''}`);
   } catch (error) {
     log.error('bank callback failed', { error: error.message });
     await recordCallbackFailure(userId, error.message).catch(() => {});
-    res.redirect(302, '/money?bank=failed');
+    res.redirect(302, `${back}?bank=failed`);
   }
 });

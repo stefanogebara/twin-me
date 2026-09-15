@@ -94,6 +94,9 @@ export type MoneyFact = {
   /** Their own words on it, when a choice was not enough. */
   note?: string | null;
 };
+/** One result of a place search: a name and one line under it; a home hit also carries its point. */
+export type PlaceHit = { id: string; label: string; secondary: string; lat?: number; lng?: number; kind?: string | null };
+
 export type MoneyAnswer = {
   questionId?: string; kind: string; subject?: string; subjectLabel?: string;
   value?: string; amount?: number; day?: number; share?: number;
@@ -171,6 +174,11 @@ export const moneyAPI = {
     return payload.data as { read: number; created: number; attached: number; skipped: number };
   },
   questions: () => authFetch('/money/questions').then((r) => json<MoneyQuestions>(r)),
+  /** Places to live in, by name (districts, towns), and where a person studies or works (campuses, offices). */
+  homeSearch: (q: string) => authFetch(`/money/home/search?q=${encodeURIComponent(q)}`).then((r) => json<{ results: PlaceHit[] }>(r)).then((d) => d.results),
+  placesSearch: (q: string) => authFetch(`/money/places/search?q=${encodeURIComponent(q)}`).then((r) => json<{ results: PlaceHit[] }>(r)).then((d) => d.results),
+  saveHome: (hit: PlaceHit) =>
+    authFetch('/money/home', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ district: hit.label, city: hit.secondary || undefined, lat: hit.lat, lng: hit.lng, source: 'confirmed' }) }).then((r) => json<{ said: string; value: string }>(r)),
   /** One row of a list answer is one fact, so a list question sends one of these per row. */
   answerQuestion: (payload: MoneyAnswer) =>
     authFetch('/money/questions/answer', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) }).then((r) => json<MoneyFact>(r)),
@@ -180,8 +188,9 @@ export const moneyAPI = {
   /** Forget one thing they said; the question that produced it is asked again. */
   deleteFact: (id: string) => authFetch(`/money/facts/${encodeURIComponent(id)}`, { method: 'DELETE' }).then((r) => json<{ deleted: boolean }>(r)),
   accounts: () => authFetch('/money/bank/accounts').then((r) => json<MoneyAccount[]>(r)),
-  connect: (bank = 'Banco Santander', country = 'ES') =>
-    authFetch('/money/bank/connect', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ bank, country }) }).then((r) => json<{ url: string }>(r)),
+  /** Start a bank's consent; `back` is the money page to return to (Sources by default). */
+  connect: (bank = 'Banco Santander', country = 'ES', back = '') =>
+    authFetch('/money/bank/connect', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ bank, country, back }) }).then((r) => json<{ url: string }>(r)),
   /** The person's own receipts address: forward a receipt or invoice there and it joins the ledger. */
   inbox: () => authFetch('/money/inbox').then((r) => json<{ address: string; domain: string; receiving: boolean }>(r)),
   /* The calendar lens: Google, or links pasted from Canvas and Blackboard. */
