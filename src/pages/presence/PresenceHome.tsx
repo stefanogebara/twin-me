@@ -1,27 +1,37 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   AlertCircle,
+  CalendarClock,
   Check,
   ChevronDown,
   ChevronRight,
   ChevronUp,
+  Clock,
   Copy,
   Link2,
   Loader2,
   MessageCircle,
+  MessageSquare,
   Mic,
   Pause,
+  Phone,
+  PhoneIncoming,
+  PhoneOutgoing,
   Play,
   Plus,
   RefreshCw,
   Trash2,
   User,
+  UserCheck,
 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAnalytics } from '@/contexts/AnalyticsContext';
+import { TWIN_WHATSAPP_LINK } from '@/lib/whatsappConstants';
 import {
   presenceAPI,
   PresenceApiError,
+  whatsappLink,
+  type PresenceCall,
   type PresenceConversation,
   type PresenceNote,
   type PresenceConversationDetail,
@@ -37,9 +47,10 @@ import '@/styles/presence-home.css';
  * Composition (see src/styles/presence-home.css for the reasoning):
  *   sidebar — plain links to the sections, and setup; a menu on phones
  *   title   — her name, and the old plate's ledger as one grey line
- *   column  — her link first (the page's one primary action), then what needs
- *             a person, what came back, what you can say, who is who, the
- *             voice, and last the settings (pause, delete)
+ *   column  — her link first (the tablet fallback), then the calls (her
+ *             mobile, the hour, the last ten), the family's WhatsApp, what
+ *             needs a person, what came back, what you can say, who is who,
+ *             the voice, and last the settings (pause, delete)
  *
  * Every string a family member reads is Brazilian Portuguese: the family is
  * Brazilian, and the server already speaks Portuguese in readiness lines,
@@ -88,6 +99,66 @@ const NOTE_STATE: Record<PresenceNote['status'], string> = {
   archived: 'Arquivado',
 };
 
+const CALL_STATUS: Record<PresenceCall['status'], string> = {
+  dialing: 'chamando',
+  answered: 'atendeu',
+  no_answer: 'não atendeu',
+  busy: 'ocupado',
+  failed: 'falhou',
+  completed: 'conversaram',
+};
+
+/** 0 = Sunday, as the server stores call_days. */
+const DAY_SHORT = ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sáb'];
+const DAY_LONG = ['domingo', 'segunda', 'terça', 'quarta', 'quinta', 'sexta', 'sábado'];
+const WEEKDAYS = [1, 2, 3, 4, 5];
+const CALL_HOURS = Array.from({ length: 15 }, (_, i) => 7 + i);
+const DEFAULT_HOUR = 10;
+const DEFAULT_TIMEZONE = 'America/Sao_Paulo';
+const WHATSAPP_OPENER = 'Oi, quero receber os resumos da Presença.';
+
+const hourLabel = (hour: number) => `${String(hour).padStart(2, '0')}:00`;
+
+function formatDays(days: number[]) {
+  const set = Array.from(new Set(days)).sort((a, b) => a - b);
+  if (set.length === 7) return 'todos os dias';
+  if (set.join() === WEEKDAYS.join()) return 'de segunda a sexta';
+  return set.map((d) => DAY_SHORT[d]).join(', ');
+}
+
+/** Weekday (0 = Sunday), hour and minute of `now` on her wall clock. Falls
+ *  back to the viewer's clock when the zone name is one Intl rejects. */
+function wallClock(now: Date, timeZone: string) {
+  const options: Intl.DateTimeFormatOptions = { weekday: 'short', hour: 'numeric', minute: 'numeric', hourCycle: 'h23' };
+  let parts: Intl.DateTimeFormatPart[];
+  try {
+    parts = new Intl.DateTimeFormat('en-US', { ...options, timeZone }).formatToParts(now);
+  } catch {
+    parts = new Intl.DateTimeFormat('en-US', options).formatToParts(now);
+  }
+  const get = (type: Intl.DateTimeFormatPart['type']) => parts.find((p) => p.type === type)?.value ?? '';
+  const weekday = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].indexOf(get('weekday'));
+  return { weekday: weekday < 0 ? now.getDay() : weekday, hour: Number(get('hour')) % 24, minute: Number(get('minute')) };
+}
+
+/** "hoje às 10:00", "amanhã às 10:00" or "sexta às 10:00": the next call after
+ *  now, on her clock. Null when no day is chosen. */
+function nextCallLabel(hour: number, days: number[], timeZone: string, now = new Date()) {
+  if (days.length === 0) return null;
+  const clock = wallClock(now, timeZone);
+  for (let offset = 0; offset <= 7; offset += 1) {
+    const day = (clock.weekday + offset) % 7;
+    if (!days.includes(day)) continue;
+    if (offset === 0 && clock.hour >= hour) continue;
+    const when = offset === 0 ? 'hoje' : offset === 1 ? 'amanhã' : DAY_LONG[day];
+    return `${when} às ${hourLabel(hour)}`;
+  }
+  return null;
+}
+
+/** The server wants E.164 with no spaces; people type "+55 11 98888 7777". */
+const compactPhone = (raw: string) => raw.replace(/[\s().-]/g, '');
+
 const SAVE_FAILED = 'Não deu para salvar. Tente de novo.';
 const NOT_READY = 'Ela ainda não está pronta para a primeira conversa.';
 
@@ -104,6 +175,8 @@ function errorLine(err: unknown, action: 'link' | 'other') {
 
 /** The sidebar: plain links, the current one underlined. */
 const NAV = [
+  { href: '#calls', label: 'Ligações' },
+  { href: '#whatsapp', label: 'WhatsApp' },
   { href: '#conversations', label: 'Conversas' },
   { href: '#notes', label: 'Recados' },
   { href: '#people', label: 'Pessoas' },
@@ -129,6 +202,17 @@ export default function PresenceHome() {
   const [openConv, setOpenConv] = useState<string | null>(null);
   const [convDetail, setConvDetail] = useState<Record<string, PresenceConversationDetail>>({});
   const [menuOpen, setMenuOpen] = useState(false);
+  const [phoneOpen, setPhoneOpen] = useState(false);
+  const [phoneDraft, setPhoneDraft] = useState('');
+  const [phoneBusy, setPhoneBusy] = useState(false);
+  const [scheduleOpen, setScheduleOpen] = useState(false);
+  const [hourDraft, setHourDraft] = useState(DEFAULT_HOUR);
+  const [daysDraft, setDaysDraft] = useState<number[]>(WEEKDAYS);
+  const [scheduleBusy, setScheduleBusy] = useState(false);
+  const [waPhone, setWaPhone] = useState('');
+  const [waCode, setWaCode] = useState('');
+  const [waSent, setWaSent] = useState(false);
+  const [waBusy, setWaBusy] = useState<'request' | 'verify' | 'unlink' | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const openedTracked = useRef(false);
 
@@ -223,8 +307,12 @@ export default function PresenceHome() {
     );
   }
 
-  const { presence, people, voice, notes, conversations, facts } = overview;
+  const { presence, people, voice, notes, conversations, facts, calls, whatsapp } = overview;
   const asks = facts.filter((f) => f.confidence === 'ask');
+  const elderPhone = presence.elder_phone?.trim() || null;
+  const callHour = presence.call_hour ?? DEFAULT_HOUR;
+  const callDays = presence.call_days ?? WEEKDAYS;
+  const callTimezone = presence.call_timezone || DEFAULT_TIMEZONE;
   const askName = (question: string) => (question.match(/(?:Quem é|Who is) "(.+?)"\?/) || [])[1] || question;
   const name = presence.cared_for_name?.trim() || 'A sua Presença';
   const callUrl = presence.call_token ? `${window.location.origin}/call/${presence.call_token}` : null;
@@ -370,13 +458,151 @@ export default function PresenceHome() {
     setNoteSending(false);
   }
 
+  function openPhoneEditor() {
+    setPhoneDraft(elderPhone || '');
+    setError('phone', null);
+    setPhoneOpen((open) => !open);
+  }
+
+  /** PATCH elder_phone. A 400 is the server saying what is wrong with the
+   *  number, so its line shows; anything else is the page's own line. */
+  async function savePhone(value: string | null) {
+    setPhoneBusy(true);
+    setError('phone', null);
+    try {
+      await presenceAPI.patch(presence.id, { elder_phone: value });
+      trackEvent('presence_phone_saved', { removed: value === null });
+      setPhoneOpen(false);
+      await load();
+    } catch (err) {
+      const serverLine = err instanceof PresenceApiError && err.status === 400 && !/^HTTP \d+$/.test(err.message);
+      setError('phone', serverLine ? err.message : SAVE_FAILED);
+    }
+    setPhoneBusy(false);
+  }
+
+  function openScheduleEditor() {
+    setHourDraft(callHour);
+    setDaysDraft(callDays);
+    setError('schedule', null);
+    setScheduleOpen((open) => !open);
+  }
+
+  function toggleDay(day: number) {
+    setDaysDraft((days) => (days.includes(day) ? days.filter((d) => d !== day) : [...days, day].sort((a, b) => a - b)));
+  }
+
+  async function saveSchedule() {
+    if (daysDraft.length === 0) return;
+    setScheduleBusy(true);
+    setError('schedule', null);
+    try {
+      await presenceAPI.patch(presence.id, { call_hour: hourDraft, call_days: daysDraft });
+      trackEvent('presence_schedule_saved', { call_hour: hourDraft, days: daysDraft.length });
+      setScheduleOpen(false);
+      await load();
+    } catch (err) {
+      setError('schedule', errorLine(err, 'other'));
+    }
+    setScheduleBusy(false);
+  }
+
+  /** The code is a WhatsApp session message: it only arrives inside the 24-hour
+   *  window the person opens by writing to the number first (step 1). */
+  async function requestWhatsAppCode() {
+    const phone = compactPhone(waPhone);
+    if (!phone || waBusy) return;
+    setWaBusy('request');
+    setError('wa:request', null);
+    setError('wa:verify', null);
+    try {
+      await whatsappLink.request(phone);
+      trackEvent('presence_whatsapp_link_requested');
+      setWaSent(true);
+    } catch (err) {
+      const status = err instanceof PresenceApiError ? err.status : 0;
+      setError(
+        'wa:request',
+        status === 429
+          ? 'Espere um minuto e tente de novo.'
+          : status === 502
+            ? 'O código não chegou. Abra a conversa no WhatsApp primeiro (passo 1) e tente de novo.'
+            : status === 400
+              ? 'Número inválido. Use o código do país, como +55 11 98888 7777.'
+              : 'Não deu para enviar o código. Tente de novo.',
+      );
+    }
+    setWaBusy(null);
+  }
+
+  /** whatsappLink.verify throws on a wrong code (the server answers 400, or
+   *  429 after too many tries), so `success: false` only reaches the body
+   *  branch defensively. */
+  async function verifyWhatsAppCode() {
+    const phone = compactPhone(waPhone);
+    const code = waCode.trim();
+    if (!phone || !/^\d{6}$/.test(code) || waBusy) return;
+    setWaBusy('verify');
+    setError('wa:verify', null);
+    try {
+      const result = await whatsappLink.verify(phone, code);
+      if (result?.success) {
+        trackEvent('presence_whatsapp_linked');
+        setWaPhone('');
+        setWaCode('');
+        setWaSent(false);
+        await load();
+      } else {
+        setError('wa:verify', 'Código errado ou vencido.');
+      }
+    } catch (err) {
+      const status = err instanceof PresenceApiError ? err.status : 0;
+      setError(
+        'wa:verify',
+        status === 429
+          ? 'Muitas tentativas. Peça um código novo.'
+          : status === 400
+            ? 'Código errado ou vencido.'
+            : 'Não deu para confirmar. Tente de novo.',
+      );
+    }
+    setWaBusy(null);
+  }
+
+  async function unlinkWhatsApp() {
+    if (!window.confirm('Desconectar o WhatsApp? Você deixa de receber a mensagem depois de cada ligação.')) return;
+    setWaBusy('unlink');
+    setError('wa:unlink', null);
+    try {
+      await whatsappLink.unlink();
+      trackEvent('presence_whatsapp_unlinked');
+      await load();
+    } catch (err) {
+      setError('wa:unlink', errorLine(err, 'other'));
+    }
+    setWaBusy(null);
+  }
+
   const linkLine = paused
     ? 'As ligações estão pausadas. O link dela volta a funcionar quando você retomar.'
-    : callUrl
-      ? 'Pronta para as ligações. Abra no celular dela, ou mande para quem estiver com ela.'
-      : isReady
-        ? 'Pronta para as ligações. Crie o link que ela vai usar.'
-        : 'O link abre quando ela souber o suficiente para a primeira conversa.';
+    : callUrl || isReady
+      ? 'Para tablet ou computador. As ligações vão para o celular dela.'
+      : 'O link abre quando ela souber o suficiente para a primeira conversa.';
+
+  const nextCall = nextCallLabel(callHour, callDays, callTimezone);
+  const nextCallLine = !elderPhone
+    ? 'Cadastre o celular dela para as ligações começarem.'
+    : paused
+      ? 'As ligações estão pausadas.'
+      : nextCall
+        ? nextCall
+        : 'Escolha os dias das ligações.';
+
+  const assentLine = presence.elder_assent_at
+    ? `Ela disse sim em ${new Date(presence.elder_assent_at).toLocaleDateString('pt-BR', { day: 'numeric', month: 'long' })}.`
+    : 'Na primeira ligação a Presença se apresenta e pergunta se pode conversar com ela. Avise ela antes.';
+
+  const waOpenerUrl = `${TWIN_WHATSAPP_LINK}?text=${encodeURIComponent(WHATSAPP_OPENER)}`;
 
   const errorRow = (key: string) =>
     errors[key] ? (
@@ -479,6 +705,233 @@ export default function PresenceHome() {
                 )
               )}
             </ul>
+          </section>
+
+          <section className="pc-appsection" id="calls">
+            <div className="pc-sechead">
+              <h2 className="pc-sechead-title">Ligações</h2>
+              <p className="pc-sechead-line">A Presença liga para o celular dela na hora combinada.</p>
+            </div>
+            <ul className="pc-list">
+              <li className="pc-row">
+                <span className="pc-row-icon" aria-hidden="true"><Phone /></span>
+                <div className="pc-row-text">
+                  <p className="pc-row-title">Celular dela</p>
+                  <p className="pc-row-line">{elderPhone || 'Não cadastrado'}</p>
+                </div>
+                <div className="pc-row-action">
+                  <button className="pc-btn pc-btn--ghost" onClick={openPhoneEditor} aria-expanded={phoneOpen} aria-controls="dsh-phone-form">
+                    {elderPhone ? 'Alterar' : 'Cadastrar'}
+                  </button>
+                </div>
+              </li>
+              {phoneOpen && (
+                <li className="pc-subrow dsh-form" id="dsh-phone-form">
+                  <label className="pc-field">
+                    <span className="pc-field-label">Celular dela</span>
+                    <input
+                      className="pc-input"
+                      type="tel"
+                      inputMode="tel"
+                      value={phoneDraft}
+                      placeholder="+55 11 98888 7777"
+                      onChange={(e) => setPhoneDraft(e.target.value)}
+                    />
+                  </label>
+                  <div className="dsh-form-actions">
+                    {elderPhone ? (
+                      <button className="pc-btn pc-btn--ghost" disabled={phoneBusy} onClick={() => savePhone(null)}>
+                        Remover
+                      </button>
+                    ) : null}
+                    <button className="pc-btn pc-btn--ghost" disabled={phoneBusy || !compactPhone(phoneDraft)} onClick={() => savePhone(compactPhone(phoneDraft))}>
+                      {phoneBusy ? <Loader2 className="pc-spin" size={14} /> : <Check size={14} />} Salvar
+                    </button>
+                  </div>
+                  {errors.phone ? <p className="dsh-detail" role="alert">{errors.phone}</p> : null}
+                </li>
+              )}
+              {!phoneOpen ? errorRow('phone') : null}
+
+              <li className="pc-row">
+                <span className="pc-row-icon" aria-hidden="true"><Clock /></span>
+                <div className="pc-row-text">
+                  <p className="pc-row-title">Horário</p>
+                  <p className="pc-row-line">{hourLabel(callHour)}, {formatDays(callDays)}</p>
+                </div>
+                <div className="pc-row-action">
+                  <button className="pc-btn pc-btn--ghost" onClick={openScheduleEditor} aria-expanded={scheduleOpen} aria-controls="dsh-schedule-form">
+                    Alterar
+                  </button>
+                </div>
+              </li>
+              {scheduleOpen && (
+                <li className="pc-subrow dsh-form" id="dsh-schedule-form">
+                  <label className="pc-field">
+                    <span className="pc-field-label">Hora</span>
+                    <span className="pc-select">
+                      <select className="pc-input" value={hourDraft} onChange={(e) => setHourDraft(Number(e.target.value))}>
+                        {CALL_HOURS.map((hour) => (
+                          <option key={hour} value={hour}>{hourLabel(hour)}</option>
+                        ))}
+                      </select>
+                      <ChevronDown aria-hidden="true" />
+                    </span>
+                  </label>
+                  <div className="pc-field">
+                    <span className="pc-field-label">Dias</span>
+                    <div className="pc-ob-chips" role="group" aria-label="Dias das ligações">
+                      {DAY_SHORT.map((label, day) => (
+                        <button
+                          type="button"
+                          key={day}
+                          className={`pc-ob-chip${daysDraft.includes(day) ? ' is-selected' : ''}`}
+                          aria-pressed={daysDraft.includes(day)}
+                          onClick={() => toggleDay(day)}
+                        >
+                          {label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="dsh-form-actions">
+                    <button className="pc-btn pc-btn--ghost" disabled={scheduleBusy || daysDraft.length === 0} onClick={saveSchedule}>
+                      {scheduleBusy ? <Loader2 className="pc-spin" size={14} /> : <Check size={14} />} Salvar
+                    </button>
+                  </div>
+                  {errors.schedule ? <p className="dsh-detail" role="alert">{errors.schedule}</p> : null}
+                </li>
+              )}
+              {!scheduleOpen ? errorRow('schedule') : null}
+
+              <li className="pc-row">
+                <span className="pc-row-icon" aria-hidden="true"><UserCheck /></span>
+                <div className="pc-row-text">
+                  <p className="pc-row-title">Primeira ligação</p>
+                  <p className="pc-row-line">{assentLine}</p>
+                </div>
+                <span />
+              </li>
+
+              <li className="pc-row">
+                <span className="pc-row-icon" aria-hidden="true"><CalendarClock /></span>
+                <div className="pc-row-text">
+                  <p className="pc-row-title">Próxima ligação</p>
+                  <p className="pc-row-line">{nextCallLine}</p>
+                </div>
+                <span />
+              </li>
+            </ul>
+
+            <div className="pc-sechead">
+              <h2 className="pc-sechead-title">Últimas ligações</h2>
+              <p className="pc-sechead-line">As dez mais recentes.</p>
+            </div>
+            {calls.length === 0 ? (
+              <div className="pc-list">
+                <p className="pc-empty">Nenhuma ligação ainda.</p>
+              </div>
+            ) : (
+              <ul className="pc-list">
+                {calls.map((call) => (
+                  <li className="pc-row" key={call.id}>
+                    <span className="pc-row-icon" aria-hidden="true">
+                      {call.direction === 'inbound' ? <PhoneIncoming /> : <PhoneOutgoing />}
+                    </span>
+                    <div className="pc-row-text">
+                      <p className="pc-row-title">
+                        {call.direction === 'inbound' ? 'Ela ligou · ' : ''}
+                        {formatWhen(call.scheduled_for)} · {CALL_STATUS[call.status] || call.status}
+                      </p>
+                      {call.attempt > 1 ? <p className="pc-row-line">{call.attempt}ª tentativa</p> : null}
+                    </div>
+                    <span />
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
+
+          <section className="pc-appsection" id="whatsapp">
+            <div className="pc-sechead">
+              <h2 className="pc-sechead-title">WhatsApp</h2>
+              <p className="pc-sechead-line">Depois de cada ligação, um resumo chega no seu WhatsApp.</p>
+            </div>
+            {whatsapp.linked ? (
+              <ul className="pc-list">
+                <li className="pc-row">
+                  <span className="pc-row-icon" aria-hidden="true"><MessageSquare /></span>
+                  <div className="pc-row-text">
+                    <p className="pc-row-title">Conectado ao número terminado em {whatsapp.phone_last4}.</p>
+                    <p className="pc-row-line">Você recebe uma mensagem depois de cada ligação. Responda a mensagem e ela ouve na próxima.</p>
+                  </div>
+                  <div className="pc-row-action">
+                    <button className="pc-btn pc-btn--ghost" onClick={unlinkWhatsApp} disabled={waBusy === 'unlink'}>
+                      {waBusy === 'unlink' ? <Loader2 className="pc-spin" size={14} /> : null} Desconectar
+                    </button>
+                  </div>
+                </li>
+                {errorRow('wa:unlink')}
+              </ul>
+            ) : (
+              <ul className="pc-list">
+                <li className="pc-row pc-row--plain dsh-form">
+                  <div className="pc-row-text">
+                    <p className="pc-row-title">1. Abra a conversa com a Presença no WhatsApp</p>
+                    <p className="pc-row-line">Isso abre a janela de 24 horas para o código chegar.</p>
+                  </div>
+                  <div className="dsh-form-actions">
+                    <a className="pc-btn pc-btn--ghost" href={waOpenerUrl} target="_blank" rel="noopener noreferrer">
+                      Abrir conversa
+                    </a>
+                  </div>
+                </li>
+                <li className="pc-row pc-row--plain dsh-form">
+                  <label className="pc-field">
+                    <span className="pc-field-label">2. Seu número</span>
+                    <input
+                      className="pc-input"
+                      type="tel"
+                      inputMode="tel"
+                      autoComplete="tel"
+                      value={waPhone}
+                      placeholder="+55 11 98888 7777"
+                      onChange={(e) => setWaPhone(e.target.value)}
+                    />
+                  </label>
+                  <div className="dsh-form-actions">
+                    <button className="pc-btn pc-btn--ghost" onClick={requestWhatsAppCode} disabled={waBusy !== null || !compactPhone(waPhone)}>
+                      {waBusy === 'request' ? <Loader2 className="pc-spin" size={14} /> : null} Enviar código
+                    </button>
+                  </div>
+                  {errors['wa:request'] ? (
+                    <p className="dsh-detail" role="alert">{errors['wa:request']}</p>
+                  ) : waSent ? (
+                    <p className="dsh-detail" role="status">Código enviado no WhatsApp.</p>
+                  ) : null}
+                </li>
+                <li className="pc-row pc-row--plain dsh-form">
+                  <label className="pc-field">
+                    <span className="pc-field-label">3. Código</span>
+                    <input
+                      className="pc-input"
+                      inputMode="numeric"
+                      autoComplete="one-time-code"
+                      maxLength={6}
+                      value={waCode}
+                      placeholder="123456"
+                      onChange={(e) => setWaCode(e.target.value.replace(/\D/g, ''))}
+                    />
+                  </label>
+                  <div className="dsh-form-actions">
+                    <button className="pc-btn pc-btn--ghost" onClick={verifyWhatsAppCode} disabled={waBusy !== null || !compactPhone(waPhone) || waCode.length !== 6}>
+                      {waBusy === 'verify' ? <Loader2 className="pc-spin" size={14} /> : <Check size={14} />} Confirmar
+                    </button>
+                  </div>
+                  {errors['wa:verify'] ? <p className="dsh-detail" role="alert">{errors['wa:verify']}</p> : null}
+                </li>
+              </ul>
+            )}
           </section>
 
           {asks.length > 0 && (
@@ -729,7 +1182,7 @@ export default function PresenceHome() {
                 <span className="pc-row-icon" aria-hidden="true">{paused ? <Play /> : <Pause />}</span>
                 <div className="pc-row-text">
                   <p className="pc-row-title">{paused ? 'Retomar as ligações' : 'Pausar as ligações'}</p>
-                  <p className="pc-row-line">Enquanto estiver pausada, o link dela não funciona.</p>
+                  <p className="pc-row-line">Enquanto estiver pausada, ela não recebe ligações e o link não funciona.</p>
                 </div>
                 <div className="pc-row-action">
                   <button className="pc-btn pc-btn--ghost" onClick={togglePaused} disabled={statusBusy}>

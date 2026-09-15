@@ -25,6 +25,27 @@ export interface PresenceRecord {
   caller_name: string;
   tone: string;
   status: 'draft' | 'active' | 'paused' | 'deleted';
+  /** Her mobile in E.164 (+5511999990000); null until the family sets it. */
+  elder_phone?: string | null;
+  /** The local hour (0-23) the Presence calls her, read in call_timezone. */
+  call_hour?: number;
+  /** Weekdays the Presence calls, 0 = Sunday. */
+  call_days?: number[];
+  call_timezone?: string;
+  elder_assent_at?: string | null;
+}
+
+/** The fields the family may change on PATCH; the server validates each. */
+export type PresencePatch = Partial<Pick<PresenceRecord, 'cared_for_name' | 'relationship' | 'caller_name' | 'tone' | 'status' | 'elder_phone' | 'call_hour' | 'call_days' | 'call_timezone'>>;
+
+export interface PresenceCall {
+  id: string;
+  scheduled_for: string;
+  attempt: number;
+  status: 'dialing' | 'answered' | 'no_answer' | 'busy' | 'failed' | 'completed';
+  direction: 'outbound' | 'inbound';
+  failure_reason: string | null;
+  conversation_id: string | null;
 }
 
 export interface PresencePersonInput {
@@ -92,7 +113,7 @@ export const presenceAPI = {
       body: JSON.stringify(fields),
     }),
 
-  patch: (id: string, fields: Partial<Pick<PresenceRecord, 'cared_for_name' | 'relationship' | 'caller_name' | 'tone' | 'status'>>) =>
+  patch: (id: string, fields: PresencePatch) =>
     request<{ success: boolean; presence: PresenceRecord }>(`/presence/${id}`, {
       method: 'PATCH',
       body: JSON.stringify(fields),
@@ -159,6 +180,21 @@ export const presenceAPI = {
 
   conversation: (id: string, conversationId: string) =>
     request<{ success: boolean; conversation: PresenceConversationDetail }>(`/presence/${id}/conversations/${conversationId}`),
+};
+
+/**
+ * The family member's WhatsApp, through the app's linking endpoints
+ * (api/routes/whatsapp-link.js). The code arrives on WhatsApp as a session
+ * message, so the person must have written to the number first (the page
+ * offers the wa.me link that opens that window).
+ */
+export const whatsappLink = {
+  status: () => request<{ success: boolean; linked: boolean; phone?: string | null }>('/whatsapp-link/status'),
+  request: (phone: string) =>
+    request<{ success: boolean; retry_after_ms?: number }>('/whatsapp-link/link/request', { method: 'POST', body: JSON.stringify({ phone }) }),
+  verify: (phone: string, code: string) =>
+    request<{ success: boolean; reason?: string; attempts_remaining?: number }>('/whatsapp-link/link/verify', { method: 'POST', body: JSON.stringify({ phone, code }) }),
+  unlink: () => request<{ success: boolean }>('/whatsapp-link/unlink', { method: 'DELETE' }),
 };
 
 export interface PresenceConversationDetail {
@@ -228,6 +264,10 @@ export interface PresenceOverview {
   facts: Array<{ id: string; kind: PresenceFactKind; question: string; answer: string; confidence?: 'committed' | 'provisional' | 'ask'; source?: string }>;
   notes: PresenceNote[];
   conversations: PresenceConversation[];
+  /** The last ten calls, newest first. */
+  calls: PresenceCall[];
+  /** The family member's own WhatsApp, as linked in messaging_channels. */
+  whatsapp: { linked: boolean; phone_last4: string | null };
 }
 
 // ====================================================================

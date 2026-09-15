@@ -2,8 +2,8 @@
 -- =======================================================================
 -- Used by api/routes/cron-presence-calls.js, api/routes/webhooks-elevenlabs.js
 -- and api/services/presenceRelay.js on presence/ship (plan
--- 2026-09-15-presence-forward, Phase 1). NOT applied anywhere yet; apply by
--- hand (Supabase MCP apply_migration) before deploying that code.
+-- 2026-09-15-presence-forward, Phase 1). Applied to production on 2026-09-15
+-- through the Supabase MCP (migration name presence_calls).
 --
 -- presences.elder_phone / call_hour / call_days / call_timezone
 --   Her mobile in E.164, the local hour the Presence calls, the weekdays

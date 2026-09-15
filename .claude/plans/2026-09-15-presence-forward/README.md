@@ -478,6 +478,32 @@ through ElevenLabs; inbound number; first-call-together script with recorded
 assent; post-call webhook replaces `/complete`; WhatsApp digest and
 reply-as-note; urgency on `needs_family`; members and companion role.
 
+**Phase 1 status (2026-09-15, same branch, PHASE-1.md).** Built and tested:
+the schedule (her phone, hour, days, timezone; `presence_calls`); the hourly
+cron `/api/cron/presence-calls` that dials through ElevenLabs' native Twilio
+integration with the brief as overrides (`PRESENCE_CALLS_ENABLED` gates it);
+the first-call script in the brief and the summarizer reading her spoken yes
+back (`elder-assent-call-v1`); the signed post-call webhook that stores the
+conversation once, closes the call row, summarizes and relays; the
+conversation-initiation webhook for when she calls in; the WhatsApp relay
+(template first, plain text inside the window; urgent message first;
+no-answer after two attempts); reply-as-note through Meta `context.id` and
+"nota:"; the family page's phone, schedule and WhatsApp-link sections; the
+onboarding's "O telefone dela" step; `scripts/presence/import-number.mjs`
+and `register-templates.mjs`. Migration `20260916_presence_calls` applied to
+production. Members and the companion role moved to Phase 2.
+
+What only Stefano can do before the first phone call: a Twilio account and a
+number (a US number can call Brazilian mobiles; a +55 number needs a CNPJ and
+a Brazilian address), then `import-number.mjs` and
+`ELEVENLABS_PRESENCE_PHONE_NUMBER_ID`; in the ElevenLabs agent settings, a
+post-call webhook to `https://twinme.me/api/webhooks/elevenlabs/post-call`
+(HMAC; its secret to `ELEVENLABS_POST_CALL_SECRET`) and the conversation
+initiation webhook to `https://twinme.me/api/webhooks/elevenlabs/initiation`
+with a header `x-presence-secret` from the secrets manager (its value to
+`ELEVENLABS_WEBHOOK_SECRET`); the Kapso WABA id for `register-templates.mjs`;
+then `PRESENCE_CALLS_ENABLED=true` on Vercel.
+
 Phase 2, two weeks: five families, Brazilian, autonomous elders, one of them
 Stefano's own; the 08-27 pilot metrics (three voluntary calls a week, family
 reads 70% of digests, replies three times a week, under five minutes a day of

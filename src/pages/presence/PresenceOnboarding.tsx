@@ -16,15 +16,18 @@ import {
   X,
 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
-import { presenceAPI } from '@/services/api/presenceAPI';
+import { PresenceApiError, presenceAPI } from '@/services/api/presenceAPI';
 import { useAnalytics } from '@/contexts/AnalyticsContext';
 import '@/styles/presence-cosmos.css';
 import '@/styles/presence-cosmos-onboarding.css';
 
 /**
- * /presence/onboarding — six steps on the Cosmos system, read by a Brazilian family in pt-BR.
+ * /presence/onboarding — seven steps on the Cosmos system, read by a Brazilian family in pt-BR.
  *
- *   start → bond → about → review → style → relay
+ *   start → bond → about → review → style → phone → relay
+ *
+ * "Phone" is where the Presence gets her mobile and the hour it calls (an ElevenLabs
+ * agent through Twilio). The number is optional here: the home page takes it later.
  *
  * The "About" voice note is the primary input: it is transcribed and mined server-side
  * (people, story anchors, boundaries, life facts, tone hint) and prefills "Review" — one
@@ -38,15 +41,17 @@ import '@/styles/presence-cosmos-onboarding.css';
  * Stored values (tone, relationship) stay in English because the server prompt and the
  * readiness tests key on them; only their displayed labels are Portuguese.
  *
- * Persistence: localStorage draft (v6) is the local source of truth; step completion also
+ * Persistence: localStorage draft (v7) is the local source of truth; step completion also
  * syncs best-effort to /api/presence. A failed sync shows one line by the Continue button
  * and never blocks navigation. Finishing does wait for the PATCH to status 'active': a
  * draft presence cannot answer her link. Server writes happen only in persistDraft mode
  * (the authed route), never in the preview.
  */
 
-type StepId = 'start' | 'bond' | 'about' | 'review' | 'style' | 'relay';
+type StepId = 'start' | 'bond' | 'about' | 'review' | 'style' | 'phone' | 'relay';
 type AboutRec = 'idle' | 'recording' | 'ready' | 'processing' | 'done';
+/** Who sits with her on the first call. Draft only: it changes the hint, not the server. */
+type Companion = 'me' | 'caregiver' | 'nobody';
 
 type Person = { name: string; relation: string; calledBy: string };
 
@@ -65,9 +70,15 @@ type PresenceDraft = {
   aboutText: string;
   aboutTranscript: string;
   aboutCounts: { people: number; anchors: number; boundaries: number; facts: number } | null;
+  /** Her mobile as typed; the server normalizes to E.164. */
+  elderPhone: string;
+  callHour: number;
+  /** 0 = Sunday. */
+  callDays: number[];
+  companion: Companion;
 };
 
-const DRAFT_KEY = 'twinme-presence-draft-v6';
+const DRAFT_KEY = 'twinme-presence-draft-v7';
 
 const DEFAULT_DRAFT: PresenceDraft = {
   stepIndex: 0,
@@ -87,6 +98,10 @@ const DEFAULT_DRAFT: PresenceDraft = {
   aboutText: '',
   aboutTranscript: '',
   aboutCounts: null,
+  elderPhone: '',
+  callHour: 10,
+  callDays: [0, 1, 2, 3, 4, 5, 6],
+  companion: 'me',
 };
 
 const STEPS: Array<{ id: StepId; short: string; eyebrow: string }> = [
@@ -95,8 +110,29 @@ const STEPS: Array<{ id: StepId; short: string; eyebrow: string }> = [
   { id: 'about', short: 'Sobre ela', eyebrow: 'Me conta sobre ela' },
   { id: 'review', short: 'Revisão', eyebrow: 'O que eu entendi' },
   { id: 'style', short: 'Jeito', eyebrow: 'Como vocês são juntos' },
+  { id: 'phone', short: 'O telefone dela', eyebrow: 'Quando a Presença liga' },
   { id: 'relay', short: 'Retorno', eyebrow: 'O que volta para você' },
 ];
+
+// Phone: the hours the Presence may call, and the week as she reads it (0 = Sunday, as the server keys it).
+const CALL_HOURS = Array.from({ length: 15 }, (_, index) => 7 + index);
+const CALL_TIMEZONE = 'America/Sao_Paulo';
+const WEEKDAYS: Array<{ value: number; label: string }> = [
+  { value: 0, label: 'Dom' },
+  { value: 1, label: 'Seg' },
+  { value: 2, label: 'Ter' },
+  { value: 3, label: 'Qua' },
+  { value: 4, label: 'Qui' },
+  { value: 5, label: 'Sex' },
+  { value: 6, label: 'Sáb' },
+];
+const COMPANIONS: Array<{ value: Companion; label: string }> = [
+  { value: 'me', label: 'Eu' },
+  { value: 'caregiver', label: 'Uma cuidadora ou acompanhante' },
+  { value: 'nobody', label: 'Ninguém' },
+];
+const COMPANION_VALUES = COMPANIONS.map((c) => c.value);
+const formatHour = (hour: number) => `${hour.toString().padStart(2, '0')}:00`;
 
 // The stored value is what the server prompt and the readiness tests key on; the label is what the family reads.
 const TONES: Array<{ value: string; label: string }> = [
@@ -215,6 +251,12 @@ function loadStoredDraft(persist: boolean): PresenceDraft {
       aboutText: text(parsed.aboutText, ''),
       aboutTranscript: text(parsed.aboutTranscript, ''),
       aboutCounts: parsed.aboutCounts && typeof parsed.aboutCounts === 'object' ? parsed.aboutCounts : null,
+      elderPhone: text(parsed.elderPhone, ''),
+      callHour: CALL_HOURS.includes(Number(parsed.callHour)) ? Number(parsed.callHour) : DEFAULT_DRAFT.callHour,
+      callDays: Array.isArray(parsed.callDays)
+        ? parsed.callDays.map(Number).filter((day) => Number.isInteger(day) && day >= 0 && day <= 6)
+        : DEFAULT_DRAFT.callDays,
+      companion: COMPANION_VALUES.includes(parsed.companion as Companion) ? (parsed.companion as Companion) : DEFAULT_DRAFT.companion,
     };
   } catch {
     return DEFAULT_DRAFT;
@@ -234,7 +276,7 @@ type Props = { persistDraft?: boolean; onExit?: () => void };
 export function PresenceOnboardingExperience({ persistDraft = false, onExit }: Props) {
   const { trackEvent } = useAnalytics();
   const [draft, setDraft] = useState<PresenceDraft>(() => loadDraft(persistDraft));
-  const { stepIndex, caredForName, relationship, callerName, tone, people, anchors, boundaries, answers, firstNote, aboutCounts } = draft;
+  const { stepIndex, caredForName, relationship, callerName, tone, people, anchors, boundaries, answers, firstNote, aboutCounts, elderPhone, callHour, callDays, companion } = draft;
 
   // "About her" recorder: the family member describing her, not a voice sample.
   const [aboutRec, setAboutRec] = useState<AboutRec>(draft.aboutCounts ? 'done' : 'idle');
@@ -290,6 +332,7 @@ export function PresenceOnboardingExperience({ persistDraft = false, onExit }: P
           ...(current.caredForName.trim() === '' && server.cared_for_name
             ? { caredForName: server.cared_for_name, relationship: server.relationship || current.relationship, callerName: server.caller_name, tone: server.tone || current.tone }
             : {}),
+          ...(current.elderPhone.trim() === '' && server.elder_phone ? { elderPhone: server.elder_phone } : {}),
         }));
       })
       .catch(() => {
@@ -367,12 +410,24 @@ export function PresenceOnboardingExperience({ persistDraft = false, onExit }: P
               if (answer) await presenceAPI.saveFact(id, question.kind, question.prompt, answer);
             }
             break;
+          case 'phone': {
+            // The number is optional here (the home page takes it later); the schedule always goes, with its timezone.
+            const phone = d.elderPhone.trim();
+            await presenceAPI.patch(id, {
+              ...(phone ? { elder_phone: phone } : {}),
+              call_hour: d.callHour,
+              call_days: d.callDays,
+              call_timezone: CALL_TIMEZONE,
+            });
+            break;
+          }
           default:
             break;
         }
         setSyncError(null);
-      } catch {
-        setSyncError(SYNC_FAILED);
+      } catch (err) {
+        // A 400 carries the server's own line (an invalid number, say), already in Portuguese.
+        setSyncError(err instanceof PresenceApiError && err.status === 400 && err.message ? err.message : SYNC_FAILED);
       }
     })();
   }
@@ -511,6 +566,8 @@ export function PresenceOnboardingExperience({ persistDraft = false, onExit }: P
     patch({ people: people.map((p, i) => (i === index ? { ...p, [field]: value } : p)) });
   const setBoundary = (index: number, value: string) =>
     patch({ boundaries: boundaries.map((b, i) => (i === index ? value : b)) });
+  const toggleDay = (day: number) =>
+    patch({ callDays: callDays.includes(day) ? callDays.filter((d) => d !== day) : [...callDays, day].sort((a, b) => a - b) });
 
   const [menuOpen, setMenuOpen] = useState(false);
 
@@ -534,6 +591,11 @@ export function PresenceOnboardingExperience({ persistDraft = false, onExit }: P
           : 'Uns dois minutos, com as suas palavras.';
 
   const footerLine = step.id === 'relay' ? finishError : syncError;
+
+  const callerLabel = callerName.trim() || 'você';
+  const companionLine = companion === 'nobody'
+    ? 'Na primeira ligação a Presença se apresenta e pergunta se pode conversar com ela de vez em quando. Avise ela antes que vai receber uma ligação.'
+    : 'Na primeira ligação a Presença se apresenta, pergunta se pode conversar com ela de vez em quando e como ela gosta de ser chamada. Quem estiver com ela ajuda a atender.';
 
   return (
     <main className="presence-cosmos pc-app obx" id="main-content">
@@ -946,11 +1008,104 @@ export function PresenceOnboardingExperience({ persistDraft = false, onExit }: P
               </>
             )}
 
+            {step.id === 'phone' && (
+              <>
+                <header className="pc-apphead">
+                  <h1 className="pc-apphead-title">A Presença liga para {displayName} no celular dela.</h1>
+                  <p className="pc-apphead-line">Um horário combinado, nos dias que você escolher. Sem número agora, você adiciona depois na página inicial.</p>
+                </header>
+                <section className="pc-appsection">
+                  <ul className="pc-list">
+                    <li>
+                      <label className="pc-row pc-row--plain obx-fieldrow">
+                        <span className="pc-row-text">
+                          <span className="pc-row-title">O número dela</span>
+                          <span className="pc-row-line">O celular dela. A Presença liga deste número: salve nos contatos dela como “Presença de {callerLabel}”.</span>
+                        </span>
+                        <input
+                          className="pc-input"
+                          type="tel"
+                          inputMode="tel"
+                          autoComplete="off"
+                          value={elderPhone}
+                          placeholder="+55 11 99999 0000"
+                          onChange={(event) => patch({ elderPhone: event.target.value })}
+                        />
+                      </label>
+                    </li>
+                    <li>
+                      <label className="pc-row pc-row--plain obx-fieldrow">
+                        <span className="pc-row-text"><span className="pc-row-title">A que horas ligar</span></span>
+                        <span className="pc-select">
+                          <select className="pc-input" value={callHour} onChange={(event) => patch({ callHour: Number(event.target.value) })}>
+                            {CALL_HOURS.map((hour) => (
+                              <option key={hour} value={hour}>{formatHour(hour)}</option>
+                            ))}
+                          </select>
+                          <ChevronDown aria-hidden="true" />
+                        </span>
+                      </label>
+                    </li>
+                  </ul>
+                </section>
+                <section className="pc-appsection">
+                  <div className="pc-sechead">
+                    <h2 className="pc-sechead-title">Em quais dias</h2>
+                    <p className="pc-sechead-line">Todos por padrão. Tire os dias em que ela já tem companhia.</p>
+                  </div>
+                  <ul className="pc-list">
+                    <li className="pc-row pc-row--plain">
+                      <div className="obx-chips" role="group" aria-label="Em quais dias">
+                        {WEEKDAYS.map((day) => (
+                          <button
+                            key={day.value}
+                            className="pc-btn pc-btn--ghost obx-chip"
+                            aria-pressed={callDays.includes(day.value)}
+                            onClick={() => toggleDay(day.value)}
+                          >
+                            {callDays.includes(day.value) ? <Check size={14} aria-hidden="true" /> : null}
+                            {day.label}
+                          </button>
+                        ))}
+                      </div>
+                    </li>
+                  </ul>
+                  {callDays.length === 0 && <p className="pc-empty">Sem dias marcados, a Presença não liga. Escolha pelo menos um.</p>}
+                </section>
+                <section className="pc-appsection">
+                  <div className="pc-sechead">
+                    <h2 className="pc-sechead-title">Quem vai estar com ela na primeira ligação</h2>
+                  </div>
+                  <ul className="pc-list">
+                    <li className="pc-row pc-row--plain">
+                      <div className="obx-chips" role="group" aria-label="Quem vai estar com ela na primeira ligação">
+                        {COMPANIONS.map((option) => (
+                          <button
+                            key={option.value}
+                            className="pc-btn pc-btn--ghost obx-chip"
+                            aria-pressed={companion === option.value}
+                            onClick={() => patch({ companion: option.value })}
+                          >
+                            {companion === option.value ? <Check size={14} aria-hidden="true" /> : null}
+                            {option.label}
+                          </button>
+                        ))}
+                      </div>
+                    </li>
+                  </ul>
+                  <p className="pc-empty">{companionLine}</p>
+                </section>
+              </>
+            )}
+
             {step.id === 'relay' && (
               <>
                 <header className="pc-apphead">
-                  <h1 className="pc-apphead-title">O que volta para você depois de cada conversa.</h1>
-                  <p className="pc-apphead-line">Toda conversa com {displayName} vira um resumo curto para você. Sempre identificada como IA.</p>
+                  <h1 className="pc-apphead-title">O que volta para você depois de cada ligação.</h1>
+                  <p className="pc-apphead-line">
+                    Depois de cada ligação com {displayName}, você recebe no WhatsApp o que ela contou e o que precisa de uma pessoa.
+                    Responder a essa mensagem manda um recado para a próxima ligação dela. O WhatsApp você conecta na página inicial.
+                  </p>
                 </header>
                 <section className="pc-appsection">
                   <ul className="pc-list">

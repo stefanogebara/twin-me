@@ -90,23 +90,24 @@ function parseSchedulePatch(body) {
     } else {
       const digits = String(body.elder_phone).replace(/[^\d+]/g, '');
       const phone = digits.startsWith('+') ? `+${digits.slice(1).replace(/\+/g, '')}` : `+${digits}`;
-      if (!E164_RE.test(phone)) return { error: 'Invalid phone: use the international form, +55 11 99999 0000' };
+      // These four are shown to the family as they are, so they are in Portuguese.
+      if (!E164_RE.test(phone)) return { error: 'Telefone inválido: use o formato internacional, +55 11 99999 0000' };
       patch.elder_phone = phone;
     }
   }
   if (body.call_hour !== undefined) {
     const hour = Number(body.call_hour);
-    if (!Number.isInteger(hour) || hour < 0 || hour > 23) return { error: 'Invalid hour' };
+    if (!Number.isInteger(hour) || hour < 0 || hour > 23) return { error: 'Hora inválida' };
     patch.call_hour = hour;
   }
   if (body.call_days !== undefined) {
     const days = Array.isArray(body.call_days) ? [...new Set(body.call_days.map(Number))].sort((a, b) => a - b) : null;
-    if (!days || days.length === 0 || days.some((d) => !Number.isInteger(d) || d < 0 || d > 6)) return { error: 'Invalid days' };
+    if (!days || days.length === 0 || days.some((d) => !Number.isInteger(d) || d < 0 || d > 6)) return { error: 'Escolha pelo menos um dia' };
     patch.call_days = days;
   }
   if (body.call_timezone !== undefined) {
     const tz = String(body.call_timezone);
-    if (!TIMEZONES.has(tz)) return { error: 'Invalid timezone' };
+    if (!TIMEZONES.has(tz)) return { error: 'Fuso horário inválido' };
     patch.call_timezone = tz;
   }
   return { patch };
