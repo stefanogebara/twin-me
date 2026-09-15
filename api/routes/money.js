@@ -797,7 +797,17 @@ export const bankCallback = Router();
 bankCallback.get('/bank/callback', async (req, res) => {
   const userId = readState(req.query.state);
   const code = typeof req.query.code === 'string' ? req.query.code : null;
-  if (!userId || !code) return res.status(400).send('This link is not valid.');
+  if (!userId) return res.status(400).send('This link is not valid.');
+  if (!code) {
+    /* The bank or the person said no: Enable Banking comes back with `error` and no code.
+       This used to answer a bare "This link is not valid." and keep no record, so a refused
+       Revolut looked like a page that never came back. Said on the money page, kept in the
+       feed log, and the reason is the bank's word, not a guess. */
+    const refused = typeof req.query.error === 'string' ? req.query.error.replace(/[^a-z0-9_ .-]/gi, '').slice(0, 80) : '';
+    log.warn('bank authorisation refused', { error: refused || 'no code' });
+    await recordCallbackFailure(userId, `refused: ${refused || 'no code'}`).catch(() => {});
+    return res.redirect(302, `/money?bank=failed${refused ? `&why=${encodeURIComponent(refused)}` : ''}`);
+  }
   try {
     const session = await createSession(code);
     await saveBankAccounts(userId, session);
