@@ -94,6 +94,13 @@ vi.mock('../../../api/services/workspaceActionChain.js', () => ({
   runWorkspaceActionChain: (...a) => runWorkspaceActionChain(...a),
 }));
 
+// Presence: a family member's reply to her call digest becomes a note for her
+// next call, before anything else in the pipeline sees the message.
+const handleFamilyReply = vi.fn();
+vi.mock('../../../api/services/presenceRelay.js', () => ({
+  handleFamilyReply: (...a) => handleFamilyReply(...a),
+}));
+
 const { processInboundWhatsApp, toWhatsAppMarkdown } = await import('../../../api/services/whatsappInboundPipeline.js');
 
 function makeSend() {
@@ -116,7 +123,29 @@ describe('processInboundWhatsApp', () => {
     handleReceiptImage.mockReset();
     handleFileUploadToDrive.mockReset();
     runWorkspaceActionChain.mockReset().mockImplementation(async ({ initialMessage }) => ({ assistantMessage: initialMessage }));
+    handleFamilyReply.mockReset().mockResolvedValue(null);
     process.env.PURCHASE_BOT_ENABLED = 'false';
+  });
+
+  it('turns a reply to a Presence digest into a note and does not chat', async () => {
+    handleFamilyReply.mockResolvedValue('Anotado. Ela ouve na próxima ligação.');
+    const { send, calls } = makeSend();
+    const r = await processInboundWhatsApp(
+      { phone: '5511777', text: 'Diga que eu vou domingo.', messageId: 'wamid.r1', context: { messageId: 'wamid.t1' } },
+      { send },
+    );
+    expect(r.kind).toBe('presence_note');
+    expect(handleFamilyReply).toHaveBeenCalledWith({ userId: 'u1', text: 'Diga que eu vou domingo.', contextMessageId: 'wamid.t1' });
+    expect(calls[0].text).toBe('Anotado. Ela ouve na próxima ligação.');
+    expect(completeMock).not.toHaveBeenCalled();
+  });
+
+  it('lets a message that is not for the Presence continue to twin chat', async () => {
+    const { send } = makeSend();
+    const r = await processInboundWhatsApp({ phone: '5511777', text: 'oi, tudo bem?', context: { messageId: 'wamid.other' } }, { send });
+    expect(handleFamilyReply).toHaveBeenCalledWith({ userId: 'u1', text: 'oi, tudo bem?', contextMessageId: 'wamid.other' });
+    expect(r.kind).toBe('chat');
+    expect(completeMock).toHaveBeenCalledTimes(1);
   });
 
   it('drops unparseable messages without sending', async () => {
