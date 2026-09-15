@@ -12,10 +12,12 @@ import { useEffect, useRef } from 'react';
 import { MODE_FRAMES, resolvePreset } from '../../../lib/orb/engine.js';
 import { paletteOf, rgba, lerp } from './orbColors';
 import { euro } from '../../../services/api/moneyAPI';
+import { useT } from '@/lib/i18n';
 
 type Props = { left: number; spent: number; over?: boolean; size?: number; label: string; onTap?: () => void; open?: boolean };
 
 export default function DayGlobe({ left, spent, over = false, size = 240, label, onTap, open = false }: Props) {
+  const t = useT();
   const ref = useRef<HTMLCanvasElement | null>(null);
   const state = useRef({ spent, breathe: 0 });
 
@@ -28,20 +30,23 @@ export default function DayGlobe({ left, spent, over = false, size = 240, label,
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
-    const dpr = Math.min(2, (typeof devicePixelRatio === 'number' && devicePixelRatio) || 1);
+    const dpr = Math.min(3, (typeof devicePixelRatio === 'number' && devicePixelRatio) || 1);
     canvas.width = Math.round(size * dpr); canvas.height = Math.round(size * dpr);
     const pal = paletteOf(canvas);
     const preset = resolvePreset('searching', 64);
     const frames = MODE_FRAMES[preset.mode];
+    /* A finer globe than the 64px preset, 1.5x the rings and columns, so it holds at 360 (2026-09-15: "low quality"). */
+    const opts = { ...(preset.opts as unknown as Record<string, number>) };
+    opts.latRings = Math.round((opts.latRings || 17) * 1.5); opts.lonDensity = Math.round((opts.lonDensity || 44) * 1.5); opts.rSizeMul = (opts.rSizeMul || 1) * 0.9;
     const still = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
     const cx = size / 2, cy = size / 2;
-    let t = 0, last = performance.now(), raf = 0, running = true;
+    let tm = 0, last = performance.now(), raf = 0, running = true;
     const draw = (now: number) => {
-      t += ((now - last) / 1000) * preset.speed * 0.15; last = now;
+      tm += ((now - last) / 1000) * preset.speed * 0.15; last = now;
       const since = state.current.breathe ? (now - state.current.breathe) / 1000 : 9;
       const puff = since < 1.4 ? Math.sin((since / 1.4) * Math.PI) * 0.05 : 0;
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, size, size);
-      const f = frames(size, still ? 0.6 : t, preset.opts);
+      const f = frames(size, still ? 0.6 : tm, opts as unknown as typeof preset.opts);
       const total = spent + Math.max(0, left);
       const share = over ? 1 : total > 0 ? Math.min(1, spent / total) : 0;
       const ys = f.dots.map((d) => d.y); const top = Math.min(...ys), bottom = Math.max(...ys);
@@ -57,12 +62,12 @@ export default function DayGlobe({ left, spent, over = false, size = 240, label,
       ctx.fillStyle = rgba(over ? pal.danger : pal.ink, 1); ctx.font = `300 ${Math.round(size * 0.11)}px Geist, sans-serif`; ctx.textAlign = 'center';
       ctx.fillText(over ? euro(Math.abs(left)) : euro(Math.max(0, left)), cx, cy + size * 0.03);
       ctx.fillStyle = rgba(pal.quiet, 1); ctx.font = `350 ${Math.round(size * 0.045)}px Geist, sans-serif`;
-      ctx.fillText(over ? 'over today' : 'left today', cx, cy + size * 0.1);
+      ctx.fillText(over ? t('over today') : t('left today'), cx, cy + size * 0.1);
       if (running && !still) raf = requestAnimationFrame(draw);
     };
     raf = requestAnimationFrame(draw);
     return () => { running = false; cancelAnimationFrame(raf); };
-  }, [left, spent, over, size]);
+  }, [left, spent, over, size, t]);
 
   return (
     <canvas

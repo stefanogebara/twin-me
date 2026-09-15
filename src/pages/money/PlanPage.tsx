@@ -16,6 +16,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import '../../styles/money-v2.css';
 import MoneyNav, { type MoneyNavLink } from './MoneyNav';
 import Wait from '../../components/Wait';
+import TotalRow from './figures/TotalRow';
 import { MONEY_NAV } from './navLinks';
 import { moneyAPI, euro, type MoneyPlan, type MoneyPlanCell, type MoneyPlanItem } from '../../services/api/moneyAPI';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
@@ -165,6 +166,7 @@ export default function PlanPage() {
                       <span className={`mv-item-end${r.amount > 0 ? ' mv-in' : ''}`}>{r.amount > 0 ? `+${euro(r.amount)}` : euro(r.amount)}</span>
                     </li>
                   ))}
+                  <TotalRow count={cell.rows.filter((r) => r.amount < 0).length} total={cell.rows.filter((r) => r.amount < 0).reduce((s, r) => s + Math.abs(r.amount), 0)} />
                 </ul>
               ) : null}
               {!cell.past && !cell.today && cell.items.length ? (

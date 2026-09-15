@@ -8,7 +8,9 @@
  * The caption is the strip's own sentence: the day under the finger, else the total.
  */
 import { useEffect, useRef, useState } from 'react';
-import { euro, shortDay, type MoneyDayStrip, type MoneyForecast } from '../../../services/api/moneyAPI';
+import { euro, shortDay, type MoneyDayStrip, type MoneyForecast, type MoneyTransaction } from '../../../services/api/moneyAPI';
+import TotalRow from './TotalRow';
+import { useLocale, useT } from '@/lib/i18n';
 import { paletteOf, rgba } from './orbColors';
 
 type View = 'columns' | 'wave';
@@ -16,10 +18,15 @@ const KEY = 'mv-fortnight-view';
 const DOT = 5;
 const UNIT = 10;
 
-export default function Fortnight({ strip, tomorrow }: { strip: MoneyDayStrip; tomorrow: MoneyForecast['tomorrow'] }) {
+export default function Fortnight({ strip, tomorrow, ledger = [] }: { strip: MoneyDayStrip; tomorrow: MoneyForecast['tomorrow']; ledger?: MoneyTransaction[] }) {
+  const t = useT();
+  const locale = useLocale();
   const ref = useRef<HTMLCanvasElement | null>(null);
   const [view, setView] = useState<View>(() => { try { return (localStorage.getItem(KEY) as View) || 'columns'; } catch { return 'columns'; } });
   const [picked, setPicked] = useState<string | null>(null);
+  /* A tap keeps a day open under the strip; the pointer only previews one. */
+  const [opened, setOpened] = useState<string | null>(null);
+  const lit = picked || opened;
   const days = strip.days;
   const n = days.length + (tomorrow ? 1 : 0);
 
@@ -62,7 +69,7 @@ export default function Fortnight({ strip, tomorrow }: { strip: MoneyDayStrip; t
           for (let k = 0; k < Math.round(dots * arrive); k += 1) {
             const y = H - 26 - k * DOT; ctx.beginPath(); ctx.arc(x, y, DOT / 2 - 0.2, 0, Math.PI * 2);
             if (ahead) { ctx.strokeStyle = rgba(pal.quiet, 0.8); ctx.lineWidth = 1; ctx.stroke(); }
-            else { ctx.fillStyle = today ? rgba(pal.ember, 1) : miss ? rgba(pal.danger, 0.9) : rgba(pal.ink, picked && picked !== days[i].day ? 0.45 : 0.95); ctx.fill(); }
+            else { ctx.fillStyle = today ? rgba(pal.ember, 1) : miss ? rgba(pal.danger, 0.9) : rgba(pal.ink, lit && lit !== days[i].day ? 0.45 : 0.95); ctx.fill(); }
           }
           if (dots === 0) { ctx.fillStyle = rgba(pal.quiet, 0.45); ctx.beginPath(); ctx.arc(x, H - 26, 1.2, 0, Math.PI * 2); ctx.fill(); }
         }
@@ -71,17 +78,18 @@ export default function Fortnight({ strip, tomorrow }: { strip: MoneyDayStrip; t
     };
     raf = requestAnimationFrame(draw);
     return () => { running = false; cancelAnimationFrame(raf); };
-  }, [strip, tomorrow, view, picked, n]);
+  }, [strip, tomorrow, view, lit, n]);
 
   const biggest = days.reduce((m, d) => (d.total > (m?.total ?? 0) ? d : m), null as MoneyDayStrip['days'][number] | null);
-  const day = picked ? days.find((d) => d.day === picked) : null;
-  const dayName = (iso: string) => new Date(`${iso}T12:00:00Z`).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
+  const day = lit ? days.find((d) => d.day === lit) : null;
+  const dayRows = opened ? ledger.filter((r) => r.occurred_at.slice(0, 10) === opened && Number(r.amount) < 0) : [];
+  const dayName = (iso: string) => new Date(`${iso}T12:00:00Z`).toLocaleDateString(locale, { weekday: 'short', day: 'numeric', month: 'short' });
   const line = day
-    ? `${dayName(day.day)}${day.today ? ', so far' : ''}: ${euro(day.total)}${day.count ? `, ${day.count} ${day.count === 1 ? 'payment' : 'payments'}` : ''}${day.said ? `. It said ${euro(day.said.low)} to ${euro(day.said.high)}, and ${day.hit ? 'held' : 'broke'}.` : '.'}`
+    ? `${t(day.today ? '{day}, so far: {amount}' : '{day}: {amount}', { day: dayName(day.day), amount: euro(day.total) })}${day.count ? `, ${day.count === 1 ? t('{n} payment', { n: 1 }) : t('{n} payments', { n: day.count })}` : ''}${day.said ? `. ${t('It said {low} to {high}, and {verdict}.', { low: euro(day.said.low), high: euro(day.said.high), verdict: day.hit ? t('held') : t('broke') })}` : '.'}`
     : [
-      `${euro(strip.total)} over the last ${days.length - 1} days, on ${strip.days_with_spend} of them.`,
-      biggest && biggest.total > 0 ? `The ${dayName(biggest.day)} was the biggest, ${euro(biggest.total)}.` : '',
-      tomorrow ? (tomorrow.value > 0 ? `Tomorrow: usually ${euro(tomorrow.value)}, up to ${euro(tomorrow.high)}.` : `Tomorrow is usually quiet, up to ${euro(tomorrow.high)}.`) : '',
+      t('{amount} over the last {n} days, on {k} of them.', { amount: euro(strip.total), n: days.length - 1, k: strip.days_with_spend }),
+      biggest && biggest.total > 0 ? t('The {day} was the biggest, {amount}.', { day: dayName(biggest.day), amount: euro(biggest.total) }) : '',
+      tomorrow ? (tomorrow.value > 0 ? t('Tomorrow: usually {amount}, up to {high}.', { amount: euro(tomorrow.value), high: euro(tomorrow.high) }) : t('Tomorrow is usually quiet, up to {high}.', { high: euro(tomorrow.high) })) : '',
     ].filter(Boolean).join(' ');
 
   /* The day under the pointer, from its column; the caption says it. */
@@ -90,18 +98,35 @@ export default function Fortnight({ strip, tomorrow }: { strip: MoneyDayStrip; t
     const i = Math.round(Math.max(0, Math.min(1, u)) * (n - 1));
     setPicked(i < days.length ? days[i].day : null);
   }
+  function openAt(e: React.MouseEvent<HTMLCanvasElement>) {
+    const r = e.currentTarget.getBoundingClientRect(); const u = (e.clientX - r.left - 14) / Math.max(1, r.width - 28);
+    const i = Math.round(Math.max(0, Math.min(1, u)) * (n - 1));
+    const d = i < days.length ? days[i].day : null;
+    setOpened((o) => (d && o !== d ? d : null));
+  }
 
   return (
-    <figure className="mv-fortnight" aria-label="The last thirty days">
-      <canvas ref={ref} className="mv-fortnight-canvas" role="img" aria-label={line} onMouseMove={pick} onMouseLeave={() => setPicked(null)} onClick={pick} />
-      <div className="mv-band-labels"><span>{shortDay(strip.from)}</span><span>{tomorrow ? 'Tomorrow' : 'Today'}</span></div>
+    <figure className="mv-fortnight" aria-label={t('The last thirty days')}>
+      <canvas ref={ref} className="mv-fortnight-canvas" role="img" aria-label={line} onMouseMove={pick} onMouseLeave={() => setPicked(null)} onClick={openAt} />
+      <div className="mv-band-labels"><span>{shortDay(strip.from)}</span><span>{tomorrow ? t('Tomorrow') : t('Today')}</span></div>
       <div className="mv-fortnight-foot">
         <figcaption className="mv-sub">{line}</figcaption>
-        <div className="mv-seg" role="group" aria-label="View as">
-          <button type="button" aria-pressed={view === 'columns'} onClick={() => choose('columns')}>Columns</button>
-          <button type="button" aria-pressed={view === 'wave'} onClick={() => choose('wave')}>Wave</button>
+        <div className="mv-seg" role="group" aria-label={t('View as')}>
+          <button type="button" aria-pressed={view === 'columns'} onClick={() => choose('columns')}>{t('Columns')}</button>
+          <button type="button" aria-pressed={view === 'wave'} onClick={() => choose('wave')}>{t('Wave')}</button>
         </div>
       </div>
+      {opened && dayRows.length ? (
+        <ul className="mv-list mv-fig-rows" aria-label={t("That day's payments")}>
+          {dayRows.map((r) => (
+            <li key={r.id} className="mv-item mv-item--tight">
+              <span className="mv-item-text"><span className="mv-item-title">{r.merchant_name || r.merchant_raw || t('Unknown')}</span></span>
+              <span className="mv-item-end mv-figures">{euro(Math.abs(Number(r.amount)))}</span>
+            </li>
+          ))}
+          <TotalRow count={dayRows.length} total={dayRows.reduce((s, r) => s + Math.abs(Number(r.amount)), 0)} />
+        </ul>
+      ) : null}
     </figure>
   );
 }

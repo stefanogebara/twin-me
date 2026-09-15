@@ -26,7 +26,8 @@ import { moneyAPI, euro, shortDay, bankLabel, BANKS, type MoneyAccount, type Mon
 import LedgerOrb from '../../components/LedgerOrb';
 import DayGlobe from './figures/DayGlobe';
 import Fortnight from './figures/Fortnight';
-import MonthPlanet from './figures/MonthPlanet';
+import MonthConstellation from './figures/MonthConstellation';
+import TotalRow from './figures/TotalRow';
 
 /* The English source strings; the page says them through t(), so the dictionaries hold them. */
 type T = (source: string, holes?: Record<string, string | number>) => string;
@@ -482,7 +483,7 @@ export default function MoneyV2Page({ view = 'today' }: { view?: MoneyView } = {
 
           {/* This month: one figure, one grey line, the band */}
           {view === 'today' ? (
-          <section className="mv-hero" id="month">
+          <section className={`mv-hero${loaded && !empty && today && today.amount !== null ? ' mv-hero--orb' : ''}`} id="month">
             {/* the globe stands where the stamp stood */}
             <p className="mv-eyebrow">{monthLabel}</p>
             {!loaded ? (
@@ -513,6 +514,7 @@ export default function MoneyV2Page({ view = 'today' }: { view?: MoneyView } = {
                       return (
                         <div className="mv-globe-slot">
                           <DayGlobe
+                            size={typeof window !== 'undefined' && window.innerWidth < 768 ? 280 : 360}
                             left={today.over ? -(today.free ?? 0) : today.amount}
                             spent={spentToday}
                             over={Boolean(today.over)}
@@ -545,6 +547,7 @@ export default function MoneyV2Page({ view = 'today' }: { view?: MoneyView } = {
                               <span className="mv-item-end">{euro(Math.abs(Number(row.amount)))}</span>
                             </li>
                           ))}
+                          <TotalRow count={rows.length} total={rows.reduce((s, r) => s + Math.abs(Number(r.amount)), 0)} />
                         </ul>
                       ) : <p className="mv-sub">{t('Nothing paid yet today.')}</p>;
                     })() : null}
@@ -596,7 +599,7 @@ export default function MoneyV2Page({ view = 'today' }: { view?: MoneyView } = {
                     })()}
                   </span>
                 </div>
-                {forecast.days && forecast.days.days.length ? <Fortnight strip={forecast.days} tomorrow={forecast.tomorrow ?? null} /> : null}
+                {forecast.days && forecast.days.days.length ? <Fortnight strip={forecast.days} tomorrow={forecast.tomorrow ?? null} ledger={ledger} /> : null}
                 {ahead.length ? (
                   <>
                   <p className="mv-sub mv-ahead-head">{t('Still to come this month')}</p>
@@ -622,13 +625,15 @@ export default function MoneyV2Page({ view = 'today' }: { view?: MoneyView } = {
           {/* The month opens on its figure, with the one drawing that says how it compares:
               this month to today's date against the same days of last month. */}
           {view === 'month' ? (
-          <section className="mv-hero" id="month-title">
-            {(() => {
-              const key = (forecast?.month || new Date().toISOString()).slice(0, 7);
-              const rows = ledger.filter((t) => t.occurred_at.slice(0, 7) === key);
-              return rows.length ? <div className="mv-planet-slot"><MonthPlanet rows={rows} size={220} label={t('{month} as a globe of payments', { month: monthLabel })} /></div> : null;
-            })()}
+          <section className="mv-hero mv-hero--orb" id="month-title">
             <p className="mv-eyebrow">{t('Month')}</p>
+            {/* The month as a constellation: a hub per kind of place, a dot per payee. It
+                says nothing until tapped; the list it opens ends in the total. */}
+            {categories && categories.groups.some((g) => g.spent > 0) ? (() => {
+              const key = (forecast?.month || new Date().toISOString()).slice(0, 7);
+              const rows = ledger.filter((tx) => tx.occurred_at.slice(0, 7) === key);
+              return <MonthConstellation groups={categories.groups} rows={rows} label={t('{month}: everyone paid, around the kind of place', { month: monthLabel })} />;
+            })() : null}
             <h1>{(() => {
               const amount = forecast ? euro(forecast.spent) : (months[0] ? euro(months[0].spent) : '\u2026');
               return incomeEdge ? t('{month}, {amount} of {income}.', { month: monthLabel, amount, income: euro(incomeEdge) }) : t('{month}, {amount}.', { month: monthLabel, amount });

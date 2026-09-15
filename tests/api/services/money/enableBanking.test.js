@@ -2,7 +2,7 @@
  * enableBanking.toSighting: a Berlin-Group-shaped feed row becomes a bankfeed sighting.
  */
 import { describe, it, expect } from 'vitest';
-import { toSighting, isConfigured, startAuthorisation, fetchTransactions, resetApplicationEnvironment, distinctPending } from '../../../../api/services/money/feeds/enableBanking.js';
+import { toSighting, isConfigured, startAuthorisation, fetchTransactions, resetApplicationEnvironment, distinctPending, sessionShape, applicationInfo } from '../../../../api/services/money/feeds/enableBanking.js';
 
 describe('toSighting', () => {
   it('maps a debit with a creditor name', () => {
@@ -260,5 +260,40 @@ describe('fetchBalances', () => {
     const { fetchBalances } = await import('../../../../api/services/money/feeds/enableBanking.js');
     await expect(fetchBalances('acc-1', { psu: null })).rejects.toMatchObject({ code: 'psu_required' });
     await expect(fetchBalances('acc-1', { psu: { ip: null, userAgent: 'x' } })).rejects.toMatchObject({ code: 'psu_required' });
+  });
+});
+
+/* 2026-09-16: Revolut and Sabadell sessions came back authorised with no accounts. What
+   tells a restricted application (accounts seen, then withheld) from a bank that shared
+   none is Enable Banking's own count, so the empty-session log keeps it, and never the
+   account identifiers themselves. */
+describe('an empty session, as the feed log keeps it', () => {
+  it('counts the accounts Enable Banking holds and names their fields, never their values', () => {
+    const s = sessionShape({ session_id: 's1', status: 'AUTHORIZED', accounts: [], accounts_data: [{ uid: 'u-1', identification_hash: 'h-1' }, { uid: 'u-2', identification_hash: 'h-2' }], aspsp: { name: 'Revolut', country: 'ES' } });
+    expect(s.accounts).toEqual([]);
+    expect(s.raw.accounts_data).toEqual({ count: 2, fields: ['uid', 'identification_hash'] });
+    expect(JSON.stringify(s.raw)).not.toContain('u-1');
+    expect(JSON.stringify(s.raw)).not.toContain('h-1');
+  });
+  it('says so when there is no accounts_data at all', () => {
+    expect(sessionShape({ session_id: 's2', accounts: [] }).raw.accounts_data).toBeNull();
+  });
+  it('describes the application without its key id, keeping only its status fields', async () => {
+    const saved = { fetch: global.fetch, id: process.env.ENABLE_BANKING_APP_ID, key: process.env.ENABLE_BANKING_PRIVATE_KEY };
+    const { generateKeyPairSync } = await import('node:crypto');
+    const { privateKey } = generateKeyPairSync('rsa', { modulusLength: 2048, privateKeyEncoding: { type: 'pkcs8', format: 'pem' }, publicKeyEncoding: { type: 'spki', format: 'pem' } });
+    process.env.ENABLE_BANKING_APP_ID = 'test-app'; process.env.ENABLE_BANKING_PRIVATE_KEY = privateKey;
+    global.fetch = async () => ({ ok: true, status: 200, text: async () => JSON.stringify({ kid: 'secret-kid', name: 'TwinMe', environment: 'PRODUCTION', active: true, restricted: true, redirect_urls: ['https://x'], description: 'long text' }) });
+    try {
+      const info = await applicationInfo();
+      expect(info).toMatchObject({ name: 'TwinMe', environment: 'PRODUCTION', active: true, restricted: true });
+      expect(info.keys).toContain('restricted');
+      expect(JSON.stringify(info)).not.toContain('secret-kid');
+      expect(info).not.toHaveProperty('redirect_urls');
+    } finally {
+      global.fetch = saved.fetch;
+      if (saved.id) process.env.ENABLE_BANKING_APP_ID = saved.id; else delete process.env.ENABLE_BANKING_APP_ID;
+      if (saved.key) process.env.ENABLE_BANKING_PRIVATE_KEY = saved.key; else delete process.env.ENABLE_BANKING_PRIVATE_KEY;
+    }
   });
 });

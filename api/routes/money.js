@@ -49,7 +49,7 @@ import { createLogger } from '../services/logger.js';
 import { parseCapture, parseStructured } from '../services/money/captureParser.js';
 import { ingestSighting, ingestSightings, listTransactions, sightingsFor, refreshRecurring, forecast, setVerdict, userForCaptureKey, saveBankAccounts, listBankAccounts, pullBankFeed, refreshReadings, listReadings, setReadingVerdict, months, feedBudget, categorySpend, listPlaces, setPlaceCategory, enrichPlaces, subscriptionUsage, questionsFor, answerQuestion, skipQuestion, listFacts, deleteFact, recordCallbackFailure, listChatTurns, saveChatTurn, learn } from '../services/money/store.js';
 import { parseDelimited, parseWorkbook, toSightings } from '../services/money/statements/importer.js';
-import { isConfigured, listBanks, startAuthorisation, createSession, getSession } from '../services/money/feeds/enableBanking.js';
+import { isConfigured, listBanks, startAuthorisation, createSession, getSession, applicationInfo } from '../services/money/feeds/enableBanking.js';
 import { answer as chatAnswer, answerStream as chatAnswerStream, act as chatAct } from '../services/money/chat.js';
 import { ahead as calendarAhead, learnEventSpend, addFeed as addCalendarFeed, removeFeed as removeCalendarFeed } from '../services/money/calendar.js';
 import { todayAllowance } from '../services/money/allowance.js';
@@ -839,7 +839,11 @@ bankCallback.get('/bank/callback', async (req, res) => {
       const again = await getSession(session.sessionId).catch((e) => { log.warn('bank session re-read failed', { error: e.message }); return null; });
       if (again) { log.info('bank session re-read', { accounts: again.accounts.length }); if (again.accounts.length) session = { ...again, sessionId: session.sessionId }; }
       if (!session.accounts.length) {
-        await recordCallbackFailure(userId, `no accounts: ${session.bankName || 'bank'} session=${session.sessionId} first=${first} again=${JSON.stringify(again ? again.raw : null)}`, { keepIds: true }).catch(() => {});
+        /* And the application as Enable Banking sees it: a production app in restricted
+           mode reads only the accounts linked in its Control Panel, and its sessions come
+           back authorised and empty for everyone else. */
+        const app = await applicationInfo().catch((e) => ({ error: e.message.slice(0, 120) }));
+        await recordCallbackFailure(userId, `no accounts: ${session.bankName || 'bank'} session=${session.sessionId} first=${first} again=${JSON.stringify(again ? again.raw : null)} app=${JSON.stringify(app)}`, { keepIds: true }).catch(() => {});
       }
     }
     if (!session.accounts.length) {
