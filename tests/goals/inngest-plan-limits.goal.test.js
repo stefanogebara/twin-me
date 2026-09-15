@@ -1,12 +1,21 @@
 /**
  * GOAL: every Inngest function stays within the plan's concurrency cap.
  * ======================================================================
- * Live incident (2026-06-20 -> 2026-07-13): userObservationIngestion declared
- * a global concurrency limit of 6, one over the Inngest plan cap of 5. Inngest
- * cloud REJECTS the entire app sync for a single over-cap function - all 12
- * functions unregistered, every fan-out event silently dropped - while the
- * cron logged success ("inngest-fanout, enqueued: 4") every 30 minutes.
- * Observation ingestion was dead for three weeks with zero red signals.
+ * CORRECTED 2026-08-26. This canary was written to explain the 2026-06-20 ->
+ * 2026-07-13 ingestion outage: userObservationIngestion declared a global
+ * concurrency limit of 6, one over the plan cap of 5, and Inngest cloud does
+ * reject an app sync over that cap. That much is real, and worth guarding.
+ *
+ * But it was NOT why ingestion was dead, and lowering 6 -> 5 did not fix it.
+ * Every function in this app was registered with `triggers: []` and an object
+ * where its handler belongs, because all 13 call sites used the v3
+ * createFunction signature against inngest v4 (PR #270). No event could match
+ * any function, and no run could execute if one had. Inngest ran nothing at
+ * all here until 2026-08-26; ingestion survived only on the cron's inline
+ * starvation fallback, which is why the "fix" appeared to work.
+ *
+ * Keep this test: the plan cap is a genuine constraint and an over-cap limit
+ * would break a sync. Just do not read it as the cause of that outage.
  *
  * This canary statically scans every Inngest function for concurrency limits
  * above the plan cap, so the failure mode becomes a red PR check instead of a
