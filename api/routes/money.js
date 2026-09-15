@@ -825,7 +825,7 @@ bankCallback.get('/bank/callback', async (req, res) => {
     const refused = typeof req.query.error === 'string' ? req.query.error.replace(/[^a-z0-9_ .-]/gi, '').slice(0, 80) : '';
     log.warn('bank authorisation refused', { error: refused || 'no code' });
     await recordCallbackFailure(userId, `refused: ${refused || 'no code'}`).catch(() => {});
-    return res.redirect(302, `/money?bank=failed${refused ? `&why=${encodeURIComponent(refused)}` : ''}`);
+    return res.redirect(302, `/money/you?bank=failed${refused ? `&why=${encodeURIComponent(refused)}` : ''}`);
   }
   try {
     const session = await createSession(code);
@@ -833,14 +833,16 @@ bankCallback.get('/bank/callback', async (req, res) => {
     if (!session.accounts.length) {
       /* The bank said yes and listed nothing: a Revolut with no account under the chosen
          kind, or a consent that selected none. Said "connected" here, the page had nothing
-         to read and no row to show, which is what a Revolut looked like on 2026-09-15. */
+         to read and no row to show, which is what a Revolut looked like on 2026-09-15. The
+         whole session object goes to the log, so the next one can be read, not guessed. */
+      log.warn('bank session without accounts', { session: JSON.stringify(session.raw || {}).slice(0, 1500) });
       await recordCallbackFailure(userId, `no accounts: ${session.bankName || 'bank'}`).catch(() => {});
-      return res.redirect(302, `/money?bank=failed&why=${encodeURIComponent('no accounts were shared')}`);
+      return res.redirect(302, `/money/you?bank=failed&why=${encodeURIComponent('no accounts were shared')}`);
     }
     await saveBankAccounts(userId, session);
-    /* Back to the page the connection was started from, which is the Money surface, with
-       the bank's name so the page can say which one is connected. */
-    res.redirect(302, `/money?bank=connected${session.bankName ? `&name=${encodeURIComponent(session.bankName)}` : ''}`);
+    /* Back to Sources, where the connection was started, with the bank's name so the page
+       can say which one is connected. */
+    res.redirect(302, `/money/you?bank=connected${session.bankName ? `&name=${encodeURIComponent(session.bankName)}` : ''}`);
   } catch (error) {
     log.error('bank callback failed', { error: error.message });
     await recordCallbackFailure(userId, error.message).catch(() => {});

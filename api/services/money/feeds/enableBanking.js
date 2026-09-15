@@ -95,6 +95,9 @@ export async function createSession(code) {
     validUntil: j.access?.valid_until || null,
     bankName: j.aspsp?.name || null,
     accounts: (j.accounts || []).map((a) => ({ uid: a.uid, iban: a.account_id?.iban || null, name: a.name || a.product || null, currency: a.currency || 'EUR' })),
+    /* What Enable Banking said, for the log when a bank shares nothing: its fields, the
+       access it granted, the bank, the kind of user. No secret lives in a session object. */
+    raw: { keys: Object.keys(j || {}), status: j.status || null, access: j.access || null, aspsp: j.aspsp || null, psu_type: j.psu_type || null, accounts: j.accounts || null },
   };
 }
 

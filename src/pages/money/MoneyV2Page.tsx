@@ -108,6 +108,8 @@ export default function MoneyV2Page({ view = 'today' }: { view?: MoneyView } = {
   const [key, setKey] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [note, setNote] = useState<string | null>(null);
+  /* Which bank is being opened, so the connecting orb sits on that bank's row and no other. */
+  const [connecting, setConnecting] = useState<string | null>(null);
   /* What the last Read now brought back, said on the Santander row itself. The note at the
      foot of the section sat below the fold, so a read that found nothing looked like a
      button that did nothing. */
@@ -295,10 +297,15 @@ export default function MoneyV2Page({ view = 'today' }: { view?: MoneyView } = {
     try { await moneyAPI.verdict(t.id, next); } catch { setLedger((rows) => rows.map((r) => (r.id === t.id ? { ...r, verdict: t.verdict } : r))); }
   }
   async function connect(bank: string = BANKS[0].name) {
-    setBusy('connect'); setNote(null);
+    setBusy('connect'); setNote(null); setConnecting(bank);
+    /* On success the page leaves for the bank; the orb stays on the row until it does. */
     try { const { url } = await moneyAPI.connect(bank); window.location.assign(url); }
-    catch (e) { const err = e as Error & { status?: number }; if (err.status === 503) setBankReady(false); setNote(err.status === 503 ? 'The bank feed is not switched on yet.' : 'The bank did not answer. Try again in a moment.'); }
-    finally { setBusy(null); }
+    catch (e) {
+      const err = e as Error & { status?: number };
+      if (err.status === 503) setBankReady(false);
+      setNote(err.status === 503 ? 'The bank feed is not switched on yet.' : 'The bank did not answer. Try again in a moment.');
+      setBusy(null); setConnecting(null);
+    }
   }
   async function connectCalendar() {
     setBusy('calendar'); setNote(null);
@@ -867,7 +874,7 @@ export default function MoneyV2Page({ view = 'today' }: { view?: MoneyView } = {
                         <span className="mv-item-title">{bank.label}</span>
                         {/* The booked line describes the accounts under this row, not the other bank's. */}
                         <span className="mv-item-sub mv-item-sub--live" aria-live="polite">
-                          {mine.length && (busy === 'pull' || busy === 'connect') ? <LedgerOrb state={busy === 'pull' ? 'searching' : 'connecting'} size={20} label="" /> : null}
+                          {(mine.length && busy === 'pull') || (busy === 'connect' && connecting === bank.name) ? <LedgerOrb state={busy === 'pull' ? 'searching' : 'connecting'} size={20} label="" /> : null}
                           {mine.length ? bankLine : first ? 'Read four times a day. You confirm it every six months.' : 'Read four times a day, like the other.'}
                         </span>
                       </span>

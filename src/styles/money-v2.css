@@ -274,7 +274,7 @@
    The page between pressing and arriving: the orb at 64, breathing, one line under it,
    the same ground as the page that follows. Bare (no line), it is the loading screen. */
 .mv-wait { min-height: 100vh; min-height: 100dvh; display: grid; place-items: center; box-sizing: border-box; padding: 24px; background: var(--page); color: var(--ink); }
-.mv-wait-col { width: min(24rem, 100%); display: grid; gap: 12px; justify-items: start; }
+.mv-wait-col { width: min(24rem, 100%); display: grid; gap: 12px; justify-items: center; text-align: center; }
 .mv-wait-col.is-bare { width: auto; }
 .mv-wait-col > .orb { margin-bottom: 12px; }
 .mv .mv-wait-line { font-weight: 500; }
