@@ -40,17 +40,21 @@ import BankScreen from './src/screens/BankScreen';
 import PhoneCaptureScreen from './src/screens/PhoneCaptureScreen';
 import ChatScreen from './src/screens/ChatScreen';
 import MonthScreen from './src/screens/MonthScreen';
+import PlanScreen from './src/screens/PlanScreen';
 import LedgerScreen from './src/screens/LedgerScreen';
 import YouScreen from './src/screens/YouScreen';
 
 type Setup = 'checking' | 'bank' | 'phone' | 'questions' | 'done';
-type Place = 'month' | 'ledger' | 'ask' | 'you';
+type Place = 'month' | 'plan' | 'ledger' | 'ask' | 'you';
 type Sheet = 'phone' | 'bank' | null;
 
 const PHONE_SEEN = 'twinme_money_phone_step_seen';
 const BANK_SKIPPED = 'twinme_money_bank_step_skipped';
 const PLACES: { id: Place; label: string }[] = [
   { id: 'month', label: 'Month' },
+  /* The plan came fifth (2026-09-15), after the month as it does on the web: the month as a
+     calendar, what each day cost and what the coming ones carry. */
+  { id: 'plan', label: 'Plan' },
   { id: 'ledger', label: 'Ledger' },
   { id: 'ask', label: 'Ask' },
   { id: 'you', label: 'You' },
@@ -110,7 +114,7 @@ function Layer({ active, children }: { active: boolean; children: React.ReactNod
 
 function Capsule({ place, onChange }: { place: Place; onChange: (p: Place) => void }) {
   const insets = useSafeAreaInsets();
-  const [boxes, setBoxes] = useState<Record<Place, { x: number; w: number } | undefined>>({ month: undefined, ledger: undefined, ask: undefined, you: undefined });
+  const [boxes, setBoxes] = useState<Record<Place, { x: number; w: number } | undefined>>({ month: undefined, plan: undefined, ledger: undefined, ask: undefined, you: undefined });
   const x = useSharedValue(0);
   const w = useSharedValue(0);
   useEffect(() => {
@@ -278,6 +282,9 @@ function Shell() {
           <Layer active={place === 'month'}>
             <MonthScreen questionCount={questionCount} onOpenQuestions={() => setPlace('ask')} onOpenLedger={() => setPlace('ledger')} />
           </Layer>
+          <Layer active={place === 'plan'}>
+            <PlanScreen />
+          </Layer>
           <Layer active={place === 'ledger'}>
             <LedgerScreen />
           </Layer>
@@ -297,7 +304,7 @@ function Shell() {
             />
           </Layer>
         </View>
-        {/* The one piece of chrome, at the bottom where the thumb is: four words and an
+        {/* The one piece of chrome, at the bottom where the thumb is: five words and an
             underline, glass, so content scrolls beneath it the way it does under the system's
             bars. The conversation is one of the four places, so there is no second door to it
             on every page; its field lives on its own page and nowhere else. */}

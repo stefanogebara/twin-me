@@ -44,6 +44,13 @@ export const cosmos = {
     hover: 'rgba(16, 17, 19, 0.05)',
     /* Money out is ink; money in is quieter, because an arrival is not an alarm. */
     inflow: 'rgba(16, 17, 19, 0.6)',
+    /* Colour, in the four roles the web's register gives it and no other (src/styles/
+       register.css): today's bar on the plan, money in, a day that broke its range, and the
+       faint band of a range that was said. Never text, never a fill behind text. */
+    ember: '#c47833',
+    ok: '#3d7566',
+    danger: '#c42533',
+    mark: '#8c8889',
   },
   /* One ramp. The four smaller sizes are Instinct's, measured off their pages: body 16 on
      24, secondary 15, fine print 14, all tracked at -0.011em. The two figures above them

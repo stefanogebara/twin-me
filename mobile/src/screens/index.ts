@@ -4,5 +4,6 @@ export { default as BankScreen } from './BankScreen';
 export { default as PhoneCaptureScreen } from './PhoneCaptureScreen';
 export { default as ChatScreen } from './ChatScreen';
 export { default as MonthScreen } from './MonthScreen';
+export { default as PlanScreen } from './PlanScreen';
 export { default as LedgerScreen } from './LedgerScreen';
 export { default as YouScreen } from './YouScreen';
