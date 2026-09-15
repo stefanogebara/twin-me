@@ -338,3 +338,35 @@
 .mv .la-choice:focus-visible { outline: 2px solid var(--ink); outline-offset: -2px; }
 .la-dot { width: 16px; height: 16px; border-radius: 50%; border: 1px solid var(--ink-3); box-sizing: border-box; flex: none; }
 .mv .la-choice.is-picked .la-dot { border: 5px solid var(--ink); }
+
+/* --------------------------------------------------------------- the figures
+   Today's globe stands where the stamp stood, the number inside it; the month's planet
+   the same on Month. The fortnight is the strip's successor: columns or a wave, one
+   switch. Colours are read by the canvas from the register; nothing is written in. */
+/* The hero is a grid; with a globe or a planet it gains a second column for it. The text
+   rows sit beside the figure; the band, the fortnight, the lists span both columns and so
+   wait under it. */
+.mv .mv-hero:has(.mv-globe-slot), .mv .mv-hero:has(.mv-planet-slot) { grid-template-columns: minmax(0, 1fr) auto; column-gap: 32px; }
+.mv .mv-hero > * { grid-column: 1; }
+.mv .mv-globe-slot, .mv .mv-planet-slot { grid-column: 2; grid-row: 1 / span 4; align-self: start; justify-self: end; margin-top: -24px; }
+.mv .mv-hero > .mv-band, .mv .mv-hero > .mv-day-rows, .mv .mv-hero > .mv-ahead-head, .mv .mv-hero > .mv-ahead, .mv .mv-hero > .mv-pairs, .mv .mv-hero > .mv-list, .mv .mv-hero > .mv-fortnight { grid-column: 1 / -1; }
+.mv .mv-globe { display: block; border-radius: 50%; cursor: pointer; }
+.mv .mv-globe:focus-visible { outline: 2px solid var(--ink); outline-offset: 4px; }
+.mv .mv-day-rows { margin-top: 16px; }
+.mv .mv-planet-slot { width: 220px; }
+.mv .mv-planet { margin: 0; display: grid; gap: 4px; justify-items: center; }
+.mv .mv-planet canvas { display: block; cursor: pointer; border-radius: 50%; }
+.mv .mv-planet figcaption { margin: 0; text-align: center; max-width: 220px; }
+.mv .mv-fortnight { display: grid; gap: 8px; margin: 8px 0 0; }
+.mv .mv-fortnight-canvas { display: block; width: 100%; height: 200px; }
+.mv .mv-fortnight-foot { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; }
+.mv .mv-fortnight figcaption { margin: 0; }
+.mv .mv-seg { display: inline-flex; flex: none; border: 1px solid var(--rule); border-radius: 4px; overflow: hidden; }
+.mv .mv-seg button { font: inherit; letter-spacing: inherit; height: 32px; padding: 0 14px; border: 0; background: var(--white); color: var(--ink-2); cursor: pointer; }
+.mv .mv-seg button[aria-pressed="true"] { background: var(--ink); color: var(--page); }
+.mv .mv-seg button:focus-visible { outline: 2px solid var(--ink); outline-offset: -2px; }
+@media (max-width: 767px) {
+  .mv .mv-hero:has(.mv-globe-slot), .mv .mv-hero:has(.mv-planet-slot) { grid-template-columns: minmax(0, 1fr); }
+  .mv .mv-globe-slot, .mv .mv-planet-slot { grid-column: 1; grid-row: auto; justify-self: center; margin: 0 0 8px; }
+  .mv .mv-fortnight-foot { flex-direction: column; }
+}
