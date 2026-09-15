@@ -246,6 +246,42 @@ class VoiceService {
   }
 
   /**
+   * Place a phone call from the agent through ElevenLabs' native Twilio
+   * integration. The brief travels as overrides (the agent must allow them in
+   * its Security tab) and the presence id as a dynamic variable, which the
+   * post-call webhook hands back.
+   */
+  async startOutboundCall({ agentId, phoneNumberId, toNumber, overrides, dynamicVariables }) {
+    if (!this.enabled) {
+      throw new Error('Voice service not available - API key not configured');
+    }
+    try {
+      const response = await axios.post(
+        `${this.baseUrl}/convai/twilio/outbound-call`,
+        {
+          agent_id: agentId,
+          agent_phone_number_id: phoneNumberId,
+          to_number: toNumber,
+          conversation_initiation_client_data: {
+            conversation_config_override: overrides,
+            dynamic_variables: dynamicVariables,
+          },
+          telephony_call_config: { ringing_timeout_secs: 45 },
+        },
+        { headers: { 'xi-api-key': this.apiKey, 'Content-Type': 'application/json' } }
+      );
+      const data = response.data || {};
+      if (!data.success) {
+        return { success: false, error: data.message || 'ElevenLabs refused the call' };
+      }
+      return { success: true, conversationId: data.conversation_id, callSid: data.callSid };
+    } catch (error) {
+      log.error('Outbound call request failed:', error);
+      return { success: false, error: error.response?.data?.detail || error.message };
+    }
+  }
+
+  /**
    * The record ElevenLabs holds for a conversation: agent id, status, transcript
    * (role user|agent, message, time_in_call_secs) and metadata.call_duration_secs.
    */

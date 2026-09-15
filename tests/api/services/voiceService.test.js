@@ -85,3 +85,52 @@ describe('voiceService conversations', () => {
     await expect(service.getConversation('conv-x')).resolves.toEqual({ success: false, error: 'not found' });
   });
 });
+
+// ElevenLabs places her call through its own Twilio integration: one number
+// imported once, its id in ELEVENLABS_PRESENCE_PHONE_NUMBER_ID.
+describe('voiceService.startOutboundCall', () => {
+  let service;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    service = new VoiceService();
+  });
+
+  const input = {
+    agentId: 'agent-1',
+    phoneNumberId: 'phone-1',
+    toNumber: '+5511999990000',
+    overrides: { agent: { prompt: { prompt: 'PROMPT' }, first_message: 'Oi', language: 'pt-br' } },
+    dynamicVariables: { presence_id: 'p-1' },
+  };
+
+  it('asks ElevenLabs to dial her with the brief as overrides and the presence id as a dynamic variable', async () => {
+    axios.post.mockResolvedValue({ data: { success: true, message: 'ok', conversation_id: 'conv-1', callSid: 'CA1' } });
+
+    await expect(service.startOutboundCall(input)).resolves.toEqual({ success: true, conversationId: 'conv-1', callSid: 'CA1' });
+    expect(axios.post.mock.calls[0][0]).toBe('https://api.elevenlabs.io/v1/convai/twilio/outbound-call');
+    expect(axios.post.mock.calls[0][1]).toEqual({
+      agent_id: 'agent-1',
+      agent_phone_number_id: 'phone-1',
+      to_number: '+5511999990000',
+      conversation_initiation_client_data: {
+        conversation_config_override: input.overrides,
+        dynamic_variables: { presence_id: 'p-1' },
+      },
+      telephony_call_config: { ringing_timeout_secs: 45 },
+    });
+    expect(axios.post.mock.calls[0][2]).toMatchObject({ headers: { 'xi-api-key': 'test-key' } });
+  });
+
+  it('reports a dial ElevenLabs refused', async () => {
+    axios.post.mockResolvedValue({ data: { success: false, message: 'phone number not found', conversation_id: null, callSid: null } });
+
+    await expect(service.startOutboundCall(input)).resolves.toEqual({ success: false, error: 'phone number not found' });
+  });
+
+  it('reports a request that failed', async () => {
+    axios.post.mockRejectedValue(httpError(422, 'invalid to_number'));
+
+    await expect(service.startOutboundCall(input)).resolves.toEqual({ success: false, error: 'invalid to_number' });
+  });
+});
