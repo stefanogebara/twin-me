@@ -29,7 +29,7 @@ const token = vi.fn();
 vi.mock('../../../../api/services/tokenRefreshService.js', () => ({ getValidAccessToken: (...a) => token(...a) }));
 const get = vi.fn();
 vi.mock('../../../../api/services/calendar/client.js', () => ({ createCalendarClient: () => ({ get: (...a) => get(...a) }) }));
-const store = { listTransactions: vi.fn(), listFacts: vi.fn() };
+const store = { listTransactions: vi.fn(), listFacts: vi.fn(), categoriesFor: vi.fn(async () => new Map([['la tasca', 'restaurant']])) };
 vi.mock('../../../../api/services/money/store.js', () => store);
 
 const cal = await import('../../../../api/services/money/calendar.js');

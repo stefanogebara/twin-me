@@ -543,10 +543,7 @@ export async function refreshReadings(userId, now = new Date()) {
   /* The kind of place behind each payment, so the analyst can read a shape by kind. A
      merchant with no place yet has no kind, and the finding refuses to speak on thin data. */
   const keys = [...new Set(transactions.map((t) => t.merchant_key))];
-  const { data: places } = keys.length
-    ? await supabaseAdmin.from('money_places').select('merchant_key, category, category_override').in('merchant_key', keys)
-    : { data: [] };
-  const categories = new Map((places || []).map((p) => [p.merchant_key, p.category_override || p.category || null]));
+  const categories = await categoriesFor(userId, keys);
   const categoryOf = (t) => categories.get(t.merchant_key) || CHANNEL_CATEGORY[t.channel] || null;
   const settled = reimbursementIds(facts, transactions, { now });
   const { segments, findings: read } = readLedger({ transactions, recurring: withNames, categoryOf, now, isSpending: spendingRule(facts), isIncome: (t) => !settled.has(t.id) });
@@ -712,8 +709,24 @@ const CHANNEL_CATEGORY = { transfer: 'transfers', bizum: 'transfers', cash: 'cas
  * being filed under "other". Every surface that groups spending must call this: the month
  * page and the chat once disagreed about the same euros because each had its own version.
  */
+/**
+ * The kind of place behind each merchant, for one person: their own word first (their
+ * override), then what a provider said, else null. One read of each table, one map.
+ */
+export async function categoriesFor(userId, keys) {
+  const wanted = [...new Set((keys || []).filter(Boolean))];
+  if (!wanted.length) return new Map();
+  const [{ data: places }, { data: mine }] = await Promise.all([
+    supabaseAdmin.from('money_places').select('merchant_key, category').in('merchant_key', wanted),
+    supabaseAdmin.from('money_place_overrides').select('merchant_key, category').eq('user_id', userId).in('merchant_key', wanted),
+  ]);
+  const map = new Map((places || []).map((p) => [p.merchant_key, p.category || null]));
+  for (const o of mine || []) if (o.category) map.set(o.merchant_key, o.category);
+  return map;
+}
+
 export function categoryOfPayment(place, channel, role = null) {
-  const fromPlace = place ? (place.category_override || place.category || null) : null;
+  const fromPlace = place ? (place.category || null) : null;
   /* A transfer to the person named as the landlord is the rent, not "transfers": the one
      category a student's month is built around, and the one a places provider can never see. */
   if (!fromPlace && role === 'landlord' && (channel === 'transfer' || channel === 'bizum')) return 'rent';
@@ -746,11 +759,13 @@ export async function categorySpend(userId, { month = null } = {}) {
   if (!rows.length) return { month, total: 0, read: 0, groups: [] };
 
   const keys = [...new Set(rows.map((r) => r.merchant_key))];
-  const { data: places } = await supabaseAdmin
-    .from('money_places')
-    .select('merchant_key, name, kind, category, category_override, city, lat, lon, confidence')
-    .in('merchant_key', keys);
-  const byKey = new Map((places || []).map((p) => [p.merchant_key, p]));
+  const [{ data: places }, mine] = await Promise.all([
+    supabaseAdmin.from('money_places').select('merchant_key, name, kind, category, city, lat, lon, confidence').in('merchant_key', keys),
+    categoriesFor(userId, keys),
+  ]);
+  /* The person's own word replaces the provider's kind on their copy of the place. */
+  const byKey = new Map((places || []).map((p) => [p.merchant_key, { ...p, category: mine.get(p.merchant_key) ?? p.category ?? null }]));
+  for (const k of keys) if (!byKey.has(k) && mine.get(k)) byKey.set(k, { merchant_key: k, name: null, category: mine.get(k) });
 
   const groups = new Map();
   let total = 0;
@@ -798,7 +813,7 @@ export async function listPlaces(userId) {
     .select('merchant_key, merchant_raw, merchant_city, amount').eq('user_id', userId).lt('amount', 0);
   const keys = [...new Set((rows || []).map((r) => r.merchant_key))];
   if (!keys.length) return [];
-  const { data: places } = await supabaseAdmin.from('money_places').select('*').in('merchant_key', keys);
+  const [{ data: places }, mine] = await Promise.all([supabaseAdmin.from('money_places').select('*').in('merchant_key', keys), categoriesFor(userId, keys)]);
   const byKey = new Map((places || []).map((p) => [p.merchant_key, p]));
   const spend = new Map();
   const names = new Map();
@@ -815,7 +830,7 @@ export async function listPlaces(userId) {
       name: p?.name || names.get(k) || k,
       city: p?.city || cities.get(k) || null,
       kind: p?.kind || null,
-      category: p?.category_override || p?.category || null,
+      category: mine.get(k) ?? p?.category ?? null,
       lat: p?.lat ?? null,
       lon: p?.lon ?? null,
       confidence: p?.confidence ?? null,
@@ -826,18 +841,24 @@ export async function listPlaces(userId) {
 }
 
 /** A person's correction to a category outlives the next lookup. */
-export async function setPlaceCategory(merchantKey, category, { name = null } = {}) {
-  const { data, error } = await supabaseAdmin.from('money_places')
-    .update({ category_override: category, overridden_at: category ? new Date().toISOString() : null })
-    .eq('merchant_key', merchantKey).select().maybeSingle();
-  if (error) throw new Error(error.message);
-  if (data) return data;
-  /* A merchant no provider has ever placed has no row: the person's word makes one. */
-  const { data: made, error: e2 } = await supabaseAdmin.from('money_places')
-    .insert({ merchant_key: merchantKey, name: name || merchantKey, provider: 'person', category_override: category, overridden_at: category ? new Date().toISOString() : null })
-    .select().maybeSingle();
-  if (e2) throw new Error(e2.message);
-  return made;
+/** The person's word on what kind of place a merchant is: kept for them alone; null forgets it. */
+export async function setPlaceCategory(userId, merchantKey, category, { name = null } = {}) {
+  if (category) {
+    const { error } = await supabaseAdmin.from('money_place_overrides')
+      .upsert({ user_id: userId, merchant_key: merchantKey, category, created_at: new Date().toISOString() }, { onConflict: 'user_id,merchant_key' });
+    if (error) throw new Error(error.message);
+  } else {
+    const { error } = await supabaseAdmin.from('money_place_overrides').delete().eq('user_id', userId).eq('merchant_key', merchantKey);
+    if (error) throw new Error(error.message);
+  }
+  /* A merchant no provider has ever placed has no shared row: one is made so it has a name,
+     with no kind on it, since the kind is this person's and not everyone's. */
+  const { data } = await supabaseAdmin.from('money_places').select('merchant_key, name, category').eq('merchant_key', merchantKey).maybeSingle();
+  if (!data) {
+    const { error: e2 } = await supabaseAdmin.from('money_places').insert({ merchant_key: merchantKey, name: name || merchantKey, provider: 'person' });
+    if (e2 && !/duplicate|23505/.test(e2.message)) throw new Error(e2.message);
+  }
+  return { merchant_key: merchantKey, name: data?.name || name || merchantKey, category: category || data?.category || null };
 }
 
 /**
@@ -983,10 +1004,7 @@ export async function learn(userId, now = new Date()) {
   if (!transactions.length) return { profiles: [], patterns: [], predictions: [], summary: null };
 
   const keys = [...new Set(transactions.map((t) => t.merchant_key))];
-  const { data: places } = keys.length
-    ? await supabaseAdmin.from('money_places').select('merchant_key, category, category_override').in('merchant_key', keys)
-    : { data: [] };
-  const categories = new Map((places || []).map((x) => [x.merchant_key, x.category_override || x.category || null]));
+  const categories = await categoriesFor(userId, keys);
   const categoryOf = (t) => categories.get(t.merchant_key) || CHANNEL_CATEGORY[t.channel] || null;
 
   /* What other people's ledgers say about these places, as aggregates and never rows:
@@ -1093,10 +1111,7 @@ export async function questionsFor(userId, now = new Date()) {
   ]);
   const declined = new Set(asked.filter((a) => a.skipped).map((a) => a.question_id));
   const keys = [...new Set(transactions.map((t) => t.merchant_key))];
-  const { data: places } = keys.length
-    ? await supabaseAdmin.from('money_places').select('merchant_key, category, category_override').in('merchant_key', keys)
-    : { data: [] };
-  const categories = new Map((places || []).map((x) => [x.merchant_key, x.category_override || x.category || null]));
+  const categories = await categoriesFor(userId, keys);
   const placeOf = (t) => categories.get(t.merchant_key) || null;
 
   return {

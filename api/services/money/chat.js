@@ -950,7 +950,7 @@ export async function act(userId, action, { now = new Date() } = {}) {
     return { done: true, said: euroGlyphs(`${nameOf(t)}, ${amountText(t.amount)} on ${dayMonth(t.occurred_at)}, is marked as not yours and leaves the month.`) };
   }
   if (checked.kind === 'recategorise') {
-    await setPlaceCategory(checked.merchant_key, checked.category);
+    await setPlaceCategory(userId, checked.merchant_key, checked.category);
     const place = ctx.placeByKey.get(checked.merchant_key);
     return { done: true, said: `${place.name} now counts as ${checked.category}, here and from now on.` };
   }

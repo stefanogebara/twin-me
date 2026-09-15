@@ -55,7 +55,8 @@ describe('categoryOfPayment', () => {
     expect(categoryOfPayment(null, 'transfer', 'friend')).toBe('transfers');
     expect(categoryOfPayment(null, 'card', 'landlord')).toBeNull();
     expect(categoryOfPayment({ category: 'groceries' }, 'card', null)).toBe('groceries');
-    expect(categoryOfPayment({ category: 'groceries', category_override: 'home' }, 'card', null)).toBe('home');
+    /* The person's own word arrives already merged into the place's category (categoriesFor). */
+    expect(categoryOfPayment({ category: 'home' }, 'card', null)).toBe('home');
   });
 });
 

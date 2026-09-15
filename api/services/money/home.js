@@ -84,7 +84,7 @@ export function weighPlaces(transactions, places, { now = new Date() } = {}) {
   const byKey = new Map();
   for (const p of places) {
     if (!Number.isFinite(Number(p.lat)) || !Number.isFinite(Number(p.lon ?? p.lng))) continue;
-    byKey.set(p.merchant_key, { ...p, lat: Number(p.lat), lng: Number(p.lon ?? p.lng), category: p.category_override || p.category || null });
+    byKey.set(p.merchant_key, { ...p, lat: Number(p.lat), lng: Number(p.lon ?? p.lng), category: p.category || null });
   }
   const days = new Map();
   for (const t of transactions) {
@@ -262,7 +262,7 @@ async function placesForUser(userId, transactions) {
   const keys = [...new Set(transactions.map((t) => t.merchant_key).filter(Boolean))];
   if (!keys.length) return [];
   const { data } = await supabaseAdmin.from('money_places')
-    .select('merchant_key, name, category, category_override, lat, lon')
+    .select('merchant_key, name, category, lat, lon')
     .in('merchant_key', keys);
   return data || [];
 }
