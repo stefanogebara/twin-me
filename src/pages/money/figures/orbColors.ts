@@ -2,17 +2,17 @@
  * The colours the canvas figures draw with, read from the register at mount, never written
  * into the drawings. Canvas cannot resolve var(), so each is read once from the computed
  * style of the canvas's own element; the hex fallbacks are the register's values
- * (register.css: --rg-ink #251f21, --rg-page #fbfaf9, --rg-ink-3 #6c6867, --rg-ember #c47833,
+ * (register.css: --rg-ink #251f21, --rg-ink-2 #585254, --rg-page #fbfaf9, --rg-ink-3 #6c6867, --rg-ember #c47833,
  * --rg-danger #c42533, and the five signatures) for a test or a browser that hides them.
  */
 export type Rgb = [number, number, number];
 
 const FALLBACK: Record<string, Rgb> = {
-  ink: [37, 31, 33], page: [251, 250, 249], quiet: [108, 104, 103], ember: [196, 120, 51], danger: [196, 37, 51],
+  ink: [37, 31, 33], ink2: [88, 82, 84], page: [251, 250, 249], quiet: [108, 104, 103], ember: [196, 120, 51], danger: [196, 37, 51],
   iris: [129, 121, 251], verdigris: [76, 151, 134], orchid: [186, 112, 182], periwinkle: [102, 140, 194], mark: [140, 136, 137],
 };
 const VAR: Record<string, string> = {
-  ink: '--rg-ink', page: '--rg-page', quiet: '--rg-ink-3', ember: '--rg-ember', danger: '--rg-danger',
+  ink: '--rg-ink', ink2: '--rg-ink-2', page: '--rg-page', quiet: '--rg-ink-3', ember: '--rg-ember', danger: '--rg-danger',
   iris: '--rg-iris', verdigris: '--rg-verdigris', orchid: '--rg-orchid', periwinkle: '--rg-periwinkle', mark: '--rg-mark',
 };
 

@@ -65,6 +65,16 @@ export function applicationEnvironment() {
   return environmentPromise;
 }
 export async function isProduction() { return (await applicationEnvironment()) === 'PRODUCTION'; }
+/** What Enable Banking says about this application, without its key id: the name, the
+ *  environment, whether it is active, and whatever status fields it carries. For the feed
+ *  log when a session comes back empty; nothing in it is a secret. */
+export async function applicationInfo() {
+  const j = await api('/application');
+  if (!j || typeof j !== 'object') return null;
+  const { kid: _kid, ...rest } = j; // eslint-disable-line no-unused-vars
+  const keep = Object.fromEntries(Object.entries(rest).filter(([k, v]) => /environment|active|restrict|status|state|countries|services|name|linked|mode|type/i.test(k) && JSON.stringify(v).length < 400));
+  return { keys: Object.keys(rest), ...keep };
+}
 /** Tests swap the credentials mid-process; the answer must not outlive them. */
 export function resetApplicationEnvironment() { environmentPromise = null; }
 
@@ -88,7 +98,7 @@ export async function startAuthorisation({ bankName = 'Banco Santander', country
 }
 
 /** The session's shape as the store reads it. Pure. */
-function sessionShape(j) {
+export function sessionShape(j) {
   return {
     sessionId: j.session_id,
     validUntil: j.access?.valid_until || null,
@@ -96,7 +106,14 @@ function sessionShape(j) {
     accounts: (j.accounts || []).map((a) => ({ uid: a.uid, iban: a.account_id?.iban || null, name: a.name || a.product || null, currency: a.currency || 'EUR' })),
     /* What Enable Banking said, for the log when a bank shares nothing: its fields, the
        access it granted, the bank, the kind of user. No secret lives in a session object. */
-    raw: { keys: Object.keys(j || {}), status: j.status || null, access: j.access || null, aspsp: j.aspsp || null, psu_type: j.psu_type || null, accounts: j.accounts || null },
+    raw: {
+      keys: Object.keys(j || {}), status: j.status || null, access: j.access || null, aspsp: j.aspsp || null, psu_type: j.psu_type || null, accounts: j.accounts || null,
+      /* How many accounts Enable Banking itself holds for the session, and under which
+         fields, never their values. More here than in `accounts` means the accounts were
+         seen and then withheld from the application (a restricted app); none here means
+         the bank shared none. The one line that tells the two apart (2026-09-16). */
+      accounts_data: Array.isArray(j.accounts_data) ? { count: j.accounts_data.length, fields: j.accounts_data[0] ? Object.keys(j.accounts_data[0]) : [] } : null,
+    },
   };
 }
 
