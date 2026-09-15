@@ -450,6 +450,27 @@ limit, notes-delivered, token expiry, signed session, `max_duration`, pt-BR
 family UI and summaries, elder assent row, pause and delete); analytics events;
 design freeze.
 
+**Phase 0 status (2026-09-15, branch `presence/ship` off main, 14 commits, not
+pushed).** Done: the port with migrations and eight test files; the 2 MB body
+parser; only an active presence answers its link; notes delivered only by a
+call that happened (she spoke, three turns, a minute); private agent with a
+server-issued session and the transcript read from ElevenLabs by conversation
+id, with `provider_conversation_id` stored; `scripts/presence/configure-agent.mjs`
+for max call length, turn policy, language, overrides and signed sessions;
+family text fenced in the prompt; no duplicate facts on a second description;
+her assent (`elder_assent_at`, screen before the first call); `urgency` on the
+summary; pause and delete; voice step out of onboarding and `/voice-samples`
+503 when cloning is off; Portuguese everywhere the family reads, including the
+summary, the readiness mirror and the extraction; errors surfaced on every page
+action; PostHog events. Moved to Phase 1: per-call tokens with expiry (the
+link is still a long-lived bearer, gated on `active`) and the post-call
+webhook (while ElevenLabs is still processing a call, the browser's transcript
+is kept and logged). Needs before the pilot: apply
+`20260915_presence_elder_assent.sql`; run the agent script with `--apply`;
+set `ELEVENLABS_API_KEY`, `ELEVENLABS_PRESENCE_AGENT_ID` and, for summaries and
+the voice note, `OPENROUTER_API_KEY`. Frontend verified by tsc, eslint and the
+build; not exercised in a browser against a live backend.
+
 Phase 1, two weeks: `presence_calls` schedule and orchestrator; Twilio outbound
 through ElevenLabs; inbound number; first-call-together script with recorded
 assent; post-call webhook replaces `/complete`; WhatsApp digest and
