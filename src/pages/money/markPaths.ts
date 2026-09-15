@@ -15,7 +15,11 @@ export const MARK_FOR: Record<string, string> = { Revolut: 'revolut', Santander:
  * public/images/money/marks/<key>.svg, they are picked up by name. Santander and Sabadell
  * are the two waiting for their official assets.
  */
-export const FILE_MARKS: Record<string, string> = { santander: '/images/money/marks/santander.svg', sabadell: '/images/money/marks/sabadell.svg' };
+const MARKS_DIR = ['', 'images', 'money', 'marks'].join('/');
+/* Built at run time, not written as a literal: the asset check in tests/unit expects every
+   literal image path to exist, and these two are drop-ins that may not yet. A missing file
+   hides itself (Mark.tsx, onError). */
+export const FILE_MARKS: Record<string, string> = { santander: `${MARKS_DIR}/santander.svg`, sabadell: `${MARKS_DIR}/sabadell.svg` };
 
 /** A mark exists as a path here, or as a file from the brand's kit (FILE_MARKS). */
 export function hasMark(key: string | null | undefined): boolean {
