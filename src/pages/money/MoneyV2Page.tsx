@@ -27,13 +27,21 @@ const SOURCE: Record<string, string> = { phone: 'Your phone', bizum: 'Bizum', ba
 /* What is still to come this month, as dated rows: detected charges, stated commitments,
    income, and diary events with a learned cost. A band without the rows under it is a
    range nobody can act on; with them the month reads as a calendar of money. */
-type Ahead = { on: string; name: string; amount: number; kind: 'charge' | 'stated' | 'income' | 'diary' };
+type Ahead = { on: string; name: string; amount: number; kind: 'charge' | 'stated' | 'income' | 'diary'; why: string };
+/* Each row says why the ledger expects it: a charge that has come back so many times, a
+   commitment they stated, an income seen or said, a diary event with a learned cost. A date
+   and a name alone read as random; the reason is what makes it a forecast. */
 function stillToCome(f: MoneyForecast): Ahead[] {
   const rows: Ahead[] = [];
-  for (const c of f.committed_items || []) rows.push({ on: c.next_expected.slice(0, 10), name: merchantLabel(c), amount: -Math.abs(Number(c.typical_amount)), kind: 'charge' });
-  for (const c of f.commitment_items || []) rows.push({ on: c.due_on, name: c.subject || 'A standing charge', amount: -Math.abs(Number(c.amount)), kind: 'stated' });
-  for (const i of f.income_items || []) rows.push({ on: i.due_on, name: i.subject || i.source || 'Comes in', amount: Math.abs(Number(i.amount)), kind: 'income' });
-  for (const e of f.calendar_items || []) if (e.expected && Number(e.expected.amount) > 0) rows.push({ on: e.on.slice(0, 10), name: e.label || e.title || 'In the diary', amount: -Math.abs(Number(e.expected.amount)), kind: 'diary' });
+  for (const c of f.committed_items || []) {
+    const times = Number(c.occurrences) || 0;
+    rows.push({ on: c.next_expected.slice(0, 10), name: merchantLabel(c), amount: -Math.abs(Number(c.typical_amount)), kind: 'charge',
+      why: `${c.cadence ? cap(CADENCE[c.cadence] || c.cadence) : 'Comes back'}${times ? `, ${times} ${times === 1 ? 'time' : 'times'} so far` : ''}${c.last_seen ? `, last ${shortDay(c.last_seen)}` : ''}` });
+  }
+  for (const c of f.commitment_items || []) rows.push({ on: c.due_on, name: c.subject || 'A standing charge', amount: -Math.abs(Number(c.amount)), kind: 'stated', why: 'You said it leaves every month' });
+  for (const i of f.income_items || []) rows.push({ on: i.due_on, name: i.subject || i.source || 'Comes in', amount: Math.abs(Number(i.amount)), kind: 'income',
+    why: i.basis ? `Comes in, ${i.basis}` : 'Comes in, as you said' });
+  for (const e of f.calendar_items || []) if (e.expected && Number(e.expected.amount) > 0) rows.push({ on: e.on.slice(0, 10), name: e.label || e.title || 'In the diary', amount: -Math.abs(Number(e.expected.amount)), kind: 'diary', why: 'In the diary; this kind of day usually costs about this' });
   return rows.filter((r) => Number.isFinite(r.amount) && r.on).sort((a, b) => (a.on < b.on ? -1 : a.on > b.on ? 1 : Math.abs(b.amount) - Math.abs(a.amount))).slice(0, 8);
 }
 
@@ -114,8 +122,14 @@ export default function MoneyV2Page({ view = 'today' }: { view?: MoneyView } = {
      posts card payments on working days, so a weekend's spending is here before it is there. */
   const bookedTo = ledger.reduce<string | null>((m, t) => (t.posted_at && (!m || t.occurred_at > m) ? t.occurred_at : m), null);
   const since = bookedTo ? ledger.filter((t) => !t.posted_at && t.occurred_at > bookedTo).length : 0;
+  /* "Booked to yesterday" on a working day is the bank's normal lag, not a stale read: today's
+     card payments are here from the alerts and book tomorrow. Said as that. */
+  const bookedDay = bookedTo ? shortDay(bookedTo) : null;
+  const bookedIsYesterday = bookedTo ? new Date(bookedTo).toDateString() === new Date(Date.now() - 86400000).toDateString() : false;
   const bookedLine = bookedTo
-    ? `Booked to ${shortDay(bookedTo)}${since ? `, ${since} ${since === 1 ? 'alert' : 'alerts'} since` : ''}. Cards post on working days.`
+    ? bookedIsYesterday
+      ? `Booked to yesterday${since ? `; today's ${since} ${since === 1 ? 'payment is' : 'payments are'} here from the alerts and book tomorrow` : '; nothing yet today'}.`
+      : `Booked to ${bookedDay}${since ? `, ${since} ${since === 1 ? 'alert' : 'alerts'} since` : ''}. Cards post on working days.`
     : 'Read four times a day. You confirm it every six months.';
   const bankLine = !bankReady ? 'The bank feed is not switched on yet.'
     : busy === 'connect' ? 'Opening the bank.'
@@ -482,15 +496,18 @@ export default function MoneyV2Page({ view = 'today' }: { view?: MoneyView } = {
                 </div>
                 {forecast.days && forecast.days.days.length ? <DayStrip strip={forecast.days} tomorrow={forecast.tomorrow ?? null} /> : null}
                 {stillToCome(forecast).length ? (
+                  <>
+                  <p className="mv-sub mv-ahead-head">Still to come this month</p>
                   <ul className="mv-list mv-ahead" aria-label="Still to come this month">
                     {stillToCome(forecast).map((r) => (
                       <li key={`${r.kind}-${r.on}-${r.name}`} className="mv-item mv-item--tight">
                         <span className="mv-ahead-day">{shortDay(r.on)}</span>
-                        <span className="mv-item-text"><span className="mv-item-title">{r.name}</span></span>
+                        <span className="mv-item-text"><span className="mv-item-title">{r.name}</span><span className="mv-item-sub">{r.why}</span></span>
                         <span className={`mv-item-end mv-figures${r.amount > 0 ? ' mv-ahead-in' : ''}`}>{r.amount > 0 ? '+' : ''}{euro(Math.abs(r.amount))}</span>
                       </li>
                     ))}
                   </ul>
+                  </>
                 ) : null}
               </div>
             ) : null}
@@ -990,23 +1007,35 @@ function DayStrip({ strip, tomorrow }: { strip: MoneyDayStrip; tomorrow: MoneyFo
   const max = Math.max(1, ...strip.days.map((d) => Math.max(d.total, d.said ? d.said.high : 0)));
   const h = (v: number) => `${Math.max(0, Math.min(100, (v / max) * 100))}%`;
   const dayName = (iso: string) => new Date(`${iso}T12:00:00Z`).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
-  const line = [
-    `${euro(strip.total)} over the last ${strip.days.length - 1} days, on ${strip.days_with_spend} of them.`,
-    strip.said_days ? `The range was given on ${strip.said_days} ${strip.said_days === 1 ? 'day' : 'days'} and held on ${strip.held}.` : '',
-    tomorrow ? (tomorrow.value > 0 ? `Tomorrow: usually ${euro(tomorrow.value)}, up to ${euro(tomorrow.high)}.` : `Tomorrow is usually quiet, up to ${euro(tomorrow.high)}.`) : '',
-  ].filter(Boolean).join(' ');
+  /* The day under the finger says its figure in the caption; the largest day carries its
+     figure on the bar, so the strip is never a shape without a number. */
+  const [picked, setPicked] = useState<string | null>(null);
+  const biggest = strip.days.reduce((m, d) => (d.total > (m?.total ?? 0) ? d : m), null as MoneyDayStrip['days'][number] | null);
+  const day = picked ? strip.days.find((d) => d.day === picked) : null;
+  const line = day
+    ? `${dayName(day.day)}${day.today ? ', so far' : ''}: ${euro(day.total)}${day.count ? `, ${day.count} ${day.count === 1 ? 'payment' : 'payments'}` : ''}${day.said ? `. It said ${euro(day.said.low)} to ${euro(day.said.high)}, and ${day.hit ? 'held' : 'broke'}.` : '.'}`
+    : [
+      `${euro(strip.total)} over the last ${strip.days.length - 1} days, on ${strip.days_with_spend} of them.`,
+      strip.said_days ? `The range was given on ${strip.said_days} ${strip.said_days === 1 ? 'day' : 'days'} and held on ${strip.held}.` : '',
+      tomorrow ? (tomorrow.value > 0 ? `Tomorrow: usually ${euro(tomorrow.value)}, up to ${euro(tomorrow.high)}.` : `Tomorrow is usually quiet, up to ${euro(tomorrow.high)}.`) : '',
+    ].filter(Boolean).join(' ');
   return (
-    <figure className="mv-strip" aria-label="The last thirty days">
+    <figure className="mv-strip" aria-label="The last thirty days" onMouseLeave={() => setPicked(null)}>
       <div className="mv-strip-days">
         {strip.days.map((d) => (
-          <span
+          <button
+            type="button"
             key={d.day}
-            className={`mv-strip-day${d.today ? ' mv-strip-day--today' : ''}${d.hit === false ? ' mv-strip-day--miss' : ''}`}
-            title={`${dayName(d.day)}${d.today ? ', so far' : ''}: ${euro(d.total)}${d.count ? `, ${d.count} ${d.count === 1 ? 'payment' : 'payments'}` : ''}${d.said ? `. Said ${euro(d.said.low)} to ${euro(d.said.high)}, ${d.hit ? 'held' : 'broke'}.` : ''}`}
+            className={`mv-strip-day${d.today ? ' mv-strip-day--today' : ''}${d.hit === false ? ' mv-strip-day--miss' : ''}${picked === d.day ? ' is-picked' : ''}`}
+            aria-label={`${dayName(d.day)}: ${euro(d.total)}`}
+            onMouseEnter={() => setPicked(d.day)}
+            onFocus={() => setPicked(d.day)}
+            onClick={() => setPicked(picked === d.day ? null : d.day)}
           >
             {d.said ? <i className="mv-strip-said" style={{ bottom: h(d.said.low), height: h(d.said.high - d.said.low) }} /> : null}
             <b className="mv-strip-bar" style={{ height: h(d.total) }} />
-          </span>
+            {biggest && d.day === biggest.day && d.total > 0 ? <span className="mv-strip-figure mv-figures">{euro(d.total)}</span> : null}
+          </button>
         ))}
       </div>
       <div className="mv-band-labels"><span>{shortDay(strip.from)}</span><span>Today</span></div>
