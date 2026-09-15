@@ -18,6 +18,7 @@ import * as WebBrowser from 'expo-web-browser';
 import { cosmos, dayMonth, euro, monthYear } from '../constants/cosmos';
 import { Enter, List, Micro, Page, Panel, Pill, Row, Section, Small, Title } from '../ui/primitives';
 import { Prompt } from '../ui/prompt';
+import { KindTile, Stamp } from '../ui/carved';
 import { CalendarGlyph, CardGlyph, PhoneGlyph, MailGlyph } from '../ui/glyphs';
 import { moneyApi, bankLabel, type MoneyAccount, type MoneyCalendar, type MoneyFact } from '../services/moneyApi';
 import type { User } from '../types';
@@ -151,7 +152,7 @@ export default function YouScreen({ user, onSignOut, onOpenPhone, onOpenBank, on
         }
       >
         <Enter index={0}>
-          <Title>{name ? `${name}.` : 'You.'}</Title>
+          <View style={s.head}><Title>{name ? `${name}.` : 'You.'}</Title><Stamp mark="rent" /></View>
         </Enter>
 
         {/* Everything on this page but two rows is text that needs no network, so nothing waits.
@@ -241,6 +242,7 @@ export default function YouScreen({ user, onSignOut, onOpenPhone, onOpenBank, on
                     {facts.map((f) => (
                     <Row
                       key={f.id}
+                      glyph={<KindTile kind={f.kind === 'commitment' && f.value !== 'rent' ? 'cash' : f.kind} />}
                       lead={kindWord(f.kind)}
                       label={factLabel(f)}
                       trail={f.amount !== null && f.amount !== undefined ? euro(f.amount) : undefined}
@@ -279,6 +281,7 @@ const s = StyleSheet.create({
   content: { padding: cosmos.space.lg, paddingTop: cosmos.space.lg, paddingBottom: cosmos.chrome.door + cosmos.space.xl },
   empty: { gap: cosmos.space.md, alignItems: 'flex-start' },
   prose: { gap: cosmos.space.sm },
+  head: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', gap: cosmos.space.md },
   feed: { gap: cosmos.space.sm, paddingHorizontal: cosmos.space.md, paddingBottom: cosmos.space.md },
   end: { gap: cosmos.space.md, alignItems: 'flex-start', marginTop: cosmos.space.xxl },
 });
