@@ -181,11 +181,26 @@
 .mv .mv-pairs-row { display: grid; grid-template-columns: 88px minmax(0, 1fr) auto; gap: 12px; align-items: center; color: var(--ink-2); font-weight: 350; }
 .mv .mv-pair--wide { margin-top: 0; max-width: none; height: 4px; }
 .mv .mv-pairs-end { color: var(--ink); }
+/* The carved marks: ink on a ground. The ground is the kind's signature at 14 percent, which
+   is colour as ground and never as text; the mark itself stays ink. */
+.mv .mv-tile { background: var(--field); }
+.mv .mv-tile--ember { background: rgb(var(--rg-ember-rgb) / 0.14); }
+.mv .mv-tile--verdigris { background: rgb(var(--rg-verdigris-rgb) / 0.14); }
+.mv .mv-tile--periwinkle { background: rgb(var(--rg-periwinkle-rgb, 102 140 194) / 0.14); }
+.mv .mv-tile--iris { background: rgb(var(--rg-iris-rgb) / 0.14); }
+.mv .mv-tile--orchid { background: rgb(var(--rg-orchid-rgb) / 0.14); }
+.mv .mv-carved { width: 26px; height: 26px; display: block; }
+/* The page's stamp sits at the head, beside the title, the one place a mark is larger than a tile. */
+.mv .mv-hero { position: relative; }
+.mv .mv-stamp { position: absolute; top: -8px; right: 0; width: 88px; height: 88px; }
+@media (max-width: 767px) { .mv .mv-stamp { width: 56px; height: 56px; top: 0; } }
 /* The two drawings that carry a number: a share of the month under a kind of place, and
    this month to today's date against the same days of the others, on the month rows. */
 .mv .mv-share, .mv .mv-pair { display: block; height: 2px; margin-top: 8px; background: var(--rule); max-width: 320px; }
 .mv .mv-share > i, .mv .mv-pair > i { display: block; height: 100%; background: var(--ink); }
 .mv .mv-mark-small { display: inline-grid; place-items: center; width: 12px; height: 12px; margin-right: 6px; vertical-align: -1px; color: var(--ink); }
+/* Where it went: rows with a tile, the share bar under the text. */
+.mv .mv-where > li > .mv-item { grid-template-columns: 32px minmax(0, 1fr) auto; }
 /* A second grey line inside a section, above a second list. */
 .mv .mv-more { margin-top: 24px; }
 /* A small select in a row's end: the field, 32 tall, sized to its words. */
@@ -223,7 +238,7 @@
 .mv .mv-strip figcaption { margin: 0; }
 /* The dated rows under the band: day, name, amount; income marked with a plus and ok ink. */
 .mv .mv-ahead { margin-top: 8px; }
-.mv .mv-ahead .mv-item { grid-template-columns: 56px minmax(0, 1fr) auto; }
+.mv .mv-ahead .mv-item { grid-template-columns: 56px 32px minmax(0, 1fr) auto; }
 .mv .mv-ahead-day { color: var(--ink-3); font-weight: 350; }
 .mv .mv-ahead-in { color: var(--ok); }
 
@@ -265,3 +280,7 @@
 .mv-wait-track > i { display: block; width: 40%; height: 100%; background: var(--ink); animation: mv-wait-sweep 1.4s ease-in-out infinite; }
 @keyframes mv-wait-sweep { from { transform: translateX(-100%); } to { transform: translateX(250%); } }
 @media (prefers-reduced-motion: reduce) { .mv-wait-track > i { animation: none; width: 100%; opacity: 0.4; } }
+
+/* One warm accent for now: today's bar in the strip, and the keep's wall on the band. Last, so it wins. */
+.mv .mv-strip-day--today .mv-strip-bar { background: var(--rg-ember); }
+.mv .mv-band-mark { background: var(--rg-ember); }

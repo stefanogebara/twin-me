@@ -11,12 +11,14 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { useAuth } from '@/contexts/AuthContext';
-import { CalendarDays, ChevronRight, FileText, Landmark, Mail, Smartphone } from 'lucide-react';
+import { ChevronRight, FileText, Landmark, Mail, Smartphone } from 'lucide-react';
 import '../../styles/money-v2.css';
 import MoneyNav from './MoneyNav';
 import { MONEY_NAV, type MoneyView } from './navLinks';
 import { factRank, factTitle, factWord } from './factWords';
 import Mark from './Mark';
+import { KindTile, Stamp } from './Carved';
+import { markFor } from './carvedKinds';
 import { MARK_FOR, hasMark } from './markPaths';
 import { moneyAPI, euro, shortDay, bankLabel, BANKS, type MoneyAccount, type MoneyCalendar, type MoneyCategories, type MoneyDayStrip, type MoneyFact, type MoneyForecast, type MoneyQuestions, type MoneyToday, type MoneyMonth, type MoneyReading, type MoneyRecurring, type MoneySighting, type MoneyTransaction, type MoneyUsage } from '../../services/api/moneyAPI';
 
@@ -421,6 +423,7 @@ export default function MoneyV2Page({ view = 'today' }: { view?: MoneyView } = {
           {/* This month: one figure, one grey line, the band */}
           {view === 'today' ? (
           <section className="mv-hero" id="month">
+            <Stamp mark="cash" />
             <p className="mv-eyebrow">{monthLabel}</p>
             {!loaded ? (
               /* The first seconds of a new account are the month being read; an ellipsis
@@ -502,6 +505,7 @@ export default function MoneyV2Page({ view = 'today' }: { view?: MoneyView } = {
                     {stillToCome(forecast).map((r) => (
                       <li key={`${r.kind}-${r.on}-${r.name}`} className="mv-item mv-item--tight">
                         <span className="mv-ahead-day">{shortDay(r.on)}</span>
+                        <KindTile kind={r.kind === 'income' ? 'income' : r.kind === 'stated' ? 'commitment' : r.kind === 'diary' ? 'diary' : 'software'} label={r.name} />
                         <span className="mv-item-text"><span className="mv-item-title">{r.name}</span><span className="mv-item-sub">{r.why}</span></span>
                         <span className={`mv-item-end mv-figures${r.amount > 0 ? ' mv-ahead-in' : ''}`}>{r.amount > 0 ? '+' : ''}{euro(Math.abs(r.amount))}</span>
                       </li>
@@ -520,6 +524,7 @@ export default function MoneyV2Page({ view = 'today' }: { view?: MoneyView } = {
               this month to today's date against the same days of last month. */}
           {view === 'month' ? (
           <section className="mv-hero" id="month-title">
+            <Stamp mark="diary" />
             <p className="mv-eyebrow">Month</p>
             <h1>{`${monthLabel}, ${forecast ? euro(forecast.spent) : (months[0] ? euro(months[0].spent) : '\u2026')}${incomeEdge ? ` of ${euro(incomeEdge)}` : ''}.`}</h1>
             {incomeEdge ? <p className="mv-sub">{`${euro(incomeEdge)} is what you said comes in${today?.keep ? `, ${euro(today.keep)} of it to keep` : ''}.`}</p> : null}
@@ -541,6 +546,7 @@ export default function MoneyV2Page({ view = 'today' }: { view?: MoneyView } = {
           ) : null}
           {view === 'you' ? (
           <section className="mv-hero" id="you-title">
+            <Stamp mark="rent" />
             <p className="mv-eyebrow">You</p>
             <h1>{user?.firstName ? `${user.firstName}.` : 'You.'}</h1>
             <p className="mv-sub">What it knows in your words, and where it reads from.</p>
@@ -563,10 +569,11 @@ export default function MoneyV2Page({ view = 'today' }: { view?: MoneyView } = {
                   ? `${euro(categories.read)} of ${euro(categories.total)} placed so far.`
                   : 'Every payment this month is placed.'}
               </p>
-              <ol className="mv-list">
+              <ol className="mv-list mv-where">
                 {categories.groups.map((g) => (
                   <li key={g.category} className={g.known ? '' : 'is-unknown'}>
                     <div className="mv-item">
+                      <KindTile kind={g.known ? g.category : null} label={g.category} />
                       <span className="mv-item-text">
                         <span className="mv-item-title">{cap(g.category)}</span>
                         <span className="mv-item-sub">{g.share}%{g.merchants.length ? `, ${g.merchants.map((m) => m.name).slice(0, 3).join(', ')}` : ''}</span>
@@ -787,7 +794,8 @@ export default function MoneyV2Page({ view = 'today' }: { view?: MoneyView } = {
                 const isOpen = open === `fact:${f.id}`;
                 return (
                   <li key={f.id}>
-                    <button type="button" className="mv-item" aria-expanded={isOpen} onClick={() => setOpen(isOpen ? null : `fact:${f.id}`)}>
+                    <button type="button" className="mv-item mv-item--icon" aria-expanded={isOpen} onClick={() => setOpen(isOpen ? null : `fact:${f.id}`)}>
+                      <KindTile kind={f.kind === 'commitment' && f.value !== 'rent' ? 'cash' : f.kind} label={f.kind} />
                       <span className="mv-item-text">
                         <span className="mv-item-title">{factTitle(f)}</span>
                         <span className="mv-item-sub">{factWord(f)}</span>
@@ -876,7 +884,7 @@ export default function MoneyV2Page({ view = 'today' }: { view?: MoneyView } = {
               })}
               <li>
                 <div className="mv-item mv-item--icon">
-                  <span className="mv-icon" aria-hidden="true">{calendar?.google ? <Mark name="google_calendar" /> : <CalendarDays size={16} />}</span>
+                  <span className="mv-icon" aria-hidden="true">{calendar?.google ? <Mark name="google_calendar" /> : <img className="mv-carved" src={`/images/money/carved/${markFor('diary')}.png`} alt="" width={26} height={26} />}</span>
                   <span className="mv-item-text">
                     <span className="mv-item-title">Your calendar</span>
                     <span className="mv-item-sub">
