@@ -357,7 +357,8 @@ app.use(express.json({
         req.originalUrl.startsWith('/api/whatsapp-twin/webhook') ||
         req.originalUrl.startsWith('/api/telegram/webhook') ||
         req.originalUrl.startsWith('/api/money/inbox/resend') ||
-        req.originalUrl.startsWith('/api/nango-webhooks')) {
+        req.originalUrl.startsWith('/api/nango-webhooks') ||
+        req.originalUrl.startsWith('/api/webhooks/elevenlabs')) {
       req.rawBody = buf.toString('utf8');
     }
   },
@@ -477,6 +478,8 @@ import cronMemoryArchiveRoutes from './routes/cron-memory-archive.js';
 import cronMemoryForgettingRoutes from './routes/cron-memory-forgetting.js';
 import cronMoneyPullRoutes from './routes/cron-money-pull.js';
 import cronSoulSignatureRegenRoutes from './routes/cron-soul-signature-regen.js';
+import cronPresenceCallsRoutes from './routes/cron-presence-calls.js';
+import webhooksElevenlabsRoutes from './routes/webhooks-elevenlabs.js';
 import cronTwinSelfImprovementRoutes from './routes/cron-twin-self-improvement.js';
 import memoryHealthRoutes from './routes/memory-health.js';
 import memoriesRoutes from './routes/memories.js';
@@ -729,6 +732,8 @@ app.use('/api/cron/memory-archive', cronMemoryArchiveRoutes);    // Daily memory
 app.use('/api/cron/memory-forgetting', cronMemoryForgettingRoutes); // Weekly multi-tier quality maintenance
 app.use('/api/cron/money-pull', cronMoneyPullRoutes); // Three bank reads a day, leaving one of the four for the person
 app.use('/api/cron/soul-signature-regen', cronSoulSignatureRegenRoutes); // Daily auto-regen of stale soul signatures (audit D-H2)
+app.use('/api/cron/presence-calls', cronPresenceCallsRoutes); // Hourly: dial the Presence elders whose local hour it is
+app.use('/api/webhooks/elevenlabs', webhooksElevenlabsRoutes); // Presence: post-call transcript (signed) and inbound-call initiation
 app.use('/api/cron/twin-self-improvement', cronTwinSelfImprovementRoutes); // Daily pi-reflect — extract directives from user corrections
 app.use('/api/memories', memoriesRoutes); // Memory stream browser with filters
 app.use('/api/memory-health', memoryHealthRoutes); // Memory stream health dashboard

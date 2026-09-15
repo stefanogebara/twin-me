@@ -155,11 +155,12 @@ export async function createCall(row) {
   return supabaseAdmin.from('presence_calls').insert(row).select('id').single();
 }
 
-/** Patch the call ElevenLabs reported on, by its conversation id. */
+/** Patch the call ElevenLabs reported on, by its conversation id; returns its attempt and presence. */
 export async function updateCallByConversation(providerConversationId, patch) {
   return supabaseAdmin.from('presence_calls')
     .update({ ...patch, updated_at: new Date().toISOString() })
-    .eq('provider_conversation_id', providerConversationId);
+    .eq('provider_conversation_id', providerConversationId)
+    .select('attempt, presence_id');
 }
 
 /** A conversation already stored for this ElevenLabs id (the webhook and /complete both try). */

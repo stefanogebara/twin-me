@@ -375,6 +375,7 @@ describe('presenceStore', () => {
       expect(calls[0].ops).toEqual([
         ['update', { status: 'no_answer', failure_reason: 'no-answer', updated_at: expect.any(String) }],
         ['eq', 'provider_conversation_id', 'conv-1'],
+        ['select', 'attempt, presence_id'],
       ]);
     });
 
