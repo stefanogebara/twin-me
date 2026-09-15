@@ -25,6 +25,7 @@ import {
 } from '../services/moneyApi';
 import { Body, Counting, Display, Enter, Hairline, Micro, Page, Pill, Row, Section, Small, Title } from '../ui/primitives';
 import { Band, Strip } from '../ui/figures';
+import { KindTile, Stamp } from '../ui/carved';
 
 const CADENCE: Record<string, string> = {
   weekly: 'every week',
@@ -241,9 +242,9 @@ export default function MonthScreen({ onOpenQuestions, questionCount, onOpenLedg
           />
         }
       >
-        {/* Hero. No hairline above: it is the top of the page. */}
+        {/* Hero. No hairline above: it is the top of the page. The stamp sits at the head. */}
         <Enter index={0}>
-          <Micro>{label}</Micro>
+          <View style={layout.head}><Micro>{label}</Micro><Stamp mark="cash" /></View>
           {unreachable ? (
             <>
               <Display style={layout.after}>Nothing to read.</Display>
@@ -377,6 +378,7 @@ export default function MonthScreen({ onOpenQuestions, questionCount, onOpenLedg
                   {categories.groups.map((g, i) => (
                     <Enter key={g.category} index={i}>
                       <Row
+                        glyph={g.known ? <KindTile kind={g.category} /> : undefined}
                         label={g.category}
                         trail={euro(g.spent)}
                         quiet={!g.known}
@@ -460,6 +462,7 @@ const layout = StyleSheet.create({
   afterLarge: { marginTop: cosmos.space.lg },
   block: { gap: 0, paddingTop: cosmos.space.sm },
   today: { marginTop: cosmos.space.lg },
+  head: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
   pair: { marginTop: cosmos.space.md, gap: cosmos.space.sm },
   pairRow: { flexDirection: 'row', alignItems: 'center', gap: cosmos.space.sm },
   pairLabel: { width: 80 },
