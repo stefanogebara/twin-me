@@ -26,11 +26,10 @@ import {
   getElderHome,
   createConversation,
   markQueuedNotesDelivered,
-  saveConversationSummary,
-  addFacts,
   recordElderAssent,
 } from '../services/presenceStore.js';
 import { compileCallBrief } from '../services/presenceCallBrief.js';
+import { summarizeConversation } from '../services/presenceSummarizer.js';
 import { voiceService } from '../services/voiceService.js';
 import { createLogger } from '../services/logger.js';
 
@@ -248,105 +247,5 @@ router.post('/:token/complete', async (req, res) => {
     res.status(500).json({ success: false, error: 'Failed to save the conversation' });
   }
 });
-
-/**
- * Family digest: a short summary + the items that need a person.
- * Routed through llmGateway per repo policy (cheap analysis tier).
- */
-async function summarizeConversation(conversationId, presence, transcript) {
-  if (transcript.length === 0) {
-    const { error } = await saveConversationSummary(
-      conversationId,
-      { status: 'summarized', summary: 'A ligação foi aberta, mas nenhuma conversa foi registrada.' },
-    );
-    if (error) log.error('Conversation summary not saved', { conversationId, error: error.message });
-    return;
-  }
-
-  const { complete, TIER_ANALYSIS } = await import('../services/llmGateway.js');
-  const caredFor = presence.cared_for_name?.trim() || 'She';
-
-  const text = transcript
-    .map((t) => `${t.role === 'user' ? caredFor : 'AI presence'}: ${t.content}`)
-    .join('\n')
-    .slice(0, 24000);
-
-  const completion = await complete({
-    tier: TIER_ANALYSIS,
-    serviceName: 'presence-call-summary',
-    userId: presence.owner_user_id,
-    system: `You process a voice conversation between an older adult and her family's AI presence. The family is Brazilian: everything they read must be em português do Brasil. Reply with STRICT JSON only: {"summary": "2-3 warm, specific sentences em português do Brasil about how she was and what she shared", "her_recap": "ONE short warm sentence addressed to HER, in the same language she spoke, naming what you talked about — e.g. "Falamos do seu passeio e do kebab em Madri." Never mention worries, health, or anything you are reporting to her family.", "needs_family": ["each item that needs a real person, em português do Brasil; empty array if none"], "urgency": "high if she mentioned pain, a fall, being unwell, confusion, or asked for help; otherwise normal", "learned_facts": [{"question": "short topic label, em português do Brasil", "answer": "one specific autobiographical fact SHE stated about her own life, em português do Brasil, worth remembering for future conversations"}], "unknown_people": ["names of people she mentioned whose relationship to her is unclear from the conversation"]}.
-
-needs_family must include, in plain family-facing language:
-- any request, question or practical need she raised;
-- any health mention, pain, worry or confusion;
-- emotional withdrawal: if she went quiet, gave one-word answers, or ended the conversation shortly after a specific topic, say so and name the topic. A family wants to know this more than anything else in the call. Report it even when nothing was explicitly asked of them.
-
-Every needs_family entry is a plain sentence a family member reads on their phone. Never prefix a category label; never use capitals for emphasis. Write "Ela ficou quieta depois que a Presença falou da comida da mãe dela, e não falou mais." — not "RETRAIMENTO EMOCIONAL: ..."
-
-Max 6 learned_facts, max 3 unknown_people. Never invent content not in the transcript.`,
-    messages: [{ role: 'user', content: text }],
-    maxTokens: 400,
-    temperature: 0.3,
-  });
-
-  let summary = '';
-  let herRecap = '';
-  let needsFamily = [];
-  let urgency = 'normal';
-  let learnedFacts = [];
-  let unknownPeople = [];
-  try {
-    const content = completion?.content || '';
-    const parsed = JSON.parse(content.slice(content.indexOf('{'), content.lastIndexOf('}') + 1));
-    summary = String(parsed.summary || '').slice(0, 2000);
-    herRecap = String(parsed.her_recap || '').slice(0, 400);
-    needsFamily = Array.isArray(parsed.needs_family) ? parsed.needs_family.map((s) => String(s).slice(0, 500)).slice(0, 10) : [];
-    urgency = parsed.urgency === 'high' ? 'high' : 'normal';
-    learnedFacts = Array.isArray(parsed.learned_facts) ? parsed.learned_facts.slice(0, 6) : [];
-    unknownPeople = Array.isArray(parsed.unknown_people) ? parsed.unknown_people.map((s) => String(s).slice(0, 80)).slice(0, 3) : [];
-  } catch {
-    summary = 'Conversa guardada. O resumo não saiu desta vez.';
-  }
-
-  const { error: summaryError } = await saveConversationSummary(
-    conversationId,
-    { summary, her_recap: herRecap, needs_family: needsFamily, urgency, status: 'summarized' },
-  );
-  // Logged, not thrown: what she said about her own life is still worth keeping below.
-  if (summaryError) log.error('Conversation summary not saved', { conversationId, error: summaryError.message });
-
-  // Learning loop (context architecture §3): what she said about her own life enters
-  // the biography store as PROVISIONAL (30-day TTL, write gate) so the next call brief
-  // remembers it; people we can't place become ASK items for the family.
-  const thirtyDays = new Date(Date.now() + 30 * 24 * 3600 * 1000).toISOString();
-  const factRows = learnedFacts
-    .filter((f) => f && typeof f.answer === 'string' && f.answer.trim())
-    .map((f) => ({
-      presence_id: presence.id,
-      kind: 'biography',
-      question: String(f.question || 'Da conversa').slice(0, 1000),
-      answer: String(f.answer).slice(0, 4000),
-      source: 'elder_conversation',
-      confidence: 'provisional',
-      expires_at: thirtyDays,
-    }))
-    .concat(unknownPeople.map((name) => ({
-      presence_id: presence.id,
-      kind: 'biography',
-      // Parsed back by presence.js (/asks) and by PresenceHome: keep the `Quem é "<name>"?` shape.
-      question: `Quem é "${name}"? Ela falou dessa pessoa na conversa.`,
-      answer: 'Esperando a família: foi mencionada, mas não está no mapa da família.',
-      source: 'elder_conversation',
-      confidence: 'ask',
-      expires_at: thirtyDays,
-    })));
-  if (factRows.length > 0) {
-    const { error: factError } = await addFacts(factRows);
-    if (factError) log.error('Learned-fact insert failed', { error: factError.message });
-  }
-
-  log.info('Conversation summarized', { conversationId, needsFamily: needsFamily.length, learned: factRows.length });
-}
 
 export default router;

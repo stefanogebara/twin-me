@@ -31,7 +31,7 @@ const log = createLogger('PresenceCallBrief');
  *   voiceId: string|null, queuedNoteIds: string[]
  * }>}
  */
-export async function compileCallBrief(presence) {
+export async function compileCallBrief(presence, { firstCall = false } = {}) {
   const { people: peopleRes, facts: factsRes, notes: notesRes, voice: voiceRes, conversations: convRes } =
     await getCallBriefSources(presence.id);
 
@@ -50,7 +50,7 @@ export async function compileCallBrief(presence) {
   const voice = voiceRes.data;
   const recentConversations = convRes.data || [];
 
-  const { prompt, firstMessage } = renderCallBrief({ presence, people, facts, notes, recentConversations });
+  const { prompt, firstMessage } = renderCallBrief({ presence, people, facts, notes, recentConversations, firstCall });
 
   log.info('Call brief compiled', {
     presenceId: presence.id,

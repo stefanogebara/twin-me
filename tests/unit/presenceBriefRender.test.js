@@ -57,6 +57,22 @@ describe('renderCallBrief', () => {
     expect(prompt).toMatch(/<<<\n- She raised four children\.\n- Every summer in Ubatuba\.\n>>>/);
   });
 
+  it('on the first call, introduces itself, asks for her yes, and uses no notes or memories', () => {
+    const { prompt, firstMessage } = renderCallBrief({
+      presence,
+      firstCall: true,
+      notes: [{ id: 'n1', body: 'Diga que a Ana visita domingo.' }],
+      recentConversations: [{ summary: 'She talked about the beach.' }],
+    });
+    expect(prompt).toMatch(/THIS IS YOUR FIRST CALL WITH HER/);
+    expect(prompt).toMatch(/Posso conversar com você de vez em quando\?/);
+    expect(prompt).toMatch(/wait for a clear yes/i);
+    expect(prompt).toMatch(/what she likes to be called/i);
+    expect(prompt).not.toMatch(/NOTES FROM THE FAMILY/);
+    expect(prompt).not.toMatch(/WHAT YOU REMEMBER FROM RECENT CONVERSATIONS/);
+    expect(firstMessage).toMatch(/uma inteligência artificial que Ana criou/);
+  });
+
   it('delivers family notes as coming from their author, never as its own words', () => {
     const { prompt } = renderCallBrief({ presence, notes: [{ id: 'n1', body: 'Diga que a Ana visita domingo.' }] });
     expect(prompt).toMatch(/NOTES FROM THE FAMILY/);
