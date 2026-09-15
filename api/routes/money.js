@@ -810,6 +810,14 @@ bankCallback.get('/bank/callback', async (req, res) => {
   }
   try {
     const session = await createSession(code);
+    log.info('bank session created', { bank: session.bankName, accounts: session.accounts.length });
+    if (!session.accounts.length) {
+      /* The bank said yes and listed nothing: a Revolut with no account under the chosen
+         kind, or a consent that selected none. Said "connected" here, the page had nothing
+         to read and no row to show, which is what a Revolut looked like on 2026-09-15. */
+      await recordCallbackFailure(userId, `no accounts: ${session.bankName || 'bank'}`).catch(() => {});
+      return res.redirect(302, `/money?bank=failed&why=${encodeURIComponent('no accounts were shared')}`);
+    }
     await saveBankAccounts(userId, session);
     /* Back to the page the connection was started from, which is the Money surface, with
        the bank's name so the page can say which one is connected. */
