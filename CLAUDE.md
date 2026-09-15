@@ -465,8 +465,9 @@ a value to copy. **Never a serif**: `--n-serif` and `font-heading` resolve to Ge
 - Content column 820px; a 200px sidebar of plain text links 80px to its left,
   the current link underlined, nothing filled. Phone (≤ 767px): 24px gutters,
   navigation behind a menu button, every other size unchanged.
-- Sections 72px apart (56 on a phone). A section is a heading, one grey line 4px
-  under it, then a list under a **1px ink rule** 24px further down.
+- Sections 128px apart (96 on a phone; raised from 72/56 on 2026-09-15). A section
+  is a heading, one grey line 4px under it, then a list under a **1px ink rule**
+  32px further down.
 - **No cards, panels, glass, gradients or shadows on app screens.** A row is
   `[32px icon] [title + one grey line] [one action]`, min-height 80, padding
   20/12, a hairline under it; the action is a chevron, a 32px button or a "…"

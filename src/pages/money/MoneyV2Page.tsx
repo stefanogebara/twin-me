@@ -15,6 +15,7 @@ import { useLocale, useT } from '@/lib/i18n';
 import { ChevronRight, FileText, Landmark, Mail, Smartphone } from 'lucide-react';
 import '../../styles/money-v2.css';
 import MoneyNav from './MoneyNav';
+import Wait from '../../components/Wait';
 import { MONEY_NAV, type MoneyView } from './navLinks';
 import { factRank, factTitle, factWord } from './factWords';
 import Mark from './Mark';
@@ -487,7 +488,7 @@ export default function MoneyV2Page({ view = 'today' }: { view?: MoneyView } = {
             {!loaded ? (
               /* The first seconds of a new account are the month being read; an ellipsis
                  where the number goes read as a broken figure to a stranger. */
-              <h1>{t('Reading your month.')}</h1>
+              <Wait inline state="searching" line="Reading your month." />
             ) : empty ? (
               <>
                 <h1>{t('Nothing read yet.')}</h1>

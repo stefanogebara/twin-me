@@ -15,6 +15,7 @@ import { useT } from '@/lib/i18n';
 import '../../styles/money-v2.css';
 import '../../styles/money-setup.css';
 import MoneyNav, { type MoneyNavLink } from './MoneyNav';
+import Wait from '../../components/Wait';
 import { MONEY_NAV } from './navLinks';
 import { cap, factTitle, factWord } from './factWords';
 import { moneyAPI, euro, shortDay, type MoneyFact, type MoneyQuestion } from '../../services/api/moneyAPI';
@@ -195,7 +196,7 @@ export default function MoneySetupPage() {
         <div className="mv-col">
           <section className="ms-stage">
             {!loaded ? (
-              <p className="mv-quiet">{t('Reading your payments\u2026')}</p>
+              <Wait inline state="searching" line="Reading your payments." />
             ) : failed ? (
               <div className="ms-stage-inner">
                 <h1>{t('The questions did not load.')}</h1>
