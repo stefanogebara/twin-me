@@ -24,7 +24,7 @@ import net from 'node:net';
 import { createLogger } from '../logger.js';
 import { createCalendarClient } from '../calendar/client.js';
 import { getValidAccessToken } from '../tokenRefreshService.js';
-import { listTransactions, listFacts } from './store.js';
+import { listTransactions, listFacts, categoriesFor } from './store.js';
 
 const log = createLogger('MoneyCalendar');
 
@@ -584,11 +584,10 @@ export async function eventsFor(userId, fromISO, toISO, { accessToken = null, fe
   return google.concat(fromFeeds).sort((a, b) => ms(a.start) - ms(b.start));
 }
 
-async function categoryLookup(transactions) {
+async function categoryLookup(userId, transactions) {
   const keys = [...new Set((transactions || []).map((t) => t.merchant_key).filter(Boolean))];
   if (!keys.length) return () => null;
-  const { data } = await supabaseAdmin.from('money_places').select('merchant_key, category, category_override').in('merchant_key', keys);
-  const map = new Map((data || []).map((p) => [p.merchant_key, p.category_override || p.category || null]));
+  const map = await categoriesFor(userId, keys);
   return (t) => map.get(t.merchant_key) || null;
 }
 
@@ -619,7 +618,7 @@ export async function learnEventSpend(userId, { now = new Date(), events = null 
   const to = new Date(now.getTime() + SNAPSHOT_DAYS * DAY_MS).toISOString();
   const evs = events || (await eventsFor(userId, from, to));
   const transactions = await listTransactions(userId, { since: from, limit: 5000 });
-  const categoryOf = await categoryLookup(transactions);
+  const categoryOf = await categoryLookup(userId, transactions);
   const learned = learnShapes(evs, transactions, { categoryOf, now });
   const byKey = new Map(learned.map((s) => [s.key, s]));
   const snapshot = evs

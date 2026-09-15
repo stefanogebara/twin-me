@@ -347,7 +347,7 @@ describe('act', () => {
     expect(store.setVerdict).toHaveBeenCalledWith('u1', 't1', 'not_me');
     expect(r.said).toBe('El Corte Ingles, 116,76 € on 7 Sep, is marked as not yours and leaves the month.');
     await act('u1', { kind: 'recategorise', merchant_key: 'oakberry acai', category: 'coffee' }, { now: NOW });
-    expect(store.setPlaceCategory).toHaveBeenCalledWith('oakberry acai', 'coffee');
+    expect(store.setPlaceCategory).toHaveBeenCalledWith('u1', 'oakberry acai', 'coffee');
     await act('u1', { kind: 'answer', question_id: 'home_area', value: 'Chamberi' }, { now: NOW });
     expect(store.answerQuestion).toHaveBeenCalledWith('u1', expect.objectContaining({ questionId: 'home_area', kind: 'home_area', value: 'Chamberi' }));
   });
