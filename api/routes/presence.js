@@ -60,6 +60,7 @@ import {
   recordVoiceStatus,
   recordVoiceSample,
   recordVoiceRevoked,
+  deletePresence,
 } from '../services/presenceStore.js';
 import { createLogger } from '../services/logger.js';
 import { deriveReadiness } from '../services/presenceReadiness.js';
@@ -716,6 +717,32 @@ router.post('/:id/voice-revoke', authenticateUser, async (req, res) => {
   } catch (err) {
     log.error('POST voice-revoke failed', { error: err.message });
     res.status(500).json({ success: false, error: 'Failed to revoke the voice' });
+  }
+});
+
+// ====================================================================
+// DELETE /:id — the Presence is gone, as the onboarding promised
+// ====================================================================
+// Soft: the row is marked deleted and her link dropped, so every read excludes it
+// and her page answers "link not found". The cloned voice is deleted first; if that
+// fails it is logged and the id stays on the voice row for a later delete. Hard
+// deletion of transcripts and facts comes with export (Phase 3).
+router.delete('/:id', authenticateUser, async (req, res) => {
+  try {
+    const owned = await loadOwned(req, res);
+    if (!owned) return;
+
+    const { data: voice, error: voiceError } = await getClonedVoiceId(owned.id);
+    if (voiceError) throw voiceError;
+    if (voice?.elevenlabs_voice_id) await deleteClonedVoice(owned.id, voice.elevenlabs_voice_id);
+
+    const { error } = await deletePresence(owned.id);
+    if (error) throw error;
+
+    res.json({ success: true, deleted: true });
+  } catch (err) {
+    log.error('DELETE /:id failed', { error: err.message });
+    res.status(500).json({ success: false, error: 'Failed to delete the presence' });
   }
 });
 

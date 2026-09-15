@@ -32,7 +32,7 @@ const { store, log, voiceService, llm } = vi.hoisted(() => {
     'supersedeFamilyIntroduction', 'findOpenAsk', 'dismissFact', 'supersedeFact', 'queueNote',
     'getConversationTranscript', 'recordConsent', 'appendConsent', 'getLatestVoiceConsent',
     'getLatestVoiceConsentKind', 'getVoiceState', 'getClonedVoiceId', 'recordVoiceStatus',
-    'recordVoiceSample', 'recordVoiceRevoked',
+    'recordVoiceSample', 'recordVoiceRevoked', 'deletePresence',
   ];
   return {
     store: Object.fromEntries(names.map((name) => [name, vi.fn()])),
@@ -390,6 +390,39 @@ describe('POST /:id/voice-samples', () => {
     expect(res.status).toBe(503);
     expect(store.recordVoiceSample).not.toHaveBeenCalled();
     expect(voiceService.cloneVoice).not.toHaveBeenCalled();
+  });
+});
+
+describe('DELETE /:id — the Presence is gone, as the onboarding promised', () => {
+  it('deletes the cloned voice, then marks the presence deleted', async () => {
+    store.getClonedVoiceId.mockResolvedValue(ok({ elevenlabs_voice_id: 'voice-1' }));
+
+    const res = await api('delete', `/${PRESENCE_ID}`);
+
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({ success: true, deleted: true });
+    expect(voiceService.deleteVoice).toHaveBeenCalledWith('voice-1');
+    expect(store.deletePresence).toHaveBeenCalledWith(PRESENCE_ID);
+    expect(voiceService.deleteVoice.mock.invocationCallOrder[0]).toBeLessThan(store.deletePresence.mock.invocationCallOrder[0]);
+  });
+
+  it('still deletes the presence, and logs, when the voice cannot be deleted', async () => {
+    store.getClonedVoiceId.mockResolvedValue(ok({ elevenlabs_voice_id: 'voice-1' }));
+    voiceService.deleteVoice.mockResolvedValue({ success: false, error: 'timeout' });
+
+    const res = await api('delete', `/${PRESENCE_ID}`);
+
+    expect(res.status).toBe(200);
+    expect(store.deletePresence).toHaveBeenCalledWith(PRESENCE_ID);
+    expect(log.error).toHaveBeenCalledWith(expect.any(String), expect.objectContaining({ presenceId: PRESENCE_ID, error: 'timeout' }));
+  });
+
+  it('answers 500 and keeps the presence when the deletion is not saved', async () => {
+    store.deletePresence.mockResolvedValue(fail('connection reset'));
+
+    const res = await api('delete', `/${PRESENCE_ID}`);
+
+    expect(res.status).toBe(500);
   });
 });
 
