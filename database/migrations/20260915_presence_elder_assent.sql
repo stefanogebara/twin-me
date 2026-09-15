@@ -1,10 +1,8 @@
 -- Presence: her assent, the provider's conversation id, and urgency
 -- =================================================================
 -- Used by api/routes/presence-call.js on presence/ship (plan
--- 2026-09-15-presence-forward, Phase 0 task 9). NOT applied anywhere yet.
--- Apply it by hand (SQL editor or Supabase MCP apply_migration) before
--- deploying that branch; until then POST /api/presence-call/:token/complete
--- and /assent answer 500.
+-- 2026-09-15-presence-forward, Phase 0 task 9). Applied to production on
+-- 2026-09-15 through the Supabase MCP (migration name presence_elder_assent).
 --
 -- elder_assent_at / elder_assent_version
 --   The elder is the data subject of every transcript and has no user row, so

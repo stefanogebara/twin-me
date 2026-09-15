@@ -7,8 +7,10 @@
  * to a code review. This script reads the agent and shows the values that
  * matter for an older, slower speaker; with --apply it sets them:
  *
- *   max call length            2400 s   (default 600 cuts every call at ten minutes)
- *   turn timeout               8 s      (how long it waits in silence before speaking; default 7)
+ *   max call length            2400 s   (default 600 cuts every call at ten minutes; it was 600)
+ *   turn timeout               20 s     (how long it waits in her silence before speaking; set to
+ *                                       20 after the real call of 2026-09-01, when the agent
+ *                                       prompted her twice in twenty seconds; kept)
  *   turn eagerness             patient  (does not jump into her pauses)
  *   language                   pt-br    (ASR and TTS in Brazilian Portuguese)
  *   client overrides           prompt, first message, language, voice id
@@ -28,7 +30,7 @@ import { resolve } from 'node:path';
 
 const WANTED = {
   maxDurationSeconds: 2400,
-  turnTimeout: 8,
+  turnTimeout: 20,
   turnEagerness: 'patient',
   language: 'pt-br',
   enableAuth: true,

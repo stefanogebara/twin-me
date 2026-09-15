@@ -465,11 +465,13 @@ summary, the readiness mirror and the extraction; errors surfaced on every page
 action; PostHog events. Moved to Phase 1: per-call tokens with expiry (the
 link is still a long-lived bearer, gated on `active`) and the post-call
 webhook (while ElevenLabs is still processing a call, the browser's transcript
-is kept and logged). Needs before the pilot: apply
-`20260915_presence_elder_assent.sql`; run the agent script with `--apply`;
-set `ELEVENLABS_API_KEY`, `ELEVENLABS_PRESENCE_AGENT_ID` and, for summaries and
-the voice note, `OPENROUTER_API_KEY`. Frontend verified by tsc, eslint and the
-build; not exercised in a browser against a live backend.
+is kept and logged). Done on 2026-09-15 as well: `20260915_presence_elder_assent.sql` applied to
+production (Supabase MCP); the agent script run with `--apply` (the agent had
+a 600 s call cap, `pt`, eager-normal turns and no signed sessions; its 20 s
+turn timeout, set after the real call, was kept); `ELEVENLABS_PRESENCE_AGENT_ID`
+added to Vercel production and preview (`ELEVENLABS_API_KEY` and
+`OPENROUTER_API_KEY` were already there). PR #374, draft. Frontend verified by
+tsc, eslint and the build; not exercised in a browser against a live backend.
 
 Phase 1, two weeks: `presence_calls` schedule and orchestrator; Twilio outbound
 through ElevenLabs; inbound number; first-call-together script with recorded
