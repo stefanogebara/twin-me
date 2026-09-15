@@ -336,6 +336,30 @@ describe('presenceStore', () => {
     });
   });
 
+  describe('recordElderAssent', () => {
+    it('stamps her assent and the version of the text she heard on the presence', async () => {
+      await store.recordElderAssent(PRESENCE_ID, 'elder-assent-v1');
+
+      expect(calls[0].table).toBe('presences');
+      expect(calls[0].ops).toEqual([
+        ['update', { elder_assent_at: expect.any(String), elder_assent_version: 'elder-assent-v1', updated_at: expect.any(String) }],
+        ['eq', 'id', PRESENCE_ID],
+      ]);
+    });
+  });
+
+  describe('deletePresence', () => {
+    it('marks the presence deleted and drops her call link', async () => {
+      await store.deletePresence(PRESENCE_ID);
+
+      expect(calls[0].table).toBe('presences');
+      expect(calls[0].ops).toEqual([
+        ['update', { status: 'deleted', call_token: null, updated_at: expect.any(String) }],
+        ['eq', 'id', PRESENCE_ID],
+      ]);
+    });
+  });
+
   describe('listActiveFacts', () => {
     it('reads kind, question and answer of the active facts', async () => {
       await store.listActiveFacts(PRESENCE_ID);

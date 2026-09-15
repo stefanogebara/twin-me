@@ -26,6 +26,7 @@ import {
   markQueuedNotesDelivered,
   saveConversationSummary,
   addFacts,
+  recordElderAssent,
 } from '../services/presenceStore.js';
 import { compileCallBrief } from '../services/presenceCallBrief.js';
 import { voiceService } from '../services/voiceService.js';
@@ -38,6 +39,9 @@ const TOKEN_RE = /^[A-Za-z0-9_-]{20,64}$/;
 const CONVERSATION_ID_RE = /^[A-Za-z0-9_-]{6,80}$/;
 // ElevenLabs' language code for Brazilian Portuguese (ASR and TTS).
 const CALL_LANGUAGE = 'pt-br';
+// The text she hears before her first call (PresenceCallPage assent screen). Bump
+// when the wording changes so the version she agreed to is on record.
+const ELDER_ASSENT_VERSION = 'elder-assent-v1';
 const MAX_TRANSCRIPT_TURNS = 400;
 const MAX_TURN_CHARS = 4000;
 // A call counts as having happened (so a queued note counts as read to her) only
@@ -105,11 +109,30 @@ router.get('/:token', async (req, res) => {
         first_message: brief.firstMessage,
         voice_id: brief.voiceId, // null until the cloned voice is ready
         language: CALL_LANGUAGE,
+        assent_required: !presence.elder_assent_at,
       },
     });
   } catch (err) {
     log.error('GET call config failed', { error: err.message });
     res.status(500).json({ success: false, error: 'Failed to prepare the call' });
+  }
+});
+
+// ====================================================================
+// POST /:token/assent — her "Sim, pode", before the first call
+// ====================================================================
+router.post('/:token/assent', async (req, res) => {
+  try {
+    const presence = await loadByToken(req, res);
+    if (!presence) return;
+
+    const { error } = await recordElderAssent(presence.id, ELDER_ASSENT_VERSION);
+    if (error) throw error;
+
+    res.json({ success: true, assent_version: ELDER_ASSENT_VERSION });
+  } catch (err) {
+    log.error('POST assent failed', { error: err.message });
+    res.status(500).json({ success: false, error: 'Failed to record' });
   }
 });
 
@@ -250,7 +273,7 @@ async function summarizeConversation(conversationId, presence, transcript) {
     tier: TIER_ANALYSIS,
     serviceName: 'presence-call-summary',
     userId: presence.owner_user_id,
-    system: `You process a voice conversation between an older adult and her family's AI presence. Reply with STRICT JSON only: {"summary": "2-3 warm, specific sentences in English about how she was and what she shared", "her_recap": "ONE short warm sentence addressed to HER, in the same language she spoke, naming what you talked about — e.g. "Falamos do seu passeio e do kebab em Madri." Never mention worries, health, or anything you are reporting to her family.", "needs_family": ["each item that needs a real person; empty array if none"], "learned_facts": [{"question": "short topic label", "answer": "one specific autobiographical fact SHE stated about her own life, worth remembering for future conversations"}], "unknown_people": ["names of people she mentioned whose relationship to her is unclear from the conversation"]}.
+    system: `You process a voice conversation between an older adult and her family's AI presence. Reply with STRICT JSON only: {"summary": "2-3 warm, specific sentences in English about how she was and what she shared", "her_recap": "ONE short warm sentence addressed to HER, in the same language she spoke, naming what you talked about — e.g. "Falamos do seu passeio e do kebab em Madri." Never mention worries, health, or anything you are reporting to her family.", "needs_family": ["each item that needs a real person; empty array if none"], "urgency": "high if she mentioned pain, a fall, being unwell, confusion, or asked for help; otherwise normal", "learned_facts": [{"question": "short topic label", "answer": "one specific autobiographical fact SHE stated about her own life, worth remembering for future conversations"}], "unknown_people": ["names of people she mentioned whose relationship to her is unclear from the conversation"]}.
 
 needs_family must include, in plain family-facing language:
 - any request, question or practical need she raised;
@@ -268,6 +291,7 @@ Max 6 learned_facts, max 3 unknown_people. Never invent content not in the trans
   let summary = '';
   let herRecap = '';
   let needsFamily = [];
+  let urgency = 'normal';
   let learnedFacts = [];
   let unknownPeople = [];
   try {
@@ -276,6 +300,7 @@ Max 6 learned_facts, max 3 unknown_people. Never invent content not in the trans
     summary = String(parsed.summary || '').slice(0, 2000);
     herRecap = String(parsed.her_recap || '').slice(0, 400);
     needsFamily = Array.isArray(parsed.needs_family) ? parsed.needs_family.map((s) => String(s).slice(0, 500)).slice(0, 10) : [];
+    urgency = parsed.urgency === 'high' ? 'high' : 'normal';
     learnedFacts = Array.isArray(parsed.learned_facts) ? parsed.learned_facts.slice(0, 6) : [];
     unknownPeople = Array.isArray(parsed.unknown_people) ? parsed.unknown_people.map((s) => String(s).slice(0, 80)).slice(0, 3) : [];
   } catch {
@@ -284,7 +309,7 @@ Max 6 learned_facts, max 3 unknown_people. Never invent content not in the trans
 
   const { error: summaryError } = await saveConversationSummary(
     conversationId,
-    { summary, her_recap: herRecap, needs_family: needsFamily, status: 'summarized' },
+    { summary, her_recap: herRecap, needs_family: needsFamily, urgency, status: 'summarized' },
   );
   // Logged, not thrown: what she said about her own life is still worth keeping below.
   if (summaryError) log.error('Conversation summary not saved', { conversationId, error: summaryError.message });

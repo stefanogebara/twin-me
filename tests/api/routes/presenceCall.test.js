@@ -22,6 +22,7 @@ const { store, log, llm, brief, voiceService } = vi.hoisted(() => ({
     markQueuedNotesDelivered: vi.fn(),
     saveConversationSummary: vi.fn(),
     addFacts: vi.fn(),
+    recordElderAssent: vi.fn(),
   },
   log: { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() },
   llm: { complete: vi.fn() },
@@ -276,6 +277,63 @@ describe('POST /:token/complete', () => {
     expect(res.status).toBe(201);
     expect(res.body).toEqual({ success: true, conversation_id: 'conv-1' });
     expect(log.error).toHaveBeenCalledWith(expect.any(String), loggedError('timeout'));
+  });
+});
+
+describe('her assent', () => {
+  beforeEach(() => {
+    process.env.ELEVENLABS_PRESENCE_AGENT_ID = 'agent-1';
+  });
+  afterEach(() => {
+    delete process.env.ELEVENLABS_PRESENCE_AGENT_ID;
+  });
+
+  it('asks for her assent before the first call and not after', async () => {
+    const before = await request(createApp()).get(`/api/presence-call/${TOKEN}`);
+    expect(before.body.call.assent_required).toBe(true);
+
+    store.findPresenceByCallToken.mockResolvedValue(ok({ ...PRESENCE, elder_assent_at: '2026-09-15T10:00:00Z', elder_assent_version: 'elder-assent-v1' }));
+    const after = await request(createApp()).get(`/api/presence-call/${TOKEN}`);
+    expect(after.body.call.assent_required).toBe(false);
+  });
+
+  it('records her yes with the version of the text she heard', async () => {
+    const res = await request(createApp()).post(`/api/presence-call/${TOKEN}/assent`).send({});
+
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({ success: true, assent_version: 'elder-assent-v1' });
+    expect(store.recordElderAssent).toHaveBeenCalledWith(PRESENCE.id, 'elder-assent-v1');
+  });
+
+  it('answers 500 when her yes cannot be saved', async () => {
+    store.recordElderAssent.mockResolvedValue(fail('connection reset'));
+
+    const res = await request(createApp()).post(`/api/presence-call/${TOKEN}/assent`).send({});
+
+    expect(res.status).toBe(500);
+  });
+});
+
+describe('urgency', () => {
+  const call = () => complete({
+    transcript: [{ role: 'assistant', content: 'Oi' }, { role: 'user', content: 'Caí no banheiro hoje.' }],
+    duration_seconds: 90,
+  });
+
+  it('stores a high urgency when the summary reports one', async () => {
+    llm.complete.mockResolvedValue({ content: JSON.stringify({ summary: 'Ela caiu no banheiro.', her_recap: 'Falamos do seu dia.', needs_family: ['Ela caiu no banheiro hoje de manhã.'], urgency: 'high', learned_facts: [], unknown_people: [] }) });
+
+    const res = await call();
+
+    expect(res.status).toBe(201);
+    await vi.waitFor(() => expect(store.saveConversationSummary).toHaveBeenCalledWith('conv-1', expect.objectContaining({ urgency: 'high' })));
+  });
+
+  it('stores a normal urgency when the summary reports none', async () => {
+    const res = await call();
+
+    expect(res.status).toBe(201);
+    await vi.waitFor(() => expect(store.saveConversationSummary).toHaveBeenCalledWith('conv-1', expect.objectContaining({ urgency: 'normal' })));
   });
 });
 

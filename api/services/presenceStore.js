@@ -84,6 +84,23 @@ export async function setCallToken(presenceId, token) {
     .eq('id', presenceId);
 }
 
+/**
+ * Record her assent to the calls: the moment and the version of the text she
+ * heard. She has no user row, so this lives on the presence, not in consents.
+ */
+export async function recordElderAssent(presenceId, version) {
+  return supabaseAdmin.from('presences')
+    .update({ elder_assent_at: new Date().toISOString(), elder_assent_version: version, updated_at: new Date().toISOString() })
+    .eq('id', presenceId);
+}
+
+/** Mark the presence deleted and drop her call link; every read excludes it from then on. */
+export async function deletePresence(presenceId) {
+  return supabaseAdmin.from('presences')
+    .update({ status: 'deleted', call_token: null, updated_at: new Date().toISOString() })
+    .eq('id', presenceId);
+}
+
 /** Set the conversational tone. */
 export async function setPresenceTone(presenceId, tone) {
   return supabaseAdmin.from('presences').update({ tone, updated_at: new Date().toISOString() }).eq('id', presenceId);
