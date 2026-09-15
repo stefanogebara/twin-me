@@ -26,6 +26,7 @@ import { moneyAPI, moneyChat, euro, shortDay, type ChatFigure, type ChatReceipt,
 import { Figure } from './MoneyFigures';
 import LedgerOrb from '../../components/LedgerOrb';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
+import { useT } from '@/lib/i18n';
 
 const NAV: MoneyNavLink[] = MONEY_NAV('ask');
 
@@ -66,16 +67,17 @@ async function shrink(file: File): Promise<Blob> {
  * gives way to it and the thought folds into How it got there.
  */
 function Pending({ status, thinking, still }: { status: string; thinking?: string; still: boolean }) {
+  const t = useT();
   const thought = (thinking || '').trim();
   return (
     <div className="mc-pending" aria-live="polite">
       <p className="mc-line-text is-pending">
         <LedgerOrb state={thought ? 'solving' : 'searching'} size={20} paused={still} label="" />
-        <span>{thought ? 'Working it out' : status}</span>
+        <span>{thought ? t('Working it out') : t(status)}</span>
       </p>
       {thought ? (
         <motion.div className="mc-thinking" initial={still ? false : { opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.28 }}>
-          <span className="mc-line-who">Thinking</span>
+          <span className="mc-line-who">{t('Thinking')}</span>
           <div className="mc-thinking-well"><p className="mc-thinking-text">{thought}</p></div>
         </motion.div>
       ) : null}
@@ -198,6 +200,7 @@ function TracePanel({ steps, reading }: { steps: TraceStep[]; reading: boolean }
 
 export default function MoneyChatPage() {
   useDocumentTitle('Ask');
+  const t = useT();
   const [openQuestions, setOpenQuestions] = useState(0);
   const [lines, setLines] = useState<AskLine[]>([]);
   const [traceOpen, setTraceOpen] = useState(false);
@@ -383,8 +386,8 @@ export default function MoneyChatPage() {
             >
               <div className={`mc-scroll${lines.length ? '' : ' is-empty'}`}>
                 <div className="mc-turn">
-                  <h1>Ask.</h1>
-                  <p className="mv-sub">Any month, any shop, anything that leaves your account. Answers come from your own payments, with the payments underneath.</p>
+                  <h1>{t('Ask.')}</h1>
+                  <p className="mv-sub">{t('Any month, any shop, anything that leaves your account. Answers come from your own payments, with the payments underneath.')}</p>
                   {openQuestions > 0 ? (
                     <div className="mc-actions">
                       <Link to="/money/setup" className="mv-pill mv-pill--ghost">
@@ -396,7 +399,7 @@ export default function MoneyChatPage() {
 
                 {lines.map((l) => (
                   <motion.div key={l.id} className={`mc-line ${l.who === 'you' ? 'mc-line--you' : ''}`} {...rise}>
-                    <span className="mc-line-who">{l.who === 'you' ? 'You' : 'The ledger'}</span>
+                    <span className="mc-line-who">{l.who === 'you' ? t('You') : t('The ledger')}</span>
                     {l.pending ? (
                       <Pending status={l.text} thinking={l.thinking} still={Boolean(stillMotion)} />
                     ) : (
@@ -414,7 +417,7 @@ export default function MoneyChatPage() {
                     {l.acted ? <p className="mc-acted">{l.acted}</p> : null}
                     {l.who === 'twin' && !l.pending && ((l.thinking && l.thinking.trim()) || (l.basis && l.basis.length)) ? (
                       <div className="mc-how">
-                        <button type="button" className="mc-how-toggle" aria-expanded={Boolean(l.howOpen)} onClick={() => toggleHow(l.id)}>How it got there</button>
+                        <button type="button" className="mc-how-toggle" aria-expanded={Boolean(l.howOpen)} onClick={() => toggleHow(l.id)}>{t('How it got there')}</button>
                         {l.howOpen ? (
                           <div className="mc-how-body">
                             {l.thinking && l.thinking.trim() ? <p className="mc-how-thought">{l.thinking.trim()}</p> : null}
@@ -449,7 +452,7 @@ export default function MoneyChatPage() {
                 {offersShown ? (
                   <div className="mc-offers" role="group" aria-label="Things to ask">
                     {offers.map((q) => (
-                      <button key={q} type="button" className="mv-pill mv-pill--ghost" onClick={() => ask(q)}><span>{q}</span></button>
+                      <button key={q} type="button" className="mv-pill mv-pill--ghost" onClick={() => ask(t(q))}><span>{t(q)}</span></button>
                     ))}
                   </div>
                 ) : null}
@@ -468,17 +471,17 @@ export default function MoneyChatPage() {
                     aria-hidden="true"
                     onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ''; if (f) void attach(f); }}
                   />
-                  <button type="button" className="mc-attach" aria-label="Add a photo or a file" disabled={asking} onClick={() => fileRef.current?.click()}>
+                  <button type="button" className="mc-attach" aria-label={t('Add a photo or a file')} disabled={asking} onClick={() => fileRef.current?.click()}>
                     <Paperclip size={16} strokeWidth={1.75} aria-hidden="true" />
                   </button>
-                  <label className="mv-sr" htmlFor="mc-say">Ask about your money</label>
+                  <label className="mv-sr" htmlFor="mc-say">{t('Ask about your money')}</label>
                   <textarea
                     id="mc-say"
                     ref={boxRef}
                     className="mc-say"
                     rows={1}
                     value={text}
-                    placeholder="Ask about your money"
+                    placeholder={t('Ask about your money')}
                     disabled={asking}
                     onChange={(e) => setText(e.target.value)}
                     onPaste={(e) => { const f = e.clipboardData.files?.[0]; if (f) { e.preventDefault(); void attach(f); } }}
@@ -495,7 +498,7 @@ export default function MoneyChatPage() {
 
             {/* The ledger's own progress is for the curious, not the default: one link opens it. */}
             <aside className="mc-side">
-              <button type="button" className="mc-trace-toggle" aria-expanded={traceOpen} onClick={() => setTraceOpen((o) => !o)}>What it is doing</button>
+              <button type="button" className="mc-trace-toggle" aria-expanded={traceOpen} onClick={() => setTraceOpen((o) => !o)}>{t('What it is doing')}</button>
               {traceOpen ? <TracePanel steps={trace.steps} reading={trace.reading} /> : null}
             </aside>
           </div>

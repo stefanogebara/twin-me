@@ -22,7 +22,7 @@ vi.mock('../../../../api/services/money/store.js', async (importOriginal) => {
 });
 
 const {
-  assemble, buildFigure, validateAction, receiptsFor, parseReply, shortCircuit, assembleReply, contextText, euroGlyphs, answer, act, FIGURE_KINDS, RULES, asksWhereItWent, basisOf, amountKey, isShortAsk, dropUngrounded, amountsInText, isStatement,
+  assemble, buildFigure, validateAction, receiptsFor, parseReply, shortCircuit, assembleReply, contextText, euroGlyphs, answer, act, FIGURE_KINDS, RULES, asksWhereItWent, basisOf, amountKey, isShortAsk, dropUngrounded, amountsInText, isStatement, say,
 } = await import('../../../../api/services/money/chat.js');
 
 const NOW = new Date('2026-09-08T12:00:00Z');
@@ -335,6 +335,20 @@ describe('a statement always carries a way to keep it', () => {
     expect(isStatement('Do not count the transfer to my savings account as spending.')).toBe(true);
     expect(isStatement('What can I spend today?')).toBe(false);
     expect(isStatement('ok')).toBe(false);
+  });
+});
+
+describe('say, the ledger in the chosen language', () => {
+  it('speaks its own lines in Spanish and Portuguese, with the holes filled, and in English by default', () => {
+    expect(say('es', '{n} charges come back every month, {total} together', { n: 5, total: '114,12 EUR' })).toBe('5 cargos vuelven cada mes, 114,12 EUR en total');
+    expect(say('pt-BR', 'Remember this')).toBe('Lembrar disso');
+    expect(say(null, 'Remember this')).toBe('Remember this');
+    expect(say('es', 'a line with no translation {x}', { x: 1 })).toBe('a line with no translation 1');
+  });
+  it('the shortcut answers in the person\'s language', () => {
+    const ctx = assemble({ transactions, segments, recurring, places, questions, categories, now: NOW, language: 'es' });
+    expect(shortCircuit('What comes back every month?', ctx).text).toMatch(/^1 cargo vuelve cada mes, 11,99 \u20ac en total: Spotify\.$/);
+    expect(shortCircuit('How does this month compare?', ctx).text).toMatch(/^Sep va en 138,25 \u20ac hasta ahora\. Aug cerr\u00f3 en 65,12 \u20ac\.$/);
   });
 });
 

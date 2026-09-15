@@ -481,6 +481,49 @@ function plainProse(raw) {
   return cut.replace(/[*_`#>]/g, '').replace(/\n{2,}/g, ' ').replace(/\s+/g, ' ').trim();
 }
 
+
+/* ---------------------------------------------------------------- the ledger's own words
+   The model answers in the person's language by its rules; these are the lines the ledger
+   says without a model (the shortcuts, the refusals), so they need their own three forms.
+   English is the source; a language with no line falls back to it. ASCII, \u for accents. */
+const PHRASES = {
+  es: {
+    'The ledger cannot answer that from what it has.': 'El libro no puede responder eso con lo que tiene.',
+    'The ledger has no total for that; it can only name the parts it holds.': 'El libro no tiene un total para eso; solo puede nombrar las partes que guarda.',
+    'That could not be read right now.': 'Eso no se pudo leer ahora.',
+    'Nothing comes back regularly yet. The ledger needs to see a charge at least twice to call it that.': 'Todav\u00eda no vuelve nada con regularidad. El libro necesita ver un cargo al menos dos veces para llamarlo as\u00ed.',
+    '{n} charge comes back every month, {total} together': '{n} cargo vuelve cada mes, {total} en total',
+    '{n} charges come back every month, {total} together': '{n} cargos vuelven cada mes, {total} en total',
+    ' and {n} more': ' y {n} m\u00e1s',
+    '{n} charge comes back regularly, none of them monthly.': '{n} cargo vuelve con regularidad, ninguno mensual.',
+    '{n} charges come back regularly, none of them monthly.': '{n} cargos vuelven con regularidad, ninguno mensual.',
+    '{here} is at {spent} so far. {before} closed at {closed}.': '{here} va en {spent} hasta ahora. {before} cerr\u00f3 en {closed}.',
+    '{here} is at {spent} so far.': '{here} va en {spent} hasta ahora.',
+    'Remember this': 'Recordar esto',
+    'There is nothing in the ledger yet. Connect a bank or add a statement and ask again.': 'Todav\u00eda no hay nada en el libro. Conecta un banco o a\u00f1ade un extracto y pregunta otra vez.',
+  },
+  'pt-BR': {
+    'The ledger cannot answer that from what it has.': 'O livro n\u00e3o consegue responder isso com o que tem.',
+    'The ledger has no total for that; it can only name the parts it holds.': 'O livro n\u00e3o tem um total para isso; s\u00f3 pode nomear as partes que guarda.',
+    'That could not be read right now.': 'Isso n\u00e3o p\u00f4de ser lido agora.',
+    'Nothing comes back regularly yet. The ledger needs to see a charge at least twice to call it that.': 'Nada volta com regularidade ainda. O livro precisa ver uma cobran\u00e7a pelo menos duas vezes para cham\u00e1-la assim.',
+    '{n} charge comes back every month, {total} together': '{n} cobran\u00e7a volta todo m\u00eas, {total} no total',
+    '{n} charges come back every month, {total} together': '{n} cobran\u00e7as voltam todo m\u00eas, {total} no total',
+    ' and {n} more': ' e mais {n}',
+    '{n} charge comes back regularly, none of them monthly.': '{n} cobran\u00e7a volta com regularidade, nenhuma mensal.',
+    '{n} charges come back regularly, none of them monthly.': '{n} cobran\u00e7as voltam com regularidade, nenhuma mensal.',
+    '{here} is at {spent} so far. {before} closed at {closed}.': '{here} est\u00e1 em {spent} at\u00e9 agora. {before} fechou em {closed}.',
+    '{here} is at {spent} so far.': '{here} est\u00e1 em {spent} at\u00e9 agora.',
+    'Remember this': 'Lembrar disso',
+    'There is nothing in the ledger yet. Connect a bank or add a statement and ask again.': 'Ainda n\u00e3o h\u00e1 nada no livro. Conecte um banco ou adicione um extrato e pergunte de novo.',
+  },
+};
+/** A line of the ledger's own in the person's language; English when there is no line. Pure. */
+export function say(language, source, holes = {}) {
+  const line = (PHRASES[language] && PHRASES[language][source]) || source;
+  return line.replace(/\{(\w+)\}/g, (m, k) => (k in holes ? String(holes[k]) : m));
+}
+
 /* ------------------------------------------------------------------------ short circuits */
 
 /**
@@ -509,13 +552,14 @@ export function shortCircuit(message, ctx) {
   if (!isShortAsk(message)) return null;
   if (/\b(subscri|suscrip|recurring|comes? back|every month|cada mes)/.test(m) && !/\b(cancel|not mine|isn'?t mine|fix|wrong|change)\b/.test(m)) {
     const built = buildFigure({ kind: 'recurring' }, ctx);
-    if (!built) return { text: 'Nothing comes back regularly yet. The ledger needs to see a charge at least twice to call it that.', figures: [], actions: [], receipts: [] };
+    const L = ctx.language;
+    if (!built) return { text: say(L, 'Nothing comes back regularly yet. The ledger needs to see a charge at least twice to call it that.'), figures: [], actions: [], receipts: [] };
     const monthly = ctx.recurring.filter((s) => s.cadence === 'monthly');
     const total = monthly.reduce((s, x) => s + Number(x.typical_amount || 0), 0);
     const names = monthly.slice(0, 3).map((s) => s.merchant_name || s.merchant_key);
     const text = monthly.length
-      ? `${monthly.length} ${monthly.length === 1 ? 'charge comes' : 'charges come'} back every month, ${amountText(total)} together${names.length ? `: ${names.join(', ')}${monthly.length > 3 ? ` and ${monthly.length - 3} more` : ''}` : ''}.`
-      : `${ctx.recurring.length} ${ctx.recurring.length === 1 ? 'charge comes' : 'charges come'} back regularly, none of them monthly.`;
+      ? `${say(L, monthly.length === 1 ? '{n} charge comes back every month, {total} together' : '{n} charges come back every month, {total} together', { n: monthly.length, total: amountText(total) })}${names.length ? `: ${names.join(', ')}${monthly.length > 3 ? say(L, ' and {n} more', { n: monthly.length - 3 }) : ''}` : ''}.`
+      : say(L, ctx.recurring.length === 1 ? '{n} charge comes back regularly, none of them monthly.' : '{n} charges come back regularly, none of them monthly.', { n: ctx.recurring.length });
     return { text: euroGlyphs(text), figures: [built.figure], actions: [], receipts: receiptsFor([built], ctx) };
   }
   if (/\b(per month|by month|each month|month by month|months?\b.*(compare|side|trend)|mes a mes)/.test(m)) {
@@ -524,8 +568,8 @@ export function shortCircuit(message, ctx) {
     const segs = [...ctx.segments].sort((a, b) => new Date(b.month) - new Date(a.month));
     const [here, before] = segs;
     const text = before
-      ? `${monthLabel(here.month)} is at ${amountText(here.spent)} so far. ${monthLabel(before.month)} closed at ${amountText(before.spent)}.`
-      : `${monthLabel(here.month)} is at ${amountText(here.spent)} so far.`;
+      ? say(ctx.language, '{here} is at {spent} so far. {before} closed at {closed}.', { here: monthLabel(here.month), spent: amountText(here.spent), before: monthLabel(before.month), closed: amountText(before.spent) })
+      : say(ctx.language, '{here} is at {spent} so far.', { here: monthLabel(here.month), spent: amountText(here.spent) });
     return { text: euroGlyphs(text), figures: [built.figure], actions: [], receipts: receiptsFor([built], ctx) };
   }
   return null;
@@ -582,7 +626,7 @@ export function assembleReply(parsed, ctx, message = '') {
      the ledger learns nothing. When they told the ledger something and no learning offer
      survived, their own words are offered as a note. */
   if (isStatement(message) && !actions.some((a) => LEARNING_KINDS.includes(a.kind))) {
-    const note = validateAction({ kind: 'remember', text: String(message).trim().slice(0, 200), label: 'Remember this' }, ctx);
+    const note = validateAction({ kind: 'remember', text: String(message).trim().slice(0, 200), label: say(ctx.language, 'Remember this') }, ctx);
     if (note) actions.push(note);
   }
   return {
@@ -639,7 +683,7 @@ export async function answer(userId, message, history = [], { now = new Date() }
     await saveChatTurn(userId, { role: 'twin', text: reply.text, figures: reply.figures || null, actions: reply.actions || null, basis: reply.basis || null, receipts: reply.receipts || null }).catch(() => null);
     return reply;
   };
-  if (!ctx.transactions.length) return keep({ text: EMPTY_LEDGER, figures: [], actions: [], receipts: [] });
+  if (!ctx.transactions.length) return keep({ text: say(ctx.language, EMPTY_LEDGER), figures: [], actions: [], receipts: [] });
 
   const quick = shortCircuit(text, ctx);
   if (quick) return keep(quick);
@@ -656,7 +700,7 @@ export async function answer(userId, message, history = [], { now = new Date() }
     raw = result?.content || '';
   } catch (e) {
     log.warn(`chat completion failed: ${e.message}`);
-    return { text: NO_ANSWER, figures: [], actions: [], receipts: [] };
+    return { text: say(ctx.language, NO_ANSWER), figures: [], actions: [], receipts: [] };
   }
 
   const parsed = parseReply(raw);
@@ -664,14 +708,14 @@ export async function answer(userId, message, history = [], { now = new Date() }
     /* Prose where an object was asked for is still an answer: kept, grounded, with its basis. */
     const prose = plainProse(raw);
     const grounded = prose ? dropUngrounded(euroGlyphs(prose), ctx) : { text: '', dropped: 0 };
-    const said = grounded.text || (grounded.dropped ? NO_TOTAL : NO_ANSWER);
+    const said = grounded.text || say(ctx.language, grounded.dropped ? NO_TOTAL : NO_ANSWER);
     /* Prose still earns the figure the question asks for ("where did it go" draws the shares). */
     const shaped = prose ? assembleReply({ text: said, figures: [], actions: [], cites: [] }, ctx, text) : { text: said, figures: [], actions: [], receipts: [] };
     return keep({ ...shaped, text: said, basis: basisOf(said, ctx) });
   }
   const reply = assembleReply(parsed, ctx, text);
   const grounded = dropUngrounded(withoutRepeats(reply.text, history), ctx);
-  const finalText = grounded.text || (grounded.dropped ? NO_TOTAL : reply.text);
+  const finalText = grounded.text || (grounded.dropped ? say(ctx.language, NO_TOTAL) : reply.text);
   return keep({ ...reply, text: finalText, basis: basisOf(finalText, ctx) });
 }
 
@@ -853,8 +897,8 @@ export async function answerStream(userId, message, history = [], { now = new Da
   }
 
   if (!ctx.transactions.length) {
-    whole(EMPTY_LEDGER);
-    return closeWith({ text: EMPTY_LEDGER, figures: [], actions: [], receipts: [] });
+    whole(say(ctx.language, EMPTY_LEDGER));
+    return closeWith({ text: say(ctx.language, EMPTY_LEDGER), figures: [], actions: [], receipts: [] });
   }
 
   const quick = shortCircuit(asked, ctx);
@@ -930,7 +974,7 @@ export async function answerStream(userId, message, history = [], { now = new Da
       pending = '';
       released = 0;
       /* Everything it said stood on a number the ledger does not hold: say so, once. */
-      if (!shown.length && droppedSentences) { whole(NO_TOTAL); shown.push(NO_TOTAL); }
+      if (!shown.length && droppedSentences) { whole(say(ctx.language, NO_TOTAL)); shown.push(say(ctx.language, NO_TOTAL)); }
       return;
     }
 
@@ -995,7 +1039,7 @@ export async function answerStream(userId, message, history = [], { now = new Da
        answer closes without figures rather than pretending the sentence never happened. A
        brace or a quote the streamer let out while it waited for the sentence is not prose. */
     if (!shown.length || !/[a-z0-9]/i.test(asShown(shown))) {
-      send({ phase: 'failed', detail: STREAM_UNREADABLE });
+      send({ phase: 'failed', detail: say(ctx.language, STREAM_UNREADABLE) });
       return null;
     }
     emit('', { final: true });
@@ -1008,7 +1052,7 @@ export async function answerStream(userId, message, history = [], { now = new Da
   if (!parsed) {
     const prose = plainProse(raw);
     const g = prose ? dropUngrounded(euroGlyphs(prose), ctx) : { text: '', dropped: 0 };
-    const text = g.text || (g.dropped ? NO_TOTAL : NO_ANSWER);
+    const text = g.text || say(ctx.language, g.dropped ? NO_TOTAL : NO_ANSWER);
     if (!shown.length) whole(text);
     const said = shown.length ? asShown(shown) : text;
     /* Prose still earns the figure the question asks for ("where did it go" draws the shares). */
@@ -1021,7 +1065,7 @@ export async function answerStream(userId, message, history = [], { now = new Da
      reader saw a boundary, leaves nothing shown: the guarded reply then goes as one event,
      and the app cannot tell the difference except in timing. */
   const g = dropUngrounded(withoutRepeats(reply.text, history), ctx);
-  const guarded = g.text || (g.dropped ? NO_TOTAL : reply.text);
+  const guarded = g.text || (g.dropped ? say(ctx.language, NO_TOTAL) : reply.text);
   if (!shown.length) whole(guarded);
   const finalText = shown.length ? asShown(shown) : guarded;
   const basis = basisOf(finalText, ctx);

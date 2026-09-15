@@ -11,6 +11,7 @@
  */
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { useT } from '@/lib/i18n';
 import '../../styles/money-v2.css';
 import '../../styles/money-setup.css';
 import MoneyNav, { type MoneyNavLink } from './MoneyNav';
@@ -28,6 +29,7 @@ const CATEGORIES = [
 /** Shares a person actually names out loud, so the common answer is one press. */
 const SHARES: [string, number][] = [['a half', 50], ['a third', 33], ['a quarter', 25], ['two thirds', 67]];
 
+/* English source strings; the page says them through t(), so the dictionaries hold them. */
 const PLACEHOLDER: Record<string, string> = {
   name: 'Rent', source: 'Family', what: 'The weekly shop', amount: '500', day: '1',
 };
@@ -61,6 +63,7 @@ function parseShare(s: string): number | undefined {
 /** The 1st, not the 1. A system that cannot spell a date is not trusted with a number. */
 
 export default function MoneySetupPage() {
+  const t = useT();
   const [queue, setQueue] = useState<MoneyQuestion[]>([]);
   const [openingCount, setOpeningCount] = useState(0);
   const [answeredBefore, setAnsweredBefore] = useState(0);
@@ -170,7 +173,7 @@ export default function MoneySetupPage() {
       }
       advance();
     } catch (e) {
-      setNote((e as Error).message || 'That answer did not save. Try it again.');
+      setNote((e as Error).message || t('That answer did not save. Try it again.'));
     } finally {
       setBusy(false);
     }
@@ -181,7 +184,7 @@ export default function MoneySetupPage() {
     setBusy(true);
     setNote(null);
     try { await moneyAPI.skipQuestion(question.id); advance(); }
-    catch { setNote('That did not go through. Try it again.'); }
+    catch { setNote(t('That did not go through. Try it again.')); }
     finally { setBusy(false); }
   }
 
@@ -192,30 +195,30 @@ export default function MoneySetupPage() {
         <div className="mv-col">
           <section className="ms-stage">
             {!loaded ? (
-              <p className="mv-quiet">Reading your payments…</p>
+              <p className="mv-quiet">{t('Reading your payments\u2026')}</p>
             ) : failed ? (
               <div className="ms-stage-inner">
-                <h1>The questions did not load.</h1>
-                <p className="mv-sub">Nothing was lost. Try again in a moment.</p>
-                <div className="ms-actions"><Link to="/money" className="mv-pill">Back to the month</Link></div>
+                <h1>{t('The questions did not load.')}</h1>
+                <p className="mv-sub">{t('Nothing was lost. Try again in a moment.')}</p>
+                <div className="ms-actions"><Link to="/money" className="mv-pill">{t('Back to the month')}</Link></div>
               </div>
             ) : queue.length === 0 ? (
               <div className="ms-stage-inner">
-                <h1>Nothing to ask.</h1>
+                <h1>{t('Nothing to ask.')}</h1>
                 <p className="mv-sub">
                   {answeredBefore > 0
-                    ? `You answered ${answeredBefore} already. Everything since reads on its own.`
-                    : 'When a payment arrives that it cannot read, it asks here.'}
+                    ? t('You answered {n} already. Everything since reads on its own.', { n: answeredBefore })
+                    : t('When a payment arrives that it cannot read, it asks here.')}
                 </p>
-                <div className="ms-actions"><Link to="/money/you" className="mv-pill">See what it knows</Link></div>
+                <div className="ms-actions"><Link to="/money/you" className="mv-pill">{t('See what it knows')}</Link></div>
               </div>
             ) : done ? (
               <div className="ms-stage-inner">
-                <h1>That is enough to change the numbers.</h1>
+                <h1>{t('That is enough to change the numbers.')}</h1>
                 <p className="mv-sub">
                   {facts && facts.length
-                    ? `It now holds ${facts.length} ${facts.length === 1 ? 'thing' : 'things'} you told it.`
-                    : 'Nothing was recorded. It carries on with what it reads.'}
+                    ? t(facts.length === 1 ? 'It now holds {n} thing you told it.' : 'It now holds {n} things you told it.', { n: facts.length })
+                    : t('Nothing was recorded. It carries on with what it reads.')}
                 </p>
                 {facts && facts.length ? (
                   <ul className="mv-list">
@@ -230,16 +233,16 @@ export default function MoneySetupPage() {
                     ))}
                   </ul>
                 ) : null}
-                <div className="ms-actions"><Link to="/money" className="mv-pill">See today</Link></div>
+                <div className="ms-actions"><Link to="/money" className="mv-pill">{t('See today')}</Link></div>
               </div>
             ) : question ? (
               <div className="ms-stage-inner" key={question.id}>
-                <p className="ms-count">{index + 1} of {queue.length}{fromLedger ? ', from your payments' : ''}</p>
+                <p className="ms-count">{t(fromLedger ? '{i} of {n}, from your payments' : '{i} of {n}', { i: index + 1, n: queue.length })}</p>
                 <h1>{question.ask}</h1>
                 {question.help || question.why ? <p className="mv-sub">{question.help || question.why}</p> : null}
 
                 {question.receipts && question.receipts.length ? (
-                  <ul className="mv-list" aria-label="The payments behind this question">
+                  <ul className="mv-list" aria-label={t('The payments behind this question')}>
                     {question.receipts.map((r) => (
                       <li key={r.id} className="mv-item mv-item--tight">
                         <span className="mv-item-text">
@@ -255,13 +258,13 @@ export default function MoneySetupPage() {
                 <form className="ms-form" onSubmit={(e) => { e.preventDefault(); void submit(); }}>
                   {question.input === 'text' ? (
                     <div className="ms-field">
-                      <label className="mv-sr" htmlFor="ms-text">Your answer</label>
+                      <label className="mv-sr" htmlFor="ms-text">{t('Your answer')}</label>
                       <input
                         id="ms-text"
                         className="mv-field"
                         type="text"
                         value={text}
-                        placeholder="Your answer"
+                        placeholder={t('Your answer')}
                         autoComplete="off"
                         onChange={(e) => setText(e.target.value)}
                       />
@@ -269,7 +272,7 @@ export default function MoneySetupPage() {
                   ) : null}
 
                   {question.input === 'category' || question.input.startsWith('choice:') ? (
-                    <div className="ms-choices" role="group" aria-label={question.input === 'category' ? 'Pick the kind of place' : 'Pick one'}>
+                    <div className="ms-choices" role="group" aria-label={question.input === 'category' ? t('Pick the kind of place') : t('Pick one')}>
                       {(question.input === 'category' ? CATEGORIES : options).map((word) => (
                         <button
                           key={word}
@@ -278,7 +281,7 @@ export default function MoneySetupPage() {
                           aria-pressed={choice === word}
                           onClick={() => setChoice(choice === word ? null : word)}
                         >
-                          <span>{cap(word)}</span>
+                          <span>{cap(t(word))}</span>
                         </button>
                       ))}
                     </div>
@@ -287,8 +290,8 @@ export default function MoneySetupPage() {
                       beside the answer and read by the ledger, not filed under a word. */}
                   {choice && question.input.startsWith('choice:') ? (
                     <div className="ms-field ms-note">
-                      <label className="mv-label" htmlFor="ms-note">{choice === 'other' ? 'Who is that, or what was it for?' : 'Anything else about it? Optional.'}</label>
-                      <input id="ms-note" className="mv-field" type="text" autoComplete="off" maxLength={240} placeholder={choice === 'other' ? 'My landlord, the deposit for the ski trip' : ''} value={extra} onChange={(e) => setExtra(e.target.value)} />
+                      <label className="mv-label" htmlFor="ms-note">{choice === 'other' ? t('Who is that, or what was it for?') : t('Anything else about it? Optional.')}</label>
+                      <input id="ms-note" className="mv-field" type="text" autoComplete="off" maxLength={240} placeholder={choice === 'other' ? t('My landlord, the deposit for the ski trip') : ''} value={extra} onChange={(e) => setExtra(e.target.value)} />
                     </div>
                   ) : null}
 
@@ -297,13 +300,13 @@ export default function MoneySetupPage() {
                       {rows.map((row) => (
                         <div key={row.key} className={`ms-row ${columns.includes('share') ? 'ms-row--share' : 'ms-row--three'}`}>
                           <div className="ms-field">
-                            <label className="mv-label" htmlFor={`ms-${row.key}-label`}>{cap(columns[0])}</label>
+                            <label className="mv-label" htmlFor={`ms-${row.key}-label`}>{cap(t(columns[0]))}</label>
                             <input
                               id={`ms-${row.key}-label`}
                               className="mv-field"
                               type="text"
                               autoComplete="off"
-                              placeholder={PLACEHOLDER[columns[0]] || ''}
+                              placeholder={PLACEHOLDER[columns[0]] ? t(PLACEHOLDER[columns[0]]) : ''}
                               value={row.label}
                               onChange={(e) => setRows((all) => all.map((r) => (r.key === row.key ? { ...r, label: e.target.value } : r)))}
                             />
@@ -311,7 +314,7 @@ export default function MoneySetupPage() {
 
                           {columns.includes('amount') ? (
                             <div className="ms-field">
-                              <label className="mv-label" htmlFor={`ms-${row.key}-amount`}>Amount, €</label>
+                              <label className="mv-label" htmlFor={`ms-${row.key}-amount`}>{t('Amount, \u20ac')}</label>
                               <input
                                 id={`ms-${row.key}-amount`}
                                 className="mv-field"
@@ -327,7 +330,7 @@ export default function MoneySetupPage() {
 
                           {columns.includes('day') ? (
                             <div className="ms-field">
-                              <label className="mv-label" htmlFor={`ms-${row.key}-day`}>Day</label>
+                              <label className="mv-label" htmlFor={`ms-${row.key}-day`}>{t('Day')}</label>
                               <input
                                 id={`ms-${row.key}-day`}
                                 className="mv-field"
@@ -343,7 +346,7 @@ export default function MoneySetupPage() {
 
                           {columns.includes('share') ? (
                             <div className="ms-field">
-                              <label className="mv-label" htmlFor={`ms-${row.key}-share`}>Your share</label>
+                              <label className="mv-label" htmlFor={`ms-${row.key}-share`}>{t('Your share')}</label>
                               <div className="ms-pct">
                                 <input
                                   id={`ms-${row.key}-share`}
@@ -369,7 +372,7 @@ export default function MoneySetupPage() {
                                   aria-pressed={Number(row.share) === pct}
                                   onClick={() => setRows((all) => all.map((r) => (r.key === row.key ? { ...r, share: String(pct) } : r)))}
                                 >
-                                  <span>{cap(word)}</span>
+                                  <span>{cap(t(word))}</span>
                                 </button>
                               ))}
                             </div>
@@ -377,24 +380,24 @@ export default function MoneySetupPage() {
 
                           {rows.length > 1 ? (
                             <button type="button" className="mv-pill mv-pill--ghost ms-drop" onClick={() => setRows((all) => all.filter((r) => r.key !== row.key))}>
-                              <span>Remove</span>
+                              <span>{t('Remove')}</span>
                             </button>
                           ) : null}
                         </div>
                       ))}
                       <button type="button" className="mv-pill mv-pill--ghost ms-add" onClick={() => setRows((all) => [...all, blankRow()])}>
-                        <span>Add another</span>
+                        <span>{t('Add another')}</span>
                       </button>
                     </div>
                   ) : null}
 
                   <div className="ms-actions">
                     <button type="submit" className="mv-pill" disabled={busy || !answerable}>
-                      <span>{busy ? 'Saving…' : 'Continue'}</span>
+                      <span>{busy ? t('Saving\u2026') : t('Continue')}</span>
                     </button>
                     {skippable ? (
                       <button type="button" className="mv-pill mv-pill--ghost" onClick={() => void skip()} disabled={busy}>
-                        <span>Skip this</span>
+                        <span>{t('Skip this')}</span>
                       </button>
                     ) : null}
                   </div>
