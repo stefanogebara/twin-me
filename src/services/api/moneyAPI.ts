@@ -223,6 +223,9 @@ export type ChatReply = { text: string; figures?: ChatFigure[]; actions?: ChatAc
 /** One kept turn of the conversation, as the server hands it back. */
 export type ChatTurnKept = { id: string; role: 'user' | 'twin'; text: string; figures?: ChatFigure[] | null; actions?: ChatAction[] | null; receipts?: ChatReceipt[] | null; thinking?: string | null; basis?: string[] | null; created_at: string };
 /** One answer, in the pieces the server sends. The phases arrive in this order. */
+/** What the ledger made of a file: a bank export, a receipt, one sentence kept, or nothing. */
+export type ChatAttachment = { kind: 'statement' | 'receipt' | 'note' | 'nothing' | 'unreadable'; said: string; receipts: ChatReceipt[] };
+
 export type ChatStreamEvent =
   | { phase: 'reading' }
   | { phase: 'text'; delta: string }
@@ -236,6 +239,21 @@ export const moneyChat = {
   /** The whole answer at once; the fallback when the stream is not there. */
   /** The conversation so far, oldest first. */
   history: () => authFetch('/money/chat/history').then((r) => json<ChatTurnKept[]>(r)),
+  /**
+   * A photo or a file for the ledger to read: a receipt, a bill, a contract, a bank export.
+   * Multipart, so the browser sets its own boundary header; the note is what was typed
+   * alongside it. Answers with one sentence and the payment it kept, if it kept one.
+   */
+  attach: (file: File | Blob, note: string, filename?: string) => {
+    const form = new FormData();
+    form.append('file', file, filename || (file instanceof File ? file.name : 'file'));
+    if (note.trim()) form.append('note', note.trim());
+    /* Not authFetch: it puts application/json on every request, and a multipart body needs
+       the boundary header the browser writes itself. Only the bearer goes. */
+    const { 'Content-Type': _json, ...headers } = getAuthHeaders();
+    void _json;
+    return fetch(`${API_URL}/money/chat/attach`, { method: 'POST', headers, body: form }).then((r) => json<ChatAttachment>(r));
+  },
   /** Run an offer the person tapped; the ledger checks it again and says what it did. */
   act: (action: ChatAction) =>
     authFetch('/money/chat/act', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action }) }).then((r) => json<{ done: boolean; said: string }>(r)),

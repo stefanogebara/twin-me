@@ -40,11 +40,14 @@ import { Router } from 'express';
 import crypto from 'node:crypto';
 import multer from 'multer';
 import { authenticateUser } from '../middleware/auth.js';
-import { inboxAddress, inboxDomain, isInboxConfigured, verifySvix, ingestReceivedEmail } from '../services/money/inbox.js';
+import { inboxAddress, inboxDomain, isInboxConfigured, verifySvix, ingestReceivedEmail, extractReceipt, receiptToSighting } from '../services/money/inbox.js';
+import { readAttachment, acceptsAttachment, MAX_ATTACHMENT_BYTES } from '../services/money/attachments.js';
+import { extractDocumentText } from '../services/documentExtractionService.js';
+import { complete as llmComplete, TIER_EXTRACTION } from '../services/llmGateway.js';
 import { accuracy } from '../services/money/predictions.js';
 import { createLogger } from '../services/logger.js';
 import { parseCapture, parseStructured } from '../services/money/captureParser.js';
-import { ingestSighting, ingestSightings, listTransactions, sightingsFor, refreshRecurring, forecast, setVerdict, userForCaptureKey, saveBankAccounts, listBankAccounts, pullBankFeed, refreshReadings, listReadings, setReadingVerdict, months, feedBudget, categorySpend, listPlaces, setPlaceCategory, enrichPlaces, subscriptionUsage, questionsFor, answerQuestion, skipQuestion, listFacts, deleteFact, recordCallbackFailure, listChatTurns, learn } from '../services/money/store.js';
+import { ingestSighting, ingestSightings, listTransactions, sightingsFor, refreshRecurring, forecast, setVerdict, userForCaptureKey, saveBankAccounts, listBankAccounts, pullBankFeed, refreshReadings, listReadings, setReadingVerdict, months, feedBudget, categorySpend, listPlaces, setPlaceCategory, enrichPlaces, subscriptionUsage, questionsFor, answerQuestion, skipQuestion, listFacts, deleteFact, recordCallbackFailure, listChatTurns, saveChatTurn, learn } from '../services/money/store.js';
 import { parseDelimited, parseWorkbook, toSightings } from '../services/money/statements/importer.js';
 import { isConfigured, listBanks, startAuthorisation, createSession } from '../services/money/feeds/enableBanking.js';
 import { answer as chatAnswer, answerStream as chatAnswerStream, act as chatAct } from '../services/money/chat.js';
@@ -578,6 +581,54 @@ router.post('/chat/act', async (req, res) => {
     if (error.status === 400) return res.status(400).json({ success: false, error: error.message });
     log.error('chat act failed', { error: error.message });
     res.status(500).json({ success: false, error: 'Internal server error' });
+  }
+});
+
+/**
+ * A photo or a file handed to the conversation: a receipt, a bill, a contract, a bank
+ * export. Read in memory on the machinery that already exists (services/money/attachments.js)
+ * and dropped; only what it said reaches the ledger. Both turns are kept like any other.
+ */
+const attach = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: MAX_ATTACHMENT_BYTES, files: 1 },
+  fileFilter: (_req, file, cb) => cb(null, acceptsAttachment(file.originalname, file.mimetype)),
+});
+const attachOne = (req, res, next) => attach.single('file')(req, res, (err) => {
+  if (!err) return next();
+  if (err.code === 'LIMIT_FILE_SIZE') return res.status(413).json({ success: false, error: 'That file is over 4 MB. A photo of it would come through.' });
+  return res.status(400).json({ success: false, error: 'That file could not be received.' });
+});
+const ATTACHMENT_DEPS = {
+  extractText: extractDocumentText,
+  extractReceipt,
+  receiptToSighting,
+  ingestSighting,
+  ingestSightings,
+  parseStatement: (buffer, name) => toSightings(/\.(xlsx|xls)$/i.test(name) ? parseWorkbook(buffer) : parseDelimited(buffer.toString('utf8')), {}),
+  complete: (args) => llmComplete({ tier: TIER_EXTRACTION, ...args }),
+  listFacts,
+  rememberNote: (userId, { subject, text }) => answerQuestion(userId, { questionId: null, kind: 'note', subject, subjectLabel: null, value: text }),
+  afterLedgerChange: async (userId) => {
+    await refreshRecurring(userId).catch((e) => log.warn('recurring after attachment failed', { error: e.message }));
+    await refreshReadings(userId).catch((e) => log.warn('readings after attachment failed', { error: e.message }));
+  },
+};
+
+router.post('/chat/attach', attachOne, async (req, res) => {
+  if (!req.file?.buffer?.length) return res.status(400).json({ success: false, error: 'It reads photos, PDFs, plain text and bank exports as Excel or CSV.' });
+  const note = typeof req.body?.note === 'string' ? req.body.note.replace(/\s+/g, ' ').trim().slice(0, 500) : '';
+  const name = String(req.file.originalname || 'file').replace(/[\r\n\t]/g, ' ').trim().slice(0, 120) || 'file';
+  try {
+    const r = await readAttachment(req.user.id, { buffer: req.file.buffer, filename: name, mimeType: req.file.mimetype, note }, ATTACHMENT_DEPS);
+    await saveChatTurn(req.user.id, { role: 'user', text: `Sent ${name}${note ? `. ${note}` : ''}` }).catch(() => null);
+    await saveChatTurn(req.user.id, { role: 'twin', text: r.said, receipts: r.receipts || null }).catch(() => null);
+    log.info('chat attachment read', { userId: req.user.id, kind: r.kind, bytes: req.file.size });
+    if (!res.headersSent) res.json({ success: true, data: { kind: r.kind, said: r.said, receipts: r.receipts || [] } });
+  } catch (error) {
+    log.error('chat attach failed', { error: error.message });
+    /* The request timeout may already have answered 504; a second answer is a crash, not a courtesy. */
+    if (!res.headersSent) res.status(500).json({ success: false, error: 'That file could not be read right now.' });
   }
 });
 

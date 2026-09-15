@@ -265,6 +265,62 @@ describe('the streamed answer', () => {
     expect(phases(events)).not.toContain('done');
   });
 
+  it('asks again without reasoning when the reasoning outlives its patience with no word said', async () => {
+    process.env.MONEY_CHAT_REASONING_PATIENCE_MS = '30';
+    try {
+      streamCall.mockImplementation(async ({ reasoning, signal, onReasoning, onChunk }) => {
+        if (reasoning) {
+          onReasoning('Let me look at the clothing rows.');
+          /* The model keeps thinking; the stream ends only when the caller's signal fires. */
+          await new Promise((_, reject) => signal.addEventListener('abort', () => reject(new Error('aborted')), { once: true }));
+        }
+        onChunk('Clothing took 116,76 EUR.');
+        return { content: 'Clothing took 116,76 EUR.' };
+      });
+      const { events, onEvent } = recorder();
+      const reply = await answerStream('u1', 'what was biggest?', [], { now: NOW, onEvent });
+      expect(streamCall).toHaveBeenCalledTimes(2);
+      expect(streamCall.mock.calls[0][0].reasoning).toEqual({ effort: 'low' });
+      expect(streamCall.mock.calls[1][0].reasoning).toBeUndefined();
+      expect(streamCall.mock.calls[1][0].maxTokens).toBe(600);
+      expect(events.find((e) => e.phase === 'thinking').delta).toBe('Let me look at the clothing rows.');
+      expect(textOf(events)).toBe('Clothing took 116,76 €.');
+      expect(phases(events).at(-1)).toBe('done');
+      expect(reply.text).toBe(textOf(events));
+    } finally {
+      delete process.env.MONEY_CHAT_REASONING_PATIENCE_MS;
+    }
+  });
+
+  it('does not ask again when a word had already come; a stream that breaks then keeps what was read', async () => {
+    process.env.MONEY_CHAT_REASONING_PATIENCE_MS = '30';
+    try {
+      streamCall.mockImplementation(async ({ onChunk }) => {
+        onChunk('Clothing took 116,76 EUR. ');
+        await new Promise((r) => setTimeout(r, 60));
+        throw new Error('connection reset');
+      });
+      const { events, onEvent } = recorder();
+      await answerStream('u1', 'what was biggest?', [], { now: NOW, onEvent });
+      expect(streamCall).toHaveBeenCalledTimes(1);
+      expect(textOf(events)).toBe('Clothing took 116,76 €.');
+    } finally {
+      delete process.env.MONEY_CHAT_REASONING_PATIENCE_MS;
+    }
+  });
+
+  it('a stream that broke after letting out only a brace is a failure, not an answer of one brace', async () => {
+    streamCall.mockImplementation(async ({ onChunk }) => {
+      onChunk('{ "');
+      throw new Error('connection reset');
+    });
+    const { events, onEvent } = recorder();
+    const reply = await answerStream('u1', 'what was biggest?', [], { now: NOW, onEvent });
+    expect(reply).toBe(null);
+    expect(textOf(events).trim()).not.toMatch(/[a-z0-9]/i);
+    expect(events.find((e) => e.phase === 'failed').detail).toBe('That could not be read right now.');
+  });
+
   it('keeps what the person already read when the stream breaks midway', async () => {
     streamCall.mockImplementation(async ({ onChunk }) => {
       onChunk('{"text":"Clothing took 116,76 EUR. ');
