@@ -37,6 +37,9 @@ const callRoutes = (await import('../../../api/routes/presence-call.js')).defaul
 
 function createApp() {
   const app = express();
+  // As server.js mounts it: a 2 MB parser for the elder channel ahead of the
+  // 100 kB default, so a 40-minute transcript is not refused with 413.
+  app.use('/api/presence-call', express.json({ limit: '2mb' }));
   app.use(express.json());
   app.use('/api/presence-call', callRoutes);
   return app;
@@ -80,6 +83,59 @@ describe('GET /:token', () => {
   });
 });
 
+describe('GET /:token — only an active presence answers its link', () => {
+  it.each(['draft', 'paused', 'deleted'])('answers 404 for a %s presence', async (status) => {
+    process.env.ELEVENLABS_PRESENCE_AGENT_ID = 'agent-1';
+    store.findPresenceByCallToken.mockResolvedValue(ok({ ...PRESENCE, status }));
+
+    const res = await request(createApp()).get(`/api/presence-call/${TOKEN}`);
+
+    expect(res.status).toBe(404);
+    expect(brief.compileCallBrief).not.toHaveBeenCalled();
+    delete process.env.ELEVENLABS_PRESENCE_AGENT_ID;
+  });
+});
+
+describe('POST /:token/complete — the transcript of a long call', () => {
+  it('stores a 40-minute conversation whose body is over 100 kB', async () => {
+    const transcript = Array.from({ length: 300 }, (_, i) => ({ role: i % 2 ? 'assistant' : 'user', content: 'x'.repeat(600) }));
+
+    const res = await complete({ transcript, duration_seconds: 2400 });
+
+    expect(res.status).toBe(201);
+    expect(store.createConversation.mock.calls[0][0].turn_count).toBe(300);
+  });
+});
+
+describe('POST /:token/complete — a note is delivered only by a call that happened', () => {
+  it('does not mark notes delivered when she never spoke', async () => {
+    const res = await complete({ transcript: [{ role: 'assistant', content: 'Oi, Lurdes!' }], duration_seconds: 4 });
+
+    expect(res.status).toBe(201);
+    expect(store.markQueuedNotesDelivered).not.toHaveBeenCalled();
+  });
+
+  it('does not mark notes delivered when the call dropped within a minute', async () => {
+    const res = await complete({
+      transcript: [{ role: 'assistant', content: 'Oi' }, { role: 'user', content: 'Oi, filha' }, { role: 'assistant', content: 'Ana pediu para eu te contar...' }],
+      duration_seconds: 20,
+    });
+
+    expect(res.status).toBe(201);
+    expect(store.markQueuedNotesDelivered).not.toHaveBeenCalled();
+  });
+
+  it('marks notes delivered once she has spoken and the call lasted', async () => {
+    const res = await complete({
+      transcript: [{ role: 'assistant', content: 'Oi' }, { role: 'user', content: 'Oi, filha' }, { role: 'assistant', content: 'Ana pediu para eu te contar...' }],
+      duration_seconds: 90,
+    });
+
+    expect(res.status).toBe(201);
+    expect(store.markQueuedNotesDelivered).toHaveBeenCalledWith(PRESENCE.id);
+  });
+});
+
 describe('GET /:token/home', () => {
   it('answers 500, not an empty home, when a home query fails', async () => {
     store.getElderHome.mockResolvedValue({ notes: fail('timeout'), conversations: ok([]), error: { message: 'timeout' } });
@@ -94,7 +150,10 @@ describe('POST /:token/complete', () => {
   it('still answers 201, and logs, when the queued notes cannot be marked delivered', async () => {
     store.markQueuedNotesDelivered.mockResolvedValue(fail('timeout'));
 
-    const res = await complete({ transcript: [], duration_seconds: 3 });
+    const res = await complete({
+      transcript: [{ role: 'assistant', content: 'Oi' }, { role: 'user', content: 'Oi, filha' }, { role: 'assistant', content: 'Que bom.' }],
+      duration_seconds: 90,
+    });
 
     expect(res.status).toBe(201);
     expect(res.body).toEqual({ success: true, conversation_id: 'conv-1' });

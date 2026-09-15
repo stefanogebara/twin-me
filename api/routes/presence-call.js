@@ -30,6 +30,10 @@ const router = express.Router();
 const TOKEN_RE = /^[A-Za-z0-9_-]{20,64}$/;
 const MAX_TRANSCRIPT_TURNS = 400;
 const MAX_TURN_CHARS = 4000;
+// A call counts as having happened (so a queued note counts as read to her) only
+// once she has spoken, the agent has answered her, and a minute has passed.
+const MIN_DELIVERED_CALL_SECONDS = 60;
+const MIN_DELIVERED_CALL_TURNS = 3;
 
 async function loadByToken(req, res) {
   const { token } = req.params;
@@ -43,7 +47,9 @@ async function loadByToken(req, res) {
     res.status(500).json({ success: false, error: 'Lookup failed' });
     return null;
   }
-  if (!data || data.status === 'paused') {
+  // A draft has not finished setup, a paused one asked for quiet, a deleted one is
+  // gone: only an active presence answers its link.
+  if (!data || data.status !== 'active') {
     res.status(404).json({ success: false, error: 'Call link not found' });
     return null;
   }
@@ -139,11 +145,17 @@ router.post('/:token/complete', async (req, res) => {
     });
     if (error) throw error;
 
-    // Queued notes were woven into this call's brief — mark them delivered. The call is
-    // stored already, so a failure is logged, not sent to her page (a retry would store
-    // the call twice); the notes stay queued and are carried into her next call again.
-    const { error: notesError } = await markQueuedNotesDelivered(presence.id);
-    if (notesError) log.error('Queued notes not marked delivered', { error: notesError.message });
+    // Queued notes were woven into this call's brief — mark them delivered, but only if
+    // the call happened (a connect-and-drop never read them to her). The call is stored
+    // already, so a failure is logged, not sent to her page (a retry would store the
+    // call twice); the notes stay queued and are carried into her next call again.
+    const callHappened = transcript.some((t) => t.role === 'user')
+      && transcript.length >= MIN_DELIVERED_CALL_TURNS
+      && durationSeconds >= MIN_DELIVERED_CALL_SECONDS;
+    if (callHappened) {
+      const { error: notesError } = await markQueuedNotesDelivered(presence.id);
+      if (notesError) log.error('Queued notes not marked delivered', { error: notesError.message });
+    }
 
     // Summarize in the background; the elder page never waits on an LLM.
     summarizeConversation(conversation.id, presence, transcript).catch((err) =>
