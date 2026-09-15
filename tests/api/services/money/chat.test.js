@@ -22,7 +22,7 @@ vi.mock('../../../../api/services/money/store.js', async (importOriginal) => {
 });
 
 const {
-  assemble, buildFigure, validateAction, receiptsFor, parseReply, shortCircuit, assembleReply, contextText, euroGlyphs, answer, act, FIGURE_KINDS, RULES, asksWhereItWent, basisOf, amountKey,
+  assemble, buildFigure, validateAction, receiptsFor, parseReply, shortCircuit, assembleReply, contextText, euroGlyphs, answer, act, FIGURE_KINDS, RULES, asksWhereItWent, basisOf, amountKey, isShortAsk,
 } = await import('../../../../api/services/money/chat.js');
 
 const NOW = new Date('2026-09-08T12:00:00Z');
@@ -265,6 +265,22 @@ describe('the rules', () => {
   it('tell the model an action is an offer, never something done', () => {
     expect(RULES).toMatch(/Actions are offers the person taps, never things you did/);
     expect(RULES).toMatch(/must not claim to have changed, marked or recorded anything/);
+  });
+});
+
+describe('isShortAsk', () => {
+  it('a short question or request is an ask; a statement that teaches is not', () => {
+    expect(isShortAsk('What comes back every month?')).toBe(true);
+    expect(isShortAsk('what comes back every month')).toBe(true);
+    expect(isShortAsk('subscriptions')).toBe(true);
+    expect(isShortAsk('How does this month compare?')).toBe(true);
+    expect(isShortAsk('maria dolores is the woman who gets me the real madrid tickets for 50 euros per person, so many times see if money comes back from 50 euro transfers or 200 euro to me as friends sometimes buy from me')).toBe(false);
+    expect(isShortAsk('Spotify is my flatmate\'s, it comes back every month but it is not mine')).toBe(false);
+    expect(isShortAsk('')).toBe(false);
+  });
+  it('the shortcut never answers a statement with the list of subscriptions', () => {
+    const ctx = { recurring: [{ merchant_key: 'spotify', merchant_name: 'Spotify', cadence: 'monthly', typical_amount: 11.99, charges: [] }], segments: [], transactions: [], questions: { opening: [], fromLedger: [] } };
+    expect(shortCircuit('maria dolores is the woman who gets me the real madrid tickets, see if money comes back from 50 euro transfers to me', ctx)).toBe(null);
   });
 });
 

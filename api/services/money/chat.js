@@ -457,8 +457,26 @@ function plainProse(raw) {
  * The two asks that need no model: what comes back, and the months side by side. Both are a
  * figure with a computed sentence, so they cost nothing and cannot be wrong in phrasing.
  */
+/**
+ * Whether a message is a short ask the ledger can answer without the model: a question or a
+ * request in a dozen words at most. A statement is never one. "maria dolores is the woman
+ * who gets me the real madrid tickets... see if money comes back from 50 euro transfers"
+ * carries "comes back" and got the list of subscriptions for an answer on 2026-09-15; the
+ * person was teaching, not asking. Pure.
+ */
+export function isShortAsk(message) {
+  const m = String(message || '').trim();
+  const words = m.split(/\s+/).filter(Boolean);
+  if (!words.length || words.length > 12) return false;
+  if (/\b(is|are|was|were|am)\s+(my|the|a|an|our|his|her)\b/i.test(m) && !/\?/.test(m)) return false;
+  /* A correction is an instruction, however short: "do not count X", "that is wrong". */
+  if (/\b(do not|don'?t|never|wrong|not mine|isn'?t|is not|stop)\b/i.test(m)) return false;
+  return /\?$/.test(m) || /^(what|which|how|show|list|tell|do|does|can|any|que|qu\u00e9|cu\u00e1l|cual|cu\u00e1nto|cuanto|dime|muestra)\b/i.test(m) || words.length <= 6;
+}
+
 export function shortCircuit(message, ctx) {
   const m = String(message || '').toLowerCase();
+  if (!isShortAsk(message)) return null;
   if (/\b(subscri|suscrip|recurring|comes? back|every month|cada mes)/.test(m) && !/\b(cancel|not mine|isn'?t mine|fix|wrong|change)\b/.test(m)) {
     const built = buildFigure({ kind: 'recurring' }, ctx);
     if (!built) return { text: 'Nothing comes back regularly yet. The ledger needs to see a charge at least twice to call it that.', figures: [], actions: [], receipts: [] };
