@@ -271,15 +271,16 @@
 }
 
 /* ---------------------------------------------------------------- waiting
-   The page between pressing and arriving: one line, a thin ink sweep, the same
-   ground as the page that follows. Reduced motion gets a still half-tone bar. */
-.mv-wait { min-height: 100vh; display: grid; place-items: center; box-sizing: border-box; padding: 24px; background: var(--page); color: var(--ink); }
-.mv-wait-col { width: min(24rem, 100%); display: grid; gap: 12px; }
+   The page between pressing and arriving: the orb at 64, breathing, one line under it,
+   the same ground as the page that follows. Bare (no line), it is the loading screen. */
+.mv-wait { min-height: 100vh; min-height: 100dvh; display: grid; place-items: center; box-sizing: border-box; padding: 24px; background: var(--page); color: var(--ink); }
+.mv-wait-col { width: min(24rem, 100%); display: grid; gap: 12px; justify-items: start; }
+.mv-wait-col.is-bare { width: auto; }
+.mv-wait-col > .orb { margin-bottom: 12px; }
 .mv .mv-wait-line { font-weight: 500; }
-.mv-wait-track { display: block; height: 2px; margin-top: 4px; border-radius: 1px; background: var(--rule); overflow: hidden; }
-.mv-wait-track > i { display: block; width: 40%; height: 100%; background: var(--ink); animation: mv-wait-sweep 1.4s ease-in-out infinite; }
-@keyframes mv-wait-sweep { from { transform: translateX(-100%); } to { transform: translateX(250%); } }
-@media (prefers-reduced-motion: reduce) { .mv-wait-track > i { animation: none; width: 100%; opacity: 0.4; } }
+
+/* A bank being read: the orb sits before its grey line. */
+.mv .mv-item-sub--live { display: inline-flex; align-items: center; gap: 8px; }
 
 /* One warm accent for now: today's bar in the strip, and the keep's wall on the band. Last, so it wins. */
 .mv .mv-strip-day--today .mv-strip-bar { background: var(--rg-ember); }

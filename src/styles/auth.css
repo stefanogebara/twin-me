@@ -41,6 +41,9 @@
 .mv .au-code { font-family: var(--mono); letter-spacing: 0.04em; }
 
 .mv .au-note { color: var(--ink-2); font-weight: 350; }
+/* Waiting for the email: the orb beside the sentence, both on one line. */
+.mv .au-waiting { display: flex; align-items: flex-start; gap: 10px; }
+.mv .au-waiting > .orb { margin-top: 0; }
 /* A link inside a note (the legal line): underlined, since .mv strips links. */
 .mv .au-link { color: var(--ink); text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 3px; }
 .mv .au-note--error { color: var(--danger); }

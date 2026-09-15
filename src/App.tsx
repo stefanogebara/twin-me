@@ -179,8 +179,8 @@ const App = () => {
                 sign-in, then deep-links the session back via twinme://. Public
                 route — it branches on signed-in/out itself. */}
             <Route path="/desktop-handoff" element={<Navigate to="/auth" replace />} />
-            <Route path="/waitlist" element={<Suspense fallback={null}><WaitlistPage /></Suspense>} />
-            <Route path="/beta" element={<Suspense fallback={null}><BetaSignupPage /></Suspense>} />
+            <Route path="/waitlist" element={<Suspense fallback={<Wait line="" />}><WaitlistPage /></Suspense>} />
+            <Route path="/beta" element={<Suspense fallback={<Wait line="" />}><BetaSignupPage /></Suspense>} />
             <Route path="/login" element={<Navigate to="/auth" replace />} />
             <Route path="/signin" element={<Navigate to="/auth" replace />} />
 
@@ -203,15 +203,15 @@ const App = () => {
                 (product-truth-review 2026-08-09, Phase 0 item 4). In prod these
                 paths fall through to the NotFound catch-all. */}
             {import.meta.env.DEV && (
-            <Route element={<Suspense fallback={null}><Outlet /></Suspense>}>
+            <Route element={<Suspense fallback={<Wait line="" />}><Outlet /></Suspense>}>
             <Route path="/preview/stardust-hero" element={<div className="w-full min-h-screen" style={{ background: 'var(--background)' }}><StardustHero /></div>} />
             <Route path="/preview/stardust" element={<StardustLanding />} />
-            <Route path="/nocturne" element={<Suspense fallback={null}><NocturneLanding /></Suspense>} />
+            <Route path="/nocturne" element={<Suspense fallback={<Wait line="" />}><NocturneLanding /></Suspense>} />
             {/* The register's living spec. /nocturne/system is its old address and keeps working. */}
-            <Route path="/system" element={<Suspense fallback={null}><NocturneSpec /></Suspense>} />
-            <Route path="/nocturne/system" element={<Suspense fallback={null}><NocturneSpec /></Suspense>} />
-            <Route path="/nocturne/signature" element={<Suspense fallback={null}><NocturneSignature /></Suspense>} />
-            <Route path="/nocturne/twin" element={<Suspense fallback={null}><NocturneTwin /></Suspense>} />
+            <Route path="/system" element={<Suspense fallback={<Wait line="" />}><NocturneSpec /></Suspense>} />
+            <Route path="/nocturne/system" element={<Suspense fallback={<Wait line="" />}><NocturneSpec /></Suspense>} />
+            <Route path="/nocturne/signature" element={<Suspense fallback={<Wait line="" />}><NocturneSignature /></Suspense>} />
+            <Route path="/nocturne/twin" element={<Suspense fallback={<Wait line="" />}><NocturneTwin /></Suspense>} />
             <Route path="/preview/landing" element={<CinematicFrame src="/cinematic/landing.html" title="Twin.me — cinematic landing" />} />
             <Route path="/preview/dashboard" element={<CinematicFrame src="/cinematic/dashboard.html" title="Twin.me — cinematic dashboard" />} />
             <Route path="/preview/talk" element={<CinematicFrame src="/cinematic/talk.html" title="Twin.me — cinematic talk" />} />
@@ -390,7 +390,7 @@ const App = () => {
             <Route path="/money" element={
               <ProtectedRoute>
                 <ErrorBoundary>
-                  <Suspense fallback={null}><MoneyV2Page view="today" /></Suspense>
+                  <Suspense fallback={<Wait line="" />}><MoneyV2Page view="today" /></Suspense>
                 </ErrorBoundary>
               </ProtectedRoute>
             } />
@@ -399,14 +399,14 @@ const App = () => {
             <Route path="/money/month" element={
               <ProtectedRoute>
                 <ErrorBoundary>
-                  <Suspense fallback={null}><MoneyV2Page view="month" /></Suspense>
+                  <Suspense fallback={<Wait line="" />}><MoneyV2Page view="month" /></Suspense>
                 </ErrorBoundary>
               </ProtectedRoute>
             } />
             <Route path="/money/you" element={
               <ProtectedRoute>
                 <ErrorBoundary>
-                  <Suspense fallback={null}><MoneyV2Page view="you" /></Suspense>
+                  <Suspense fallback={<Wait line="" />}><MoneyV2Page view="you" /></Suspense>
                 </ErrorBoundary>
               </ProtectedRoute>
             } />
@@ -416,7 +416,7 @@ const App = () => {
             <Route path="/money/setup" element={
               <ProtectedRoute>
                 <ErrorBoundary>
-                  <Suspense fallback={null}><MoneySetupPage /></Suspense>
+                  <Suspense fallback={<Wait line="" />}><MoneySetupPage /></Suspense>
                 </ErrorBoundary>
               </ProtectedRoute>
             } />
@@ -426,7 +426,7 @@ const App = () => {
             <Route path="/money/chat" element={
               <ProtectedRoute>
                 <ErrorBoundary>
-                  <Suspense fallback={null}><MoneyChatPage /></Suspense>
+                  <Suspense fallback={<Wait line="" />}><MoneyChatPage /></Suspense>
                 </ErrorBoundary>
               </ProtectedRoute>
             } />
@@ -492,7 +492,7 @@ const App = () => {
               <ProtectedRoute>
                 <SidebarLayout>
                   <ErrorBoundary>
-                    <Suspense fallback={null}><PricingPage /></Suspense>
+                    <Suspense fallback={<Wait line="" />}><PricingPage /></Suspense>
                   </ErrorBoundary>
                 </SidebarLayout>
               </ProtectedRoute>

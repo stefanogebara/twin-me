@@ -21,6 +21,7 @@ import { KindTile, Stamp } from './Carved';
 import { markFor } from './carvedKinds';
 import { MARK_FOR, hasMark } from './markPaths';
 import { moneyAPI, euro, shortDay, bankLabel, BANKS, type MoneyAccount, type MoneyCalendar, type MoneyCategories, type MoneyDayStrip, type MoneyFact, type MoneyForecast, type MoneyQuestions, type MoneyToday, type MoneyMonth, type MoneyReading, type MoneyRecurring, type MoneySighting, type MoneyTransaction, type MoneyUsage } from '../../services/api/moneyAPI';
+import LedgerOrb from '../../components/LedgerOrb';
 
 const CADENCE: Record<string, string> = { weekly: 'every week', biweekly: 'every two weeks', monthly: 'every month', quarterly: 'every quarter', yearly: 'every year' };
 const SOURCE: Record<string, string> = { phone: 'Your phone', bizum: 'Bizum', bankfeed: 'Santander', gmail: 'Gmail', statement: 'Statement' };
@@ -865,7 +866,10 @@ export default function MoneyV2Page({ view = 'today' }: { view?: MoneyView } = {
                       <span className="mv-item-text">
                         <span className="mv-item-title">{bank.label}</span>
                         {/* The booked line describes the accounts under this row, not the other bank's. */}
-                        <span className="mv-item-sub" aria-live="polite">{mine.length ? bankLine : first ? 'Read four times a day. You confirm it every six months.' : 'Read four times a day, like the other.'}</span>
+                        <span className="mv-item-sub mv-item-sub--live" aria-live="polite">
+                          {mine.length && (busy === 'pull' || busy === 'connect') ? <LedgerOrb state={busy === 'pull' ? 'searching' : 'connecting'} size={20} label="" /> : null}
+                          {mine.length ? bankLine : first ? 'Read four times a day. You confirm it every six months.' : 'Read four times a day, like the other.'}
+                        </span>
                       </span>
                       {/* Only once the accounts are in: before that the row offered a black Connect
                           that turned into Read now a moment later. */}

@@ -84,10 +84,6 @@
 .mc .mc-step .mv-item-title { color: var(--ink-2); font-weight: 400; }
 .mc .mc-step.is-live .mv-item-title { color: var(--ink); font-weight: 500; }
 
-@media (prefers-reduced-motion: reduce) {
-  .mc .mc-line-text.is-writing::after, .mc-dots > i { animation: none; }
-}
-
 @media (max-width: 1099px) {
   .mc-columns { grid-template-columns: minmax(0, 1fr); gap: 40px; }
   .mc-side { position: static; padding-bottom: 40px; }
@@ -108,23 +104,14 @@
 .mc .mc-line--you .mc-line-text { color: var(--ink-2); }
 .mc .mc-line-text { max-width: 40rem; white-space: pre-wrap; overflow-wrap: anywhere; }
 .mc .mc-line-text.is-pending { color: var(--ink-3); }
-/* Being written: a caret at the end of the last word, gone when the answer is whole. */
-.mc .mc-line-text.is-writing::after {
-  content: ''; display: inline-block; width: 2px; height: 0.95em; margin-left: 2px; vertical-align: -0.12em;
-  background: var(--ink); animation: mc-blink 1s steps(2, start) infinite;
-}
-@keyframes mc-blink { to { visibility: hidden; } }
+/* Being written: the composing orb at the end of the last word, gone when the answer is whole. */
+.mc .mc-writing { margin-left: 6px; vertical-align: -0.2em; }
 
-/* The ledger at work: the step it is on, three ink dots taking turns, and under it the
-   model's own reasoning as it is written, the newest lines in view, the older ones gone
-   above the fold. Quiet grey on the same page; never mistaken for the answer. */
+/* The ledger at work: the orb in the state of the work, the step in words beside it, and
+   under it the model's own reasoning as it is written, the newest lines in view, the older
+   ones gone above the fold. Quiet grey on the same page; never mistaken for the answer. */
 .mc-pending { display: grid; gap: 10px; justify-items: start; width: 100%; }
-.mc-dots { display: inline-flex; gap: 3px; margin-left: 6px; vertical-align: baseline; }
-.mc-dots > i { display: block; width: 4px; height: 4px; border-radius: 50%; background: var(--ink-3); animation: mc-dot 1.3s ease-in-out infinite; }
-.mc-dots > i:nth-child(2) { animation-delay: 0.18s; }
-.mc-dots > i:nth-child(3) { animation-delay: 0.36s; }
-.mc-dots.is-still > i { animation: none; opacity: 0.6; }
-@keyframes mc-dot { 0%, 70%, 100% { opacity: 0.25; transform: translateY(0); } 35% { opacity: 1; transform: translateY(-2px); } }
+.mc .mc-line-text.is-pending { display: flex; align-items: center; gap: 8px; }
 .mc-thinking { display: grid; gap: 6px; width: 100%; max-width: 40rem; }
 .mc-thinking-well { display: flex; flex-direction: column; justify-content: flex-end; max-height: 98px; overflow: hidden; padding: 0 14px; border-left: 1px solid var(--rule); }
 .mc .mc-thinking-text { margin: 0; color: var(--ink-3); font-weight: 350; white-space: pre-wrap; overflow-wrap: anywhere; }

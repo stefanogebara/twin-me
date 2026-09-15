@@ -290,3 +290,8 @@ textarea.rg-input--tall { min-height: 104px; }
     font-size: 16px !important;
   }
 }
+
+/* ------------------------------------------------------------------ the orb
+   The ledger at work (src/components/LedgerOrb.tsx). Its ink is this colour, read by the
+   canvas at mount; its ground is the page. One per screen, only while work runs. */
+.orb { display: inline-block; vertical-align: middle; color: var(--rg-ink); flex: none; }

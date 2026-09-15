@@ -25,6 +25,10 @@
 .fd-prompt { width: min(560px, calc(100% - 48px)); margin-top: 48px; }
 .fd-reveal { width: min(600px, calc(100% - 48px)); margin-top: 48px; }
 .fd-status { margin: 16px 0 0; padding: 0 var(--rg-gutter); text-align: center; }
+/* The orb over the plate while the reading runs: white ink, the photograph's own dark as
+   its ground (#09111b, the plate's average), 96 wide, the only thing moving besides the film. */
+.n-atmosphere { --orb-ground: #09111b; }
+.n-atmosphere .fd-orb { display: block; margin: 40px auto 0; color: var(--rg-white); }
 
 /* ---- sections sit 72 apart (56 on a phone), not twice that ---- */
 .fd .n-section { padding-top: 0; padding-bottom: var(--rg-section); }
