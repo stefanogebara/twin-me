@@ -1,0 +1,265 @@
+/* ============================================================================
+   PRESENCE ONBOARDING — seven steps, in the register
+   ============================================================================
+   /presence/onboarding is an app screen, built from the register's primitives
+   in presence-cosmos.css (.pc-app, .pc-shell, .pc-apphead, .pc-appsection,
+   .pc-list, .pc-row, .pc-field, .pc-switch; spec in
+   .claude/plans/2026-09-11-instinct-register/README.md).
+
+     sidebar — the seven steps as plain links (done ones go back, the current
+               one underlined), the record being made, and "Save and exit".
+               On phones it sits behind a "Step 3 of 7" menu button.
+     column  — the step's title and one grey line, then its lists: a field is
+               a row (label left, control right, as a preference sits in
+               Instinct's settings), a recorder is a row with one action.
+     footer  — Back, and the one primary action of the screen.
+
+   What went on 2026-09-11, and why:
+     - the room photograph, its veil and --ob-ink-on-room (measured for text on
+       that photograph): app screens have no photography
+     - the frosted plate and cards: rows, not cards. The plate's record moved
+       to the sidebar; its stock photograph (an album, an armchair) is gone
+     - Instrument Serif, the italic word and mono uppercase labels: headings
+       are Geist (Cosmos), labels are sentence case
+     - the dotted rail and the progress bar: the sidebar names the step
+     - in-step buttons that were primary: one primary per screen, so they
+       are secondary and Continue is the primary
+
+   Namespace is obx-* because every pc-ob-* class is SHARED (pc-ob-field by
+   WaitlistPage, CustomAuth and CosmosSpec). Scoped `.presence-cosmos .obx-*`
+   because the base sheet colours p by element at (0,1,1).
+   ========================================================================= */
+
+/* The step's title sits 24px above its first list, the way a section head
+   does: here the page title IS the first section's head. */
+.presence-cosmos.obx .pc-apphead {
+  margin: 0 0 24px;
+}
+
+/* Unless that first section brings its own heading: two headings 24px apart
+   read as one cramped block, so the section head steps down. */
+.presence-cosmos.obx .pc-apphead + .pc-appsection > .pc-sechead:first-child {
+  margin-top: 48px;
+}
+
+/* ---------------------------------------------------------- the record -- */
+
+.presence-cosmos .obx-record {
+  display: grid;
+  gap: 2px;
+  padding-top: 24px;
+  border-top: 1px solid var(--c-hairline);
+}
+
+.presence-cosmos .obx-record-name {
+  margin: 0;
+  font-size: var(--c-text);
+  line-height: var(--c-lh-title);
+  font-weight: 500;
+  color: var(--c-ink);
+}
+
+.presence-cosmos .obx-record-name.is-empty {
+  font-weight: var(--c-w-line);
+  color: var(--c-ink-3);
+}
+
+.presence-cosmos .obx-facts {
+  margin: 12px 0;
+  display: grid;
+  gap: 4px;
+}
+
+.presence-cosmos .obx-fact {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: var(--c-text);
+  line-height: var(--c-lh-text);
+}
+
+.presence-cosmos .obx-fact dt {
+  font-weight: var(--c-w-line);
+  color: var(--c-ink-3);
+}
+
+.presence-cosmos .obx-fact dd {
+  margin: 0;
+  text-align: right;
+  color: var(--c-ink);
+}
+
+.presence-cosmos .obx-fact dd.is-empty {
+  font-weight: var(--c-w-line);
+  color: var(--c-ink-3);
+}
+
+/* ------------------------------------------------------------- fields -- */
+
+/* A field as a row: the label and its one line on the left, the control on
+   the right. Phones stack them. */
+.presence-cosmos .obx-fieldrow {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 340px);
+}
+
+.presence-cosmos .obx-person {
+  align-items: end;
+}
+
+.presence-cosmos .obx-person-fields {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+/* Level with the 44px inputs: (44 - 24) / 2. */
+.presence-cosmos .obx-person > .pc-iconbtn {
+  margin-bottom: 10px;
+}
+
+/* A textarea (and its button) as one full-width row. */
+.presence-cosmos .obx-form {
+  grid-template-columns: minmax(0, 1fr);
+  row-gap: 12px;
+}
+
+.presence-cosmos .obx-form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+/* How you are together: the register's secondary button, one per tone; the
+   chosen one takes an ink border and a check, not a fill — the fill belongs
+   to the screen's one primary action. */
+.presence-cosmos .obx-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.presence-cosmos .obx-chip[aria-pressed='true'] {
+  border-color: var(--c-ink);
+  font-weight: 500;
+}
+
+/* ------------------------------------------------------------ recorder -- */
+
+/* Until consent is given the recorder is visibly out of reach. The section
+   carries aria-disabled, so the contrast audit treats it as disabled. */
+.presence-cosmos .obx-locked {
+  opacity: 0.42;
+  pointer-events: none;
+}
+
+.presence-cosmos .obx-listen {
+  grid-template-columns: auto auto;
+  justify-content: start;
+  column-gap: 8px;
+}
+
+.presence-cosmos .obx-error {
+  margin: 0;
+  font-size: var(--c-text);
+  line-height: var(--c-lh-text);
+  color: var(--c-danger);
+}
+
+/* The three sentences to read: 24x24 targets (WCAG 2.5.8) around a short bar. */
+.presence-cosmos .obx-dots {
+  display: flex;
+  gap: 2px;
+}
+
+.presence-cosmos .obx-dots button {
+  width: 24px;
+  height: 24px;
+  display: grid;
+  place-items: center;
+  border-radius: 4px;
+}
+
+.presence-cosmos .obx-dots button::before {
+  content: '';
+  width: 14px;
+  height: 3px;
+  border-radius: 2px;
+  background: var(--c-quiet);
+}
+
+.presence-cosmos .obx-dots button.is-current::before {
+  background: var(--c-ink);
+}
+
+.presence-cosmos .obx-dots button:focus-visible {
+  border-radius: 4px;
+}
+
+/* -------------------------------------------------------------- footer -- */
+
+.presence-cosmos .obx-footer {
+  margin-top: 72px;
+  padding-top: 24px;
+  border-top: 1px solid var(--c-hairline);
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 16px;
+}
+
+.presence-cosmos .obx-footer-hint {
+  margin: 0;
+  font-size: var(--c-text);
+  line-height: var(--c-lh-text);
+  font-weight: var(--c-w-line);
+  color: var(--c-ink-3);
+  text-align: center;
+}
+
+/* -------------------------------------------------------------- motion -- */
+/* A step arrives in 0.2s. Nothing moves in space. */
+
+.presence-cosmos .obx-step {
+  animation: obx-step-in 0.2s ease both;
+}
+
+@keyframes obx-step-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .presence-cosmos .obx-step { animation: none; }
+}
+
+/* ---------------------------------------------------------- responsive -- */
+
+@media (max-width: 767px) {
+  .presence-cosmos.obx .pc-apphead {
+    margin: 24px 0 24px;
+  }
+
+  .presence-cosmos .obx-fieldrow {
+    grid-template-columns: minmax(0, 1fr);
+    row-gap: 10px;
+  }
+
+  .presence-cosmos .obx-person-fields {
+    grid-template-columns: 1fr;
+  }
+
+  .presence-cosmos .obx-footer {
+    margin-top: 56px;
+    grid-template-columns: 1fr auto;
+  }
+
+  .presence-cosmos .obx-footer-hint {
+    grid-column: 1 / -1;
+    order: 3;
+    text-align: left;
+  }
+
+  .presence-cosmos .obx-footer-hint:empty {
+    display: none;
+  }
+}

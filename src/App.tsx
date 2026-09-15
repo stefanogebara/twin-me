@@ -96,6 +96,8 @@ const PricingPage = lazy(() => import("./pages/PricingPage"));
 const PresencePage = lazy(() => import("./pages/PresencePage"));
 const PresenceLandingPage = lazy(() => import("./pages/PresenceLandingPage"));
 const PresenceLoginPage = lazy(() => import("./pages/PresenceLoginPage"));
+const PresenceHome = lazy(() => import("./pages/presence/PresenceHome"));
+const PresenceCallPage = lazy(() => import("./pages/presence/PresenceCallPage"));
 
 
 
@@ -251,6 +253,15 @@ const App = () => {
             } />
             <Route path="/presence" element={<PresenceLandingPage />} />
             <Route path="/presence/login" element={<PresenceLoginPage />} />
+            {/* Elder channel: public, token-authed. She has no account. */}
+            <Route path="/call/:token" element={<PresenceCallPage />} />
+            <Route path="/presence/home" element={
+              <ProtectedRoute fallbackPath="/presence/login">
+                <ErrorBoundary>
+                  <PresenceHome />
+                </ErrorBoundary>
+              </ProtectedRoute>
+            } />
             <Route path="/presence/onboarding" element={
               <ProtectedRoute fallbackPath="/presence/login">
                 <ErrorBoundary>

@@ -1,0 +1,851 @@
+/**
+ * Presence API
+ * ============
+ * Family-relay AI companion for older adults. Backs /presence/onboarding and
+ * /presence/home. Data model: database/migrations/20260831_create_presence_tables.sql
+ * and the later presence_* migrations. Plans: .claude/plans/2026-08-27-twinme-presence
+ * (thesis, safety) and .claude/plans/2026-09-15-presence-forward (the way forward).
+ *
+ * Endpoints (all JWT-authenticated; ownership enforced on every :id):
+ *   GET    /api/presence/mine                    — resume: latest presence + people + voice + facts
+ *   POST   /api/presence                         — create a draft
+ *   PATCH  /api/presence/:id                     — update bond/tone/status (paused, active)
+ *   DELETE /api/presence/:id                     — soft delete; her link stops answering
+ *   POST   /api/presence/:id/consent             — append a consent record (never updates)
+ *   PUT    /api/presence/:id/people              — replace the family map (bounded, one transaction)
+ *   POST   /api/presence/:id/facts               — upsert one fact by (kind, question)
+ *   POST   /api/presence/:id/notes               — queue a note for her next conversation
+ *   POST   /api/presence/:id/about               — "me conta sobre ela": voice note or text -> people, facts
+ *   POST   /api/presence/:id/voice-samples       — clone her family member's voice (flagged)
+ *   POST   /api/presence/:id/voice-revoke        — withdraw that consent and delete the voice
+ *   POST   /api/presence/:id/call-link           — create or rotate her call link (readiness-gated)
+ *   GET    /api/presence/:id/overview            — everything the family page renders
+ *   GET    /api/presence/:id/readiness           — what she knows, what is missing, the gate
+ *   POST   /api/presence/:id/asks/:factId        — answer or dismiss a "quem é X?" card
+ *   GET    /api/presence/:id/conversations/:cid  — one transcript
+ *
+ * Uses public.users.id (req.user.id), NOT auth.users.id — CLAUDE.md convention.
+ * All table access goes through api/services/presenceStore.js.
+ */
+
+import express from 'express';
+import fs from 'fs';
+import path from 'path';
+import multer from 'multer';
+import { authenticateUser } from '../middleware/auth.js';
+import { voiceService } from '../services/voiceService.js';
+import {
+  findLivePresenceById,
+  getLatestPresenceForOwner,
+  createPresence,
+  updatePresence,
+  setCallToken,
+  setPresenceTone,
+  getReadinessSources,
+  getResumeDetails,
+  getOverview,
+  listActivePeople,
+  listActiveFacts,
+  replaceActivePeople,
+  addPeople,
+  enrichPerson,
+  saveFact,
+  addFacts,
+  supersedeFamilyIntroduction,
+  findOpenAsk,
+  dismissFact,
+  supersedeFact,
+  queueNote,
+  getConversationTranscript,
+  recordConsent,
+  appendConsent,
+  getLatestVoiceConsentKind,
+  getVoiceState,
+  getClonedVoiceId,
+  recordVoiceSample,
+  recordVoiceRevoked,
+  deletePresence,
+  listRecentCalls,
+  getOwnerWhatsApp,
+} from '../services/presenceStore.js';
+import { createLogger } from '../services/logger.js';
+import { deriveReadiness } from '../services/presenceReadiness.js';
+
+const log = createLogger('Presence');
+const router = express.Router();
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const PATCHABLE_FIELDS = ['cared_for_name', 'relationship', 'caller_name', 'tone', 'status'];
+// Her phone and the call schedule (Phase 1): validated apart from the text fields.
+const SCHEDULE_FIELDS = ['elder_phone', 'call_hour', 'call_days', 'call_timezone'];
+const E164_RE = /^\+[1-9][0-9]{7,14}$/;
+const TIMEZONES = new Set(typeof Intl.supportedValuesOf === 'function' ? Intl.supportedValuesOf('timeZone') : []);
+
+/** "+55 (11) 99999-0000" -> "+5511999990000"; null clears; anything else is invalid. */
+function parseSchedulePatch(body) {
+  const patch = {};
+  if (body.elder_phone !== undefined) {
+    if (body.elder_phone === null || body.elder_phone === '') {
+      patch.elder_phone = null;
+    } else {
+      const digits = String(body.elder_phone).replace(/[^\d+]/g, '');
+      const phone = digits.startsWith('+') ? `+${digits.slice(1).replace(/\+/g, '')}` : `+${digits}`;
+      // These four are shown to the family as they are, so they are in Portuguese.
+      if (!E164_RE.test(phone)) return { error: 'Telefone inválido: use o formato internacional, +55 11 99999 0000' };
+      patch.elder_phone = phone;
+    }
+  }
+  if (body.call_hour !== undefined) {
+    const hour = Number(body.call_hour);
+    if (!Number.isInteger(hour) || hour < 0 || hour > 23) return { error: 'Hora inválida' };
+    patch.call_hour = hour;
+  }
+  if (body.call_days !== undefined) {
+    const days = Array.isArray(body.call_days) ? [...new Set(body.call_days.map(Number))].sort((a, b) => a - b) : null;
+    if (!days || days.length === 0 || days.some((d) => !Number.isInteger(d) || d < 0 || d > 6)) return { error: 'Escolha pelo menos um dia' };
+    patch.call_days = days;
+  }
+  if (body.call_timezone !== undefined) {
+    const tz = String(body.call_timezone);
+    if (!TIMEZONES.has(tz)) return { error: 'Fuso horário inválido' };
+    patch.call_timezone = tz;
+  }
+  return { patch };
+}
+const VALID_STATUSES = new Set(['draft', 'active', 'paused', 'deleted']);
+const VALID_CONSENT_KINDS = new Set(['own_voice', 'own_voice_revoked', 'ai_disclosure']);
+const VALID_FACT_KINDS = new Set(['tone', 'language', 'boundary', 'anchor', 'biography', 'care_signal']);
+const MAX_PEOPLE = 8;
+// presence_voice CHECK (sample_count BETWEEN 0 AND 20) and CHECK (sample_seconds BETWEEN 0 AND 3600).
+const MAX_VOICE_SAMPLES = 20;
+const MAX_VOICE_SECONDS = 3600;
+
+// "Tell me about her" voice notes: disk-staged, transcribed, then deleted.
+const aboutUploadDir = './uploads/voice';
+const aboutUpload = multer({
+  storage: multer.diskStorage({
+    destination: (req, file, cb) => {
+      fs.mkdirSync(aboutUploadDir, { recursive: true });
+      cb(null, aboutUploadDir);
+    },
+    filename: (req, file, cb) => cb(null, `about-${Date.now()}-${Math.round(Math.random() * 1e6)}${path.extname(file.originalname) || '.webm'}`),
+  }),
+  limits: { fileSize: 25 * 1024 * 1024 },
+  fileFilter: (req, file, cb) => cb(null, /^audio\//.test(file.mimetype) || file.mimetype === 'video/webm'),
+});
+
+// Readiness: the compiled brief translated into plain language, plus the gate the
+// call link enforces. Thresholds are deliberately low (a widow with one child must
+// not be blocked) — the mirror does the persuading, not the gate.
+async function computeReadiness(presence) {
+  const { people, facts, notes, conversations, voice, error } = await getReadinessSources(presence.id);
+  if (error) throw error;
+  const kinds = (facts.data || []);
+  const count = (kind) => kinds.filter((f) => f.kind === kind && f.confidence !== 'ask').length;
+  const counts = {
+    people: people.count || 0,
+    anchors: count('anchor'),
+    boundaries: count('boundary'),
+    biography: count('biography'),
+    notes_queued: notes.count || 0,
+    conversations: conversations.count || 0,
+  };
+  const hasIntro = kinds.some((f) => f.kind === 'biography');
+  const derived = deriveReadiness({ caredForName: presence.cared_for_name, tone: presence.tone, counts, hasIntro });
+  return { ...derived, counts, voice_status: voice.data?.status || 'none' };
+}
+
+/** Fetch a presence and verify the requester owns it. Returns null after responding. */
+async function loadOwned(req, res) {
+  const { id } = req.params;
+  if (!UUID_RE.test(id)) {
+    res.status(400).json({ success: false, error: 'Invalid presence id' });
+    return null;
+  }
+  const { data, error } = await findLivePresenceById(id);
+  if (error) {
+    log.error('Presence lookup failed', { error: error.message });
+    res.status(500).json({ success: false, error: 'Lookup failed' });
+    return null;
+  }
+  if (!data || data.owner_user_id !== req.user.id) {
+    res.status(404).json({ success: false, error: 'Presence not found' });
+    return null;
+  }
+  return data;
+}
+
+const clip = (value, max) => String(value ?? '').slice(0, max);
+
+/** Identity of a fact for de-duplication: kind, question and answer, case- and space-insensitive. */
+function factKey({ kind, question, answer }) {
+  const norm = (v) => String(v || '').normalize('NFC').trim().toLowerCase();
+  return JSON.stringify([norm(kind), norm(question), norm(answer)]);
+}
+
+/** Find an existing person whose name is the same as, or a whole-word part of, the candidate. */
+function findSamePerson(people, candidateName) {
+  const norm = (v) => String(v || '').toLowerCase().normalize('NFC').trim();
+  const cand = norm(candidateName);
+  if (!cand) return null;
+  const words = (v) => norm(v).split(/\s+/).filter(Boolean);
+  const cw = words(cand);
+  return people.find((p) => {
+    const pn = norm(p.name);
+    if (!pn) return false;
+    if (pn === cand) return true;
+    const pw = words(pn);
+    // e.g. "tia rê" ⊇ "rê", "dona lurdes" ⊇ "lurdes" — shared last word or full containment as words
+    return pw.every((w) => cw.includes(w)) || cw.every((w) => pw.includes(w));
+  }) || null;
+}
+
+/**
+ * Delete a cloned voice at ElevenLabs. Resolves false, and logs, when that did not
+ * happen (the voice service is not configured, or the call failed); the caller then
+ * keeps the id, because a voice whose id is dropped can never be deleted.
+ */
+async function deleteClonedVoice(presenceId, voiceId) {
+  if (!voiceService.isEnabled()) {
+    log.error('Cloned voice not deleted: voice service not configured', { presenceId });
+    return false;
+  }
+  const deleted = await voiceService.deleteVoice(voiceId);
+  if (!deleted.success) log.error('Cloned voice not deleted at ElevenLabs', { presenceId, error: deleted.error });
+  return deleted.success;
+}
+
+// ====================================================================
+// GET /mine — resume the latest presence for this user
+// ====================================================================
+router.get('/mine', authenticateUser, async (req, res) => {
+  try {
+    const { data: presence, error } = await getLatestPresenceForOwner(req.user.id);
+    if (error) throw error;
+    if (!presence) return res.json({ success: true, presence: null });
+
+    const { people, voice, facts, error: detailsError } = await getResumeDetails(presence.id);
+    if (detailsError) throw detailsError;
+
+    res.json({
+      success: true,
+      presence,
+      people: people.data || [],
+      voice: voice.data || null,
+      facts: facts.data || [],
+    });
+  } catch (err) {
+    log.error('GET /mine failed', { error: err.message });
+    res.status(500).json({ success: false, error: 'Failed to load presence' });
+  }
+});
+
+// ====================================================================
+// POST / — create a draft
+// ====================================================================
+router.post('/', authenticateUser, async (req, res) => {
+  try {
+    const body = req.body || {};
+    const { data, error } = await createPresence({
+      owner_user_id: req.user.id,
+      cared_for_name: clip(body.cared_for_name, 120),
+      relationship: clip(body.relationship || 'grandmother', 40),
+      caller_name: clip(body.caller_name, 120),
+      tone: clip(body.tone, 80),
+    });
+    if (error) throw error;
+    res.status(201).json({ success: true, presence: data });
+  } catch (err) {
+    log.error('POST / failed', { error: err.message });
+    res.status(500).json({ success: false, error: 'Failed to create presence' });
+  }
+});
+
+// ====================================================================
+// PATCH /:id — update whitelisted fields
+// ====================================================================
+router.patch('/:id', authenticateUser, async (req, res) => {
+  try {
+    const owned = await loadOwned(req, res);
+    if (!owned) return;
+
+    const patch = {};
+    for (const field of PATCHABLE_FIELDS) {
+      if (req.body?.[field] === undefined) continue;
+      if (field === 'status') {
+        if (!VALID_STATUSES.has(req.body.status)) {
+          return res.status(400).json({ success: false, error: 'Invalid status' });
+        }
+        patch.status = req.body.status;
+      } else {
+        patch[field] = clip(req.body[field], field === 'relationship' ? 40 : field === 'tone' ? 80 : 120);
+      }
+    }
+    if (SCHEDULE_FIELDS.some((field) => req.body?.[field] !== undefined)) {
+      const schedule = parseSchedulePatch(req.body);
+      if (schedule.error) return res.status(400).json({ success: false, error: schedule.error });
+      Object.assign(patch, schedule.patch);
+    }
+    if (Object.keys(patch).length === 0) {
+      return res.status(400).json({ success: false, error: 'No patchable fields provided' });
+    }
+    patch.updated_at = new Date().toISOString();
+
+    const { data, error } = await updatePresence(owned.id, patch);
+    if (error) throw error;
+    res.json({ success: true, presence: data });
+  } catch (err) {
+    log.error('PATCH /:id failed', { error: err.message });
+    res.status(500).json({ success: false, error: 'Failed to update presence' });
+  }
+});
+
+// ====================================================================
+// POST /:id/consent — append-only consent record
+// ====================================================================
+router.post('/:id/consent', authenticateUser, async (req, res) => {
+  try {
+    const owned = await loadOwned(req, res);
+    if (!owned) return;
+
+    const { kind, text_version: textVersion } = req.body || {};
+    if (!VALID_CONSENT_KINDS.has(kind) || !textVersion) {
+      return res.status(400).json({ success: false, error: 'kind and text_version are required' });
+    }
+    const { data, error } = await recordConsent(
+      { presence_id: owned.id, user_id: req.user.id, kind, text_version: clip(textVersion, 2000) },
+    );
+    if (error) throw error;
+    res.status(201).json({ success: true, consent: data });
+  } catch (err) {
+    log.error('POST consent failed', { error: err.message });
+    res.status(500).json({ success: false, error: 'Failed to record consent' });
+  }
+});
+
+// ====================================================================
+// PUT /:id/people — replace the family map
+// ====================================================================
+router.put('/:id/people', authenticateUser, async (req, res) => {
+  try {
+    const owned = await loadOwned(req, res);
+    if (!owned) return;
+
+    const incoming = Array.isArray(req.body?.people) ? req.body.people : null;
+    if (!incoming) return res.status(400).json({ success: false, error: 'people array is required' });
+
+    const rows = incoming
+      .map((p) => ({
+        name: clip(p?.name, 120).trim(),
+        relation: clip(p?.relation, 80).trim(),
+        called_by: clip(p?.called_by, 120).trim(),
+      }))
+      .filter((p) => p.name.length > 0)
+      .slice(0, MAX_PEOPLE);
+
+    // Replace-all sync in one transaction: the old map is retired only if the new one saves.
+    const { data: people, error } = await replaceActivePeople(owned.id, rows);
+    if (error) throw error;
+    res.json({ success: true, people: people || [] });
+  } catch (err) {
+    log.error('PUT people failed', { error: err.message });
+    res.status(500).json({ success: false, error: 'Failed to save family map' });
+  }
+});
+
+// ====================================================================
+// POST /:id/facts — upsert one fact by (kind, question)
+// ====================================================================
+router.post('/:id/facts', authenticateUser, async (req, res) => {
+  try {
+    const owned = await loadOwned(req, res);
+    if (!owned) return;
+
+    const { kind, question = '', answer } = req.body || {};
+    if (!VALID_FACT_KINDS.has(kind) || !answer || !String(answer).trim()) {
+      return res.status(400).json({ success: false, error: 'kind and answer are required' });
+    }
+    const source = req.body?.source === 'family_app' ? 'family_app' : 'family_onboarding';
+
+    const { data: fact, error } = await saveFact(owned.id, {
+      kind, question: clip(question, 1000), answer: clip(answer, 4000), source,
+    });
+    if (error) throw error;
+    res.status(201).json({ success: true, fact });
+  } catch (err) {
+    log.error('POST facts failed', { error: err.message });
+    res.status(500).json({ success: false, error: 'Failed to save fact' });
+  }
+});
+
+// ====================================================================
+// POST /:id/notes — queue a note for her next conversation
+// ====================================================================
+router.post('/:id/notes', authenticateUser, async (req, res) => {
+  try {
+    const owned = await loadOwned(req, res);
+    if (!owned) return;
+
+    const body = String(req.body?.body || '').trim();
+    if (!body) return res.status(400).json({ success: false, error: 'body is required' });
+
+    const { data, error } = await queueNote({ presence_id: owned.id, author_user_id: req.user.id, body: clip(body, 2000) });
+    if (error) throw error;
+    res.status(201).json({ success: true, note: data });
+  } catch (err) {
+    log.error('POST notes failed', { error: err.message });
+    res.status(500).json({ success: false, error: 'Failed to queue note' });
+  }
+});
+
+// ====================================================================
+// POST /:id/call-link — create or rotate the elder call link
+// ====================================================================
+router.post('/:id/call-link', authenticateUser, async (req, res) => {
+  try {
+    const owned = await loadOwned(req, res);
+    if (!owned) return;
+
+    const readiness = await computeReadiness(owned);
+    if (!readiness.ready) {
+      return res.status(409).json({
+        success: false,
+        error: 'The Presence is not ready for a first call yet',
+        missing: readiness.missing,
+        readiness,
+      });
+    }
+
+    const { randomBytes } = await import('crypto');
+    const token = randomBytes(24).toString('base64url');
+    const { error } = await setCallToken(owned.id, token);
+    if (error) throw error;
+
+    res.status(201).json({ success: true, call_path: `/call/${token}` });
+  } catch (err) {
+    log.error('POST call-link failed', { error: err.message });
+    res.status(500).json({ success: false, error: 'Failed to create call link' });
+  }
+});
+
+// ====================================================================
+// GET /:id/overview — everything the family dashboard renders
+// ====================================================================
+router.get('/:id/overview', authenticateUser, async (req, res) => {
+  try {
+    const owned = await loadOwned(req, res);
+    if (!owned) return;
+
+    const [overview, calls, whatsapp] = await Promise.all([
+      getOverview(owned.id),
+      listRecentCalls(owned.id, 10),
+      getOwnerWhatsApp(req.user.id),
+    ]);
+    const { presence, people, voice, facts, notes, conversations, error } = overview;
+    if (error) throw error;
+    if (calls.error) throw calls.error;
+    if (whatsapp.error) throw whatsapp.error;
+
+    res.json({
+      success: true,
+      presence: presence.data,
+      people: people.data || [],
+      voice: voice.data || null,
+      facts: facts.data || [],
+      notes: notes.data || [],
+      conversations: conversations.data || [],
+      calls: calls.data || [],
+      // The family member's own number, never the whole of it back to the page.
+      whatsapp: {
+        linked: Boolean(whatsapp.data?.channel_id),
+        phone_last4: whatsapp.data?.channel_id ? String(whatsapp.data.channel_id).slice(-4) : null,
+      },
+    });
+  } catch (err) {
+    log.error('GET overview failed', { error: err.message });
+    res.status(500).json({ success: false, error: 'Failed to load overview' });
+  }
+});
+
+// ====================================================================
+// GET /:id/readiness — what she knows, in plain language + the gate
+// ====================================================================
+router.get('/:id/readiness', authenticateUser, async (req, res) => {
+  try {
+    const owned = await loadOwned(req, res);
+    if (!owned) return;
+    const readiness = await computeReadiness(owned);
+    res.json({ success: true, ...readiness });
+  } catch (err) {
+    log.error('GET readiness failed', { error: err.message });
+    res.status(500).json({ success: false, error: 'Failed to compute readiness' });
+  }
+});
+
+// ====================================================================
+// POST /:id/about — "Tell me about her": voice note or text → structure
+// ====================================================================
+router.post('/:id/about', authenticateUser, aboutUpload.single('audio'), async (req, res) => {
+  const filePath = req.file?.path;
+  try {
+    const owned = await loadOwned(req, res);
+    if (!owned) return;
+
+    let transcript = String(req.body?.text || '').trim();
+    if (!transcript && filePath) {
+      if (!voiceService.speechToTextEnabled) {
+        return res.status(503).json({ success: false, error: 'Transcription is not configured' });
+      }
+      const stream = fs.createReadStream(filePath);
+      stream.name = req.file.originalname || 'about.webm';
+      const stt = await voiceService.speechToText(stream);
+      if (!stt.success) {
+        return res.status(502).json({ success: false, error: 'Could not transcribe the recording' });
+      }
+      transcript = String(stt.transcription || '').trim();
+    }
+    if (!transcript) {
+      return res.status(400).json({ success: false, error: 'Record a voice note or write a few lines' });
+    }
+    transcript = transcript.slice(0, 12000);
+
+    const { complete, TIER_ANALYSIS } = await import('../services/llmGateway.js');
+    const her = owned.cared_for_name?.trim() || 'her';
+    const completion = await complete({
+      tier: TIER_ANALYSIS,
+      serviceName: 'presence-about-extract',
+      userId: req.user.id,
+      system: `A family member is describing ${her}, an older relative, so an AI companion can know her. The family is Brazilian and reads everything you extract, so every value except the JSON keys and tone_hint is written em português do Brasil. Extract STRICT JSON only: {"people": [{"name": "", "relation": "relation TO ${her}, em português (e.g. filha, vizinha)", "called_by": "what ${her} calls them, or empty"}], "anchors": [{"kind": "place|dish|person|other", "value": "one specific story seed from her world"}], "boundaries": ["things the AI must never say or bring up"], "facts": [{"question": "short topic label", "answer": "one specific fact about her life, routines, health context, likes"}], "tone_hint": "one of: Gentle teasing, Very affectionate, Calm and practical, Storytelling, or empty"}. Keep names exactly as said. If a person has died, the relation MUST end with "(falecido)" or "(falecida)" — e.g. "marido (falecido)" — so the companion never speaks of them as living. Max 8 people, 6 anchors, 6 boundaries, 12 facts. Never invent.`,
+      messages: [{ role: 'user', content: transcript }],
+      maxTokens: 900,
+      temperature: 0.2,
+    });
+
+    let extracted = { people: [], anchors: [], boundaries: [], facts: [], tone_hint: '' };
+    try {
+      const content = completion?.content || '';
+      const parsed = JSON.parse(content.slice(content.indexOf('{'), content.lastIndexOf('}') + 1));
+      extracted = {
+        people: (Array.isArray(parsed.people) ? parsed.people : []).slice(0, 8)
+          .map((p) => ({ name: clip(p?.name, 120).trim(), relation: clip(p?.relation, 80).trim(), called_by: clip(p?.called_by, 120).trim() }))
+          .filter((p) => p.name),
+        anchors: (Array.isArray(parsed.anchors) ? parsed.anchors : []).slice(0, 6)
+          .map((a) => ({ kind: ['place', 'dish', 'person'].includes(a?.kind) ? a.kind : 'other', value: clip(a?.value, 500).trim() }))
+          .filter((a) => a.value),
+        boundaries: (Array.isArray(parsed.boundaries) ? parsed.boundaries : []).slice(0, 6).map((b) => clip(b, 500).trim()).filter(Boolean),
+        facts: (Array.isArray(parsed.facts) ? parsed.facts : []).slice(0, 12)
+          .map((f) => ({ question: clip(f?.question, 200).trim() || 'About her', answer: clip(f?.answer, 1000).trim() }))
+          .filter((f) => f.answer),
+        tone_hint: clip(parsed.tone_hint, 80).trim(),
+      };
+    } catch {
+      log.warn('About extraction returned non-JSON; saving transcript only');
+    }
+
+    // Persist: merge people by name (case-insensitive), upsert facts, keep the raw note.
+    // People are written before facts: if one fails, nothing else is saved and a retry is clean.
+    const { data: existingPeople, error: peopleError } = await listActivePeople(owned.id);
+    if (peopleError) throw peopleError;
+    const knownList = existingPeople || [];
+    const newPeople = [];
+    for (const person of extracted.people) {
+      const match = findSamePerson(knownList, person.name);
+      if (match) {
+        // Enrich the existing row instead of duplicating it.
+        const patch = {};
+        if (!match.relation && person.relation) patch.relation = person.relation;
+        if (!match.called_by && person.called_by) patch.called_by = person.called_by;
+        if (Object.keys(patch).length) {
+          const { error: enrichError } = await enrichPerson(match.id, patch);
+          if (enrichError) throw enrichError;
+        }
+      } else if (knownList.length + newPeople.length < MAX_PEOPLE) {
+        newPeople.push(person);
+        knownList.push({ id: null, ...person });
+      }
+    }
+    if (newPeople.length > 0) {
+      const { error: addError } = await addPeople(newPeople.map((p) => ({ presence_id: owned.id, ...p })));
+      if (addError) throw addError;
+    }
+
+    // A second description re-extracts what the first one already stored. Only what is
+    // new is inserted; the introduction always is, since it supersedes the older one.
+    const { data: knownFacts, error: knownError } = await listActiveFacts(owned.id);
+    if (knownError) throw knownError;
+    const known = new Set((knownFacts || []).map(factKey));
+    const factRows = [
+      { kind: 'biography', question: 'Family introduction', answer: transcript.slice(0, 4000) },
+      ...[
+        ...extracted.anchors.map((a) => ({ kind: 'anchor', question: a.kind === 'other' ? 'From her world' : `A ${a.kind} that matters`, answer: a.value })),
+        ...extracted.boundaries.map((b) => ({ kind: 'boundary', question: 'From the family', answer: b })),
+        ...extracted.facts.map((f) => ({ kind: 'biography', question: f.question, answer: f.answer })),
+      ].filter((r) => !known.has(factKey(r))),
+    ];
+    const { data: savedFacts, error: factError } = await addFacts(
+      factRows.map((r) => ({ presence_id: owned.id, source: 'family_onboarding', confidence: 'committed', ...r })),
+    );
+    if (factError) throw factError;
+
+    // Only now retire the introductions written before this one, so a failed insert
+    // never leaves her without one. The facts are saved, so these last two writes
+    // are logged rather than failed: a retry would store every fact twice.
+    const { error: introError } = await supersedeFamilyIntroduction(owned.id, savedFacts[0].created_at);
+    if (introError) log.error('Older family introduction not retired', { error: introError.message });
+
+    if (extracted.tone_hint && !owned.tone) {
+      const { error: toneError } = await setPresenceTone(owned.id, extracted.tone_hint);
+      if (toneError) log.error('Tone hint not saved', { error: toneError.message });
+    }
+
+    res.status(201).json({
+      success: true,
+      transcript,
+      extracted,
+      saved: { people: newPeople.length, facts: factRows.length },
+    });
+  } catch (err) {
+    log.error('POST about failed', { error: err.message });
+    res.status(500).json({ success: false, error: 'Failed to process the description' });
+  } finally {
+    if (filePath) fs.unlink(filePath, () => {});
+  }
+});
+
+// ====================================================================
+// POST /:id/voice-samples — upload a sample; clone it, or add it to the clone
+// ====================================================================
+// Policy: cloning spends real money and creates a voice on the ElevenLabs
+// account, so it runs only when PRESENCE_VOICE_CLONE_ENABLED=true. Without it
+// the sample is refused: a "queued" state had no worker behind it and the file
+// was deleted, so it was a dead end shown as progress. Consent is checked
+// first; samples are never stored server-side — the temp file is deleted after.
+router.post('/:id/voice-samples', authenticateUser, aboutUpload.single('audio'), async (req, res) => {
+  const filePath = req.file?.path;
+  try {
+    const owned = await loadOwned(req, res);
+    if (!owned) return;
+    if (!filePath) return res.status(400).json({ success: false, error: 'An audio sample is required' });
+
+    const cloneEnabled = process.env.PRESENCE_VOICE_CLONE_ENABLED === 'true' && voiceService.isEnabled();
+    if (!cloneEnabled) return res.status(503).json({ success: false, error: 'Voice build is not available yet' });
+
+    const { data: consents, error: consentError } = await getLatestVoiceConsentKind(owned.id);
+    if (consentError) throw consentError;
+    if (!consents?.length || consents[0].kind !== 'own_voice') {
+      return res.status(409).json({ success: false, error: 'Voice consent is required first' });
+    }
+
+    const seconds = Math.min(Math.max(parseInt(req.body?.sample_seconds, 10) || 0, 0), 600);
+    // A failed read must not look like "no voice yet": that would clone a second voice.
+    const { data: current, error: voiceError } = await getVoiceState(owned.id);
+    if (voiceError) throw voiceError;
+    let sampleTaken = true;
+    let status;
+    let voiceId = current?.elevenlabs_voice_id || null;
+    let note;
+
+    const voiceName = `Presence · ${owned.caller_name?.trim() || 'family'} → ${owned.cared_for_name?.trim() || 'her'}`;
+    if (voiceId && current?.status === 'ready') {
+      const added = await voiceService.addSamplesToVoice(voiceId, filePath, voiceName);
+      // A rejected sample leaves the cloned voice unchanged and still on her calls, so
+      // it stays 'ready' ('failed' would drop it from the call brief and make the next
+      // upload clone a new voice, orphaning this one); the sample is just not counted.
+      status = 'ready';
+      sampleTaken = added.success;
+      note = added.success ? 'Sample added to your voice.' : `Kept existing voice; new sample not added (${String(added.error).slice(0, 120)})`;
+    } else {
+      // An id still here belongs to a voice that is not on her calls (most often a
+      // revoke whose delete did not finish). Cloning would overwrite it and orphan
+      // that voice at ElevenLabs, so it is deleted first, or the sample waits.
+      if (voiceId) {
+        if (!(await deleteClonedVoice(owned.id, voiceId))) {
+          return res.status(502).json({ success: false, error: 'Your earlier voice is still being removed. Try again in a few minutes.' });
+        }
+        voiceId = null;
+      }
+      const cloned = await voiceService.cloneVoice(filePath, voiceName, `Presence voice, consent recorded. Presence ${owned.id}`);
+      if (cloned.success) {
+        voiceId = cloned.voiceId;
+        status = 'ready';
+        note = 'Your voice is ready. Her calls use it from now on.';
+      } else {
+        status = 'failed';
+        note = `Clone failed: ${String(cloned.error).slice(0, 160)}`;
+      }
+    }
+
+    const { data, error } = await recordVoiceSample({
+      presence_id: owned.id,
+      status,
+      sample_count: Math.min((current?.sample_count || 0) + (sampleTaken ? 1 : 0), MAX_VOICE_SAMPLES),
+      sample_seconds: Math.min((current?.sample_seconds || 0) + (sampleTaken ? seconds : 0), MAX_VOICE_SECONDS),
+      elevenlabs_voice_id: voiceId,
+      note: note.slice(0, 1000),
+      updated_at: new Date().toISOString(),
+    });
+    if (error) throw error;
+
+    res.status(201).json({ success: true, voice: data, clone_enabled: true });
+  } catch (err) {
+    log.error('POST voice-samples failed', { error: err.message });
+    res.status(500).json({ success: false, error: 'Failed to process the sample' });
+  } finally {
+    if (filePath) fs.unlink(filePath, () => {});
+  }
+});
+
+// ====================================================================
+// POST /:id/voice-revoke — consent withdrawal: delete the voice for real
+// ====================================================================
+router.post('/:id/voice-revoke', authenticateUser, async (req, res) => {
+  try {
+    const owned = await loadOwned(req, res);
+    if (!owned) return;
+
+    const { data: current, error: voiceError } = await getClonedVoiceId(owned.id);
+    if (voiceError) throw voiceError;
+
+    // The revocation record is what the voice consent gates read, so it is written
+    // before anything is deleted: if it cannot be stored, nothing has changed yet.
+    const { error: consentError } = await appendConsent({
+      presence_id: owned.id, user_id: req.user.id, kind: 'own_voice_revoked',
+      text_version: 'Consent withdrawn by the owner; cloned voice deleted.',
+    });
+    if (consentError) throw consentError;
+
+    // 'revoked' takes the voice off her calls either way (the brief only uses a 'ready'
+    // one). The id is dropped only once the voice is gone at ElevenLabs; a kept id is
+    // deleted by the next revoke, or before the next clone replaces it.
+    const voiceId = current?.elevenlabs_voice_id || null;
+    const deleted = voiceId ? await deleteClonedVoice(owned.id, voiceId) : true;
+
+    const { data, error } = await recordVoiceRevoked({
+      presence_id: owned.id,
+      status: 'revoked',
+      elevenlabs_voice_id: deleted ? null : voiceId,
+      note: deleted
+        ? 'Voice removed at your request.'
+        : 'Voice taken off her calls at your request. Deleting it at the voice provider has not finished yet.',
+      updated_at: new Date().toISOString(),
+    });
+    if (error) throw error;
+
+    res.json({ success: true, voice: data });
+  } catch (err) {
+    log.error('POST voice-revoke failed', { error: err.message });
+    res.status(500).json({ success: false, error: 'Failed to revoke the voice' });
+  }
+});
+
+// ====================================================================
+// DELETE /:id — the Presence is gone, as the onboarding promised
+// ====================================================================
+// Soft: the row is marked deleted and her link dropped, so every read excludes it
+// and her page answers "link not found". The cloned voice is deleted first; if that
+// fails it is logged and the id stays on the voice row for a later delete. Hard
+// deletion of transcripts and facts comes with export (Phase 3).
+router.delete('/:id', authenticateUser, async (req, res) => {
+  try {
+    const owned = await loadOwned(req, res);
+    if (!owned) return;
+
+    const { data: voice, error: voiceError } = await getClonedVoiceId(owned.id);
+    if (voiceError) throw voiceError;
+    if (voice?.elevenlabs_voice_id) await deleteClonedVoice(owned.id, voice.elevenlabs_voice_id);
+
+    const { error } = await deletePresence(owned.id);
+    if (error) throw error;
+
+    res.json({ success: true, deleted: true });
+  } catch (err) {
+    log.error('DELETE /:id failed', { error: err.message });
+    res.status(500).json({ success: false, error: 'Failed to delete the presence' });
+  }
+});
+
+// ====================================================================
+// POST /:id/asks/:factId — answer or dismiss a "who is X?" question card
+// ====================================================================
+router.post('/:id/asks/:factId', authenticateUser, async (req, res) => {
+  try {
+    const owned = await loadOwned(req, res);
+    if (!owned) return;
+    const { factId } = req.params;
+    if (!UUID_RE.test(factId)) return res.status(400).json({ success: false, error: 'Invalid ask id' });
+
+    const { data: ask, error: askError } = await findOpenAsk(owned.id, factId);
+    if (askError) throw askError;
+    if (!ask) return res.status(404).json({ success: false, error: 'Ask not found' });
+
+    const action = req.body?.action === 'dismiss' ? 'dismiss' : 'add';
+    if (action === 'dismiss') {
+      const { error: dismissError } = await dismissFact(ask.id);
+      if (dismissError) throw dismissError;
+      return res.json({ success: true, dismissed: true });
+    }
+
+    // The card's question is written by the summarizer (presence-call.js) as
+    // `Quem é "<name>"? Ela falou dessa pessoa na conversa.`; older cards used the English form.
+    const parsedName = (ask.question.match(/(?:Quem é|Who is) "(.+?)"\?/) || [])[1] || '';
+    const name = clip(req.body?.name || parsedName, 120).trim();
+    const relation = clip(req.body?.relation, 80).trim();
+    const calledBy = clip(req.body?.called_by, 120).trim();
+    if (!name) return res.status(400).json({ success: false, error: 'name is required' });
+
+    // The card is closed last: if any write fails it stays open, and answering it again
+    // finds the person already saved instead of adding them twice.
+    const { data: allPeople, error: peopleError } = await listActivePeople(owned.id);
+    if (peopleError) throw peopleError;
+    const existing = findSamePerson(allPeople || [], name);
+    if (!existing) {
+      const { error: addError } = await addPeople({ presence_id: owned.id, name, relation, called_by: calledBy });
+      if (addError) throw addError;
+    } else if (relation || calledBy) {
+      const { error: enrichError } = await enrichPerson(
+        existing.id,
+        { ...(relation ? { relation } : {}), ...(calledBy ? { called_by: calledBy } : {}) },
+      );
+      if (enrichError) throw enrichError;
+    }
+    if (relation) {
+      const { error: factError } = await addFacts({
+        presence_id: owned.id, kind: 'biography', question: `Who ${name} is`,
+        answer: `${name} is her ${relation}${calledBy ? ` — she calls them "${calledBy}"` : ''}.`,
+        source: 'family_app', confidence: 'committed',
+      });
+      if (factError) throw factError;
+    }
+    const { error: closeError } = await supersedeFact(ask.id);
+    if (closeError) throw closeError;
+    res.json({ success: true, person: { name, relation, called_by: calledBy } });
+  } catch (err) {
+    log.error('POST asks failed', { error: err.message });
+    res.status(500).json({ success: false, error: 'Failed to save the answer' });
+  }
+});
+
+// ====================================================================
+// GET /:id/conversations/:conversationId — the real transcript
+// ====================================================================
+// The dashboard shows a summary; a family member almost always wants to read what she
+// actually said, in her words.
+router.get('/:id/conversations/:conversationId', authenticateUser, async (req, res) => {
+  try {
+    const owned = await loadOwned(req, res);
+    if (!owned) return;
+    const { conversationId } = req.params;
+    if (!UUID_RE.test(conversationId)) return res.status(400).json({ success: false, error: 'Invalid conversation id' });
+
+    const { data, error } = await getConversationTranscript(owned.id, conversationId);
+    if (error) throw error;
+    if (!data) return res.status(404).json({ success: false, error: 'Conversation not found' });
+
+    res.json({ success: true, conversation: data });
+  } catch (err) {
+    log.error('GET conversation failed', { error: err.message });
+    res.status(500).json({ success: false, error: 'Failed to load the conversation' });
+  }
+});
+
+export default router;

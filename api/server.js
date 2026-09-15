@@ -341,6 +341,9 @@ app.use('/api/whatsapp/import', express.text({ limit: '10mb', type: 'text/plain'
 // specific 5mb limit wins for /api/extension/*.
 // audit-2026-05-28: extension v3.9.1 in prod hit 413 + 500 on every batch.
 app.use('/api/extension', express.json({ limit: '5mb' }));
+// The elder channel posts a whole call's transcript (up to 400 turns x 4,000 chars,
+// 1.6 MB); under the 100 kB default a 40-minute call was refused with 413 and lost.
+app.use('/api/presence-call', express.json({ limit: '2mb' }));
 
 // Parse JSON bodies — capture raw body for webhook signature verification
 app.use(express.json({
@@ -354,7 +357,8 @@ app.use(express.json({
         req.originalUrl.startsWith('/api/whatsapp-twin/webhook') ||
         req.originalUrl.startsWith('/api/telegram/webhook') ||
         req.originalUrl.startsWith('/api/money/inbox/resend') ||
-        req.originalUrl.startsWith('/api/nango-webhooks')) {
+        req.originalUrl.startsWith('/api/nango-webhooks') ||
+        req.originalUrl.startsWith('/api/webhooks/elevenlabs')) {
       req.rawBody = buf.toString('utf8');
     }
   },
@@ -474,6 +478,8 @@ import cronMemoryArchiveRoutes from './routes/cron-memory-archive.js';
 import cronMemoryForgettingRoutes from './routes/cron-memory-forgetting.js';
 import cronMoneyPullRoutes from './routes/cron-money-pull.js';
 import cronSoulSignatureRegenRoutes from './routes/cron-soul-signature-regen.js';
+import cronPresenceCallsRoutes from './routes/cron-presence-calls.js';
+import webhooksElevenlabsRoutes from './routes/webhooks-elevenlabs.js';
 import cronTwinSelfImprovementRoutes from './routes/cron-twin-self-improvement.js';
 import memoryHealthRoutes from './routes/memory-health.js';
 import memoriesRoutes from './routes/memories.js';
@@ -553,6 +559,8 @@ import telegramLinkRoutes from './routes/telegram-link.js';
 import whatsappLinkRoutes from './routes/whatsapp-link.js';
 import inngestRoutes from './routes/inngest.js';
 import skillsRoutes from './routes/skills.js';
+import presenceRoutes from './routes/presence.js';
+import presenceCallRoutes from './routes/presence-call.js';
 import twinScalingRoutes from './routes/twin-scaling.js';
 import multimodalRoutes from './routes/multimodal.js';
 import morningBriefingRoutes from './routes/morning-briefing.js';
@@ -696,6 +704,8 @@ app.use('/api/costs', (await import('./routes/cost-dashboard.js')).default); // 
 app.use('/api/insights', platformInsightsRoutes); // Platform-specific conversational insights
 app.use('/api/goals', goalsRoutes); // Twin-driven goal tracking (suggestions, progress, accountability)
 app.use('/api/twin-directives', twinDirectivesRoutes); // pi-reflect — learned directives from user corrections
+app.use('/api/presence', presenceRoutes); // Presence family relay (plan 2026-09-15-presence-forward)
+app.use('/api/presence-call', presenceCallRoutes); // Presence elder channel: public, token-authed
 app.use('/api/actions', actionsRoutes); // M1 action inbox — list + send/edit/reject voice-reply drafts
 app.use('/api/onboarding', onboardingWowRoutes); // M1 activation — POST /api/onboarding/wow (Gmail -> instant drafts + voice read)
 app.use('/api/observations', observationsClipRoutes); // TwinMe Desktop: batch clip sync (foreground app + window title -> observation memories)
@@ -722,6 +732,8 @@ app.use('/api/cron/memory-archive', cronMemoryArchiveRoutes);    // Daily memory
 app.use('/api/cron/memory-forgetting', cronMemoryForgettingRoutes); // Weekly multi-tier quality maintenance
 app.use('/api/cron/money-pull', cronMoneyPullRoutes); // Three bank reads a day, leaving one of the four for the person
 app.use('/api/cron/soul-signature-regen', cronSoulSignatureRegenRoutes); // Daily auto-regen of stale soul signatures (audit D-H2)
+app.use('/api/cron/presence-calls', cronPresenceCallsRoutes); // Hourly: dial the Presence elders whose local hour it is
+app.use('/api/webhooks/elevenlabs', webhooksElevenlabsRoutes); // Presence: post-call transcript (signed) and inbound-call initiation
 app.use('/api/cron/twin-self-improvement', cronTwinSelfImprovementRoutes); // Daily pi-reflect — extract directives from user corrections
 app.use('/api/memories', memoriesRoutes); // Memory stream browser with filters
 app.use('/api/memory-health', memoryHealthRoutes); // Memory stream health dashboard

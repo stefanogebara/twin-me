@@ -65,6 +65,9 @@ function verifyKapsoSignature(signature, rawBody) {
 // Parse incoming message from either Kapso or Meta native format into the
 // normalized shape the inbound pipeline expects.
 // ====================================================================
+/** Meta's `context.id`: the message this one replies to (a Presence digest, for one). */
+const quoted = (msg) => ({ messageId: msg?.context?.id || null });
+
 function parseIncomingMessage(body) {
   // Kapso v2 text
   if (body?.message?.type === 'text' && body?.message?.from) {
@@ -74,6 +77,7 @@ function parseIncomingMessage(body) {
       text: msg.text?.body,
       messageId: msg.id,
       contactName: msg.username || null,
+      context: quoted(msg),
       format: 'kapso_v2',
     };
   }
@@ -125,6 +129,7 @@ function parseIncomingMessage(body) {
       text: alias ? `conecta ${alias}` : (reply?.title || null),
       messageId: msg.id,
       contactName: msg.username || null,
+      context: quoted(msg),
       format: 'kapso_v2_interactive',
     };
   }
@@ -167,6 +172,7 @@ function parseIncomingMessage(body) {
       text: msg.text?.body,
       messageId: msg.id,
       contactName: contacts?.[0]?.profile?.name,
+      context: quoted(msg),
       format: 'meta_native',
     };
   }

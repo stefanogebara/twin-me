@@ -23,6 +23,7 @@
  *     image?:       { id, mimeType, caption },     // id = media id OR direct URL
  *     messageId?:   string,
  *     contactName?: string,
+ *     context?:     { messageId: string | null },   // Meta `context.id`: the message this one replies to
  *     format?:      string,         // for logging/debugging only
  *   }
  *
@@ -56,6 +57,7 @@ import { handleReceiptImage } from './transactions/pixReceiptIngest.js';
 import { handleFileUploadToDrive } from './transactions/whatsappFileIngest.js';
 import { sendWhatsAppCtaButton, sendWhatsAppList, deriveWaProvider } from './whatsappService.js';
 import { classifyConnectIntent, buildConnectLink, classifyDisconnectIntent, classifyConnectionStatusIntent, disconnectPlatform, listConnectedPlatforms, buildConnectMenuRows } from './connectLinkService.js';
+import { handleFamilyReply } from './presenceRelay.js';
 
 const log = createLogger('WhatsAppInbound');
 
@@ -213,6 +215,18 @@ export async function processInboundWhatsApp(parsed, { send, provider }) {
     // message handling — log and continue (delivery falls back to the default
     // provider chain until the next inbound records it successfully).
     log.warn('wa_provider affinity recording failed', { userId, error: err.message });
+  }
+
+  // 2b. Presence: a reply to her call digest (or "nota: ...") is a note for her
+  // next call. Checked before every other branch so a family member's reply is
+  // never read as twin chat or a purchase.
+  if (text) {
+    const presenceReply = await handleFamilyReply({ userId, text, contextMessageId: parsed.context?.messageId || null });
+    if (presenceReply) {
+      await send(phone, presenceReply);
+      log.info('Presence note from WhatsApp', { userId });
+      return { handled: true, kind: 'presence_note', userId };
+    }
   }
 
   // 3. Document — bank statement (OFX/CSV/XLSX) goes to the money ingest;
