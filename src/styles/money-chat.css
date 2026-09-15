@@ -5,7 +5,9 @@
    newest question speaks at heading size. Tokens and primitives come from
    money-v2.css (.mv, which is on the root alongside .mc).
    ========================================================================== */
-.mc .mv-col { display: grid; min-height: 100vh; box-sizing: border-box; }
+/* dvh where the browser has it: on a phone, 100vh is the height under the toolbars, and the
+   composer stuck to that edge sat behind Safari's bar. */
+.mc .mv-col { display: grid; min-height: 100vh; min-height: 100dvh; box-sizing: border-box; }
 
 /* Two columns: the conversation, and what it is doing while you talk */
 .mc-columns { display: grid; grid-template-columns: minmax(0, 1fr) 200px; gap: 48px; align-items: stretch; min-height: 0; }
@@ -55,9 +57,17 @@
    A field like every other: the warm box, a 4 corner, the send as a 32 ink button. */
 .mc-composer { position: sticky; bottom: 0; padding: 12px 0 24px; background: var(--page); }
 .mc-composer-inner {
-  display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: end; gap: 8px;
-  min-height: 44px; box-sizing: border-box; padding: 6px 6px 6px 14px; border-radius: 4px; background: var(--field);
+  display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: end; gap: 4px;
+  min-height: 44px; box-sizing: border-box; padding: 6px; border-radius: 4px; background: var(--field);
 }
+/* The one way a file gets in: a quiet clip, ink on hover, the same 32 as the send. */
+.mc .mc-attach {
+  display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px; padding: 0;
+  border: 0; border-radius: 4px; background: none; color: var(--ink-3); cursor: pointer;
+}
+.mc .mc-attach:hover:not(:disabled) { color: var(--ink); background: rgb(37 31 33 / 5%); }
+.mc .mc-attach:disabled { color: var(--quiet); cursor: default; }
+.mc .mc-attach:focus-visible { outline: 2px solid var(--ink); outline-offset: -2px; }
 .mc-composer-inner:focus-within { outline: 2px solid var(--ink); }
 .mc .mc-say {
   width: 100%; max-height: 168px; padding: 6px 0; border: 0; background: none; resize: none; outline: none;
@@ -73,6 +83,10 @@
 .mc .mc-steps { margin-top: 16px; }
 .mc .mc-step .mv-item-title { color: var(--ink-2); font-weight: 400; }
 .mc .mc-step.is-live .mv-item-title { color: var(--ink); font-weight: 500; }
+
+@media (prefers-reduced-motion: reduce) {
+  .mc .mc-line-text.is-writing::after, .mc-dots > i { animation: none; }
+}
 
 @media (max-width: 1099px) {
   .mc-columns { grid-template-columns: minmax(0, 1fr); gap: 40px; }
@@ -94,6 +108,29 @@
 .mc .mc-line--you .mc-line-text { color: var(--ink-2); }
 .mc .mc-line-text { max-width: 40rem; white-space: pre-wrap; overflow-wrap: anywhere; }
 .mc .mc-line-text.is-pending { color: var(--ink-3); }
+/* Being written: a caret at the end of the last word, gone when the answer is whole. */
+.mc .mc-line-text.is-writing::after {
+  content: ''; display: inline-block; width: 2px; height: 0.95em; margin-left: 2px; vertical-align: -0.12em;
+  background: var(--ink); animation: mc-blink 1s steps(2, start) infinite;
+}
+@keyframes mc-blink { to { visibility: hidden; } }
+
+/* The ledger at work: the step it is on, three ink dots taking turns, and under it the
+   model's own reasoning as it is written, the newest lines in view, the older ones gone
+   above the fold. Quiet grey on the same page; never mistaken for the answer. */
+.mc-pending { display: grid; gap: 10px; justify-items: start; width: 100%; }
+.mc-dots { display: inline-flex; gap: 3px; margin-left: 6px; vertical-align: baseline; }
+.mc-dots > i { display: block; width: 4px; height: 4px; border-radius: 50%; background: var(--ink-3); animation: mc-dot 1.3s ease-in-out infinite; }
+.mc-dots > i:nth-child(2) { animation-delay: 0.18s; }
+.mc-dots > i:nth-child(3) { animation-delay: 0.36s; }
+.mc-dots.is-still > i { animation: none; opacity: 0.6; }
+@keyframes mc-dot { 0%, 70%, 100% { opacity: 0.25; transform: translateY(0); } 35% { opacity: 1; transform: translateY(-2px); } }
+.mc-thinking { display: grid; gap: 6px; width: 100%; max-width: 40rem; }
+.mc-thinking-well { display: flex; flex-direction: column; justify-content: flex-end; max-height: 98px; overflow: hidden; padding: 0 14px; border-left: 1px solid var(--rule); }
+.mc .mc-thinking-text { margin: 0; color: var(--ink-3); font-weight: 350; white-space: pre-wrap; overflow-wrap: anywhere; }
+
+/* The picture of what was sent, under your line, small: the ledger read it, you already saw it. */
+.mc .mc-file { display: block; max-height: 120px; max-width: 200px; border-radius: 4px; border: 1px solid var(--rule); }
 .mc-offers { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 4px; }
 
 .mc-figure { margin: 8px 0 0; display: grid; gap: 8px; max-width: 40rem; }

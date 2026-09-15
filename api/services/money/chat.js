@@ -53,6 +53,13 @@ const MAX_CONTEXT_LINES = 40;
 const MAX_HISTORY_TURNS = 10;
 /** The model's reasoning under each answer, on unless the environment says off. */
 export const REASONING_ON = String(process.env.MONEY_CHAT_REASONING || 'on').toLowerCase() !== 'off';
+/**
+ * How long the reasoning may run before a word of the answer: past this, the stream is
+ * stopped and the question is asked again without reasoning, which answers in seconds.
+ * DeepSeek's low-effort reasoning ran 60 to 90 seconds on 2026-09-15, and the host kills a
+ * request at 60. Read at call time so a test can shorten it.
+ */
+export const reasoningPatienceMs = () => Number(process.env.MONEY_CHAT_REASONING_PATIENCE_MS) || 22000;
 
 const WEEKDAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
@@ -860,26 +867,52 @@ export async function answerStream(userId, message, history = [], { now = new Da
 
   let raw = '';
   let thinking = '';
+  let firstWord = false;
+  let outOfPatience = false;
+  /* One call to the model, with or without its reasoning. With it, a watch runs: if no word
+     of the answer has come when the patience is up, the stream is stopped. */
+  const run = async (withReasoning) => {
+    const control = new AbortController();
+    const watch = withReasoning ? setTimeout(() => { if (!firstWord) { outOfPatience = true; control.abort(); } }, reasoningPatienceMs()) : null;
+    try {
+      return await streamComplete({
+        /* The model's own reasoning, low effort, shown as it comes: the train of thought under
+           the answer, never mistaken for the answer. It shares the token budget with the
+           answer, so the budget grows with it; MONEY_CHAT_REASONING=off turns it off. */
+        tier: TIER_CHAT, system, messages, maxTokens: withReasoning ? 1400 : 600, temperature: 0.3, userId,
+        serviceName: 'money-chat-stream',
+        signal: control.signal,
+        ...(withReasoning ? { reasoning: { effort: 'low' } } : {}),
+        onReasoning: withReasoning ? (piece) => { thinking += piece; send({ phase: 'thinking', delta: piece }); } : undefined,
+        onChunk: (delta) => {
+          firstWord = true;
+          const revealed = reader.push(delta);
+          if (revealed) emit(revealed);
+        },
+      });
+    } finally {
+      if (watch) clearTimeout(watch);
+    }
+  };
   try {
-    const result = await streamComplete({
-      /* The model's own reasoning, low effort, shown as it comes: the train of thought under
-         the answer, never mistaken for the answer. It shares the token budget with the
-         answer, so the budget grows with it; MONEY_CHAT_REASONING=off turns it off. */
-      tier: TIER_CHAT, system, messages, maxTokens: REASONING_ON ? 1400 : 600, temperature: 0.3, userId,
-      serviceName: 'money-chat-stream',
-      ...(REASONING_ON ? { reasoning: { effort: 'low' } } : {}),
-      onReasoning: (piece) => { thinking += piece; send({ phase: 'thinking', delta: piece }); },
-      onChunk: (delta) => {
-        const revealed = reader.push(delta);
-        if (revealed) emit(revealed);
-      },
-    });
+    let result;
+    try {
+      result = await run(REASONING_ON);
+    } catch (error) {
+      if (!(REASONING_ON && outOfPatience && !firstWord)) throw error;
+      /* The reasoning outlived its patience with nothing said: the same question, asked
+         plainly, so the person gets an answer inside the time the host allows. What was
+         thought so far stays on the screen under How it got there. */
+      log.info('chat reasoning outlived its patience; answering without it', { patienceMs: reasoningPatienceMs() });
+      result = await run(false);
+    }
     raw = result?.content || '';
   } catch (error) {
     log.warn(`chat stream failed: ${error.message}`);
     /* Nothing reached the person: say so once. Prose already on the screen is kept, and the
-       answer closes without figures rather than pretending the sentence never happened. */
-    if (!shown.length) {
+       answer closes without figures rather than pretending the sentence never happened. A
+       brace or a quote the streamer let out while it waited for the sentence is not prose. */
+    if (!shown.length || !/[a-z0-9]/i.test(asShown(shown))) {
       send({ phase: 'failed', detail: STREAM_UNREADABLE });
       return null;
     }

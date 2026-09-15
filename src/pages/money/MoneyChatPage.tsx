@@ -17,7 +17,7 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { motion, useReducedMotion } from 'framer-motion';
 import { authFetch } from '../../services/api/apiBase';
-import { ArrowUp } from 'lucide-react';
+import { ArrowUp, Paperclip } from 'lucide-react';
 import '../../styles/money-v2.css';
 import '../../styles/money-chat.css';
 import MoneyNav, { type MoneyNavLink } from './MoneyNav';
@@ -33,7 +33,53 @@ type AskLine = {
   id: string; who: 'you' | 'twin'; text: string; pending?: boolean; figures?: ChatFigure[]; receipts?: ChatReceipt[];
   /** The offers under an answer, the model's own reasoning, and the context lines it stood on. */
   actions?: ChatAction[]; thinking?: string; basis?: string[]; acted?: string; howOpen?: boolean;
+  /** Still being written: the caret sits at the end. A file you sent, with its picture when it has one. */
+  writing?: boolean; file?: { name: string; url?: string };
 };
+
+/** Vercel takes 4 MB of body; a photo bigger than this is shrunk before it goes. */
+const MAX_UPLOAD = 4 * 1024 * 1024;
+const ACCEPT = '.jpg,.jpeg,.png,.webp,.gif,.heic,.pdf,.txt,.csv,.tsv,.xlsx,.xls,image/*,application/pdf';
+
+/** A phone photo is 3 to 6 MB; the receipt on it reads the same at 1800px and a tenth of the bytes. */
+async function shrink(file: File): Promise<Blob> {
+  if (!file.type.startsWith('image/') || file.size < 1.2 * 1024 * 1024) return file;
+  try {
+    const bmp = await createImageBitmap(file);
+    const scale = Math.min(1, 1800 / Math.max(bmp.width, bmp.height));
+    const canvas = document.createElement('canvas');
+    canvas.width = Math.round(bmp.width * scale);
+    canvas.height = Math.round(bmp.height * scale);
+    canvas.getContext('2d')?.drawImage(bmp, 0, 0, canvas.width, canvas.height);
+    const blob = await new Promise<Blob | null>((r) => canvas.toBlob(r, 'image/jpeg', 0.85));
+    return blob && blob.size < file.size ? blob : file;
+  } catch {
+    return file;
+  }
+}
+
+/**
+ * The ledger at work, in view: the step it is on with a slow pulse, and, once the model
+ * starts reasoning, its train of thought as it is written, the newest lines kept in view.
+ * When the answer starts, this gives way to it and the thought folds into How it got there.
+ */
+function Pending({ status, thinking, still }: { status: string; thinking?: string; still: boolean }) {
+  const thought = (thinking || '').trim();
+  return (
+    <div className="mc-pending" aria-live="polite">
+      <p className="mc-line-text is-pending">
+        <span>{thought ? 'Working it out' : status}</span>
+        <span className={`mc-dots${still ? ' is-still' : ''}`} aria-hidden="true"><i /><i /><i /></span>
+      </p>
+      {thought ? (
+        <motion.div className="mc-thinking" initial={still ? false : { opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.28 }}>
+          <span className="mc-line-who">Thinking</span>
+          <div className="mc-thinking-well"><p className="mc-thinking-text">{thought}</p></div>
+        </motion.div>
+      ) : null}
+    </div>
+  );
+}
 
 /** What a person tends to ask first. Each is offered once and never after it was asked. */
 const OFFERS = ['What can I spend today?', 'What changed this week?', 'Where did the money go?', 'What comes back every month?', 'How does this month compare?', 'What is still to come?'];
@@ -158,7 +204,10 @@ export default function MoneyChatPage() {
 
   const stop = useRef<(() => void) | null>(null);
   const boxRef = useRef<HTMLTextAreaElement | null>(null);
-  const endRef = useRef<HTMLDivElement | null>(null);
+  const fileRef = useRef<HTMLInputElement | null>(null);
+  const pictures = useRef<string[]>([]);
+  const lineCount = useRef(0);
+  const pageHeight = useRef(0);
   const trace = useLedgerTrace();
   const stillMotion = useReducedMotion();
 
@@ -191,13 +240,11 @@ export default function MoneyChatPage() {
   }, []);
 
   /* A stream in flight when the page goes is stopped; nothing writes into a transcript
-     nobody is looking at. */
-  useEffect(() => () => { stop.current?.(); }, []);
-
-  /* The newest line should sit where the eye already is. */
-  useEffect(() => {
-    endRef.current?.scrollIntoView({ behavior: stillMotion ? 'auto' : 'smooth', block: 'end' });
-  }, [lines, stillMotion]);
+     nobody is looking at. The pictures of what was sent are let go with the page. */
+  useEffect(() => () => {
+    stop.current?.();
+    pictures.current.forEach((u) => URL.revokeObjectURL(u));
+  }, []);
 
   /* An auto-growing composer: no scrollbar until it has earned one. */
   useLayoutEffect(() => {
@@ -213,13 +260,31 @@ export default function MoneyChatPage() {
   const last = lines[lines.length - 1];
   const offersShown = offers.length > 0 && !asking && (!last || (last.who === 'twin' && !last.pending));
 
+  /* The newest line should sit where the eye already is: the page follows the end of the
+     transcript while an answer is being written, but not if the person has scrolled up
+     to read something older. A new line always brings the end into view. */
+  useEffect(() => {
+    if (!lines.length) return;
+    const doc = document.documentElement;
+    /* Judged against the page as it was before this render: the receipts under an answer
+       arrive in one piece and would otherwise put the end out of reach of the test. */
+    const nearEnd = window.innerHeight + window.scrollY >= (pageHeight.current || doc.scrollHeight) - 240;
+    const added = lines.length !== lineCount.current;
+    lineCount.current = lines.length;
+    pageHeight.current = doc.scrollHeight;
+    if (!added && !nearEnd) return;
+    const last = lines[lines.length - 1];
+    const streaming = Boolean(last && (last.pending || last.writing));
+    window.scrollTo({ top: doc.scrollHeight, behavior: stillMotion || streaming ? 'auto' : 'smooth' });
+  }, [lines, offersShown, stillMotion]);
+
   function ask(value: string) {
     const said = value.trim();
     if (asking || !said) return;
     const history: ChatTurn[] = lines.filter((l) => !l.pending).map((l) => ({ role: l.who === 'you' ? 'user' : 'twin', text: l.text }));
     askSeq += 1;
     const twinId = `twin-${askSeq}`;
-    setLines((all) => [...all, { id: `you-${askSeq}`, who: 'you', text: said }, { id: twinId, who: 'twin', text: 'Reading the ledger.', pending: true }]);
+    setLines((all) => [...all, { id: `you-${askSeq}`, who: 'you', text: said }, { id: twinId, who: 'twin', text: 'Reading the ledger', pending: true }]);
     setAsking(true);
     setText('');
     const amend = (patch: (l: AskLine) => AskLine) => setLines((all) => all.map((l) => (l.id === twinId ? patch(l) : l)));
@@ -231,7 +296,7 @@ export default function MoneyChatPage() {
              both see wrote=true and the first would append to "Reading the ledger." */
           const first = !wrote;
           wrote = true;
-          amend((l) => ({ ...l, pending: false, text: first ? e.delta : l.text + e.delta }));
+          amend((l) => ({ ...l, pending: false, writing: true, text: first ? e.delta : l.text + e.delta }));
         } else if (e.phase === 'thinking') {
           amend((l) => ({ ...l, thinking: (l.thinking || '') + e.delta }));
         } else if (e.phase === 'figures') {
@@ -246,9 +311,43 @@ export default function MoneyChatPage() {
       onEnd: (ok) => {
         stop.current = null;
         if (!ok && !wrote) amend((l) => ({ ...l, pending: false, text: 'That could not be read right now.' }));
+        amend((l) => ({ ...l, writing: false }));
         setAsking(false);
       },
     });
+  }
+
+  /* A photo or a file: shown as yours at once, read by the ledger, answered in one line
+     with the payment it kept. What was typed alongside goes with it as a note. */
+  async function attach(file: File) {
+    if (asking || !file) return;
+    const note = text.trim();
+    askSeq += 1;
+    const twinId = `twin-${askSeq}`;
+    const url = file.type.startsWith('image/') ? URL.createObjectURL(file) : undefined;
+    if (url) pictures.current.push(url);
+    setLines((all) => [
+      ...all,
+      { id: `you-${askSeq}`, who: 'you', text: note ? `Sent ${file.name}. ${note}` : `Sent ${file.name}`, file: { name: file.name, url } },
+      { id: twinId, who: 'twin', text: 'Reading the file', pending: true },
+    ]);
+    setAsking(true);
+    setText('');
+    const amend = (patch: (l: AskLine) => AskLine) => setLines((all) => all.map((l) => (l.id === twinId ? patch(l) : l)));
+    try {
+      const blob = await shrink(file);
+      if (blob.size > MAX_UPLOAD) {
+        amend((l) => ({ ...l, pending: false, text: 'That file is over 4 MB. A photo of it would come through.' }));
+        return;
+      }
+      const name = blob === file ? file.name : `${file.name.replace(/\.[a-z0-9]+$/i, '')}.jpg`;
+      const r = await moneyChat.attach(blob, note, name);
+      amend((l) => ({ ...l, pending: false, text: r.said, receipts: r.receipts }));
+    } catch (e) {
+      amend((l) => ({ ...l, pending: false, text: (e as Error).message || 'That file could not be read right now.' }));
+    } finally {
+      setAsking(false);
+    }
   }
 
   /* An offer tapped: the ledger checks it again and says what it did; the offers go, the
@@ -275,7 +374,11 @@ export default function MoneyChatPage() {
         <MoneyNav links={NAV} />
         <div className="mv-col">
           <div className="mc-columns">
-            <section className="mc-thread">
+            <section
+              className="mc-thread"
+              onDragOver={(e) => { if (e.dataTransfer.types.includes('Files')) e.preventDefault(); }}
+              onDrop={(e) => { const f = e.dataTransfer.files?.[0]; if (f) { e.preventDefault(); void attach(f); } }}
+            >
               <div className={`mc-scroll${lines.length ? '' : ' is-empty'}`}>
                 <div className="mc-turn">
                   <h1>Ask.</h1>
@@ -292,7 +395,12 @@ export default function MoneyChatPage() {
                 {lines.map((l) => (
                   <motion.div key={l.id} className={`mc-line ${l.who === 'you' ? 'mc-line--you' : ''}`} {...rise}>
                     <span className="mc-line-who">{l.who === 'you' ? 'You' : 'The ledger'}</span>
-                    <p className={`mc-line-text ${l.pending ? 'is-pending' : ''}`}>{l.text}</p>
+                    {l.pending ? (
+                      <Pending status={l.text} thinking={l.thinking} still={Boolean(stillMotion)} />
+                    ) : (
+                      <p className={`mc-line-text${l.writing ? ' is-writing' : ''}`}>{l.text}</p>
+                    )}
+                    {l.file?.url ? <img className="mc-file" src={l.file.url} alt="" /> : null}
                     {l.figures?.map((f, k) => <Figure key={k} figure={f} />)}
                     {l.who === 'twin' && l.actions && l.actions.length ? (
                       <div className="mc-acts" role="group" aria-label="What it can do">
@@ -344,11 +452,23 @@ export default function MoneyChatPage() {
                   </div>
                 ) : null}
 
-                <div ref={endRef} className="mc-end" />
+                <div className="mc-end" />
               </div>
 
               <div className="mc-composer">
                 <form className="mc-composer-inner" onSubmit={(e) => { e.preventDefault(); ask(text); }}>
+                  <input
+                    ref={fileRef}
+                    type="file"
+                    accept={ACCEPT}
+                    className="mv-sr"
+                    tabIndex={-1}
+                    aria-hidden="true"
+                    onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ''; if (f) void attach(f); }}
+                  />
+                  <button type="button" className="mc-attach" aria-label="Add a photo or a file" disabled={asking} onClick={() => fileRef.current?.click()}>
+                    <Paperclip size={16} strokeWidth={1.75} aria-hidden="true" />
+                  </button>
                   <label className="mv-sr" htmlFor="mc-say">Ask about your money</label>
                   <textarea
                     id="mc-say"
@@ -359,6 +479,7 @@ export default function MoneyChatPage() {
                     placeholder="Ask about your money"
                     disabled={asking}
                     onChange={(e) => setText(e.target.value)}
+                    onPaste={(e) => { const f = e.clipboardData.files?.[0]; if (f) { e.preventDefault(); void attach(f); } }}
                     onKeyDown={(e) => {
                       if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); ask(text); }
                     }}

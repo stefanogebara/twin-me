@@ -605,6 +605,8 @@ export async function stream({
   onReasoning,
   /** OpenRouter's reasoning request, e.g. { effort: 'low' }; the reasoning streams in `delta.reasoning`. */
   reasoning,
+  /** A caller's AbortSignal: the stream stops when it fires, the same way the timeout stops it. */
+  signal,
   modelOverride,
 }) {
   let effectiveTier = tier;
@@ -651,6 +653,10 @@ export async function stream({
     const streamTimeoutMs = parseInt(process.env.LLM_STREAM_TIMEOUT_MS, 10) || 90_000;
     const abortController = new AbortController();
     const timeoutId = setTimeout(() => abortController.abort(), streamTimeoutMs);
+    if (signal) {
+      if (signal.aborted) abortController.abort();
+      else signal.addEventListener('abort', () => abortController.abort(), { once: true });
+    }
 
     const streamResponse = await client.chat.completions.create({
       model,
