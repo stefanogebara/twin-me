@@ -19,6 +19,9 @@ import { Switch } from '@/components/ui/switch';
 import { Page, PageHead, Section, List, Row } from '@/components/register';
 import '@/styles/register-public.css';
 import '@/styles/register-settings.css';
+import { LANGUAGES, saveLanguage, readLanguage, type LanguageCode } from '@/lib/language';
+import { moneyAPI, type MoneyFact } from '@/services/api/moneyAPI';
+import { factTitle, factWord } from '@/pages/money/factWords';
 
 
 const getAuthHeaders = () => {
@@ -311,6 +314,8 @@ const Settings = () => {
   // ── Section navigation config (desktop sub-nav + phone jump select) ──
   const sections: { id: string; label: string }[] = [
     { id: 'section-account', label: 'Account' },
+    { id: 'section-language', label: 'Language' },
+    { id: 'section-ledger', label: 'What it knows' },
     { id: 'section-twin-intelligence', label: 'Accuracy' },
     { id: 'section-plan', label: 'Plan' },
     { id: 'section-platforms', label: 'Platforms' },
@@ -325,6 +330,27 @@ const Settings = () => {
   ];
 
   const [activeSection, setActiveSection] = useState<string>(sections[0]?.id || '');
+
+  /* The language TwinMe speaks to this person, and what the ledger holds in their words. */
+  const [language, setLanguage] = useState<LanguageCode | null>(((user as { preferred_language?: string | null } | null)?.preferred_language as LanguageCode | null | undefined) ?? null);
+  const [savingLanguage, setSavingLanguage] = useState(false);
+  const [facts, setFacts] = useState<MoneyFact[] | null>(null);
+  const [forgetting, setForgetting] = useState<string | null>(null);
+  useEffect(() => {
+    let live = true;
+    readLanguage().then((l) => { if (live) setLanguage(l); }).catch(() => {});
+    moneyAPI.facts().then((f) => { if (live) setFacts(f); }).catch(() => { if (live) setFacts([]); });
+    return () => { live = false; };
+  }, []);
+  async function chooseLanguage(code: LanguageCode) {
+    if (savingLanguage || code === language) return;
+    setSavingLanguage(true);
+    try { await saveLanguage(code); setLanguage(code); } catch { /* the row keeps the old choice */ } finally { setSavingLanguage(false); }
+  }
+  async function forget(f: MoneyFact) {
+    setForgetting(f.id);
+    try { const r = await moneyAPI.deleteFact(f.id); if (r.deleted) setFacts((all) => (all || []).filter((x) => x.id !== f.id)); } catch { /* it stays until it can go */ } finally { setForgetting(null); }
+  }
 
   const scrollToSection = (id: string) => {
     const el = document.getElementById(id);
@@ -417,6 +443,38 @@ const Settings = () => {
               ))}
             </select>
           </div>
+
+          {/* ── LANGUAGE ── */}
+          <Section id="section-language" title="Language" line="What TwinMe speaks to you. The twin answers in it; the pages follow as they learn to.">
+            <List label="Language" className="pb-stack">
+              {LANGUAGES.map((l) => (
+                <Row
+                  key={l.code}
+                  title={l.name}
+                  line={l.line}
+                  action={
+                    <button type="button" className={`n-btn ${language === l.code ? 'n-btn--primary' : 'n-btn--ghost'}`} disabled={savingLanguage} onClick={() => void chooseLanguage(l.code)} aria-pressed={language === l.code}>
+                      {language === l.code ? 'Chosen' : 'Choose'}
+                    </button>
+                  }
+                />
+              ))}
+            </List>
+          </Section>
+
+          {/* ── WHAT THE LEDGER KNOWS ── */}
+          <Section id="section-ledger" title="What it knows about you." line="Everything the ledger holds in your words. Forget one and it stops reading with it.">
+            <List label="What the ledger knows" className="pb-stack">
+              {facts === null ? <Row title="Reading" line="One moment." /> : facts.length === 0 ? <Row title="Nothing yet" line="Answer a question on Money, You, or tell the chat something." /> : facts.map((f) => (
+                <Row
+                  key={f.id}
+                  title={factTitle(f)}
+                  line={factWord(f)}
+                  action={<button type="button" className="n-btn n-btn--ghost" disabled={forgetting === f.id} onClick={() => void forget(f)}>{forgetting === f.id ? 'Forgetting' : 'Forget'}</button>}
+                />
+              ))}
+            </List>
+          </Section>
 
           {/* ── ACCOUNT ── */}
           <Section id="section-account" title="Account">

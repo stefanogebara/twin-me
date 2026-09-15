@@ -369,6 +369,9 @@ function buildAuthUser(user) {
     emailVerified: user.email_verified ?? undefined,
     email_verified: user.email_verified ?? undefined,
     oauthProvider: user.oauth_provider || null,
+    /* The language they chose for TwinMe (en, es, pt-BR); null until asked on first sign-in. */
+    preferred_language: user.preferred_language ?? null,
+    preferredLanguage: user.preferred_language ?? null,
     // Defense-in-depth signal the SPA mirrors to gate admin route shells.
     // Single source of truth in adminAccess.js — union of DB role (if ever
     // supplied) and the ADMIN_EMAILS allowlist. `user.role` is not selected on
@@ -555,7 +558,7 @@ router.post('/signin', authLimiter, async (req, res) => {
     // Get user
     const { data: user, error: fetchError } = await supabaseAdmin
       .from('users')
-      .select('id, email, first_name, last_name, password_hash, created_at, email_verified, oauth_provider')
+      .select('id, email, first_name, last_name, password_hash, created_at, email_verified, oauth_provider, timezone, preferred_language')
       .eq('email', normalizedEmail)
       .single();
 
@@ -626,7 +629,7 @@ router.get('/verify', authenticateUser, async (req, res) => {
 
     const { data: user, error: fetchError } = await supabaseAdmin
       .from('users')
-      .select('id, email, first_name, last_name, created_at, email_verified, oauth_provider')
+      .select('id, email, first_name, last_name, created_at, email_verified, oauth_provider, timezone, preferred_language')
       .eq('id', userId)
       .single();
 
@@ -685,7 +688,7 @@ router.post('/refresh', refreshLimiter, async (req, res) => {
       tokenRowId = tokenRow.id;
       const { data: userRow } = await supabaseAdmin
         .from('users')
-        .select('id, email, first_name, last_name, created_at, email_verified, oauth_provider')
+        .select('id, email, first_name, last_name, created_at, email_verified, oauth_provider, timezone, preferred_language')
         .eq('id', tokenRow.user_id)
         .single();
       user = userRow || null;
@@ -698,7 +701,7 @@ router.post('/refresh', refreshLimiter, async (req, res) => {
     if (!user) {
       const { data: legacyUser } = await supabaseAdmin
         .from('users')
-        .select('id, email, first_name, last_name, created_at, email_verified, oauth_provider')
+        .select('id, email, first_name, last_name, created_at, email_verified, oauth_provider, timezone, preferred_language')
         .eq('refresh_token_hash', tokenHash)
         .single();
       user = legacyUser || null;

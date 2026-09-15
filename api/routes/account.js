@@ -243,6 +243,35 @@ router.get('/timezone', authenticateUser, async (req, res) => {
   }
 });
 
+/** The languages TwinMe speaks; the value is what users.preferred_language holds. */
+const LANGUAGES = ['en', 'es', 'pt-BR'];
+
+/** GET /api/account/language: the language they chose, or null when never asked. */
+router.get('/language', authenticateUser, async (req, res) => {
+  try {
+    const { data, error } = await supabaseAdmin.from('users').select('preferred_language').eq('id', req.user.id).single();
+    if (error) return res.status(500).json({ success: false, error: 'Failed to fetch language' });
+    return res.json({ success: true, language: data?.preferred_language ?? null, languages: LANGUAGES });
+  } catch (err) {
+    log.error('Language fetch error', { userId: req.user.id, error: err.message });
+    return res.status(500).json({ success: false, error: 'Failed to fetch language' });
+  }
+});
+
+/** PATCH /api/account/language { language }: one of en, es, pt-BR. */
+router.patch('/language', authenticateUser, async (req, res) => {
+  const language = typeof req.body?.language === 'string' ? req.body.language : '';
+  if (!LANGUAGES.includes(language)) return res.status(400).json({ success: false, error: 'language must be one of en, es, pt-BR' });
+  try {
+    const { error } = await supabaseAdmin.from('users').update({ preferred_language: language }).eq('id', req.user.id);
+    if (error) return res.status(500).json({ success: false, error: 'Failed to update language' });
+    return res.json({ success: true, language });
+  } catch (err) {
+    log.error('Language update error', { userId: req.user.id, error: err.message });
+    return res.status(500).json({ success: false, error: 'Failed to update language' });
+  }
+});
+
 /**
  * PATCH /api/account/timezone
  *

@@ -6,6 +6,7 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Menu, X } from 'lucide-react';
+import LanguageAsk from '../../components/LanguageAsk';
 
 export type MoneyNavLink = { to: string; label: string; current?: boolean; sub?: boolean };
 
@@ -15,6 +16,8 @@ export default function MoneyNav({ links }: { links: MoneyNavLink[] }) {
   const [open, setOpen] = useState(false);
   const close = () => setOpen(false);
   return (
+    <>
+    <LanguageAsk />
     <aside className={`mv-side${open ? ' is-open' : ''}`}>
       <div className="mv-side-bar">
         <Link to="/money" className="mv-mark" aria-label="TwinMe, this month" onClick={close}><i /><i /><i /><i /><i /><i /></Link>
@@ -37,5 +40,6 @@ export default function MoneyNav({ links }: { links: MoneyNavLink[] }) {
         )))}
       </nav>
     </aside>
+    </>
   );
 }
