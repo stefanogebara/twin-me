@@ -109,7 +109,8 @@ export type MoneyAccount = {
 export type MoneyCalendarFeed = { id: string; kind: string; label: string; added_at: string | null };
 export type MoneyCalendar = { connected: boolean; google?: boolean; feeds?: MoneyCalendarFeed[]; needsReconnect?: boolean; routine?: string | null; total_expected?: number | null; ahead?: unknown[] };
 /** The two banks the product offers by name; the aggregator lists more, by country. */
-export const BANKS = [{ name: 'Banco Santander', label: 'Santander' }, { name: 'Revolut', label: 'Revolut' }] as const;
+/* The names are Enable Banking's own for Spain; the labels are what a person calls the bank. */
+export const BANKS = [{ name: 'Banco Santander', label: 'Santander' }, { name: 'Revolut', label: 'Revolut' }, { name: 'Banco de Sabadell', label: 'Sabadell' }] as const;
 export function bankLabel(name: string | null | undefined): string {
   const b = BANKS.find((x) => x.name === name);
   return b ? b.label : (name || 'Santander');

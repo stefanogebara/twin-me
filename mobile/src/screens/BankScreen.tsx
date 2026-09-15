@@ -120,7 +120,7 @@ export default function BankScreen({ onDone, onSkip }: BankScreenProps) {
                   <React.Fragment key={a.id}>
                     <Row
                       lead={ending(a.iban_mask)}
-                      label={a.bank_name === 'Revolut' ? 'Revolut' : (a.name || 'Santander')}
+                      label={a.bank_name === 'Revolut' ? 'Revolut' : a.bank_name === 'Banco de Sabadell' ? 'Sabadell' : (a.name || 'Santander')}
                       sub={until ? `Confirm again by ${until}.` : undefined}
                     />
                     <Hairline />
@@ -139,6 +139,7 @@ export default function BankScreen({ onDone, onSkip }: BankScreenProps) {
             </Enter>
             <Enter index={3}>
               <Pill label="Connect Revolut" ghost onPress={() => void connect('Revolut')} />
+              <Pill label="Connect Sabadell" ghost onPress={() => void connect('Banco de Sabadell')} />
             </Enter>
             <Enter index={4}>
               <Pill label="Not now" ghost onPress={onSkip} />
