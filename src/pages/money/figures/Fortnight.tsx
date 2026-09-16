@@ -27,6 +27,13 @@ export default function Fortnight({ strip, tomorrow, ledger = [] }: { strip: Mon
   /* A tap keeps a day open under the strip; the pointer only previews one. */
   const [opened, setOpened] = useState<string | null>(null);
   const lit = picked || opened;
+  /* What the pointer is doing lives in a ref as well as in state: the drawing reads the ref
+     and is repainted, never rebuilt. Before this, moving the mouse across the strip re-ran
+     the whole effect, which reset the clock and replayed the entrance under the pointer, so
+     the columns kept jumping and a click rarely landed (Stefano, 2026-09-16). */
+  const litRef = useRef<string | null>(null);
+  const repaint = useRef<() => void>(() => undefined);
+  litRef.current = lit;
   const days = strip.days;
   const n = days.length + (tomorrow ? 1 : 0);
 
@@ -38,7 +45,7 @@ export default function Fortnight({ strip, tomorrow, ledger = [] }: { strip: Mon
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
     const W = canvas.clientWidth || 780, H = 200;
-    const dpr = Math.min(2, (typeof devicePixelRatio === 'number' && devicePixelRatio) || 1);
+    const dpr = Math.min(3, (typeof devicePixelRatio === 'number' && devicePixelRatio) || 1);
     canvas.width = Math.round(W * dpr); canvas.height = Math.round(H * dpr);
     const pal = paletteOf(canvas);
     const still = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -69,16 +76,17 @@ export default function Fortnight({ strip, tomorrow, ledger = [] }: { strip: Mon
           for (let k = 0; k < Math.round(dots * arrive); k += 1) {
             const y = H - 26 - k * DOT; ctx.beginPath(); ctx.arc(x, y, DOT / 2 - 0.2, 0, Math.PI * 2);
             if (ahead) { ctx.strokeStyle = rgba(pal.quiet, 0.8); ctx.lineWidth = 1; ctx.stroke(); }
-            else { ctx.fillStyle = today ? rgba(pal.ember, 1) : miss ? rgba(pal.danger, 0.9) : rgba(pal.ink, lit && lit !== days[i].day ? 0.45 : 0.95); ctx.fill(); }
+            else { ctx.fillStyle = today ? rgba(pal.ember, 1) : miss ? rgba(pal.danger, 0.9) : rgba(pal.ink, litRef.current && litRef.current !== days[i].day ? 0.45 : 1); ctx.fill(); }
           }
           if (dots === 0) { ctx.fillStyle = rgba(pal.quiet, 0.45); ctx.beginPath(); ctx.arc(x, H - 26, 1.2, 0, Math.PI * 2); ctx.fill(); }
         }
       }
       if (running && (!still || view === 'columns') && since < 3) raf = requestAnimationFrame(draw); else if (running && !still && view === 'wave') raf = requestAnimationFrame(draw);
     };
+    repaint.current = () => draw(performance.now());
     raf = requestAnimationFrame(draw);
     return () => { running = false; cancelAnimationFrame(raf); };
-  }, [strip, tomorrow, view, lit, n]);
+  }, [strip, tomorrow, view, n]);
 
   const biggest = days.reduce((m, d) => (d.total > (m?.total ?? 0) ? d : m), null as MoneyDayStrip['days'][number] | null);
   const day = lit ? days.find((d) => d.day === lit) : null;
@@ -96,19 +104,21 @@ export default function Fortnight({ strip, tomorrow, ledger = [] }: { strip: Mon
   function pick(e: React.MouseEvent<HTMLCanvasElement>) {
     const r = e.currentTarget.getBoundingClientRect(); const u = (e.clientX - r.left - 14) / Math.max(1, r.width - 28);
     const i = Math.round(Math.max(0, Math.min(1, u)) * (n - 1));
-    setPicked(i < days.length ? days[i].day : null);
+    const day = i < days.length ? days[i].day : null;
+    if (day !== litRef.current) { litRef.current = day || opened; setPicked(day); repaint.current(); }
   }
   function openAt(e: React.MouseEvent<HTMLCanvasElement>) {
     const r = e.currentTarget.getBoundingClientRect(); const u = (e.clientX - r.left - 14) / Math.max(1, r.width - 28);
     const i = Math.round(Math.max(0, Math.min(1, u)) * (n - 1));
     const d = i < days.length ? days[i].day : null;
-    setOpened((o) => (d && o !== d ? d : null));
+    setOpened((o) => { const next = d && o !== d ? d : null; litRef.current = next; return next; });
+    repaint.current();
   }
 
   return (
     <figure className="mv-fortnight" aria-label={t('The last thirty days')}>
-      <canvas ref={ref} className="mv-fortnight-canvas" role="img" aria-label={line} onMouseMove={pick} onMouseLeave={() => setPicked(null)} onClick={openAt} />
-      <div className="mv-band-labels"><span>{shortDay(strip.from)}</span><span>{tomorrow ? t('Tomorrow') : t('Today')}</span></div>
+      <canvas ref={ref} className="mv-fortnight-canvas" role="img" aria-label={line} onMouseMove={pick} onMouseLeave={() => { setPicked(null); litRef.current = opened; repaint.current(); }} onClick={openAt} />
+      <div className="mv-band-labels"><span>{shortDay(strip.from, locale)}</span><span>{tomorrow ? t('Tomorrow') : t('Today')}</span></div>
       <div className="mv-fortnight-foot">
         <figcaption className="mv-sub">{line}</figcaption>
         <div className="mv-seg" role="group" aria-label={t('View as')}>
