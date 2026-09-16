@@ -27,6 +27,8 @@
  */
 
 import crypto from 'node:crypto';
+import { say } from './chat.js';
+import { LEDGER_TZ } from './zone.js';
 
 /** Vercel caps a request body at 4.5 MB; a photo shrinks on the client before it comes. */
 export const MAX_ATTACHMENT_BYTES = 4 * 1024 * 1024;
@@ -77,6 +79,11 @@ export function gateSummary(raw, text) {
   return s;
 }
 
+/* The sentence is read by the person, so it is written in their language; the rest of the
+   instruction stays in English, which is what the model reads best. */
+const LANGUAGE_LINE = { es: 'Write the sentence in Spanish.', 'pt-BR': 'Write the sentence in Brazilian Portuguese.' };
+const LOCALES = { es: 'es-ES', 'pt-BR': 'pt-BR' };
+
 const SUMMARY_SYSTEM = [
   'You read one document a person handed to their own money ledger. Return one sentence, at most 160 characters,',
   'in plain words, saying what the document says about their money: an amount they owe or are owed, a date,',
@@ -88,16 +95,20 @@ const SUMMARY_SYSTEM = [
  * One file, read. Returns { kind, said, receipts, sighting, fact } where kind is one of
  * statement | receipt | note | nothing | unreadable. `deps` carries every side effect.
  */
-export async function readAttachment(userId, { buffer, filename = '', mimeType = '', note = '' } = {}, deps) {
+export async function readAttachment(userId, { buffer, filename = '', mimeType = '', note = '', language = null } = {}, deps) {
   const {
     extractText, extractReceipt, receiptToSighting, ingestSighting, ingestSightings,
     parseStatement, complete, listFacts, rememberNote, afterLedgerChange,
   } = deps;
   const name = String(filename || 'file').slice(0, 120);
+  /* What the twin says back about a file, in the language the person chose. A chat turn is a
+     transcript of a moment, so it keeps the language it was said in, which is why this is
+     composed here and not on the page (2026-09-16). */
+  const w = (source, holes = {}) => say(language, source, holes);
   const said = (kind, text, extra = {}) => ({ kind, said: text, receipts: [], ...extra });
-  if (!Buffer.isBuffer(buffer) || !buffer.length) return said('unreadable', 'Nothing arrived in that file.');
-  if (buffer.length > MAX_ATTACHMENT_BYTES) return said('unreadable', 'That file is over 4 MB. A photo of it would come through.');
-  if (!acceptsAttachment(name, mimeType)) return said('unreadable', 'It reads photos, PDFs, plain text and bank exports as Excel or CSV.');
+  if (!Buffer.isBuffer(buffer) || !buffer.length) return said('unreadable', w('Nothing arrived in that file.'));
+  if (buffer.length > MAX_ATTACHMENT_BYTES) return said('unreadable', w('That file is over 4 MB. A photo of it would come through.'));
+  if (!acceptsAttachment(name, mimeType)) return said('unreadable', w('It reads photos, PDFs, plain text and bank exports as Excel or CSV.'));
 
   /* 1. A bank export: rows, not prose. */
   if (STATEMENT_EXTENSIONS.includes(extOf(name)) && parseStatement) {
@@ -107,9 +118,13 @@ export async function readAttachment(userId, { buffer, filename = '', mimeType =
       const result = await ingestSightings(userId, rows.sightings);
       if (afterLedgerChange) await afterLedgerChange(userId).catch(() => {});
       const created = Number(result?.created) || 0;
-      return said('statement', `Read ${rows.sightings.length} ${rows.sightings.length === 1 ? 'payment' : 'payments'} from ${name}; ${created} ${created === 1 ? 'was' : 'were'} new to the ledger.`, { read: rows.sightings.length, created });
+      const readWord = rows.sightings.length === 1
+        ? w('Read {n} payment from {name}', { n: 1, name })
+        : w('Read {n} payments from {name}', { n: rows.sightings.length, name });
+      const newWord = created === 1 ? w('{n} was new to the ledger', { n: 1 }) : w('{n} were new to the ledger', { n: created });
+      return said('statement', `${readWord}; ${newWord}.`, { read: rows.sightings.length, created });
     }
-    if (rows && rows.header) return said('nothing', `${name} has a statement header but no row in it read as a payment.`);
+    if (rows && rows.header) return said('nothing', w('{name} has a statement header but no row in it read as a payment.', { name }));
     /* A CSV that is not a statement falls through to the text reading. */
   }
 
@@ -117,8 +132,8 @@ export async function readAttachment(userId, { buffer, filename = '', mimeType =
   const read = await extractText(buffer, { filename: name, mimeType, userId });
   const text = read && read.ok ? String(read.text || '').trim() : '';
   if (!text) {
-    if (read && read.needsOcr) return said('unreadable', `${name} is a scan with no text layer. A photo of the page reads.`);
-    return said('unreadable', `${name} could not be read.`);
+    if (read && read.needsOcr) return said('unreadable', w('{name} is a scan with no text layer. A photo of the page reads.', { name }));
+    return said('unreadable', w('{name} could not be read.', { name }));
   }
 
   /* 3. A receipt, by the inbox's own reading and gate. */
@@ -137,11 +152,14 @@ export async function readAttachment(userId, { buffer, filename = '', mimeType =
        timeout. The daily run recomputes every reading with this row in it. */
     const result = await ingestSighting(userId, sighting);
     const tx = result && result.transaction ? result.transaction : null;
-    const when = receipt.date ? new Date(receipt.date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) : 'today';
-    const items = receipt.items && receipt.items.length ? ` ${receipt.items.length} ${receipt.items.length === 1 ? 'item' : 'items'} on it.` : '';
-    const twice = result && result.action === 'existing' ? ' It was already in the ledger.' : '';
-    const merchant = receipt.merchant || 'That receipt';
-    return said('receipt', `${merchant}, ${euro(receipt.amount)} on ${when}, kept as a payment.${items}${twice}${note ? ' Your note stays with it.' : ''}`, {
+    const when = receipt.date ? new Date(receipt.date).toLocaleDateString(LOCALES[language] || 'en-GB', { day: 'numeric', month: 'short', timeZone: LEDGER_TZ }) : w('today');
+    const items = receipt.items && receipt.items.length
+      ? ` ${receipt.items.length === 1 ? w('{n} item on it.', { n: 1 }) : w('{n} items on it.', { n: receipt.items.length })}`
+      : '';
+    const twice = result && result.action === 'existing' ? ` ${w('It was already in the ledger.')}` : '';
+    const merchant = receipt.merchant || w('That receipt');
+    const kept = w('{merchant}, {amount} on {day}, kept as a payment.', { merchant, amount: euro(receipt.amount), day: when });
+    return said('receipt', `${kept}${items}${twice}${note ? ` ${w('Your note stays with it.')}` : ''}`, {
       sighting,
       receipts: tx ? [{ id: tx.id, merchant: tx.merchant_raw || merchant, amount: -Math.abs(Number(tx.amount) || receipt.amount), occurred_at: tx.occurred_at || sighting.occurred_at }] : [],
     });
@@ -151,17 +169,17 @@ export async function readAttachment(userId, { buffer, filename = '', mimeType =
   let summary = null;
   if (complete) {
     const reply = await complete({
-      system: SUMMARY_SYSTEM,
+      system: `${SUMMARY_SYSTEM} ${LANGUAGE_LINE[language] || ''}`.trim(),
       messages: [{ role: 'user', content: `File: ${name}${note ? `\nThe person says: ${String(note).slice(0, 300)}` : ''}\n\n${text.slice(0, 6000)}` }],
       maxTokens: 120, temperature: 0, userId, serviceName: 'money-attachment', skipCache: true,
     }).catch(() => null);
     const raw = reply?.content ?? reply?.text ?? reply;
     summary = gateSummary(typeof raw === 'string' ? raw : '', `${text}\n${note || ''}`);
   }
-  if (!summary) return said('nothing', `Read ${name}. Nothing in it about your money to keep.`);
+  if (!summary) return said('nothing', w('Read {name}. Nothing in it about your money to keep.', { name }));
   const notes = listFacts ? (await listFacts(userId)).filter((f) => f && f.kind === 'note').length : 0;
-  if (notes >= MAX_NOTES) return said('nothing', `Read ${name}: ${summary} It holds thirty of your notes already, so this one is not kept; forget one on You and send it again.`);
+  if (notes >= MAX_NOTES) return said('nothing', w('Read {name}: {summary} It holds thirty of your notes already, so this one is not kept; forget one on You and send it again.', { name, summary }));
   const hash = crypto.createHash('sha256').update(buffer).digest('hex').slice(0, 8);
   const fact = await rememberNote(userId, { subject: `doc-${hash}`, text: summary });
-  return said('note', `Kept from ${name}: ${summary}`, { fact });
+  return said('note', w('Kept from {name}: {summary}', { name, summary }), { fact });
 }

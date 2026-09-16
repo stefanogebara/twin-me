@@ -12,7 +12,7 @@
  * a kept place puts it to rest everywhere. `?start=banks` or `?start=places` opens a step
  * on purpose, for a person who wants to come back to it.
  */
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import LanguageAsk from './LanguageAsk';
 import { moneyAPI, BANKS, bankLabel, type MoneyAccount, type MoneyFact, type PlaceHit } from '@/services/api/moneyAPI';
@@ -66,6 +66,38 @@ export default function MoneyOnboarding() {
  * the bank's own feed is a day or two behind. What the phone can do differs by make, and the
  * step shows the one in the person's hand rather than both with a caveat.
  */
+/* Keyboard focus that can wander behind a full-screen dialog is focus in a place the person
+   cannot see. The step takes focus when it opens, keeps Tab inside it, and Escape puts it to
+   rest, which is the same thing Not now does (2026-09-16). */
+const FOCUSABLE = 'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
+
+function Stage({ wide = false, onRest, children }: { wide?: boolean; onRest: () => void; children: React.ReactNode }) {
+  const box = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const el = box.current;
+    if (!el) return undefined;
+    const inside = () => [...el.querySelectorAll<HTMLElement>(FOCUSABLE)].filter((n) => n.offsetParent !== null);
+    (inside()[0] || el).focus();
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') { e.preventDefault(); onRest(); return; }
+      if (e.key !== 'Tab') return;
+      const nodes = inside();
+      if (!nodes.length) return;
+      const first = nodes[0];
+      const last = nodes[nodes.length - 1];
+      if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+      else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+    };
+    el.addEventListener('keydown', onKey);
+    return () => el.removeEventListener('keydown', onKey);
+  }, [onRest]);
+  return (
+    <div className="mv la" role="dialog" aria-modal="true" aria-labelledby="la-title" tabIndex={-1} ref={box}>
+      <div className={wide ? 'la-col la-col--wide' : 'la-col'}>{children}</div>
+    </div>
+  );
+}
+
 function PhoneStep({ onNext }: { onNext: () => void }) {
   const t = useT();
   const kind = phoneKind();
@@ -79,8 +111,7 @@ function PhoneStep({ onNext }: { onNext: () => void }) {
     finally { setBusy(false); }
   }
   return (
-    <div className="mv la" role="dialog" aria-modal="true" aria-labelledby="la-title">
-      <div className="la-col">
+    <Stage onRest={onNext}>
         <h1 id="la-title">{t('A payment, the moment it happens.')}</h1>
         <p className="mv-sub">{t('The bank posts a payment a day or two later. Your phone sees it at the till.')}</p>
         {kind !== 'iphone' ? (
@@ -125,8 +156,7 @@ function PhoneStep({ onNext }: { onNext: () => void }) {
         {kind === 'other' ? <p className="mv-quiet">{t('Open this page on your phone to set it up there.')}</p> : null}
         {note ? <p className="mv-note" role="status">{note}</p> : null}
         <div className="mv-ctas"><button type="button" className="mv-pill mv-pill--ghost" onClick={onNext}>{t('Not now')}</button></div>
-      </div>
-    </div>
+    </Stage>
   );
 }
 
@@ -148,8 +178,7 @@ function BanksStep({ accounts, onNext }: { accounts: MoneyAccount[]; onNext: () 
   }
   const mine = (bank: string) => accounts.filter((a) => (a.bank_name || BANKS[0].name) === bank);
   return (
-    <div className="mv la" role="dialog" aria-modal="true" aria-labelledby="la-title">
-      <div className="la-col">
+    <Stage onRest={onNext}>
         <h1 id="la-title">{t('Connect your bank.')}</h1>
         <p className="mv-sub">{t('It reads what comes in and goes out, four times a day. It can never move money. Connect as many as you use, then Next.')}</p>
         <ul className="mv-list">
@@ -172,8 +201,7 @@ function BanksStep({ accounts, onNext }: { accounts: MoneyAccount[]; onNext: () 
         <div className="mv-ctas">
           {accounts.length ? <button type="button" className="mv-pill" onClick={onNext}>{t('Next')}</button> : <button type="button" className="mv-pill mv-pill--ghost" onClick={onNext}>{t('Not now')}</button>}
         </div>
-      </div>
-    </div>
+    </Stage>
   );
 }
 
@@ -188,8 +216,7 @@ function PlacesStep({ facts, onNext, onKept }: { facts: MoneyFact[]; onNext: () 
   const t = useT();
   const kept = facts.some((f) => SLOTS.some((s) => s.kind === f.kind));
   return (
-    <div className="mv la" role="dialog" aria-modal="true" aria-labelledby="la-title">
-      <div className="la-col la-col--wide">
+    <Stage wide onRest={onNext}>
         <h1 id="la-title">{t('Where your days happen.')}</h1>
         <p className="mv-sub">{t('Three places the ledger reads your month against: the walk-to shops, the exam weeks, the salary. Each is a fact you can forget later under Settings.')}</p>
         <ul className="mv-list">
@@ -198,8 +225,7 @@ function PlacesStep({ facts, onNext, onKept }: { facts: MoneyFact[]; onNext: () 
         <div className="mv-ctas">
           <button type="button" className={`mv-pill${kept ? '' : ' mv-pill--ghost'}`} onClick={onNext}>{kept ? t('Next') : t('Not now')}</button>
         </div>
-      </div>
-    </div>
+    </Stage>
   );
 }
 

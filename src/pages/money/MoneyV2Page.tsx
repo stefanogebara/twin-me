@@ -7,7 +7,7 @@
  * Spec: .claude/plans/2026-09-07-money-twin/README.md
  * Register: .claude/plans/2026-09-11-instinct-register/README.md
  */
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { useAuth } from '@/contexts/AuthContext';
@@ -178,11 +178,19 @@ export default function MoneyV2Page({ view = 'today' }: { view?: MoneyView } = {
     : read ? (read.created ? t('{n} new just now.', { n: read.created }) : t('Nothing new just now. {line}', { line: bookedLine }))
     : bookedLine;
 
+  /* One read at a time, and only the newest one counts. Nine requests went out on every
+     view change with nothing to cancel them, so a slow answer from the page before could
+     land on top of a newer one, and Today to Month and back was twenty seven requests. */
+  const seq = useRef(0);
+  const lastLoad = useRef(0);
   const load = useCallback(async () => {
+    const mine = ++seq.current;
+    lastLoad.current = Date.now();
     const [f, l, r, a, m, rd, c, u, td] = await Promise.allSettled([
       moneyAPI.forecast(), moneyAPI.ledger(), moneyAPI.recurring(), moneyAPI.accounts(), moneyAPI.months(), moneyAPI.readings(),
       moneyAPI.categories(`${todayHere().slice(0, 7)}-01`), moneyAPI.usage(), moneyAPI.today(),
     ]);
+    if (mine !== seq.current) return;
     if (f.status === 'fulfilled') setForecast(f.value);
     if (td.status === 'fulfilled') setToday(td.value);
     if (l.status === 'fulfilled') setLedger(l.value);
@@ -201,7 +209,12 @@ export default function MoneyV2Page({ view = 'today' }: { view?: MoneyView } = {
   /* Read again on every page (the three views share one mounted component, so a switch
      alone reloaded nothing) and when the tab comes back after a minute away: a bank read
      from the phone or another tab was showing on one page and not the next. */
-  useEffect(() => { void load(); }, [load, view]);
+  /* A page the person has just been on is not read again: the switch is theirs, the data is
+     seconds old, and the bank has not moved. Anything older than half a minute is read. */
+  useEffect(() => {
+    if (Date.now() - lastLoad.current < 30000) return;
+    void load();
+  }, [load, view]);
   useEffect(() => {
     let hiddenAt = 0;
     const onVisibility = () => {
