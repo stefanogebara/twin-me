@@ -128,6 +128,17 @@ describe('projectMonth: what the person said, made to count', () => {
     expect(r.commitments).toBe(0);
   });
 
+  it('keeps a commitment a card payment of a similar size did not pay', () => {
+    /* 590 on a card on the 12th is not 600 of rent due on the 28th: on size alone the month
+       lost its largest charge (2026-09-16). */
+    const rows = [t('2026-09-12', -590, 'Vueling', 'card')];
+    const r = projectMonth({ transactions: rows, recurring: [], now: NOW, commitments: [{ subject: 'rent', amount: 600, day: 28 }] });
+    expect(r.commitments).toBe(600);
+    /* Paid by transfer, at any point in the month, it is that commitment. */
+    const paid = projectMonth({ transactions: [t('2026-09-12', -590, 'Landlord', 'transfer')], recurring: [], now: NOW, commitments: [{ subject: 'rent', amount: 600, day: 28 }] });
+    expect(paid.commitments).toBe(0);
+  });
+
   it('gives the month its other side, so a reading is not always a warning', () => {
     const rows = [t('2026-09-02', -20), t('2026-09-03', 100, 'Family', 'transfer')];
     const r = projectMonth({

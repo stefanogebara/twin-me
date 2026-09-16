@@ -17,6 +17,8 @@
  * ledger write without cost. No LLM.
  */
 
+/** How far from the day they said a payment can be and still be that commitment. */
+const PAID_NEAR_DAYS = 6;
 const DAY = 86400000;
 
 /** Small seeded RNG so bands are reproducible in tests. */
@@ -110,9 +112,20 @@ export function projectMonth(p) {
     })
     .filter((c) => c.due > today && c.due <= monthEnd)
     .filter((c) => !(p.recurring || []).some((r) => sameThing(r, c)))
-    .filter((c) => !p.transactions.some((t) => Number(t.amount) < 0
-      && new Date(t.occurred_at) >= monthStart
-      && Math.abs(Math.abs(Number(t.amount)) - Math.abs(Number(c.amount))) <= Math.max(2, Math.abs(Number(c.amount)) * 0.15)));
+    /* Already paid, so it is not still to come. On size alone this was too eager: a 590 EUR
+       card payment cancelled 600 EUR of stated rent, and the month lost its largest charge
+       (2026-09-16). A payment counts as that commitment when it is close to the amount and
+       either near the day they said or paid the way these are paid, by transfer. */
+    .filter((c) => !p.transactions.some((t) => {
+      if (!(Number(t.amount) < 0)) return false;
+      const at = new Date(t.occurred_at);
+      if (!(at >= monthStart) || at > monthEnd) return false;
+      const like = Math.abs(Math.abs(Number(t.amount)) - Math.abs(Number(c.amount))) <= Math.max(2, Math.abs(Number(c.amount)) * 0.08);
+      if (!like) return false;
+      const near = Math.abs(at.getTime() - c.due.getTime()) <= PAID_NEAR_DAYS * 86400000;
+      const byHand = t.channel === 'transfer' || t.channel === 'bizum';
+      return near || byHand;
+    }));
   const commitmentTotal = commitmentItems.reduce((s, c) => s + Math.abs(Number(c.amount) || 0), 0);
 
   /* The other side of the month. Without it every reading is a warning, which is both
