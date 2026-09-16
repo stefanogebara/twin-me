@@ -35,8 +35,11 @@ export default function MoneyOnboarding() {
 
   const load = useCallback(async () => {
     const [a, f] = await Promise.allSettled([moneyAPI.accounts(), moneyAPI.facts()]);
-    setAccounts(a.status === 'fulfilled' ? a.value : []);
-    setFacts(f.status === 'fulfilled' ? f.value : []);
+    /* A read that failed is not an empty account. Mapped to [], one failed request told a
+       person with a connected bank to connect one, in a dialog over the whole product
+       (2026-09-16). Unknown stays null, and null shows nothing. */
+    setAccounts(a.status === 'fulfilled' ? a.value : null);
+    setFacts(f.status === 'fulfilled' ? f.value : null);
   }, []);
   useEffect(() => { if (user) void load(); }, [user, load]);
 

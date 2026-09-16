@@ -115,9 +115,9 @@ export function safeToSpend({ cast = null, segments = [], facts = [], now = new 
   } else {
     sentence = `From ${basisWord}, after ${money(spent)} spent${spoken.length ? ` and ${spoken.join(' and ')}` : ''}, over ${daysText(daysIncludingToday)}.`;
   }
-  if (!over && todays.length) {
-    sentence += ` ${todays.map((e) => `${e.title} usually costs about ${money(e.amount)}`).join(', and ')}, already taken off.`;
-  }
+  /* What the diary expects today used to be appended here in English. It is data the screen
+     already has (today_events), and the screen says it in the reader's own language, so the
+     sentence keeps to the basis and stops being two languages at once (2026-09-16). */
 
   return {
     amount: over ? 0 : amount,

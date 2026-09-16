@@ -178,6 +178,9 @@ function TracePanel({ steps, reading }: { steps: TraceStep[]; reading: boolean }
   const idle = steps.length > 0 && steps.every((s) => !s.count);
   return (
     <aside className="mc-trace" aria-label={t('What it is doing')}>
+      {/* One orb for the whole panel, at its head. One per unfinished row meant three or four
+          canvases turning at once, and on a long read they never stopped (2026-09-16). */}
+      {reading && steps.length ? <p className="mc-trace-head"><LedgerOrb state="searching" size={20} label="" /><span className="mv-sub">{t('Reading the ledger.')}</span></p> : null}
       {steps.length === 0 ? (
         <p className="mv-sub">{t('Not reading the ledger right now.')}</p>
       ) : idle ? (
@@ -190,7 +193,7 @@ function TracePanel({ steps, reading }: { steps: TraceStep[]; reading: boolean }
                 <span className="mv-item-title">{s.label}</span>
                 {s.detail ? <span className="mv-item-sub">{s.detail}</span> : null}
               </span>
-              {reading && !s.done ? <LedgerOrb state="searching" size={20} label="" /> : s.count === null ? null : <span className="mv-item-end">{s.count}</span>}
+              {s.count === null ? null : <span className="mv-item-end">{s.count}</span>}
             </li>
           ))}
         </ul>
@@ -491,7 +494,7 @@ export default function MoneyChatPage() {
                       if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); ask(text); }
                     }}
                   />
-                  <button type="submit" className="mv-pill mc-send" disabled={asking || !text.trim()} aria-label="Ask">
+                  <button type="submit" className="mv-pill mc-send" disabled={asking || !text.trim()} aria-label={t('Ask')}>
                     <ArrowUp size={16} strokeWidth={2} aria-hidden="true" />
                   </button>
                 </form>

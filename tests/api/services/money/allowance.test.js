@@ -86,7 +86,10 @@ describe('safe to spend today', () => {
     // free 660 over ten days is 66; tonight already expects 40
     expect(a.amount).toBe(26);
     expect(a.today_events).toEqual([{ title: 'Dinner', amount: 40 }]);
-    expect(a.sentence).toContain('Dinner usually costs about 40,00\u202F\u20AC');
+    /* The sentence names the total the diary expects; the event itself is data the screen
+       says in the reader's own language, so it is not repeated in English here. */
+    expect(a.sentence).toContain('40,00\u202F\u20AC the diary expects');
+    expect(a.sentence).not.toContain('Dinner');
   });
 
   it('leaves tomorrow out of today', () => {

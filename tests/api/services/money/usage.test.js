@@ -184,6 +184,16 @@ describe('readUsage: the charge nothing followed', () => {
     expect(readUsage({ recurring: [short], eventsByPlatform: {}, now: NOW })).toEqual([]);
   });
 
+  it('never says unused about a platform this person never connected', () => {
+    /* Two Spotify charges and no Spotify connection: nothing could have seen the use, so
+       there is nothing to say about it. */
+    expect(readUsage({ recurring: [SPOTIFY()], eventsByPlatform: {}, connected: [], now: NOW })).toEqual([]);
+    expect(readUsage({ recurring: [SPOTIFY()], eventsByPlatform: {}, connected: ['github'], now: NOW })).toEqual([]);
+    const theirs = readUsage({ recurring: [SPOTIFY()], eventsByPlatform: {}, connected: ['spotify'], now: NOW });
+    expect(theirs).toHaveLength(1);
+    expect(theirs[0].kind).toBe('subscription_unused');
+  });
+
   it('never says unused about a merchant with no connector', () => {
     const findings = readUsage({ recurring: [HIGGSFIELD(), ELEVENLABS(), FLY(), RENDER()], eventsByPlatform: {}, now: NOW });
     expect(findings).toEqual([]);

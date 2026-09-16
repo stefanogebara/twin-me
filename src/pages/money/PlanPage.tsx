@@ -12,7 +12,7 @@
  * items as rows, and a note field. A note is a fact the ledger reads with everything else,
  * in the person's own words: the twin knows the trip before the payments arrive.
  */
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import '../../styles/money-v2.css';
 import MoneyNav, { type MoneyNavLink } from './MoneyNav';
 import Wait from '../../components/Wait';
@@ -78,13 +78,23 @@ export default function PlanPage() {
   const [draft, setDraft] = useState('');
   const [busy, setBusy] = useState(false);
 
+  /* One month at a time: a second request started before the first came back could land
+     second and paint the month the reader had already left. The newest read wins. */
+  const seq = useRef(0);
   const load = useCallback(async (key: string) => {
+    const mine = ++seq.current;
     try {
       const p = await moneyAPI.plan(key === current ? null : key);
+      if (mine !== seq.current) return;
       setPlan(p);
       setFailed(false);
       setPicked((was) => (was && p.cells.some((c) => c.day === was) ? was : p.today));
     } catch {
+      if (mine !== seq.current) return;
+      /* The grid goes with it: thirty squares of the month before sat under the heading of
+         the month that failed to load. */
+      setPlan(null);
+      setPicked(null);
       setFailed(true);
     }
   }, [current]);

@@ -56,6 +56,22 @@ describe('projectMonth', () => {
     expect(p.projected_p10).toBeLessThanOrEqual(p.projected_p50);
     expect(p.projected_p90).toBeGreaterThanOrEqual(p.projected_p50);
   });
+  it('counts what the diary expects before the month ends', () => {
+    /* The projection took an `expected` list from the start and nothing ever passed one, so
+       the month band ignored the calendar while the day's allowance subtracted it, and the
+       two figures on one screen disagreed (2026-09-16). */
+    const expected = [
+      { date: '2026-09-26', amount: 48.5, label: 'Trip to Valencia' },
+      { date: '2026-09-02', amount: 20, label: 'Already gone by' },
+      { date: '2026-10-04', amount: 90, label: 'Next month' },
+    ];
+    const without = projectMonth({ transactions: history, recurring, now: '2026-09-10T15:00:00Z', seed: 7 });
+    const with_ = projectMonth({ transactions: history, recurring, now: '2026-09-10T15:00:00Z', seed: 7, expected });
+    expect(with_.expected).toBe(48.5);
+    expect(with_.expected_items.map((e) => e.label)).toEqual(['Trip to Valencia']);
+    expect(with_.projected_p50).toBeCloseTo(without.projected_p50 + 48.5, 0);
+  });
+
   it('is deterministic for a seed and widens with an added purchase', () => {
     const a = projectMonth({ transactions: history, recurring, now: '2026-09-10T15:00:00Z', seed: 7 });
     const b = projectMonth({ transactions: history, recurring, now: '2026-09-10T15:00:00Z', seed: 7 });

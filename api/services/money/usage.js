@@ -327,14 +327,23 @@ function medianOf(xs) {
  * @param {Date|string} input.now
  * @returns {object[]} findings in analyst.js's shape
  */
-export function readUsage({ recurring = [], eventsByPlatform = {}, now = new Date() } = {}) {
+/**
+ * `connected` is the platforms this person actually linked. A name that merely looks like a
+ * platform is not a connection: without this, two Spotify charges and no Spotify connection
+ * read as "not used in 40 days", which is the one thing this module says it must never do
+ * (2026-09-16). Null means the caller cannot say, and the old behaviour stands.
+ */
+export function readUsage({ recurring = [], eventsByPlatform = {}, connected = null, now = new Date() } = {}) {
+  const linked = connected === null ? null : new Set(connected);
   const measured = [];
   for (const series of recurring) {
     if (!series?.merchant_key) continue;
     const use = subscriptionUse({ series, events: eventsByPlatform[resolvePlatform(series)] || [], now });
-    /* The two evidence rules that gate every sentence below: a rhythm needs two
-       charges, and a verdict needs a connection that would have seen the use. */
+    /* The three evidence rules that gate every sentence below: a rhythm needs two charges, a
+       verdict needs a connection that would have seen the use, and that connection has to be
+       one this person made. */
     if (use.charges < MIN_CHARGES || !use.platform) continue;
+    if (linked && !linked.has(use.platform)) continue;
     measured.push({ series, use });
   }
 

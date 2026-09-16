@@ -227,8 +227,8 @@ export default function MoneySetupPage() {
                     {facts.map((f) => (
                       <li key={f.id} className="mv-item">
                         <span className="mv-item-text">
-                          <span className="mv-item-title">{factTitle(f)}</span>
-                          <span className="mv-item-sub">{factWord(f)}</span>
+                          <span className="mv-item-title">{factTitle(f, t)}</span>
+                          <span className="mv-item-sub">{factWord(f, t)}</span>
                         </span>
                         <span className="mv-item-end">{f.amount ? euro(f.amount) : ''}</span>
                       </li>

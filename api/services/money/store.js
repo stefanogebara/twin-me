@@ -267,7 +267,13 @@ export async function forecast(userId, now = new Date()) {
     .order('predicted_for', { ascending: true }).limit(400);
   const band = calibrate((figureDays || []).filter((r) => r.scored_at));
 
-  const result = projectMonth({ transactions: rows, recurring: rec, commitments, income, shareOf, isSpending, isIncome, now, widen: band.widen });
+  /* What the calendar expects before month end, read from the snapshot kept at the last
+     calendar read, so this costs no request to Google. It goes into the projection itself:
+     bolted on afterwards, the month band ignored it while the day's allowance subtracted it,
+     and the two figures on one screen disagreed (2026-09-16). */
+  const cal = calendarForecast(facts, { now });
+  const expected = (cal.calendar_items || []).map((i) => ({ date: i.day, amount: i.amount, label: i.title }));
+  const result = projectMonth({ transactions: rows, recurring: rec, commitments, income, shareOf, isSpending, isIncome, now, widen: band.widen, expected });
   result.band_calibration = { widen: band.widen, days: band.days, coverage: band.coverage, trusted: band.trusted };
   /* The last thirty days as marks, with the range the twin gave each one and whether it
      held, and the range it has given tomorrow, widened by what it has earned so far. */
@@ -280,9 +286,7 @@ export async function forecast(userId, now = new Date()) {
   for (const t of rows) if (t.merchant_raw && !names.has(t.merchant_key)) names.set(t.merchant_key, t.merchant_raw);
   result.committed_items = (result.committed_items || []).map((c) => ({ ...c, merchant_name: names.get(c.merchant_key) || null }));
   result.expected_items = (result.expected_items || []).map((c) => ({ ...c, merchant_name: names.get(c.merchant_key) || null }));
-  /* What the calendar adds: events before month end whose kind has a learned cost. Read from
-     the snapshot kept at the last calendar read, so this costs no request to Google. */
-  Object.assign(result, calendarForecast(facts, { now }));
+  Object.assign(result, cal);
   await supabaseAdmin.from('money_forecasts').insert({
     user_id: userId, as_of: result.as_of, month: result.month, spent: result.spent, committed: result.committed,
     projected_p10: result.projected_p10, projected_p50: result.projected_p50, projected_p90: result.projected_p90,
@@ -653,7 +657,10 @@ export async function moneyContext(userId, now = new Date()) {
   if (!transactions.length) return null;
   /* What the person said about their own money, kept apart from what was read, because a
      typed number and an observed payment must never be quoted with the same certainty. */
-  const facts = await listFacts(userId).catch(() => []);
+  /* Internal rows included: the calendar keeps everything it learned in two of them, and the
+     block below read a filtered list, so the twin's calendar was always null (2026-09-16).
+     Nothing here shows a fact raw; describeContext names the kinds it speaks. */
+  const facts = await listFacts(userId, { includeInternal: true }).catch(() => []);
   const segments = monthSegments(transactions, now, spendingRule(facts));
   const here = segments[0];
   const before = segments[1] || null;
@@ -985,11 +992,20 @@ export async function subscriptionUsage(userId, now = new Date()) {
     }
   }
 
-  const findings = readUsage({ recurring: withCharges, eventsByPlatform, now });
+  /* Which of those platforms this person actually connected. A merchant whose name maps to a
+     platform proves nothing about whether we could have seen the use. */
+  const { data: conns } = await supabaseAdmin
+    .from('platform_connections')
+    .select('platform')
+    .eq('user_id', userId)
+    .in('status', ['connected', 'token_refreshed', 'pending']);
+  const connected = [...new Set((conns || []).map((c) => c.platform).filter(Boolean))];
+
+  const findings = readUsage({ recurring: withCharges, eventsByPlatform, connected, now });
   return {
     findings,
     unmeasurable: unmeasurable(withCharges).map((u) => ({ ...u, name: names.get(u.merchant_key) || u.merchant_key })),
-    measured: wanted,
+    measured: wanted.filter((p) => connected.includes(p)),
   };
 }
 
