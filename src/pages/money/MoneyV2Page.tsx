@@ -86,8 +86,12 @@ function lastDay(iso: string) { const d = new Date(iso); return new Date(Date.UT
 
 function Chevron() { return <ChevronRight className="mv-chev" size={16} strokeWidth={1.75} aria-hidden="true" />; }
 
-/* Where the Android app is downloaded from, when there is a build to download. */
-const APK_URL = (import.meta.env.VITE_ANDROID_APK_URL as string | undefined) || '';
+/* Where the Android app is downloaded from. The public object store holds the build; the
+   environment can point somewhere else (a Play listing, a newer build) without a release.
+   2026-09-16: 39.8 MB, arm64, installed from this address onto a clean Android 15 and
+   opened. */
+const APK_URL = (import.meta.env.VITE_ANDROID_APK_URL as string | undefined)
+  || 'https://lurebwaudisfilhuhmnj.supabase.co/storage/v1/object/public/downloads/twinme-android-1.0.0.apk';
 
 export default function MoneyV2Page({ view = 'today' }: { view?: MoneyView } = {}) {
   /* The tab said "Discover Your Soul Signature" over a page of euros, which is the front
