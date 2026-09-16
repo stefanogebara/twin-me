@@ -434,7 +434,7 @@ export default function MoneyChatPage() {
                     ) : null}
                     {l.receipts && l.receipts.length ? (
                       <div className="mc-receipts">
-                        <span className="mv-quiet">{`Read from ${l.receipts.length} ${l.receipts.length === 1 ? 'payment' : 'payments'}`}</span>
+                        <span className="mv-quiet">{l.receipts.length === 1 ? t('Read from one payment') : t('Read from {n} payments', { n: l.receipts.length })}</span>
                         <ul className="mv-list">
                           {l.receipts.slice(0, 8).map((r) => (
                             <li key={r.id} className="mv-item mv-item--tight">

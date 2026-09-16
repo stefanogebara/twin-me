@@ -10,7 +10,13 @@
 .mc .mv-col { display: grid; min-height: 100vh; min-height: 100dvh; box-sizing: border-box; }
 
 /* Two columns: the conversation, and what it is doing while you talk */
-.mc-columns { display: grid; grid-template-columns: minmax(0, 1fr) 200px; gap: 48px; align-items: stretch; min-height: 0; }
+/* The conversation has the column to itself until the ledger's work is asked for. A second
+   column held open for a closed panel left the transcript narrow with an empty band beside
+   it, which is what it looked like from outside: the chat cut short and grey to its right
+   (Stefano, 2026-09-16). The link that opens it sits quietly above, on the right. */
+.mc-columns { display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px 48px; align-items: stretch; min-height: 0; }
+.mc-columns:has(.mc-trace) { grid-template-columns: minmax(0, 1fr) 220px; gap: 48px; }
+.mc-columns:not(:has(.mc-trace)) > .mc-side { order: -1; justify-self: end; position: static; }
 .mc-thread { display: grid; grid-template-rows: minmax(0, 1fr) auto; min-width: 0; min-height: 0; }
 /* The transcript grows upward from the composer, the way a conversation does. Anchored to
    the top instead, the first question sat alone at the ceiling with the composer far below

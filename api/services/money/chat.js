@@ -346,6 +346,11 @@ export function contextText(ctx) {
   lines.push(`Today is ${dayMonth(today.toISOString())} ${today.getUTCFullYear()}. Amounts are in EUR.`);
   const LANGUAGE_NAMES = { en: 'English', es: 'Spanish', 'pt-BR': 'Brazilian Portuguese' };
   if (ctx.language && LANGUAGE_NAMES[ctx.language]) lines.push(`The person chose ${LANGUAGE_NAMES[ctx.language]} for TwinMe.`);
+  /* Last line, and plainly: a ledger full of Spanish shops and Spanish names talked the model
+     into Spanish on a Portuguese account, to a person writing English (2026-09-16). */
+  if (ctx.language && LANGUAGE_NAMES[ctx.language]) {
+    lines.push(`Answer in ${LANGUAGE_NAMES[ctx.language]}, unless this message is written in another language, in which case answer in the language of the message. The language of the shops, the names and the payments means nothing here.`);
+  }
 
   /* What the bank says is in the account, when it was read in the last two days: the one
      figure the person means by "how much do I have". A balance with a credit line inside

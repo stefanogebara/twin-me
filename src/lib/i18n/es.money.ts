@@ -252,4 +252,6 @@ export const ES_MONEY: Record<string, string> = {
   "Paste this when the shortcut asks for it. It is shown once.": "Pegala cuando el atajo la pida. Se muestra una vez.",
   "Open this page on your phone to set it up there.": "Abre esta pagina en tu movil para configurarlo alli.",
   "For an icon on your home screen: tap Share in Safari, then Add to Home Screen.": "Para tener el icono en la pantalla de inicio: toca Compartir en Safari y luego Anadir a pantalla de inicio.",
+  "Read from one payment": "Leido de un pago",
+  "Read from {n} payments": "Leido de {n} pagos",
 };

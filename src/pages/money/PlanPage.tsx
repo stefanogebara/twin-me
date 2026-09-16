@@ -44,6 +44,11 @@ function itemWords(i: MoneyPlanItem, t: T): string {
 }
 
 /** The one grey line for a day. Computed from the cell, nothing guessed. */
+function monthOnly(month: string, locale: string): string {
+  const d = new Date(`${month.slice(0, 7)}-01T12:00:00Z`);
+  return Number.isNaN(d.getTime()) ? month : d.toLocaleDateString(locale, { month: 'long' });
+}
+
 function dayLine(c: MoneyPlanCell, t: T): string {
   if (c.past || c.today) {
     const base = c.count
@@ -88,6 +93,8 @@ export default function PlanPage() {
   const cell = useMemo(() => (plan && picked ? plan.cells.find((c) => c.day === picked) || null : null), [plan, picked]);
   useEffect(() => { setDraft(''); }, [picked]);
 
+  /* "setembro de 2026" minus its year left "setembro de" in Portuguese: the year is part of
+     the phrase, not a suffix. The month's own name is asked for instead. */
   const max = useMemo(() => Math.max(1, ...(plan ? plan.cells.map((c) => Math.max(c.spent, c.expected, c.said ? c.said.high : 0)) : [1])), [plan]);
   const px = (v: number) => Math.round(Math.max(0, Math.min(1, v / max)) * BAR_MAX);
 
@@ -110,7 +117,7 @@ export default function PlanPage() {
         <MoneyNav links={NAV} />
         <div className="mv-col">
           <section className="mv-section mv-plan-top">
-            <h1>{t('{month}, day by day.', { month: monthLabel(month, locale).replace(/ \d{4}$/, '') })}</h1>
+            <h1>{t('{month}, day by day.', { month: monthOnly(month, locale) })}</h1>
             <p className="mv-sub">{failed ? t('The plan could not be read right now.') : plan ? glyphs(plan.line) : ''}</p>
             <div className="mv-plan-months">
               <button type="button" className="mv-link" onClick={() => setMonth(shiftMonth(month, -1))}>{monthLabel(shiftMonth(month, -1), locale).replace(/ \d{4}$/, '')}</button>
@@ -142,14 +149,14 @@ export default function PlanPage() {
                         {c.items.slice(0, 4).map((i, k) => <i key={k} className={`mv-plan-mark mv-plan-mark--${i.kind}`} />)}
                         {c.note ? <i className="mv-plan-mark mv-plan-mark--note" /> : null}
                       </span>
-                    ) : failed ? null : <Wait inline state="searching" line="Reading the plan." />}
+                    ) : null}
                     {c.said ? <i className="mv-plan-said" style={{ bottom: px(c.said.low), height: Math.max(2, px(c.said.high) - px(c.said.low)) }} /> : null}
                     {v > 0 ? <b className="mv-plan-bar" style={{ height: Math.max(2, px(v)) }} /> : null}
                   </button>
                 );
               })}
             </div>
-          ) : null}
+          ) : failed ? null : <Wait inline state="searching" line="Reading the plan." />}
 
           {cell ? (
             <section className="mv-section" aria-live="polite">
