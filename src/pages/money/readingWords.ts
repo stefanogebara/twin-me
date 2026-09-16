@@ -161,30 +161,45 @@ export function allowanceWords(a: Allowance, t: T, locale: string): string | nul
   const days = Math.max(1, a.horizon?.days ?? ((a.days_left || 0) + 1));
   const keep = a.keep ? t(', keeping {amount}', { amount: euro(a.keep) }) : '';
   const base = a.base ?? null;
-  const basis = a.basis === 'balance' && base !== null
+  /* Two forms of the same phrase: one that starts a sentence and carries its preposition,
+     one bare for the middle of the over-spent line. Glued to a bare "From", Portuguese read
+     "De os 447,98 EUR" where it says "Dos" (2026-09-16), and no amount of string surgery on
+     a translated sentence fixes that honestly. */
+  const bare = a.basis === 'balance' && base !== null
     ? t('the {amount} in {bank}', { amount: euro(base), bank: bankNames(a, t) }) + keep
     : a.basis === 'income' && base !== null
-    ? t('the {amount} you said comes in', { amount: euro(base) }) + keep
-    : a.basis === 'typical' && base !== null
-      ? t('your usual month of {amount}', { amount: euro(base) }) + keep
-      : a.basis === 'student_prior' && base !== null
-        ? `${t(a.basis_label || 'a typical student month in Madrid on top of your rent')}, ${euro(base)}${keep}`
-        : null;
-  if (!basis) return a.sentence ?? null;
+      ? t('the {amount} you said comes in', { amount: euro(base) }) + keep
+      : a.basis === 'typical' && base !== null
+        ? t('your usual month of {amount}', { amount: euro(base) }) + keep
+        : a.basis === 'student_prior' && base !== null
+          ? `${t(a.basis_label || 'a typical student month in Madrid on top of your rent')}, ${euro(base)}${keep}`
+          : null;
+  const basis = a.basis === 'balance' && base !== null
+    ? t('From the {amount} in {bank}', { amount: euro(base), bank: bankNames(a, t) }) + keep
+    : a.basis === 'income' && base !== null
+      ? t('From the {amount} you said comes in', { amount: euro(base) }) + keep
+      : a.basis === 'typical' && base !== null
+        ? t('From your usual month of {amount}', { amount: euro(base) }) + keep
+        : a.basis === 'student_prior' && base !== null
+          ? t('From {label}, {amount}', { label: t(a.basis_label || 'a typical student month in Madrid on top of your rent'), amount: euro(base) }) + keep
+          : null;
+  if (!basis || !bare) return a.sentence ?? null;
 
   const daysWord = days === 1 ? t('{n} day', { n: 1 }) : t('{n} days', { n: days });
   if (a.over) {
-    return t('That is {amount} past {basis}, with {days} to go.', { amount: euro(Math.abs(a.free || 0)), basis, days: daysWord });
+    return t('That is {amount} past {basis}, with {days} to go.', { amount: euro(Math.abs(a.free || 0)), basis: bare, days: daysWord });
   }
   const spoken: string[] = [];
   /* With the balance, what has been spent is already gone from it and is not said again. */
   if (a.basis !== 'balance') spoken.push(t('{amount} spent', { amount: euro(a.spent || 0) }));
   if ((a.committed || 0) > 0) spoken.push(t('{amount} still to be charged', { amount: euro(a.committed || 0) }));
   if ((a.calendar_ahead || 0) > 0) spoken.push(t('{amount} the diary expects', { amount: euro(a.calendar_ahead || 0) }));
-  const until = a.horizon?.day && a.horizon.source ? t('until {source} arrives', { source: a.horizon.source }) : daysWord;
+  const until = a.horizon?.day && a.horizon.source
+    ? t('over the {days} until {source} arrives', { days: daysWord, source: a.horizon.source })
+    : t('over {days}', { days: daysWord });
   const line = spoken.length
-    ? t('From {basis}, after {after}, over {days}.', { basis, after: spoken.join(t(' and ')), days: until })
-    : t('From {basis}, over {days}.', { basis, days: until });
+    ? t('{basis}, after {after}, {over}.', { basis, after: spoken.join(t(' and ')), over: until })
+    : t('{basis}, {over}.', { basis, over: until });
   /* Why today is not simply the month divided by its days. */
   if (!a.shape) return line;
   const weekday = weekdayName(a.shape.weekday, locale);

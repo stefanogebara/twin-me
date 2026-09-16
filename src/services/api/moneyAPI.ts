@@ -192,7 +192,7 @@ export const moneyAPI = {
   homeSearch: (q: string) => authFetch(`/money/home/search?q=${encodeURIComponent(q)}`).then((r) => json<{ results: PlaceHit[] }>(r)).then((d) => d.results),
   placesSearch: (q: string) => authFetch(`/money/places/search?q=${encodeURIComponent(q)}`).then((r) => json<{ results: PlaceHit[] }>(r)).then((d) => d.results),
   saveHome: (hit: PlaceHit) =>
-    authFetch('/money/home', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ district: hit.label, city: hit.secondary || undefined, lat: hit.lat, lng: hit.lng, source: 'confirmed' }) }).then((r) => json<{ said: string; value: string }>(r)),
+    authFetch('/money/home', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ district: hit.label, city: hit.secondary || undefined, lat: hit.lat, lng: hit.lng, place_id: hit.id, source: 'confirmed' }) }).then((r) => json<{ said: string; value: string }>(r)),
   /** One row of a list answer is one fact, so a list question sends one of these per row. */
   answerQuestion: (payload: MoneyAnswer) =>
     authFetch('/money/questions/answer', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) }).then((r) => json<MoneyFact>(r)),

@@ -21,7 +21,7 @@ import { calibrate, dayStrip } from './calibration.js';
 import { poolMerchantPriors } from './priors.js';
 import { nudgeFindings, retiredKinds, NUDGE_KINDS } from './nudges.js';
 import { safeToSpend } from './allowance.js';
-import { tellTwin } from './twinBridge.js';
+import { tellTwin, tellTwinFacts, tellTwinPatterns, tellTwinTurn } from './twinBridge.js';
 import { lookupPlace, providerFor, categoryFromBrand, PROVIDER_NONE } from './places.js';
 import { readUsage, unmeasurable, platformForMerchant } from './usage.js';
 import { learnMerchants, predictNext, learnPatterns, describeForTwin, TWIN_PREDICTION_CONFIDENCE } from './brain.js';
@@ -609,7 +609,11 @@ export async function refreshReadings(userId, now = new Date()) {
   /* The twin should know what the money says, in the same stream as everything else it
      knows. Duplicate content inside a day is skipped by the memory stream itself. */
   const told = await tellTwin(userId, findings).catch((e) => { log.warn(`twin bridge failed: ${e.message}`); return { written: 0 }; });
-  return { segments, findings, told: told.written };
+  /* And what the person said themselves. The twin held the readings and not the claims
+     behind them, so it knew the month was 1610 EUR and not that 1750 EUR comes from family
+     (2026-09-16). The stream skips a sentence it already holds, so this is cheap. */
+  const saidTold = await tellTwinFacts(userId, facts).catch((e) => { log.warn(`twin facts failed: ${e.message}`); return { written: 0 }; });
+  return { segments, findings, told: told.written + saidTold.written };
 }
 
 /** The stored readings with their receipts resolved, newest computation first. */
@@ -1058,6 +1062,9 @@ export async function learn(userId, now = new Date()) {
   const predictions = predictNext(profiles, { now, away });
   const patterns = learnPatterns({ transactions, profiles, categoryOf, now });
   const summary = describeForTwin({ profiles, patterns, predictions, now });
+  /* The patterns reached a prompt and nothing else. In the stream they are retrievable by
+     anything the person asks the twin, money or not (2026-09-16). */
+  await tellTwinPatterns(userId, patterns).catch((e) => log.warn(`twin patterns failed: ${e.message}`));
 
   if (profiles.length) {
     const rows = profiles.map((p) => ({
@@ -1248,6 +1255,11 @@ export async function saveChatTurn(userId, { role, text, figures = null, actions
     .insert({ user_id: userId, role, text: String(text).slice(0, 4000), figures: small(figures, 20000), actions: small(actions, 8000), thinking: thinking ? String(thinking).slice(0, 4000) : null, basis: small(basis, 8000) })
     .select('id, created_at').maybeSingle();
   if (error) { log.warn(`chat turn not kept: ${error.message}`); return null; }
+  /* The twin remembers being asked. Ask kept its own transcript and the twin knew nothing of
+     it, so a person could tell the ledger something on Monday and find the twin had never
+     heard it (2026-09-16). Not awaited: a turn must reach the screen even if the stream is
+     slow, and a lost memory is not a lost answer. */
+  tellTwinTurn(userId, { role, text }).catch((e) => log.warn(`twin turn failed: ${e.message}`));
   return data;
 }
 

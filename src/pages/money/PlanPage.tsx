@@ -160,8 +160,8 @@ export default function PlanPage() {
             <h1>{t('{month}, day by day.', { month: monthOnly(month, locale) })}</h1>
             <p className="mv-sub">{failed ? t('The plan could not be read right now.') : plan ? glyphs(planLine(plan, t, locale, month === current)) : ''}</p>
             <div className="mv-plan-months">
-              <button type="button" className="mv-link" onClick={() => setMonth(shiftMonth(month, -1))}>{monthLabel(shiftMonth(month, -1), locale).replace(/ \d{4}$/, '')}</button>
-              {month !== current ? <button type="button" className="mv-link" onClick={() => setMonth(shiftMonth(month, 1))}>{monthLabel(shiftMonth(month, 1), locale).replace(/ \d{4}$/, '')}</button> : null}
+              <button type="button" className="mv-link" onClick={() => setMonth(shiftMonth(month, -1))}>{monthOnly(shiftMonth(month, -1), locale)}</button>
+              {month !== current ? <button type="button" className="mv-link" onClick={() => setMonth(shiftMonth(month, 1))}>{monthOnly(shiftMonth(month, 1), locale)}</button> : null}
             </div>
           </section>
 

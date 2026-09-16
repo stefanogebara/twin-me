@@ -118,7 +118,7 @@ describe('the day rests on the balance when the bank has said one', () => {
     const a = safeToSpend({ cast: c, facts: [], accounts: [account(200)], now: NOW });
     expect(a.horizon.days).toBe(5);
     expect(a.amount).toBe(40);
-    expect(a.sentence).toContain('until family arrives');
+    expect(a.sentence).toContain('over the 5 days until family arrives.');
     /* Money expected after the month's end is the month's end. */
     expect(nextInflow(cast({ days_left: 3, income_items: [{ source: 'x', amount: 1, due_on: '2026-10-02' }] }), NOW)).toEqual({ day: null, days: 4, source: null });
   });

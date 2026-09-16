@@ -56,7 +56,7 @@ import { todayAllowance } from '../services/money/allowance.js';
 import { monthPlan, planLine } from '../services/money/plan.js';
 import { spendingRule } from '../services/money/spending.js';
 import { reconnectByAccount } from '../services/money/store.js';
-import { guessHome, savedHome, searchAreas, searchPlaces, staticMap, saveHome } from '../services/money/home.js';
+import { guessHome, savedHome, searchAreas, searchPlaces, staticMap, saveHome, placePoint } from '../services/money/home.js';
 import { encryptState } from '../services/encryption.js';
 import { signState, readState } from '../services/money/bankState.js';
 import { getAppUrl } from '../utils/oauthUtils.js';
@@ -808,10 +808,17 @@ router.get('/home/map', async (req, res) => {
 });
 
 router.post('/home', async (req, res) => {
-  const { district, city, lat, lng, source } = req.body || {};
+  const { district, city, lat, lng, source, place_id: placeId } = req.body || {};
   if (!district && !city) return res.status(400).json({ success: false, error: 'district or city is required' });
   try {
-    const out = await saveHome(req.user.id, { district, city, lat, lng, source: source === 'guess' ? 'guess' : 'confirmed' });
+    /* A prediction carries no coordinates, so the point is read here, once, when the person
+       has actually picked one. The ledger needs it to know which shops are near home. */
+    let point = { lat, lng };
+    if ((!Number.isFinite(Number(lat)) || !Number.isFinite(Number(lng))) && placeId) {
+      const found = await placePoint(placeId).catch(() => null);
+      if (found) point = { lat: found.lat, lng: found.lng };
+    }
+    const out = await saveHome(req.user.id, { district, city, lat: point.lat, lng: point.lng, source: source === 'guess' ? 'guess' : 'confirmed' });
     res.json({ success: true, data: { said: out.said, value: out.value } });
   } catch (error) {
     log.error('home save failed', { error: error.message });

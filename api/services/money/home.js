@@ -24,6 +24,11 @@ import { dayIn } from './zone.js';
 export const GEOCODE_URL = 'https://maps.googleapis.com/maps/api/geocode/json';
 export const STATIC_MAP_URL = 'https://maps.googleapis.com/maps/api/staticmap';
 export const PLACES_SEARCH_URL = 'https://places.googleapis.com/v1/places:searchText';
+/* Text search answers a finished question; autocomplete answers a half-typed one. Typing
+   "Recolet" returned nothing at all until this was used, which is the whole of what a person
+   means by a place field (Stefano, 2026-09-16). */
+export const PLACES_SUGGEST_URL = 'https://places.googleapis.com/v1/places:autocomplete';
+export const PLACE_DETAILS_URL = 'https://places.googleapis.com/v1/places';
 
 /** How close two everyday shops must be to count as the same neighbourhood. */
 export const CLUSTER_RADIUS_M = 800;
@@ -188,10 +193,71 @@ export function pickDistrict(data) {
   return { district, city };
 }
 
+/**
+ * What the person is part-way through typing, as Google's own autocomplete answers it.
+ * Predictions carry no coordinates, so an area is resolved to its point when it is picked
+ * (`placePoint`). `kinds` narrows to districts or to the places a person studies and works.
+ */
+export async function suggest(q, { kinds = null, key = process.env.GOOGLE_PLACES_API_KEY, fetchImpl = fetch, session = null } = {}) {
+  const query = String(q || '').trim();
+  if (!key || query.length < 2) return [];
+  const body = {
+    input: query,
+    /* Bias formats the answer; the restriction is what keeps a student in Madrid from being
+       offered Recoleta in Buenos Aires. This product is for students in Spain. */
+    regionCode: 'ES',
+    includedRegionCodes: ['es'],
+    languageCode: 'es',
+    ...(kinds ? { includedPrimaryTypes: kinds } : {}),
+    ...(session ? { sessionToken: session } : {}),
+  };
+  const data = await fetchJson(fetchImpl, PLACES_SUGGEST_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-Goog-Api-Key': key },
+    body: JSON.stringify(body),
+  });
+  return predictionsToHits(data);
+}
+
+/** Google's predictions, as the rows a person picks from. Pure. */
+export function predictionsToHits(data) {
+  const out = [];
+  for (const s of Array.isArray(data?.suggestions) ? data.suggestions : []) {
+    const p = s.placePrediction;
+    if (!p?.placeId) continue;
+    const label = p.structuredFormat?.mainText?.text || p.text?.text || '';
+    if (!label) continue;
+    const secondary = String(p.structuredFormat?.secondaryText?.text || '')
+      .replace(/,?\s*(Espa[n\u00f1]a|Spain)\s*$/i, '').trim();
+    out.push({ id: p.placeId, label, secondary: secondary === label ? '' : secondary, kind: (p.types || [])[0] || null });
+    if (out.length === 6) break;
+  }
+  return out;
+}
+
+/** Where a prediction actually is: one details read, only once a person has picked it. */
+export async function placePoint(placeId, { key = process.env.GOOGLE_PLACES_API_KEY, fetchImpl = fetch } = {}) {
+  const id = String(placeId || '').trim();
+  if (!key || !id) return null;
+  const data = await fetchJson(fetchImpl, `${PLACE_DETAILS_URL}/${encodeURIComponent(id)}`, {
+    headers: { 'X-Goog-Api-Key': key, 'X-Goog-FieldMask': 'id,displayName,formattedAddress,location,types' },
+  });
+  const lat = Number(data?.location?.latitude);
+  const lng = Number(data?.location?.longitude);
+  if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
+  const label = data?.displayName?.text || data?.displayName || '';
+  const secondary = String(data?.formattedAddress || '').replace(/,?\s*(Espa[n\u00f1]a|Spain)\s*$/i, '').trim();
+  return { id, label, secondary: secondary === label ? '' : secondary, lat, lng, kind: (data?.types || [])[0] || null };
+}
+
 /** Areas in Spain matching what the person typed: districts, towns, neighbourhoods. */
 export async function searchAreas(q, { key = process.env.GOOGLE_PLACES_API_KEY, fetchImpl = fetch } = {}) {
   const query = String(q || '').trim();
   if (!key || query.length < 2) return [];
+  /* What is being typed, first. Text search is kept behind it for a finished question and
+     for the day Google answers nothing to a prefix. */
+  const typed = await suggest(query, { kinds: AREA_TYPES.slice(0, 5), key, fetchImpl });
+  if (typed.length) return typed;
   const data = await fetchJson(fetchImpl, PLACES_SEARCH_URL, {
     method: 'POST',
     headers: {
@@ -212,6 +278,8 @@ export async function searchAreas(q, { key = process.env.GOOGLE_PLACES_API_KEY, 
 export async function searchPlaces(q, { key = process.env.GOOGLE_PLACES_API_KEY, fetchImpl = fetch } = {}) {
   const query = String(q || '').trim();
   if (!key || query.length < 2) return [];
+  const typed = await suggest(query, { key, fetchImpl });
+  if (typed.length) return typed;
   const data = await fetchJson(fetchImpl, PLACES_SEARCH_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'X-Goog-Api-Key': key, 'X-Goog-FieldMask': 'places.id,places.displayName,places.formattedAddress,places.types,places.primaryType' },
