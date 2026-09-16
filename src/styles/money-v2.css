@@ -70,6 +70,10 @@
 
 /* 13px throughout; weight makes the hierarchy, never size. */
 .mv .mv-sub { margin-top: 4px; color: var(--ink-2); font-weight: 350; }
+/* Instinct puts one grey line 4px under a heading. A second and a third line stacked at 4px
+   read as a paragraph, which is what made Today feel crowded (Stefano, 2026-09-16); lines
+   after the first stand 12px apart, and the object after the block stands 32px off. */
+.mv .mv-sub + .mv-sub { margin-top: 12px; }
 .mv .mv-quiet { color: var(--ink-3); font-weight: 350; }
 .mv .mv-note { margin-top: 16px; color: var(--ink-2); font-weight: 350; }
 .mv .mv-sr { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
@@ -214,7 +218,7 @@
 .mv .mv-eyebrow { margin-bottom: 12px; font-weight: 500; }
 .mv-ctas { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 24px; }
 /* Ink to what has gone, the quiet grey to where the month lands. */
-.mv-band { display: grid; gap: 8px; width: 100%; margin-top: 24px; }
+.mv-band { display: grid; gap: 8px; width: 100%; margin-top: 32px; }
 .mv-band-track { position: relative; height: 4px; border-radius: 2px; background: var(--rule); }
 .mv-band-likely, .mv-band-spent { position: absolute; top: 0; left: 0; height: 100%; }
 .mv-band-likely { background: var(--quiet); }
@@ -224,7 +228,7 @@
 .mv-band-labels { display: flex; justify-content: space-between; gap: 16px; color: var(--ink-2); font-weight: 350; }
 /* The last thirty days under the band: ink bars for what each day cost, the range the twin
    gave a day as a grey segment behind its bar, a broken range in the danger ink. */
-.mv .mv-strip { display: grid; gap: 8px; margin: 8px 0 0; }
+.mv .mv-strip { display: grid; gap: 8px; margin: 24px 0 0; }
 .mv .mv-strip-days { display: grid; grid-template-columns: repeat(30, minmax(0, 1fr)); gap: 3px; height: 48px; align-items: end; border-bottom: 1px solid var(--rule); }
 .mv .mv-strip-day { position: relative; display: block; height: 100%; padding: 0; border: 0; background: none; cursor: pointer; overflow: visible; }
 .mv .mv-strip-day:hover .mv-strip-bar, .mv .mv-strip-day.is-picked .mv-strip-bar { background: var(--ink-2); }
@@ -232,7 +236,7 @@
 /* The largest day carries its figure above its bar. */
 .mv .mv-strip-figure { position: absolute; bottom: 100%; left: 50%; transform: translateX(-50%); margin-bottom: 4px; white-space: nowrap; color: var(--ink-2); font-weight: 350; font-size: 13px; line-height: 16px; }
 .mv .mv-strip-days { padding-top: 20px; box-sizing: content-box; }
-.mv .mv-ahead-head { margin-top: 16px; }
+.mv .mv-ahead-head { margin-top: 32px; }
 /* The range the ledger predicted is a mark, and a mark carries meaning: at 35% it measured
    1,4:1 on the page, under the 3:1 a stroke has to clear. Flat, it is 3,4:1. */
 .mv .mv-strip-said { position: absolute; left: 0; right: 0; min-height: 2px; background: var(--mark); }
@@ -241,7 +245,7 @@
 .mv .mv-strip-day--miss .mv-strip-bar { background: var(--danger); }
 .mv .mv-strip figcaption { margin: 0; }
 /* The dated rows under the band: day, name, amount; income marked with a plus and ok ink. */
-.mv .mv-ahead { margin-top: 8px; }
+.mv .mv-ahead { margin-top: 12px; }
 .mv .mv-ahead .mv-item { grid-template-columns: 56px 32px minmax(0, 1fr) auto; }
 .mv .mv-ahead-day { color: var(--ink-3); font-weight: 350; }
 .mv .mv-ahead-in { color: var(--ok); }
@@ -368,12 +372,12 @@
 .mv .mv-hero--orb > .mv-sub { max-width: 52ch; text-wrap: balance; }
 .mv .mv-hero--orb > .mv-band, .mv .mv-hero--orb > .mv-day-rows, .mv .mv-hero--orb > .mv-list, .mv .mv-hero--orb > .mv-constellation, .mv .mv-hero--orb > .mv-orbits, .mv .mv-hero--orb > .mv-ahead-head, .mv .mv-hero--orb > .mv-ahead { justify-self: stretch; text-align: left; }
 .mv .mv-hero--orb > .mv-pairs { justify-self: center; text-align: left; }
-.mv .mv-hero--orb > .mv-day-rows { margin: 8px 0 32px; }
+.mv .mv-hero--orb > .mv-day-rows { margin: 24px 0 32px; }
 .mv .mv-constellation { margin: 0 0 44px; display: grid; gap: 16px; }
 /* The figure keeps its own width. Sized by its caption, a tap that changed the caption
    changed the width, which tripped the resize observer and replayed the drawing under
    the finger that had just tapped it (2026-09-16). */
-.mv .mv-orbits { width: 100%; }
+.mv .mv-orbits { width: 100%; margin-bottom: 44px; }
 .mv .mv-constellation canvas { display: block; }
 .mv .mv-constellation figcaption { margin: 0; text-align: center; }
 .mv .mv-fig-rows { margin-top: 16px; }
