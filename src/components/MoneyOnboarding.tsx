@@ -114,6 +114,11 @@ function PhoneStep({ onNext }: { onNext: () => void }) {
             ) : null}
           </ul>
         ) : null}
+        {kind === 'iphone' ? (
+          /* An iPhone installs nothing from outside the App Store, so the icon comes from
+             Safari itself: Share, then Add to Home Screen. */
+          <p className="mv-quiet">{t('For an icon on your home screen: tap Share in Safari, then Add to Home Screen.')}</p>
+        ) : null}
         {kind === 'other' ? <p className="mv-quiet">{t('Open this page on your phone to set it up there.')}</p> : null}
         {note ? <p className="mv-note" role="status">{note}</p> : null}
         <div className="mv-ctas"><button type="button" className="mv-pill mv-pill--ghost" onClick={onNext}>{t('Not now')}</button></div>

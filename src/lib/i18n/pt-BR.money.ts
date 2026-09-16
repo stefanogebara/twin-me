@@ -251,4 +251,5 @@ export const PT_BR_MONEY: Record<string, string> = {
   "Get the app": "Baixar o app",
   "Paste this when the shortcut asks for it. It is shown once.": "Cole quando o atalho pedir. E mostrada uma vez.",
   "Open this page on your phone to set it up there.": "Abra esta pagina no seu celular para configurar por la.",
+  "For an icon on your home screen: tap Share in Safari, then Add to Home Screen.": "Para ter o icone na tela de inicio: toque em Compartilhar no Safari e depois Adicionar a Tela de Inicio.",
 };
