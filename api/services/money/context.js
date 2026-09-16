@@ -56,6 +56,9 @@ function ordinal(d) {
   return `${n}th`;
 }
 
+/** How long the ledger is given to show a standing charge before the person is asked. */
+export const STANDING_AFTER_DAYS = 60;
+
 /** Every fact the person can hold about their own money. */
 export const FACT_KINDS = Object.freeze([
   'home_area',        // the district or town they live in, never an address
@@ -70,6 +73,7 @@ export const FACT_KINDS = Object.freeze([
   'merchant_kind',    // what a place is, when no provider could say
   'goal',             // what this term is for
   'split',            // a payment shared with others: subject the payment id, value the number of ways
+  'spend_account',    // which connected account the day's money actually comes out of
   'keep',             // what they want to have left at the end of the month, one amount
   'cap',              // what a kind of place, or one place, should stay under this month: subject the name, amount the cap
 ]);
@@ -169,6 +173,76 @@ export const OPENING_QUESTIONS = Object.freeze([
 export function openingQuestions(facts = []) {
   const answered = new Set(facts.map((f) => f.kind));
   return OPENING_QUESTIONS.filter((q) => !answered.has(q.kind));
+}
+
+/**
+ * The follow-ups to what a person already said, and to what they connected.
+ *
+ * Two of them, both because a number on the screen is wrong without the answer (2026-09-16):
+ * an income with no day leaves the day's money spread to the end of the month rather than to
+ * the day it actually arrives, and a second account the person never spends from would be
+ * counted as money they can spend today.
+ */
+export function followUpQuestions({ facts = [], accounts = [], daysOfLedger = 0, standingCharge = false } = {}) {
+  const out = [];
+  /* Rent is not asked up front, because a charge that size announces itself in the ledger
+     (OPENING_QUESTIONS, and the test that pins it). But rent paid in cash, or by a parent
+     straight to the landlord, never announces itself, and it is the largest thing in the
+     month. So it is asked only once the ledger has had two months to show one and has not
+     (2026-09-16). */
+  if (daysOfLedger >= STANDING_AFTER_DAYS && !standingCharge && !facts.some((f) => f.kind === 'commitment')) {
+    out.push({
+      id: 'commitment:none-seen',
+      kind: 'commitment',
+      ask: 'What leaves every month whatever happens?',
+      help: 'Rent, a room, a phone bill. What you pay for it and roughly which day. Leave it if nothing does.',
+      why: 'Two months of payments show nothing that repeats at that size, so either nothing does, or it is paid somewhere this account cannot see.',
+      changes: 'what the month has already spoken for',
+      input: 'list:what,amount,day',
+      optional: true,
+      weight: 950,
+    });
+  }
+  for (const f of facts) {
+    if (f.kind !== 'income' || f.day || !Number(f.amount)) continue;
+    const label = f.subject_label || f.subject || 'it';
+    out.push({
+      id: `income_day:${f.subject || f.id}`,
+      kind: 'income',
+      subject: f.subject || '',
+      ask: `Around which day of the month does ${label} arrive?`,
+      say: { key: 'Around which day of the month does {name} arrive?', vars: { name: label } },
+      help: 'A number, like 3. Roughly is fine; leave it if it has no day.',
+      why: 'The money for today is spread over the days until the next money comes in. Without a day it can only spread to the end of the month.',
+      changes: 'how far today has to stretch',
+      input: 'text',
+      optional: true,
+      weight: 900,
+    });
+  }
+  const marked = new Set(facts.filter((f) => f.kind === 'spend_account').map((f) => f.subject));
+  const usable = (accounts || []).filter((a) => a && a.id);
+  if (usable.length > 1) {
+    for (const a of usable) {
+      if (marked.has(String(a.id))) continue;
+      const name = [a.bank_name || 'Santander', a.iban_mask ? String(a.iban_mask).slice(-4) : ''].filter(Boolean).join(' ');
+      out.push({
+        id: `spend_account:${a.id}`,
+        kind: 'spend_account',
+        subject: String(a.id),
+        subjectLabel: name,
+        ask: `Do you spend from ${name}?`,
+        say: { key: 'Do you spend from {bank}?', vars: { bank: name } },
+        help: 'Say no for a savings account, or one you keep for something else.',
+        why: 'What you can spend today is read from the accounts you actually spend from. A savings balance in that number makes every day look richer than it is.',
+        changes: 'what today can carry',
+        input: 'choice:yes,no',
+        optional: false,
+        weight: 880,
+      });
+    }
+  }
+  return out;
 }
 
 function nameOf(t) { return t.merchant_raw || t.merchant_key; }
