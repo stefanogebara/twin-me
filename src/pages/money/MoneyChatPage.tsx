@@ -213,8 +213,8 @@ function TracePanel({ steps, reading }: { steps: TraceStep[]; reading: boolean }
 
 export default function MoneyChatPage() {
   const locale = useLocale();
-  useDocumentTitle('Ask');
-  const t = useT();
+    const t = useT();
+useDocumentTitle(t('Ask'));
   const [openQuestions, setOpenQuestions] = useState(0);
   const [lines, setLines] = useState<AskLine[]>([]);
   const [traceOpen, setTraceOpen] = useState(false);
@@ -329,13 +329,13 @@ export default function MoneyChatPage() {
         } else if (e.phase === 'actions') {
           amend((l) => ({ ...l, receipts: e.receipts || [], actions: e.actions || [], basis: e.basis || [] }));
         } else if (e.phase === 'failed') {
-          amend((l) => ({ ...l, pending: false, text: e.detail || 'That could not be read right now.' }));
+          amend((l) => ({ ...l, pending: false, text: e.detail || t('That could not be read right now.') }));
           wrote = true;
         }
       },
       onEnd: (ok) => {
         stop.current = null;
-        if (!ok && !wrote) amend((l) => ({ ...l, pending: false, text: 'That could not be read right now.' }));
+        if (!ok && !wrote) amend((l) => ({ ...l, pending: false, text: t('That could not be read right now.') }));
         amend((l) => ({ ...l, writing: false }));
         setAsking(false);
       },
@@ -353,7 +353,7 @@ export default function MoneyChatPage() {
     if (url) pictures.current.push(url);
     setLines((all) => [
       ...all,
-      { id: `you-${askSeq}`, who: 'you', text: note ? `Sent ${file.name}. ${note}` : `Sent ${file.name}`, file: { name: file.name, url } },
+      { id: `you-${askSeq}`, who: 'you', text: note ? `${t('Sent {name}', { name: file.name })}. ${note}` : t('Sent {name}', { name: file.name }), file: { name: file.name, url } },
       { id: twinId, who: 'twin', text: 'Reading the file', pending: true },
     ]);
     setAsking(true);
@@ -362,14 +362,15 @@ export default function MoneyChatPage() {
     try {
       const blob = await shrink(file);
       if (blob.size > MAX_UPLOAD) {
-        amend((l) => ({ ...l, pending: false, text: 'That file is over 4 MB. A photo of it would come through.' }));
+        amend((l) => ({ ...l, pending: false, text: t('That file is over 4 MB. A photo of it would come through.') }));
         return;
       }
       const name = blob === file ? file.name : `${file.name.replace(/\.[a-z0-9]+$/i, '')}.jpg`;
       const r = await moneyChat.attach(blob, note, name);
       amend((l) => ({ ...l, pending: false, text: r.said, receipts: r.receipts }));
     } catch (e) {
-      amend((l) => ({ ...l, pending: false, text: (e as Error).message || 'That file could not be read right now.' }));
+      /* The server's own words are English, whoever is reading. */
+      amend((l) => ({ ...l, pending: false, text: t('That file could not be read right now.') }));
     } finally {
       setAsking(false);
     }
@@ -379,12 +380,12 @@ export default function MoneyChatPage() {
      sentence stays under the answer. */
   async function take(lineId: string, action: ChatAction) {
     /* The offers go the moment one is tapped, so a second tap cannot run it twice. */
-    setLines((all) => all.map((l) => (l.id === lineId ? { ...l, actions: [], acted: 'Doing it.' } : l)));
+    setLines((all) => all.map((l) => (l.id === lineId ? { ...l, actions: [], acted: t('Doing it.') } : l)));
     try {
       const r = await moneyChat.act(action);
       setLines((all) => all.map((l) => (l.id === lineId ? { ...l, actions: [], acted: r.said } : l)));
     } catch (e) {
-      setLines((all) => all.map((l) => (l.id === lineId ? { ...l, acted: (e as Error).message || 'That could not be done.' } : l)));
+      setLines((all) => all.map((l) => (l.id === lineId ? { ...l, acted: t('That could not be done.') } : l)));
     }
   }
   const toggleHow = (lineId: string) => setLines((all) => all.map((l) => (l.id === lineId ? { ...l, howOpen: !l.howOpen } : l)));

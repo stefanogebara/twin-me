@@ -9,19 +9,20 @@
  * Every kind falls back to the stored sentence when a number it needs is missing, so a
  * reading written before a field existed still reads, in English, rather than breaking.
  */
-import { euro, type MoneyReading } from '../../services/api/moneyAPI';
+import { euro } from '../../services/api/moneyAPI';
 
 type T = (s: string, vars?: Record<string, string | number>) => string;
 type Numbers = Record<string, unknown>;
 /** What a reading needs to be said again; both the stored readings and the usage findings fit. */
 export type Sayable = {
   kind: string;
-  numbers?: Numbers | null;
+  numbers?: Numbers | Record<string, unknown> | null;
   month?: string | null;
   evidence_count?: number;
   sentence: string;
   detail?: string | null;
-  receipts?: MoneyReading['receipts'];
+  /* Only the name and the day are read from a receipt here, so a pattern's shorter row fits. */
+  receipts?: { id: string; occurred_at: string; merchant_raw?: string | null; merchant_key?: string | null }[];
 };
 
 const n = (v: unknown): number | null => (v === null || v === undefined || v === '' || Number.isNaN(Number(v)) ? null : Number(v));
@@ -477,6 +478,85 @@ export function readingWords(r: Sayable, t: T, locale: string, now = new Date())
         if (since === null) return { sentence, detail: r.detail ?? null };
         const dayWord = since === 1 ? t('{n} day', { n: since }) : t('{n} days', { n: since });
         return { sentence, detail: t('{charges} over {days} days, and the {platform} connection last recorded something {ago} ago.', { charges: chargeWord, days: period, platform: platformLabel(t, s(num.platform)), ago: dayWord }) };
+      }
+
+      /* What the ledger worked out on its own (brain.js). These reach a page for the first
+         time here, so they are said in the reader's language from the start. */
+      case 'price_point': {
+        const amount = n(num.typical_amount); const times = n(num.times);
+        const low = n(num.amount_low); const high = n(num.amount_high);
+        const name = s(num.name); const first = s(num.first_seen);
+        if (amount === null || times === null || !name || !first) return keep;
+        const month = monthName(first, locale);
+        const sentence = low !== null && high !== null && low === high
+          ? t('{name} is always {amount}, {n} times since {month}.', { name, amount: euro(amount), n: times, month })
+          : t('{name} is about {amount}, {n} times since {month}.', { name, amount: euro(amount), n: times, month });
+        const detail = low !== null && high !== null && low === high
+          ? t('Every one of them the same to the cent.')
+          : t('The lowest was {low} and the highest {high}.', { low: euro(low || 0), high: euro(high || 0) });
+        return { sentence, detail };
+      }
+
+      case 'weekday_habit': {
+        const wd = n(num.weekday); const onDay = n(num.on_day); const times = n(num.times);
+        const amount = n(num.typical_amount); const name = s(num.name); const first = s(num.first_seen);
+        if (wd === null || onDay === null || times === null || !name) return keep;
+        const sentence = t('You pay {name} on {weekday}, {n} of {m} times.', { name, weekday: weekdayName(wd, locale), n: onDay, m: times });
+        if (amount === null || !first) return { sentence, detail: r.detail ?? null };
+        return { sentence, detail: t('Since {day}, at {amount} a time.', { day: dayAndMonth(first, locale), amount: euro(amount) }) };
+      }
+
+      case 'month_shape': {
+        const third = n(num.third); const pct = n(num.share_percent);
+        const part = n(num.third_total); const total = n(num.total); const months = n(num.months);
+        if (third === null || pct === null) return keep;
+        const where = third === 0 ? t('the first third of the month') : third === 1 ? t('the middle of the month') : t('the last third of the month');
+        const sentence = t('{pct}% of what you spend lands in {third}.', { pct, third: where });
+        if (part === null || total === null || months === null) return { sentence, detail: r.detail ?? null };
+        return { sentence, detail: t('{part} of {total}, read from {n} whole months and {m} payments.', { part: euro(part), total: euro(total), n: months, m: r.evidence_count ?? 0 }) };
+      }
+
+      case 'place_habit': {
+        const pct = n(num.share_percent); const count = n(num.count); const placed = n(num.placed);
+        const spent = n(num.spent); const total = n(num.total); const cities = n(num.cities);
+        const city = s(num.city);
+        if (pct === null || count === null || placed === null || !city) return keep;
+        const sentence = t('{pct}% of your card payments happen in {city}: {n} of {m}.', { pct, city, n: count, m: placed });
+        if (spent === null || total === null || cities === null) return { sentence, detail: r.detail ?? null };
+        const where = cities === 1 ? t('{n} city', { n: cities }) : t('{n} cities', { n: cities });
+        return { sentence, detail: t('{part} of {total}, across {cities}.', { part: euro(spent), total: euro(total), cities: where }) };
+      }
+
+      case 'pairing': {
+        const times = n(num.times); const gap = n(num.median_gap_minutes);
+        const first = s(num.first_name) || s(num.first); const second = s(num.second_name) || s(num.second);
+        if (times === null || !first || !second) return keep;
+        const sentence = t('{first} and {second} go together, {n} times.', { first, second, n: times });
+        if (gap === null) return { sentence, detail: r.detail ?? null };
+        const minutes = gap === 1 ? t('{n} minute', { n: gap }) : t('{n} minutes', { n: gap });
+        return { sentence, detail: t('{second} follows {first} by about {gap}.', { second, first, gap: minutes }) };
+      }
+
+      case 'amount_outlier': {
+        const typical = n(num.typical_amount); const amount = n(num.amount);
+        const multiple = n(num.multiple); const times = n(num.times);
+        const name = s(num.name); const on = s(num.on);
+        if (typical === null || amount === null || !name || !on) return keep;
+        const sentence = t('{name} usually takes {typical}; on {day} it took {amount}.', { name, typical: euro(typical), day: dayAndMonth(on, locale), amount: euro(amount) });
+        if (multiple === null || times === null) return { sentence, detail: r.detail ?? null };
+        return { sentence, detail: t('That is {x} times its usual, across {n} payments there.', { x: multiple, n: times }) };
+      }
+
+      case 'category_rhythm': {
+        const weekend = n(num.weekend_per_day); const weekday = n(num.weekday_per_day); const days = n(num.days);
+        const category = s(num.category);
+        if (weekend === null || weekday === null || !category) return keep;
+        const kind = categoryInline(t, category);
+        const sentence = weekend > weekday
+          ? t('Your {kind} spending lands at weekends: {a} a weekend day against {b} a weekday.', { kind, a: euro(weekend), b: euro(weekday) })
+          : t('Your {kind} spending lands on weekdays: {a} a weekday against {b} a weekend day.', { kind, a: euro(weekday), b: euro(weekend) });
+        if (days === null) return { sentence, detail: r.detail ?? null };
+        return { sentence, detail: t('Read from {n} payments in {days} days.', { n: r.evidence_count ?? 0, days }) };
       }
 
       default:

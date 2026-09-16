@@ -1019,6 +1019,24 @@ export async function subscriptionUsage(userId, now = new Date()) {
  * them and the next pull rebuilds them), records dated predictions so they can be scored
  * later against what actually happened, and returns the block the twin is given.
  */
+/**
+ * What the ledger has worked out about this person, without writing anything down.
+ *
+ * `learn` does the same work and stores what it finds; this is the read for a page, so it
+ * costs one query and some arithmetic and leaves no rows behind. The person asked to see
+ * the patterns the twin has been using, which until now only ever reached a prompt
+ * (Stefano, 2026-09-16).
+ */
+export async function patternsFor(userId, now = new Date()) {
+  const transactions = await listTransactions(userId, { limit: 5000 });
+  if (!transactions.length) return [];
+  const keys = [...new Set(transactions.map((t) => t.merchant_key))];
+  const categories = await categoriesFor(userId, keys);
+  const categoryOf = (t) => categories.get(t.merchant_key) || CHANNEL_CATEGORY[t.channel] || null;
+  const profiles = learnMerchants(transactions, { now, categoryOf });
+  return learnPatterns({ transactions, profiles, categoryOf, now });
+}
+
 export async function learn(userId, now = new Date()) {
   const transactions = await listTransactions(userId, { limit: 5000 });
   if (!transactions.length) return { profiles: [], patterns: [], predictions: [], summary: null };

@@ -2,7 +2,7 @@
  * How a fact the person gave is said back, on the You page and at the end of the questions:
  * one title that carries what they said, one grey word for what kind of thing it is.
  */
-import type { MoneyFact } from '../../services/api/moneyAPI';
+import { euro, type MoneyFact } from '../../services/api/moneyAPI';
 
 /* These words reach the screen through a variable, so the dictionaries never saw them and
    the You page read in English beside everything else (2026-09-16). Every one of them now
@@ -44,11 +44,28 @@ export function factTitle(f: MoneyFact, t: T = asIs): string {
   ].filter(Boolean).join(', ');
 }
 
+/** The ledger's verdict on a stated commitment, said in the reader's own language. */
+export function checkWords(f: MoneyFact, t: T = asIs): string | null {
+  const amount = Math.abs(Number(f.amount) || 0);
+  if (f.check_status === 'unseen') {
+    return amount
+      ? t('Nothing near {amount} has left the account in three months. It may be paid from somewhere else.', { amount: euro(amount) })
+      : t('No amount to check against.');
+  }
+  if (f.check_status === 'different' && amount) {
+    return f.day
+      ? t('Something of about {amount} does leave, but not near the {day}.', { amount: euro(amount), day: ordinal(f.day, t) })
+      : t('Something of about {amount} does leave, but not when you said.', { amount: euro(amount) });
+  }
+  return null;
+}
+
 /** The grey word under it: the ledger's own verdict on the claim when it has one, else the kind. */
 export function factWord(f: MoneyFact, t: T = asIs): string {
-  /* The ledger's own note on the claim is still composed on the server, in English. It is
-     the last English sentence on this page and it is being moved next. */
-  if (f.check_note) return f.check_note;
+  /* The ledger's verdict on the claim is composed on the server, in English, and kept on the
+     row. The page says it again from the status and the person's own numbers, and falls back
+     to what was stored for a verdict it does not know (2026-09-16). */
+  if (f.check_note) return checkWords(f, t) || f.check_note;
   const word = cap(FACT_WORD[f.kind] ? t(FACT_WORD[f.kind]) : f.kind.replace(/_/g, ' '));
   return f.note ? `${word}, ${f.note}` : word;
 }

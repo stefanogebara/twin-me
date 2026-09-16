@@ -23,6 +23,7 @@
 import { useEffect, useRef } from 'react';
 import { MODE_DRAWS, resolvePreset } from '../lib/orb/engine.js';
 import { inkOf } from '../lib/orb/ink';
+import { useT } from '@/lib/i18n';
 
 export type OrbState = 'working' | 'searching' | 'solving' | 'listening' | 'connecting' | 'weaving' | 'composing' | 'breathing' | 'shaping';
 
@@ -45,6 +46,7 @@ type Props = {
 
 
 export default function LedgerOrb({ state = 'working', size = 20, speed = 1, paused = false, label, className }: Props) {
+  const t = useT();
   const ref = useRef<HTMLCanvasElement | null>(null);
 
   useEffect(() => {
@@ -89,7 +91,7 @@ export default function LedgerOrb({ state = 'working', size = 20, speed = 1, pau
       ref={ref}
       className={`orb${className ? ` ${className}` : ''}`}
       role="img"
-      aria-label={label || LABEL[state]}
+      aria-label={label || t(LABEL[state])}
       style={{ width: size, height: size }}
     />
   );
