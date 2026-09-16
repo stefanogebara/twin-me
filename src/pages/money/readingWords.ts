@@ -133,6 +133,56 @@ const platformLabel = (t: T, platform: string | null) => (platform === 'google_c
 /* The three weeks the covariates know. They arrive as English phrases. */
 const weekPhrase = (t: T, week: unknown) => (typeof week === 'string' && week ? t(week) : '');
 
+/* ------------------------------------------------------------------ the day's own line */
+
+/** What the allowance sends, beyond its number. */
+export type Allowance = {
+  amount: number | null; basis: 'income' | 'typical' | 'student_prior' | null; basis_label?: string | null;
+  base?: number | null; keep?: number | null; free: number | null; over: boolean; days_left: number | null;
+  spent?: number | null; committed?: number | null; calendar_ahead?: number | null;
+  shape?: { weekday: number; ratio: number } | null;
+  sentence: string | null;
+};
+
+/**
+ * The line under today's number, in the reader's own language: what the day's share rests
+ * on, what has already gone, and why today is worth more or less than an even split. The
+ * ledger keeps composing its English one for the twin; this says the same thing from the
+ * same numbers.
+ */
+export function allowanceWords(a: Allowance, t: T, locale: string): string | null {
+  if (!a || a.amount === null || a.days_left === null) return a?.sentence ?? null;
+  const days = Math.max(1, (a.days_left || 0) + 1);
+  const keep = a.keep ? t(', keeping {amount}', { amount: euro(a.keep) }) : '';
+  const base = a.base ?? null;
+  const basis = a.basis === 'income' && base !== null
+    ? t('the {amount} you said comes in', { amount: euro(base) }) + keep
+    : a.basis === 'typical' && base !== null
+      ? t('your usual month of {amount}', { amount: euro(base) }) + keep
+      : a.basis === 'student_prior' && base !== null
+        ? `${t(a.basis_label || 'a typical student month in Madrid on top of your rent')}, ${euro(base)}${keep}`
+        : null;
+  if (!basis) return a.sentence ?? null;
+
+  const daysWord = days === 1 ? t('{n} day', { n: 1 }) : t('{n} days', { n: days });
+  if (a.over) {
+    return t('That is {amount} past {basis}, with {days} to go.', { amount: euro(Math.abs(a.free || 0)), basis, days: daysWord });
+  }
+  const spoken: string[] = [];
+  if ((a.committed || 0) > 0) spoken.push(t('{amount} still to be charged', { amount: euro(a.committed || 0) }));
+  if ((a.calendar_ahead || 0) > 0) spoken.push(t('{amount} the diary expects', { amount: euro(a.calendar_ahead || 0) }));
+  const after = spoken.length
+    ? t('after {spent} spent and {rest}', { spent: euro(a.spent || 0), rest: spoken.join(t(' and ')) })
+    : t('after {spent} spent', { spent: euro(a.spent || 0) });
+  const line = t('From {basis}, {after}, over {days}.', { basis, after, days: daysWord });
+  /* Why today is not simply the month divided by its days. */
+  if (!a.shape) return line;
+  const weekday = weekdayName(a.shape.weekday, locale);
+  return a.shape.ratio > 1
+    ? `${line} ${t('{weekday} usually costs you more, so today has a bigger share.', { weekday })}`
+    : `${line} ${t('{weekday} is usually quieter, so today has a smaller share.', { weekday })}`;
+}
+
 /* ------------------------------------------------------------------------------ the kinds */
 
 type Said = { sentence: string; detail: string | null };
