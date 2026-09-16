@@ -254,4 +254,8 @@ export const ES_MONEY: Record<string, string> = {
   "For an icon on your home screen: tap Share in Safari, then Add to Home Screen.": "Para tener el icono en la pantalla de inicio: toca Compartir en Safari y luego Anadir a pantalla de inicio.",
   "Read from one payment": "Leido de un pago",
   "Read from {n} payments": "Leido de {n} pagos",
+  "{n} events read, last {day}.": "{n} eventos le\u00eddos, el \u00faltimo el {day}.",
+  "{n} events read.": "{n} eventos le\u00eddos.",
+  "about {amount}, on {n} of {m} days like it": "unos {amount}, en {n} de {m} d\u00edas as\u00ed",
+  "No kind of day has a price yet. It learns from the days you pay on.": "Ning\u00fan tipo de d\u00eda tiene precio todav\u00eda. Lo aprende de los d\u00edas en que pagas.",
 };

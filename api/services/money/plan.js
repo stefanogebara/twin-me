@@ -107,9 +107,14 @@ export function monthPlan({ forecast = null, transactions = [], facts = [], mont
     for (const it of forecast.committed_items || []) put(it.next_expected, { kind: 'charge', label: it.merchant_name || it.merchant_key || 'A charge', amount: r2(Math.abs(Number(it.typical_amount) || 0)), cadence: it.cadence || null });
     for (const it of forecast.commitment_items || []) put(it.due_on, { kind: 'commitment', label: it.subject || 'A commitment', amount: r2(Math.abs(Number(it.amount) || 0)) });
     for (const it of forecast.income_items || []) put(it.due_on, { kind: 'income', label: it.subject || it.source || 'Money in', amount: r2(Math.abs(Number(it.amount) || 0)), said: it.said !== false, confidence: it.confidence == null ? null : Number(it.confidence) });
+    /* The calendar's own shape is { title, day, amount } (calendar.js calendarForecast). This
+       read `it.on` and `it.expected.amount`, which those items never carry, so a priced day in
+       the diary never reached a square and the calendar looked like it was doing nothing
+       (2026-09-16). Both shapes are accepted now, because the forecast is passed in from
+       several places and being tolerant here costs nothing. */
     for (const it of forecast.calendar_items || []) {
-      const amount = it.expected ? r2(Math.abs(Number(it.expected.amount) || 0)) : 0;
-      put(it.on, { kind: 'calendar', label: it.title || it.label || 'A day in the diary', amount });
+      const amount = r2(Math.abs(Number(it.amount ?? it.expected?.amount) || 0));
+      put(it.day || it.on, { kind: 'calendar', label: it.title || it.label || 'A day in the diary', amount });
     }
   }
 

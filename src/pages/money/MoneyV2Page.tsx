@@ -1019,7 +1019,11 @@ export default function MoneyV2Page({ view = 'today' }: { view?: MoneyView } = {
                   <span className="mv-item-text">
                     <span className="mv-item-title">{t('Your calendar')}</span>
                     <span className="mv-item-sub">
-                      {calendar?.google ? t('Google connected. The diary says what a week usually costs.') : t('What a week costs, and when a quiet habit is only a trip.')}
+                      {calendar?.events_seen
+                        ? (calendar.learned_at
+                            ? t('{n} events read, last {day}.', { n: calendar.events_seen, day: shortDay(calendar.learned_at, locale) })
+                            : t('{n} events read.', { n: calendar.events_seen }))
+                        : calendar?.google ? t('Google connected. The diary says what a week usually costs.') : t('What a week costs, and when a quiet habit is only a trip.')}
                     </span>
                   </span>
                   <span className="mv-item-end">
@@ -1036,6 +1040,21 @@ export default function MoneyV2Page({ view = 'today' }: { view?: MoneyView } = {
                       <span className="mv-item-end"><button type="button" className="mv-pill mv-pill--ghost" onClick={() => void removeFeed(f.id)} disabled={busy === 'feed'}>{t('Remove')}</button></span>
                     </li>
                   ))}
+                  {(calendar?.learned || []).map((l, i) => (
+                    <li key={l.key || l.label || i} className="mv-item mv-item--sub">
+                      <span className="mv-item-text">
+                        <span className="mv-item-title">{l.label}</span>
+                        <span className="mv-item-sub">{t('about {amount}, on {n} of {m} days like it', { amount: euro(l.median || 0), n: l.paid ?? 0, m: l.occurrences ?? 0 })}</span>
+                      </span>
+                    </li>
+                  ))}
+                  {Boolean(calendar?.events_seen) && !(calendar?.learned || []).length ? (
+                    <li className="mv-item mv-item--sub">
+                      <span className="mv-item-text">
+                        <span className="mv-item-sub">{t('No kind of day has a price yet. It learns from the days you pay on.')}</span>
+                      </span>
+                    </li>
+                  ) : null}
                   <li className="mv-item mv-item--sub">
                     <form className="mv-feed" onSubmit={(e) => void addFeed(e)}>
                       <label className="mv-label" htmlFor="mv-feed-url">{t('A Canvas or Blackboard link')}</label>

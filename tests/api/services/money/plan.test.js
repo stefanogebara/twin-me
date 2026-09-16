@@ -21,7 +21,9 @@ const forecast = {
   ],
   commitment_items: [{ subject: 'Rent', amount: 200, due_on: '2026-10-05' }, { subject: 'Gym', amount: 35, due_on: '2026-09-28' }],
   income_items: [{ subject: 'Mauad G.', amount: 100, due_on: '2026-09-24', said: false, confidence: 0.83 }],
-  calendar_items: [{ title: 'Trip to Valencia', on: '2026-09-26', expected: { amount: 48.5 } }, { title: 'Final exam', on: '2026-09-29', expected: null }],
+  /* The shape calendar.js sends: title, day, amount. This line used to carry a shape nothing
+     produces, which is how a mismatch in plan.js survived (2026-09-16). */
+  calendar_items: [{ title: 'Trip to Valencia', day: '2026-09-26', amount: 48.5 }, { title: 'Final exam', day: '2026-09-29', amount: 0 }],
 };
 const rows = [
   t('2026-09-13T10:00:00Z', -30), t('2026-09-13T18:00:00Z', -12.1), t('2026-09-14T09:00:00Z', -120),
@@ -98,5 +100,22 @@ describe('monthPlan', () => {
     expect(planLine(plan, { now: NOW })).toBe('September: 227,10 EUR so far; 137,46 EUR expected on 4 days ahead, 100,00 EUR coming in.');
     expect(planLine(monthPlan({ forecast, transactions: rows, facts, month: '2026-08', now: NOW }), { now: NOW })).toBe('August: 99,00 EUR.');
     expect(planLine(monthPlan({ forecast: null, transactions: [], now: NOW }), { now: NOW })).toBe('September: 0,00 EUR so far.');
+  });
+});
+
+/* 2026-09-16: a day in the diary with a learned cost never reached a square, because the plan
+   read fields the calendar does not send. Both shapes are covered now, so neither side can
+   drift away alone again. */
+describe('a day in the diary lands on its square', () => {
+  it('takes the shape calendar.js sends', () => {
+    const p = monthPlan({ forecast: { month: '2026-09-01', calendar_items: [{ title: 'Trip to Valencia', day: '2026-09-26', amount: 120 }] }, transactions: [], facts: [], now: NOW });
+    const cell = p.cells.find((c) => c.day === '2026-09-26');
+    expect(cell.items.map((i) => [i.kind, i.label, i.amount])).toEqual([['calendar', 'Trip to Valencia', 120]]);
+    expect(cell.expected).toBe(120);
+  });
+  it('still takes the older shape, so a caller that sends it is not silently dropped', () => {
+    const p = monthPlan({ forecast: { month: '2026-09-01', calendar_items: [{ title: 'Exam week', on: '2026-09-24', expected: { amount: 40 } }] }, transactions: [], facts: [], now: NOW });
+    const cell = p.cells.find((c) => c.day === '2026-09-24');
+    expect(cell.items.map((i) => [i.kind, i.amount])).toEqual([['calendar', 40]]);
   });
 });
