@@ -629,7 +629,9 @@ export default function MoneyV2Page({ view = 'today' }: { view?: MoneyView } = {
                     {allowanceWords(today, t, locale) ? <p className="mv-sub">{allowanceWords(today, t, locale)}</p> : null}
                     {/* The real thing under it: what the bank says is in the account, read with you
                         present, named as available and never as safe to spend. */}
-                    {balanceLine ? <p className="mv-sub">{balanceLine}</p> : null}
+                    {/* The day's own line already names the balance when it rests on one; saying
+                        it again two lines down is the same figure twice (2026-09-16). */}
+                    {balanceLine && today.basis !== 'balance' ? <p className="mv-sub">{balanceLine}</p> : null}
                     {/* What the diary already expects today. The allowance has taken it off the
                         number above; without this line it is taken off for no visible reason. */}
                     {today.today_events?.length ? (

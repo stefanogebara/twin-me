@@ -90,7 +90,7 @@ export const OPENING_QUESTIONS = Object.freeze([
     help: 'The district is enough. This never asks where your phone is, and it is not stored as an address.',
     why: 'It tells your local supermarket apart from one you passed once.',
     changes: 'which shops count as near home',
-    input: 'text',
+    input: 'place:area',
     optional: false,
   },
   {
@@ -100,7 +100,7 @@ export const OPENING_QUESTIONS = Object.freeze([
     help: 'The name of the school or campus.',
     why: 'It turns a train ticket into a commute and a cafe into the one by your classroom.',
     changes: 'which payments count as the commute and campus',
-    input: 'text',
+    input: 'place:name',
     optional: true,
   },
   {
@@ -110,7 +110,7 @@ export const OPENING_QUESTIONS = Object.freeze([
     help: 'Leave it empty if you do not.',
     why: 'Work spending and study spending are different lives, and the ledger cannot tell them apart on its own.',
     changes: 'which payments count as work',
-    input: 'text',
+    input: 'place:name',
     optional: true,
   },
   {

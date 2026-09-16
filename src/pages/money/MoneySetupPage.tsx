@@ -19,7 +19,7 @@ import MoneyNav, { type MoneyNavLink } from './MoneyNav';
 import Wait from '../../components/Wait';
 import { MONEY_NAV } from './navLinks';
 import { cap, factTitle, factWord } from './factWords';
-import { moneyAPI, euro, shortDay, type MoneyFact, type MoneyQuestion } from '../../services/api/moneyAPI';
+import { moneyAPI, euro, shortDay, type MoneyFact, type MoneyQuestion, type PlaceHit } from '../../services/api/moneyAPI';
 
 /** The words a kind of place can be given, matching what the categoriser itself uses. */
 const CATEGORIES = [
@@ -122,11 +122,32 @@ export default function MoneySetupPage() {
      better in the summary than the key the ledger files it under. */
   const subjectLabel = question?.receipts?.[0]?.merchant_raw || undefined;
 
+  /* A place is looked up as it is typed, from the same provider the onboarding uses: a
+     person types "Recoletos" and picks their own district rather than spelling it for a
+     ledger that will later try to match a supermarket against it (Stefano, 2026-09-16). */
+  const isPlace = Boolean(question && question.input.startsWith('place:'));
+  const areaKind = question?.input === 'place:area';
+  const [hits, setHits] = useState<PlaceHit[]>([]);
+  const [picked, setPicked] = useState<PlaceHit | null>(null);
+  useEffect(() => { setHits([]); setPicked(null); }, [question?.id]);
+  useEffect(() => {
+    if (!isPlace || picked) return undefined;
+    const q = text.trim();
+    if (q.length < 2) { setHits([]); return undefined; }
+    let live = true;
+    const timer = setTimeout(() => {
+      (areaKind ? moneyAPI.homeSearch(q) : moneyAPI.placesSearch(q))
+        .then((r) => { if (live) setHits(r); })
+        .catch(() => { if (live) setHits([]); });
+    }, 350);
+    return () => { live = false; clearTimeout(timer); };
+  }, [text, isPlace, areaKind, picked]);
+
   const filledRows = rows.filter((r) => r.label.trim());
   const answerable = question
     ? question.input.startsWith('list:')
       ? filledRows.length > 0 || skippable
-      : question.input === 'text'
+      : question.input === 'text' || question.input.startsWith('place:')
         ? text.trim().length > 0 || skippable
         : Boolean(choice)
     : false;
@@ -155,6 +176,19 @@ export default function MoneySetupPage() {
             ...(amount === undefined ? {} : { amount }),
             ...(day === undefined ? {} : { day }),
             ...(share === undefined ? {} : { share }),
+          });
+        }
+      } else if (question.input.startsWith('place:')) {
+        const value = (picked?.label || text).trim();
+        if (!value) { await moneyAPI.skipQuestion(question.id); advance(); return; }
+        /* Their home is kept as a point as well as a word, because the ledger measures which
+           shops are near it; a place they named is kept as the fact it answers. */
+        if (areaKind && picked) await moneyAPI.saveHome(picked);
+        else {
+          await moneyAPI.answerQuestion({
+            questionId: question.id, kind: question.kind, value,
+            ...(picked?.secondary ? { subjectLabel: picked.secondary } : {}),
+            ...(question.subject ? { subject: question.subject } : {}),
           });
         }
       } else if (question.input === 'text') {
@@ -261,7 +295,7 @@ export default function MoneySetupPage() {
                 ) : null}
 
                 <form className="ms-form" onSubmit={(e) => { e.preventDefault(); void submit(); }}>
-                  {question.input === 'text' ? (
+                  {question.input === 'text' || isPlace ? (
                     <div className="ms-field">
                       <label className="mv-sr" htmlFor="ms-text">{t('Your answer')}</label>
                       <input
@@ -269,10 +303,33 @@ export default function MoneySetupPage() {
                         className="mv-field"
                         type="text"
                         value={text}
-                        placeholder={t('Your answer')}
+                        placeholder={isPlace ? t(areaKind ? 'Start typing your district' : 'Start typing the name') : t('Your answer')}
                         autoComplete="off"
-                        onChange={(e) => setText(e.target.value)}
+                        role={isPlace ? 'combobox' : undefined}
+                        aria-expanded={isPlace ? hits.length > 0 : undefined}
+                        aria-controls={isPlace ? 'ms-hits' : undefined}
+                        onChange={(e) => { setText(e.target.value); setPicked(null); }}
                       />
+                      {isPlace && hits.length ? (
+                        <ul id="ms-hits" className="mv-list ms-hits" aria-label={t('{what}, results', { what: t('Your answer') })}>
+                          {hits.map((h) => (
+                            <li key={h.id}>
+                              <button
+                                type="button"
+                                className="mv-item la-hit"
+                                onClick={() => { setPicked(h); setText(h.label); setHits([]); }}
+                              >
+                                <span className="mv-item-text">
+                                  <span className="mv-item-title">{h.label}</span>
+                                  {h.secondary ? <span className="mv-item-sub">{h.secondary}</span> : null}
+                                </span>
+                                <span className="mv-item-end mv-quiet">{t('Keep')}</span>
+                              </button>
+                            </li>
+                          ))}
+                        </ul>
+                      ) : null}
+                      {isPlace && picked ? <p className="mv-quiet">{picked.secondary || picked.label}</p> : null}
                     </div>
                   ) : null}
 

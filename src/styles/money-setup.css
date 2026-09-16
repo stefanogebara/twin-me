@@ -43,3 +43,9 @@
 
 /* Room to say more under a choice. */
 .ms .ms-note { margin-top: 16px; max-width: 480px; }
+
+/* The places a person is choosing between, under the field they are typing in: the register's
+   own row, an ink rule above the list, nothing floating (2026-09-16). */
+.ms .ms-hits { margin-top: 12px; border-top: 1px solid var(--ink); }
+.ms .ms-hits .la-hit { min-height: 57px; padding: 12px; }
+.ms .ms-field > .mv-quiet { margin-top: 8px; }

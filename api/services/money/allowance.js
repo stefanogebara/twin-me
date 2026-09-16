@@ -210,25 +210,33 @@ export function safeToSpend({ cast = null, segments = [], facts = [], accounts =
   const amount = r2(Math.max(0, bounded - todaysCost));
   const over = free < 0;
 
+  /* The preposition travels inside the phrase. Composed as "From {basis}", Portuguese asked
+     for "De os 447,98 EUR" where it says "Dos"; a language that contracts cannot glue a
+     sentence together from parts that do not know what follows them (2026-09-16). */
   const keepWord = keep ? `, keeping ${money(keep)}` : '';
-  const basisWord = basis === 'balance'
+  const bareBasis = basis === 'balance'
     ? `the ${money(base)} in ${balance.banks.join(' and ')}${keepWord}`
     : income !== null
       ? `the ${money(base)} you said comes in${keepWord}`
       : typical !== null
         ? `your usual month of ${money(base)}${keepWord}`
         : `${student.label}, ${money(base)}${keepWord}`;
+  const basisWord = `From ${bareBasis}`;
   const spoken = [];
   if (basis !== 'balance') spoken.push(`${money(spent)} spent`);
   if (committed > 0) spoken.push(`${money(committed)} still to be charged`);
   if (calendarAhead > 0) spoken.push(`${money(calendarAhead)} the diary expects`);
-  const until = horizon.day && horizon.source ? `until ${horizon.source} arrives` : daysText(days);
+  /* "over until X arrives" is what happens when a phrase is dropped into a slot made for a
+     count; the days stay in the sentence and the next money names its end. */
+  const until = horizon.day && horizon.source
+    ? `over the ${daysText(days)} until ${horizon.source} arrives`
+    : `over ${daysText(days)}`;
 
   let sentence;
   if (over) {
-    sentence = `That is ${money(Math.abs(free))} past ${basisWord}, with ${daysText(days)} to go.`;
+    sentence = `That is ${money(Math.abs(free))} past ${bareBasis}, with ${daysText(days)} to go.`;
   } else {
-    sentence = `From ${basisWord}${spoken.length ? `, after ${spoken.join(' and ')}` : ''}, over ${until}.`;
+    sentence = `${basisWord}${spoken.length ? `, after ${spoken.join(' and ')}` : ''}, ${until}.`;
   }
 
   return {
