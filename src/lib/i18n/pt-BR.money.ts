@@ -693,4 +693,9 @@ export const PT_BR_MONEY: Record<string, string> = {
   "Comes in, seen {n} times, usually the {day}": "Entra, visto {n} vezes, normalmente no dia {day}",
   "A calendar link": "Um link de calend\u00e1rio",
   "untitled": "sem t\u00edtulo",
+  "the {amount} in {bank}": "os {amount} que h\u00e1 em {bank}",
+  "{amount} spent": "{amount} gastos",
+  "From {basis}, after {after}, over {days}.": "De {basis}, depois de {after}, ao longo de {days}.",
+  "From {basis}, over {days}.": "De {basis}, ao longo de {days}.",
+  "until {source} arrives": "at\u00e9 {source} chegar",
 };

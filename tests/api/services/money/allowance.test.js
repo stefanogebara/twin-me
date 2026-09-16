@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { safeToSpend, statedIncome, typicalMonth, eventsToday, allowanceLine, MIN_MONTHS_FOR_TYPICAL, weekdayShare, SHAPE_LIMIT } from '../../../../api/services/money/allowance.js';
+import { safeToSpend, statedIncome, typicalMonth, eventsToday, allowanceLine, MIN_MONTHS_FOR_TYPICAL, weekdayShare, SHAPE_LIMIT, freshBalance, nextInflow, SHAPE_MIN_WEEKDAYS } from '../../../../api/services/money/allowance.js';
 
 const NOW = new Date('2026-09-09T12:00:00Z');
 
@@ -84,6 +84,76 @@ describe('the day gets its share of the week', () => {
     const flat = safeToSpend({ cast: { ...cast, weekday_baseline: undefined }, facts, now: new Date('2026-09-18T12:00:00Z') });
     expect(flat.amount).toBe(100);
     expect(flat.shape).toBeNull();
+  });
+});
+
+describe('the day rests on the balance when the bank has said one', () => {
+  const account = (balance, over = {}) => ({ balance, balance_at: '2026-09-09T10:00:00Z', balance_type: 'CLBD', bank_name: 'Santander', ...over });
+
+  it('reads a fresh balance and ignores a stale one or a credit line', () => {
+    expect(freshBalance([account(447.98)], NOW)).toMatchObject({ amount: 447.98, banks: ['Santander'] });
+    expect(freshBalance([account(447.98, { balance_at: '2026-09-01T10:00:00Z' })], NOW)).toBeNull();
+    expect(freshBalance([account(2000, { balance_type: 'OTHR/credit' })], NOW)).toBeNull();
+    expect(freshBalance([account(400), account(50, { bank_name: 'Revolut' })], NOW)).toMatchObject({ amount: 450, banks: ['Santander', 'Revolut'] });
+  });
+
+  it('spreads what is in the account, less what is spoken for, over the days until the next money', () => {
+    /* 1,97 EUR for the day over 447,98 EUR in the bank was the screen on 2026-09-16, because
+       the day was spreading what was left of a stated 1750. */
+    const c = cast({ days_left: 14, committed: 97.41, committed_items: [{ merchant_key: 'vercel', typical_amount: 97.41, next_expected: '2026-09-20' }] });
+    const a = safeToSpend({ cast: c, facts: [{ kind: 'income', amount: 1750 }], accounts: [account(447.98)], now: NOW });
+    expect(a.basis).toBe('balance');
+    expect(a.base).toBe(447.98);
+    expect(a.free).toBe(350.57);
+    expect(a.amount).toBe(23.37);
+    expect(a.horizon).toEqual({ day: null, days: 15, source: null });
+    /* The stated income still frames the month, so the screen can draw it. */
+    expect(a.income).toBe(1750);
+    expect(a.sentence).toBe('From the 447,98\u202f\u20ac in Santander, after 97,41\u202f\u20ac still to be charged, over 15 days.');
+  });
+
+  it('runs to the next money in when the forecast expects one', () => {
+    const c = cast({ days_left: 20, committed: 0, income_items: [{ source: 'family', amount: 900, due_on: '2026-09-14' }] });
+    expect(nextInflow(c, NOW)).toEqual({ day: '2026-09-14', days: 5, source: 'family' });
+    const a = safeToSpend({ cast: c, facts: [], accounts: [account(200)], now: NOW });
+    expect(a.horizon.days).toBe(5);
+    expect(a.amount).toBe(40);
+    expect(a.sentence).toContain('until family arrives');
+    /* Money expected after the month's end is the month's end. */
+    expect(nextInflow(cast({ days_left: 3, income_items: [{ source: 'x', amount: 1, due_on: '2026-10-02' }] }), NOW)).toEqual({ day: null, days: 4, source: null });
+  });
+
+  it('only counts what lands before the next money', () => {
+    const c = cast({ days_left: 20, committed: 150, committed_items: [
+      { merchant_key: 'a', typical_amount: 50, next_expected: '2026-09-12' },
+      { merchant_key: 'b', typical_amount: 100, next_expected: '2026-09-25' },
+    ], income_items: [{ source: 'beca', amount: 500, due_on: '2026-09-14' }] });
+    const a = safeToSpend({ cast: c, facts: [], accounts: [account(300)], now: NOW });
+    expect(a.committed).toBe(50);
+    expect(a.free).toBe(250);
+  });
+
+  it('says it is over when what is spoken for exceeds the account', () => {
+    const a = safeToSpend({ cast: cast({ days_left: 10, committed: 500 }), facts: [], accounts: [account(300)], now: NOW });
+    expect(a.over).toBe(true);
+    expect(a.amount).toBe(0);
+    expect(a.sentence).toMatch(/^That is 200,00/);
+  });
+
+  it('falls back to the budget without a fresh balance, unchanged', () => {
+    const a = safeToSpend({ cast: cast(), facts: [{ kind: 'income', amount: 1000 }], accounts: [account(447.98, { balance_at: '2026-08-01T10:00:00Z' })], now: NOW });
+    expect(a.basis).toBe('income');
+    expect(a.balance).toBeNull();
+  });
+});
+
+describe('the week has to be a week before it shapes a day', () => {
+  it('says nothing about a week of mostly zeros', () => {
+    /* Stefano's own baseline on 2026-09-16: two card days a week read as a shape, and a
+       Wednesday with a zero median fell to the floor with the weekday blamed. */
+    expect(SHAPE_MIN_WEEKDAYS).toBe(4);
+    expect(weekdayShare([0, 0, 0, 0, 8.75, 0, 2.75], new Date('2026-09-16T12:00:00Z'), 15)).toBeNull();
+    expect(weekdayShare([4, 6, 6, 0, 8, 30, 0], new Date('2026-09-16T12:00:00Z'), 15)).not.toBeNull();
   });
 });
 
