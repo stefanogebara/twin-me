@@ -424,6 +424,14 @@ router.get('/stream', async (req, res) => {
       }
       const accounts = await listBankAccounts(userId);
       if (!accounts.length) return { detail: 'No account connected yet.', count: 0 };
+      /* The same ten minutes the rest of the product holds itself to. This step read the bank
+         on every mount of Ask, past the one policy that was written down so the phone and the
+         web could not drift apart on what stale means (2026-09-16). */
+      const newest = accounts.map((a) => a.last_pulled_at).filter(Boolean).sort().pop();
+      const ageMinutes = newest ? (Date.now() - new Date(newest).getTime()) / 60000 : Infinity;
+      if (ageMinutes < STALE_AFTER_MINUTES) {
+        return { detail: 'Read a moment ago; using what is stored.', count: 0 };
+      }
       /* A read that failed and a bank that was never connected are different things, and
          saying the wrong one sends somebody to reconnect an account that is already there. */
       let pulled;

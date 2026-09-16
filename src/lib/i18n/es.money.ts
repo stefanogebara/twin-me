@@ -486,4 +486,5 @@ export const ES_MONEY: Record<string, string> = {
   "{name} came every {gap} days and has not for {days}. Did you cancel it?": "{name} ven\u00eda cada {gap} d\u00edas y lleva {days} sin venir. \u00bfLo cancelaste?",
   "{name} takes about {amount} around the {day}, {n} months running. Is this your rent?": "{name} se lleva unos {amount} sobre el {day}, {n} meses seguidos. \u00bfEs tu alquiler?",
   "You paid {amount} at {name} {day}, and {who} sent you {each} each. Was that split?": "Pagaste {amount} en {name} {day}, y {who} te envi\u00f3 {each} cada uno. \u00bfFue a medias?",
+  "Read a moment ago; using what is stored.": "Le\u00eddo hace un momento; usando lo guardado.",
 };
