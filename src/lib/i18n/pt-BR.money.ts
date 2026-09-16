@@ -487,4 +487,5 @@ export const PT_BR_MONEY: Record<string, string> = {
   "{name} takes about {amount} around the {day}, {n} months running. Is this your rent?": "{name} leva cerca de {amount} por volta do dia {day}, {n} meses seguidos. \u00c9 o seu aluguel?",
   "You paid {amount} at {name} {day}, and {who} sent you {each} each. Was that split?": "Voc\u00ea pagou {amount} em {name} {day}, e {who} te enviou {each} cada um. Foi dividido?",
   "Read a moment ago; using what is stored.": "Lido h\u00e1 pouco; usando o que est\u00e1 guardado.",
+  "That could not be read right now.": "Isso n\u00e3o p\u00f4de ser lido agora.",
 };

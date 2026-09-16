@@ -213,13 +213,23 @@ export default function MoneyV2Page({ view = 'today' }: { view?: MoneyView } = {
     return () => document.removeEventListener('visibilitychange', onVisibility);
   }, [load]);
   useEffect(() => { moneyAPI.inbox().then(setInbox).catch(() => setInbox(null)); }, []);
-  const loadCalendar = useCallback(() => moneyAPI.calendar().then(setCalendar).catch(() => setCalendar({ connected: false })), []);
+  /* A read that failed is not a calendar that was never connected: mapped to connected:false,
+     one failed request offered Connect Google to somebody who had already connected it. */
+  const [calendarFailed, setCalendarFailed] = useState(false);
+  const loadCalendar = useCallback(
+    () => moneyAPI.calendar().then((c) => { setCalendar(c); setCalendarFailed(false); }).catch(() => setCalendarFailed(true)),
+    [],
+  );
   /* Only You shows the calendar, and reading it fetches every pasted link: not on every page. */
   useEffect(() => { if (view === 'you') void loadCalendar(); }, [view, loadCalendar]);
+  const [youFailed, setYouFailed] = useState(false);
   const loadYou = useCallback(async () => {
     const [f, q] = await Promise.allSettled([moneyAPI.facts(), moneyAPI.questions()]);
-    setFacts(f.status === 'fulfilled' ? f.value : []);
-    setQuestions(q.status === 'fulfilled' ? q.value : null);
+    /* Same rule as the calendar: nothing to show and nothing could be read are different
+       lines, and the second one must not read as the first. */
+    if (f.status === 'fulfilled') setFacts(f.value);
+    if (q.status === 'fulfilled') setQuestions(q.value);
+    setYouFailed(f.status === 'rejected');
   }, []);
   useEffect(() => { if (view === 'you') void loadYou(); }, [view, loadYou]);
   async function forget(f: MoneyFact) {
@@ -714,7 +724,7 @@ export default function MoneyV2Page({ view = 'today' }: { view?: MoneyView } = {
             <p className="mv-eyebrow">{t('You')}</p>
             <h1>{user?.firstName ? t('{name}.', { name: user.firstName }) : t('You.')}</h1>
             <p className="mv-sub">{t('What it knows in your words, and where it reads from.')}</p>
-            {facts === null ? <Wait inline state="searching" line="Reading what it knows." /> : null}
+            {facts === null && !youFailed ? <Wait inline state="searching" line="Reading what it knows." /> : null}
           </section>
           ) : null}
 
@@ -955,7 +965,9 @@ export default function MoneyV2Page({ view = 'today' }: { view?: MoneyView } = {
             <h2>{t('What it knows.')}</h2>
             <p className="mv-sub">{t('Forget one and it asks again.')}</p>
             <ul className="mv-list">
-              {facts === null ? null : facts.length === 0 ? (
+              {facts === null && !youFailed ? null : youFailed && !facts?.length ? (
+                <li><p className="mv-empty">{t('That could not be read right now.')}</p></li>
+              ) : facts && facts.length === 0 ? (
                 <li><p className="mv-empty">{t('Nothing yet. The questions are where this fills.')}</p></li>
               ) : [...facts].sort((a, b) => factRank(a) - factRank(b)).map((f) => {
                 /* A row of fifteen identical buttons is a form, not a list: the fact opens, and
@@ -1065,7 +1077,7 @@ export default function MoneyV2Page({ view = 'today' }: { view?: MoneyView } = {
                   <span className="mv-item-text">
                     <span className="mv-item-title">{t('Your calendar')}</span>
                     <span className="mv-item-sub">
-                      {calendar?.events_seen
+                      {calendarFailed ? t('That could not be read right now.') : calendar?.events_seen
                         ? (calendar.learned_at
                             ? t('{n} events read, last {day}.', { n: calendar.events_seen, day: shortDay(calendar.learned_at, locale) })
                             : t('{n} events read.', { n: calendar.events_seen }))
