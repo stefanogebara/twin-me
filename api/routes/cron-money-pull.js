@@ -22,7 +22,7 @@ import express from 'express';
 import { verifyCronSecret } from '../middleware/verifyCronSecret.js';
 import { logCronExecution, wasRecentlyRun } from '../services/cronLogger.js';
 import { createLogger } from '../services/logger.js';
-import { pullBankFeed, enrichPlaces, refreshReadings, bankFeedUserIds } from '../services/money/store.js';
+import { pullBankFeed, enrichPlaces, refreshReadings, refreshRecurring, learn, bankFeedUserIds } from '../services/money/store.js';
 import { isConfigured } from '../services/money/feeds/enableBanking.js';
 import { learnFromLedger } from '../services/money/predictions.js';
 import { refreshIfStale as refreshCalendar } from '../services/money/calendar.js';
@@ -90,9 +90,21 @@ router.all('/', async (req, res) => {
         }
       }
       if (fresh > 0 || daily) {
+        /* What comes back, recomputed before anything reads it. This ran only when a page was
+           opened, so for a person who stops opening the app every next_expected date fell into
+           the past, the projection dropped the series, and the month lost its standing charges
+           (2026-09-16). It is pure arithmetic over rows already in hand. */
+        await refreshRecurring(userId)
+          .catch((e) => log.warn('recurring refresh failed', { userId, error: e.message }));
         const ok = await refreshReadings(userId).then(() => true)
           .catch((e) => { log.warn('readings refresh failed', { userId, error: e.message }); return false; });
         if (ok) refreshed += 1;
+      }
+      /* The places, the rhythms and what it expects next: also a page-open job until now, so
+         the twin could quote a gap measured weeks ago. No model, no network. */
+      if (daily) {
+        await learn(userId)
+          .catch((e) => log.warn('learning failed', { userId, error: e.message }));
       }
       /* Whether or not the bank had news, a day has passed: what it said for today is
          written down, and what it said for yesterday is scored against what happened. */

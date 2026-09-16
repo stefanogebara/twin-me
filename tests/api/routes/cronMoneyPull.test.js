@@ -13,10 +13,16 @@ const pull = vi.fn();
 const refresh = vi.fn();
 const places = vi.fn();
 const learn = vi.fn();
+const recurring = vi.fn();
+const learnLedger = vi.fn();
 vi.mock('../../../api/services/money/store.js', () => ({
   pullBankFeed: (...a) => pull(...a),
   enrichPlaces: (...a) => places(...a),
   refreshReadings: (...a) => refresh(...a),
+  /* Both ran only when somebody opened a page, so a series' next date went stale and the
+     projection dropped it; the cron keeps them moving now (2026-09-16). */
+  refreshRecurring: (...a) => recurring(...a),
+  learn: (...a) => learnLedger(...a),
   bankFeedUserIds: async () => ['u1', 'u2'],
 }));
 vi.mock('../../../api/services/money/feeds/enableBanking.js', () => ({ isConfigured: () => true }));
@@ -37,6 +43,8 @@ const AUTH = { Authorization: 'Bearer test-cron-secret' };
 describe('cron-money-pull', () => {
   beforeEach(() => {
     pull.mockReset(); refresh.mockReset(); places.mockReset(); learn.mockReset(); calendar.mockReset(); calendar.mockResolvedValue({ refreshed: false });
+    recurring.mockReset(); recurring.mockResolvedValue([]);
+    learnLedger.mockReset(); learnLedger.mockResolvedValue({ profiles: [], patterns: [], predictions: [], summary: null });
     places.mockResolvedValue({ placed: 0, left: 0 });
     refresh.mockResolvedValue({ findings: [] });
     learn.mockResolvedValue({ recorded: 0, scored: 0 });
@@ -74,6 +82,19 @@ describe('cron-money-pull', () => {
     expect(places.mock.calls.map((c) => [c[0], c[1].limit])).toEqual([['u1', 20], ['u2', 20]]);
     expect(learn).toHaveBeenCalledTimes(2);
     expect(calendar.mock.calls.map((c) => c[0])).toEqual(['u1', 'u2']);
+    /* What comes back and what it expects next move on the clock, not on somebody opening a
+       page: without this a person who stops opening the app loses their standing charges
+       from the month (2026-09-16). */
+    expect(recurring.mock.calls.map((c) => c[0])).toEqual(['u1', 'u2']);
+    expect(learnLedger.mock.calls.map((c) => c[0])).toEqual(['u1', 'u2']);
+  });
+
+  it('leaves the rhythms alone on an afternoon run with no new rows', async () => {
+    vi.useFakeTimers({ now: new Date('2026-09-14T16:00:30Z'), toFake: ['Date'] });
+    pull.mockResolvedValue([{ created: 0, seen: 3 }]);
+    await request(app()).get('/api/cron/money-pull').set(AUTH);
+    expect(recurring).not.toHaveBeenCalled();
+    expect(learnLedger).not.toHaveBeenCalled();
   });
 
   it('a refresh that fails is counted as not refreshed and does not stop the run', async () => {
