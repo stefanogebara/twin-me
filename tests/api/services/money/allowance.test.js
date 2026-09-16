@@ -1,7 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import {
-  safeToSpend, statedIncome, typicalMonth, eventsToday, allowanceLine, MIN_MONTHS_FOR_TYPICAL,
-} from '../../../../api/services/money/allowance.js';
+import { safeToSpend, statedIncome, typicalMonth, eventsToday, allowanceLine, MIN_MONTHS_FOR_TYPICAL, weekdayShare, SHAPE_LIMIT } from '../../../../api/services/money/allowance.js';
 
 const NOW = new Date('2026-09-09T12:00:00Z');
 
@@ -46,6 +44,46 @@ describe('what a month is measured against', () => {
       { month: '2026-08-01', spent: 500, complete: true },
       { month: '2026-09-01', spent: 300, complete: false },
     ])).toBe(null);
+  });
+});
+
+describe('the day gets its share of the week', () => {
+  /* Sunday first. This person's Fridays and Saturdays carry the week. */
+  const week = [4, 6, 6, 6, 8, 30, 24];
+
+  it('gives a loud day more than an even split and a quiet day less', () => {
+    const friday = weekdayShare(week, new Date('2026-09-18T12:00:00Z'), 7);
+    const tuesday = weekdayShare(week, new Date('2026-09-15T12:00:00Z'), 7);
+    expect(friday.ratio).toBeGreaterThan(1.2);
+    expect(tuesday.ratio).toBeLessThan(0.9);
+    /* The shares of a whole week come to the whole. */
+    const all = [0, 1, 2, 3, 4, 5, 6].map((i) => weekdayShare(week, new Date(`2026-09-${13 + i}T12:00:00Z`), 7 - i));
+    expect(all[0].share).toBeCloseTo(4 / 84, 5);
+  });
+
+  it('says nothing when there is no week to read', () => {
+    expect(weekdayShare(null, new Date(), 7)).toBeNull();
+    expect(weekdayShare([0, 0, 0, 0, 0, 0, 0], new Date(), 7)).toBeNull();
+    expect(weekdayShare([1, 2, 3], new Date(), 7)).toBeNull();
+  });
+
+  it('moves the number but never by more than a third', () => {
+    const cast = { month: '2026-09-01', spent: 0, committed: 0, days_left: 6, calendar_ahead: 0, calendar_items: [], weekday_baseline: week };
+    const facts = [{ kind: 'income', amount: 700 }];
+    /* 700 over seven days is 100 a day evenly; a Friday of theirs is worth more than that. */
+    const friday = safeToSpend({ cast, facts, now: new Date('2026-09-18T12:00:00Z') });
+    const tuesday = safeToSpend({ cast, facts, now: new Date('2026-09-15T12:00:00Z') });
+    expect(friday.amount).toBeGreaterThan(100);
+    expect(tuesday.amount).toBeLessThan(100);
+    expect(friday.amount).toBeLessThanOrEqual(100 * (1 + SHAPE_LIMIT));
+    expect(tuesday.amount).toBeGreaterThanOrEqual(100 * (1 - SHAPE_LIMIT));
+    /* The shape travels with the number, so the screen can say why it moved. */
+    expect(friday.shape).toMatchObject({ weekday: 5 });
+    expect(friday.shape.ratio).toBeGreaterThan(1);
+    /* A week with no shape leaves the number where it was. */
+    const flat = safeToSpend({ cast: { ...cast, weekday_baseline: undefined }, facts, now: new Date('2026-09-18T12:00:00Z') });
+    expect(flat.amount).toBe(100);
+    expect(flat.shape).toBeNull();
   });
 });
 

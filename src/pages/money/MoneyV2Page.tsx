@@ -21,7 +21,7 @@ import { factRank, factTitle, factWord } from './factWords';
 import Mark from './Mark';
 import { KindTile, Stamp } from './Carved';
 import { markFor } from './carvedKinds';
-import { readingWords, todayHere, localDay } from './readingWords';
+import { readingWords, todayHere, localDay, allowanceWords } from './readingWords';
 import { MARK_FOR, hasMark } from './markPaths';
 import { moneyAPI, euro, shortDay, bankLabel, BANKS, type MoneyAccount, type MoneyCalendar, type MoneyCategories, type MoneyDayStrip, type MoneyFact, type MoneyForecast, type MoneyQuestions, type MoneyToday, type MoneyMonth, type MoneyReading, type MoneyRecurring, type MoneySighting, type MoneyTransaction, type MoneyUsage } from '../../services/api/moneyAPI';
 import LedgerOrb from '../../components/LedgerOrb';
@@ -586,7 +586,7 @@ export default function MoneyV2Page({ view = 'today' }: { view?: MoneyView } = {
                     })()}
                     <h1>{today.over ? t('Nothing today.') : t('{amount} today.', { amount: euro(today.amount) })}</h1>
                     {/* One line: the basis. The month lives in the band's two labels below. */}
-                    {today.sentence ? <p className="mv-sub">{today.sentence}</p> : null}
+                    {allowanceWords(today, t, locale) ? <p className="mv-sub">{allowanceWords(today, t, locale)}</p> : null}
                     {/* The real thing under it: what the bank says is in the account, read with you
                         present, named as available and never as safe to spend. */}
                     {balanceLine ? <p className="mv-sub">{balanceLine}</p> : null}

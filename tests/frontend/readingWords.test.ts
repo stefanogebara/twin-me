@@ -8,7 +8,7 @@
  */
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
-import { readingWords, weekdayName, monthName, listOf, ordinal } from '../../src/pages/money/readingWords';
+import { readingWords, weekdayName, monthName, listOf, ordinal, allowanceWords } from '../../src/pages/money/readingWords';
 import { translate } from '../../src/lib/i18n';
 
 const en = (s: string, vars?: Record<string, string | number>) => translate('en', s, vars);
@@ -98,6 +98,46 @@ describe('a reading in the reader own language', () => {
       if (translate('pt-BR', k) === k) missing.push(`pt-BR: ${k}`);
     }
     expect(missing).toEqual([]);
+  });
+});
+
+describe("the day's own line", () => {
+  const base = {
+    amount: 31.2, basis: 'income' as const, base: 900, keep: 100, free: 420, over: false, days_left: 13,
+    spent: 380, committed: 0, calendar_ahead: 0, shape: null, today_events: [], sentence: 'STORED', why: null,
+  };
+  /* The euro sign arrives with a narrow no-break space from Intl, so these read the words. */
+  const words = (line: string | null) => String(line).replace(/\d[\d.,]*[\u00a0\u202f ]?\u20ac|\d+/g, '#');
+
+  it('says what the day rests on, word for word with the ledger', () => {
+    expect(words(allowanceWords(base, en, 'en-GB'))).toBe('From the # you said comes in, keeping #, after # spent, over # days.');
+  });
+
+  it('names what is already spoken for', () => {
+    const a = { ...base, committed: 73.34, calendar_ahead: 48.5 };
+    expect(words(allowanceWords(a, en, 'en-GB')))
+      .toBe('From the # you said comes in, keeping #, after # spent and # still to be charged and # the diary expects, over # days.');
+  });
+
+  it('says why today is worth more or less than an even split', () => {
+    const more = allowanceWords({ ...base, shape: { weekday: 5, ratio: 1.3 } }, en, 'en-GB');
+    expect(more).toContain('Friday usually costs you more, so today has a bigger share.');
+    const less = allowanceWords({ ...base, shape: { weekday: 2, ratio: 0.8 } }, en, 'en-GB');
+    expect(less).toContain('Tuesday is usually quieter, so today has a smaller share.');
+  });
+
+  it('says it in Spanish and Portuguese too', () => {
+    expect(allowanceWords(base, es, 'es-ES')).toContain('que dijiste que entran');
+    expect(allowanceWords(base, pt, 'pt-BR')).toContain('que voc\u00ea disse que entram');
+    expect(allowanceWords({ ...base, over: true }, es, 'es-ES')).toMatch(/^Son /);
+    const shaped = allowanceWords({ ...base, shape: { weekday: 5, ratio: 1.3 } }, es, 'es-ES');
+    expect(shaped).toContain('viernes');
+    expect(shaped).not.toContain('Friday');
+  });
+
+  it('keeps the ledger sentence when it cannot say the line', () => {
+    expect(allowanceWords({ ...base, amount: null }, es, 'es-ES')).toBe('STORED');
+    expect(allowanceWords({ ...base, basis: null, base: null }, es, 'es-ES')).toBe('STORED');
   });
 });
 

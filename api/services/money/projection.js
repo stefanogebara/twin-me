@@ -198,6 +198,10 @@ export function projectMonth(p) {
     committed: r2(committed),
     committed_items: committedItems,
     expected: r2(expected),
+    /* What a week of theirs looks like: the median spent on each weekday over the history
+       window, Sunday first. The day's allowance shapes itself with it, so a Friday is not
+       told it is worth the same as a Tuesday (2026-09-16). */
+    weekday_baseline: baseline.map((x) => r2(x)),
     expected_items: expectedItems,
     commitments: r2(commitmentTotal),
     commitment_items: commitmentItems.map(({ due, ...c }) => ({ ...c, due_on: due.toISOString().slice(0, 10) })),

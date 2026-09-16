@@ -62,6 +62,9 @@ export type MoneyBudget = { used: number; left: number; resets_at: string | null
 export type MoneyToday = {
   amount: number | null; basis: 'income' | 'typical' | 'student_prior' | null; base?: number | null; keep?: number | null; budget: number | null; free: number | null; over: boolean;
   days_left: number | null; today_events: { title: string; amount: number }[]; sentence: string | null; why: string | null;
+  /* What the screen needs to say the line itself, in the reader's own language. */
+  basis_label?: string | null; spent?: number | null; committed?: number | null; calendar_ahead?: number | null;
+  shape?: { weekday: number; ratio: number } | null;
 };
 export type MoneyUsage = {
   findings: { kind: string; sentence: string; detail: string | null; numbers: Record<string, number | string>; evidence_count: number }[];
