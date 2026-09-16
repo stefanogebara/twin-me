@@ -66,6 +66,12 @@ export type MoneyToday = {
   basis_label?: string | null; spent?: number | null; committed?: number | null; calendar_ahead?: number | null;
   shape?: { weekday: number; ratio: number } | null;
 };
+/** What the ledger worked out on its own, from the payments alone (brain.js patterns). */
+export type MoneyPattern = {
+  kind: string; month: string | null; sentence: string; detail: string | null;
+  numbers: Record<string, unknown>; evidence_count: number;
+  receipts?: { id: string; occurred_at: string; amount: number | string; merchant_raw: string | null; merchant_key: string }[];
+};
 export type MoneyUsage = {
   findings: { kind: string; sentence: string; detail: string | null; numbers: Record<string, number | string>; evidence_count: number }[];
   unmeasurable: { merchant_key: string; name: string; typical_amount: number }[];
@@ -152,6 +158,8 @@ export const moneyAPI = {
   noteDay: (day: string, text: string) =>
     authFetch('/money/questions/answer', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ questionId: null, kind: 'note', subject: `day-${day.slice(0, 10)}`, value: text }) }).then((r) => json<{ id?: string }>(r)),
   usage: () => authFetch('/money/usage').then((r) => json<MoneyUsage>(r)),
+  /** What the ledger worked out on its own; computed on the read, nothing stored. */
+  patterns: () => authFetch('/money/patterns').then((r) => json<{ findings: MoneyPattern[] }>(r)).then((d) => d.findings || []),
   categories: (month?: string) => authFetch(`/money/categories${month ? `?month=${encodeURIComponent(month)}` : ''}`).then((r) => json<MoneyCategories>(r)),
   places: () => authFetch('/money/places').then((r) => json<MoneyPlace[]>(r)),
   /** The person's word on what kind of place a merchant is; null clears it. */

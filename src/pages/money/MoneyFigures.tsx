@@ -89,12 +89,12 @@ export function Figure({ figure }: { figure: ChatFigure }) {
     case 'band': {
       const top = Math.max(figure.high || 0, figure.likely, figure.spent, 1);
       body = (
-        <div className="mc-band" role="img" aria-label={`Spent ${euro(figure.spent)}, likely ${euro(figure.likely)}`}>
+        <div className="mc-band" role="img" aria-label={t('Spent {spent}, likely {likely}', { spent: euro(figure.spent), likely: euro(figure.likely) })}>
           <span className="mc-band-track">
             <i className="mc-band-likely" style={{ width: `${(figure.likely / top) * 100}%` }} />
             <i className="mc-band-spent" style={{ width: `${(figure.spent / top) * 100}%` }} />
           </span>
-          <span className="mc-band-labels"><span>Spent {euro(figure.spent)}</span><span>Likely {euro(figure.likely)}</span></span>
+          <span className="mc-band-labels"><span>{t('Spent {amount}', { amount: euro(figure.spent) })}</span><span>{t('Likely {amount}', { amount: euro(figure.likely) })}</span></span>
         </div>
       );
       break;

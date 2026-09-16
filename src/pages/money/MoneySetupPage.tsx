@@ -10,7 +10,7 @@
  * Spec: .claude/plans/2026-09-07-money-twin/README.md
  */
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { dayBehind, ordinal } from './readingWords';
+import { askWords } from './askWords';
 import { Link } from 'react-router-dom';
 import { useLocale, useT } from '@/lib/i18n';
 import '../../styles/money-v2.css';
@@ -63,18 +63,6 @@ function parseShare(s: string): number | undefined {
 }
 
 /** The 1st, not the 1. A system that cannot spell a date is not trusted with a number. */
-
-type T = (s: string, vars?: Record<string, string | number>) => string;
-
-/** A question in the reader's language: its parts when it has them, else its own words. */
-function askWords(q: MoneyQuestion, t: T, locale: string): string {
-  if (!q.say?.key) return t(q.ask);
-  const vars: Record<string, string | number> = { ...q.say.vars };
-  /* A day arrives as a date; a person says it as a day. */
-  if (typeof vars.day === 'string' && /^\d{4}-\d{2}-\d{2}/.test(vars.day)) vars.day = dayBehind(vars.day, t, locale);
-  else if (typeof vars.day === 'number') vars.day = ordinal(t, vars.day);
-  return t(q.say.key, vars);
-}
 
 export default function MoneySetupPage() {
   const t = useT();
@@ -187,8 +175,8 @@ export default function MoneySetupPage() {
         });
       }
       advance();
-    } catch (e) {
-      setNote((e as Error).message || t('That answer did not save. Try it again.'));
+    } catch {
+      setNote(t('That answer did not save. Try it again.'));
     } finally {
       setBusy(false);
     }

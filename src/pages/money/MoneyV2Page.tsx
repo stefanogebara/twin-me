@@ -22,8 +22,9 @@ import Mark from './Mark';
 import { KindTile, Stamp } from './Carved';
 import { markFor } from './carvedKinds';
 import { readingWords, todayHere, localDay, allowanceWords } from './readingWords';
+import { askWords } from './askWords';
 import { MARK_FOR, hasMark } from './markPaths';
-import { moneyAPI, euro, shortDay, bankLabel, BANKS, type MoneyAccount, type MoneyCalendar, type MoneyCategories, type MoneyDayStrip, type MoneyFact, type MoneyForecast, type MoneyQuestions, type MoneyToday, type MoneyMonth, type MoneyReading, type MoneyRecurring, type MoneySighting, type MoneyTransaction, type MoneyUsage } from '../../services/api/moneyAPI';
+import { moneyAPI, euro, shortDay, bankLabel, BANKS, type MoneyAccount, type MoneyCalendar, type MoneyCategories, type MoneyDayStrip, type MoneyFact, type MoneyForecast, type MoneyPattern, type MoneyQuestions, type MoneyToday, type MoneyMonth, type MoneyReading, type MoneyRecurring, type MoneySighting, type MoneyTransaction, type MoneyUsage } from '../../services/api/moneyAPI';
 import LedgerOrb from '../../components/LedgerOrb';
 import DayGlobe from './figures/DayGlobe';
 import Fortnight from './figures/Fortnight';
@@ -236,6 +237,7 @@ export default function MoneyV2Page({ view = 'today' }: { view?: MoneyView } = {
   /* Only You shows the calendar, and reading it fetches every pasted link: not on every page. */
   useEffect(() => { if (view === 'you') void loadCalendar(); }, [view, loadCalendar]);
   const [youFailed, setYouFailed] = useState(false);
+  const [patterns, setPatterns] = useState<MoneyPattern[] | null>(null);
   const loadYou = useCallback(async () => {
     const [f, q] = await Promise.allSettled([moneyAPI.facts(), moneyAPI.questions()]);
     /* Same rule as the calendar: nothing to show and nothing could be read are different
@@ -244,6 +246,9 @@ export default function MoneyV2Page({ view = 'today' }: { view?: MoneyView } = {
     if (q.status === 'fulfilled') setQuestions(q.value);
     setYouFailed(f.status === 'rejected');
   }, []);
+  /* What it worked out on its own, only on the page that shows it: it is a read of the whole
+     ledger and nothing else needs it. */
+  useEffect(() => { if (view === 'you' && patterns === null) void moneyAPI.patterns().then(setPatterns).catch(() => setPatterns([])); }, [view, patterns]);
   useEffect(() => { if (view === 'you') void loadYou(); }, [view, loadYou]);
   async function forget(f: MoneyFact) {
     setBusy(`forget:${f.id}`); setNote(null);
@@ -312,7 +317,7 @@ export default function MoneyV2Page({ view = 'today' }: { view?: MoneyView } = {
     const newest = fresh.map((a) => a.balance_at as string).sort().pop() as string;
     const d = new Date(newest);
     const today = d.toDateString() === new Date().toDateString();
-    const when = today ? t('read at {time}', { time: d.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' }) }) : t('read {day}', { day: shortDay(newest) });
+    const when = today ? t('read at {time}', { time: d.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' }) }) : t('read {day}', { day: shortDay(newest, locale) });
     const pendingIn = fresh.some((a) => /^(XPCD|ITAV)/.test(a.balance_type || ''));
     const anyNegative = fresh.some((a) => Number(a.balance) < 0);
     /* A booked figure with pending alerts behind it: say about what is left once they land.
@@ -402,7 +407,8 @@ export default function MoneyV2Page({ view = 'today' }: { view?: MoneyView } = {
       setFeedUrl('');
       setNote(f.already ? t('That link is already here.') : t('{label} added: {n} events read.', { label: f.label, n: f.events ?? 0 }));
       await loadCalendar();
-    } catch (err) { setNote((err as Error).message || t('That link could not be read.')); }
+    /* The server's own words are English, whoever is reading. The page says what happened. */
+    } catch { setNote(t('That link could not be read.')); }
     finally { setBusy(null); }
   }
   async function removeFeed(id: string) {
@@ -428,7 +434,7 @@ export default function MoneyV2Page({ view = 'today' }: { view?: MoneyView } = {
       const r = await moneyAPI.importStatement(file);
       setNote(r.skipped ? t('{read} rows read, {created} new, {skipped} lines skipped.', { read: r.read, created: r.created, skipped: r.skipped }) : t('{read} rows read, {created} new.', { read: r.read, created: r.created }));
       await load();
-    } catch (e) { setNote((e as Error).message); } finally { setBusy(null); }
+    } catch { setNote(t('Those rows could not be read.')); } finally { setBusy(null); }
   }
   /* The free provider allows one request a second, so the button comes back for the rest
      rather than holding a request open until it finishes. */
@@ -460,7 +466,7 @@ export default function MoneyV2Page({ view = 'today' }: { view?: MoneyView } = {
   }
   async function makeKey() {
     setBusy('key'); setNote(null);
-    try { setKey(await moneyAPI.createCaptureKey()); } catch (e) { setNote((e as Error).message); } finally { setBusy(null); }
+    try { setKey(await moneyAPI.createCaptureKey()); } catch { setNote(t('That key could not be made. Try again.')); } finally { setBusy(null); }
   }
 
   const monthLabel = forecast ? monthName(locale, forecast.month) : new Date().toLocaleDateString(locale, { month: 'long' });
@@ -624,7 +630,7 @@ export default function MoneyV2Page({ view = 'today' }: { view?: MoneyView } = {
                           : t('Too early to say where the month lands.')}
                       </p>
                     ) : null}
-                    {today && today.why ? <p className="mv-sub">{today.why}</p> : null}
+                    {today && today.why ? <p className="mv-sub">{t(today.why)}</p> : null}
                   </>
                 )}
                 {/* The band's own record, once it has one: how many days it has been checked
@@ -852,7 +858,7 @@ export default function MoneyV2Page({ view = 'today' }: { view?: MoneyView } = {
                                     <ul className="mv-receipts">
                                       {(receipts[row.id] || []).map((s) => (
                                         <li key={s.id}>
-                                          <span className="mv-quiet">{t('{source}, read {day}', { source: SOURCE[s.source] ? t(SOURCE[s.source]) : s.source, day: shortDay(s.seen_at) })}</span>
+                                          <span className="mv-quiet">{t('{source}, read {day}', { source: SOURCE[s.source] ? t(SOURCE[s.source]) : s.source, day: shortDay(s.seen_at, locale) })}</span>
                                           <p>{s.raw_text || `${euro(s.amount)} ${s.currency || ''}`}</p>
                                         </li>
                                       ))}
@@ -908,7 +914,7 @@ export default function MoneyV2Page({ view = 'today' }: { view?: MoneyView } = {
                           <span className="mv-item-text">
                             <span className="mv-item-title">{name}</span>
                             <span className="mv-item-sub">
-                              {[t(r.is_subscription ? 'Subscription' : 'Recurring'), CADENCE[r.cadence] ? t(CADENCE[r.cadence]) : r.cadence, r.next_expected ? t('next around {day}', { day: shortDay(r.next_expected) }) : ''].filter(Boolean).join(', ')}
+                              {[t(r.is_subscription ? 'Subscription' : 'Recurring'), CADENCE[r.cadence] ? t(CADENCE[r.cadence]) : r.cadence, r.next_expected ? t('next around {day}', { day: shortDay(r.next_expected, locale) }) : ''].filter(Boolean).join(', ')}
                             </span>
                           </span>
                           <span className="mv-item-end">{euro(r.typical_amount)}<Chevron /></span>
@@ -920,7 +926,7 @@ export default function MoneyV2Page({ view = 'today' }: { view?: MoneyView } = {
                               <ul className="mv-sublist">
                                 {r.charges.map((c) => (
                                   <li key={c.id} className="mv-item mv-item--tight">
-                                    <span className="mv-item-sub">{shortDay(c.occurred_at)}</span>
+                                    <span className="mv-item-sub">{shortDay(c.occurred_at, locale)}</span>
                                     <span className="mv-item-end">{euro(c.amount)}</span>
                                   </li>
                                 ))}
@@ -973,6 +979,33 @@ export default function MoneyV2Page({ view = 'today' }: { view?: MoneyView } = {
           {/* What it knows: the person's own words, each one forgettable; then what it still
               wants to ask. The facts are claims the ledger checks, so the grey word under each
               is the ledger's verdict when it has one. */}
+          {/* What the ledger worked out itself, beside what the person told it. These patterns
+              have been in the twin's own context for months and had never reached a page
+              (Stefano, 2026-09-16: "context and learning patterns"). */}
+          {view === 'you' ? (
+          <section className="mv-section" id="noticed">
+            <h2>{t('What it worked out on its own.')}</h2>
+            <p className="mv-sub">{t('Nobody typed these. They are what your own payments repeat.')}</p>
+            <ul className="mv-list">
+              {patterns === null ? (
+                <li><Wait inline state="searching" line="Reading your payments." /></li>
+              ) : patterns.length === 0 ? (
+                <li><p className="mv-empty">{t('Nothing it can say yet. It needs a few more weeks of payments.')}</p></li>
+              ) : patterns.map((f) => {
+                const said = readingWords(f, t, locale);
+                return (
+                  <li key={f.kind + f.sentence} className="mv-item">
+                    <span className="mv-item-text">
+                      <span className="mv-item-title">{said.sentence}</span>
+                      {said.detail ? <span className="mv-item-sub">{said.detail}</span> : null}
+                    </span>
+                  </li>
+                );
+              })}
+            </ul>
+          </section>
+          ) : null}
+
           {view === 'you' ? (
           <section className="mv-section" id="knows">
             <h2>{t('What it knows.')}</h2>
@@ -999,7 +1032,7 @@ export default function MoneyV2Page({ view = 'today' }: { view?: MoneyView } = {
                     {isOpen ? (
                       <div className="mv-body">
                         <div className="mv-body-foot">
-                          <span className="mv-quiet">{f.check_status ? t('The ledger has it as {status}.', { status: f.check_status }) : t('Said, not yet seen in the ledger.')}</span>
+                          <span className="mv-quiet">{f.check_status ? t('The ledger has it as {status}.', { status: t(f.check_status) }) : t('Said, not yet seen in the ledger.')}</span>
                           <button type="button" className="mv-pill mv-pill--ghost" onClick={() => void forget(f)} disabled={busy === `forget:${f.id}`}>{t('Forget')}</button>
                         </div>
                       </div>
@@ -1016,7 +1049,7 @@ export default function MoneyV2Page({ view = 'today' }: { view?: MoneyView } = {
                           ? t(questions.opening.length + questions.fromLedger.length === 1 ? '{n} question it still has' : '{n} questions it still has', { n: questions.opening.length + questions.fromLedger.length })
                           : t('Nothing to ask right now')}
                       </span>
-                      <span className="mv-item-sub">{(questions.opening[0] || questions.fromLedger[0])?.ask || t('When a payment arrives that it cannot read, it asks.')}</span>
+                      <span className="mv-item-sub">{(() => { const q = questions.opening[0] || questions.fromLedger[0]; return q ? askWords(q, t, locale) : t('When a payment arrives that it cannot read, it asks.'); })()}</span>
                     </span>
                     <span className="mv-item-end"><Chevron /></span>
                   </Link>
@@ -1074,7 +1107,7 @@ export default function MoneyV2Page({ view = 'today' }: { view?: MoneyView } = {
                             <span className="mv-item-text">
                               <span className="mv-item-title">{a.name || t('Account')} {a.iban_mask || ''}</span>
                               <span className="mv-item-sub">
-                                {[a.consent_expires_at ? t('Confirmed to {day}', { day: shortDay(a.consent_expires_at) }) : '', a.last_pulled_at ? t('last read {day}', { day: shortDay(a.last_pulled_at) }) : ''].filter(Boolean).join(', ')}
+                                {[a.consent_expires_at ? t('Confirmed to {day}', { day: shortDay(a.consent_expires_at, locale) }) : '', a.last_pulled_at ? t('last read {day}', { day: shortDay(a.last_pulled_at, locale) }) : ''].filter(Boolean).join(', ')}
                               </span>
                             </span>
                           </li>
@@ -1106,7 +1139,7 @@ export default function MoneyV2Page({ view = 'today' }: { view?: MoneyView } = {
                     <li key={f.id} className="mv-item mv-item--sub">
                       <span className="mv-item-text">
                         <span className="mv-item-title">{hasMark(f.kind) ? <span className="mv-mark-small" aria-hidden="true"><Mark name={f.kind} size={12} /></span> : null}{f.label}</span>
-                        <span className="mv-item-sub">{f.added_at ? t('Added {day}, read once a day.', { day: shortDay(f.added_at) }) : t('Read once a day.')}</span>
+                        <span className="mv-item-sub">{f.added_at ? t('Added {day}, read once a day.', { day: shortDay(f.added_at, locale) }) : t('Read once a day.')}</span>
                       </span>
                       <span className="mv-item-end"><button type="button" className="mv-pill mv-pill--ghost" onClick={() => void removeFeed(f.id)} disabled={busy === 'feed'}>{t('Remove')}</button></span>
                     </li>
@@ -1279,6 +1312,7 @@ export default function MoneyV2Page({ view = 'today' }: { view?: MoneyView } = {
 /** The payments a reading stands on, and how many: shared by the lead and the rows. */
 function ReadingBody({ r }: { r: MoneyReading }) {
   const t = useT();
+  const locale = useLocale();
   return (
     <div className="mv-body">
       {r.receipts.length ? (
@@ -1287,7 +1321,7 @@ function ReadingBody({ r }: { r: MoneyReading }) {
             <li key={t.id} className="mv-item mv-item--tight">
               <span className="mv-item-text">
                 <span className="mv-item-title">{t.merchant_raw || t.merchant_key}</span>
-                <span className="mv-item-sub">{shortDay(t.occurred_at)}</span>
+                <span className="mv-item-sub">{shortDay(t.occurred_at, locale)}</span>
               </span>
               <span className="mv-item-end">{euro(t.amount)}</span>
             </li>

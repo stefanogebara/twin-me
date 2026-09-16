@@ -37,7 +37,9 @@ const glyphs = (s: string) => s.replace(/(\d) EUR\b/g, '$1\u00a0\u20ac');
 
 /** What an expected item is, in plain words. */
 function itemWords(i: MoneyPlanItem, t: T): string {
-  if (i.kind === 'charge') return i.cadence === 'monthly' ? t('Every month') : i.cadence ? t('Every {cadence}', { cadence: i.cadence.replace(/ly$/, '') }) : t('Comes back');
+  /* Cutting -ly off weekly gave "Cada week", and off biweekly a word in no language at all.
+     Each cadence is its own phrase (2026-09-16). */
+  if (i.kind === 'charge') return i.cadence && CADENCE_WORD[i.cadence] ? t(CADENCE_WORD[i.cadence]) : t('Comes back');
   if (i.kind === 'commitment') return t('You said this is due');
   if (i.kind === 'income') return i.said ? t('Comes in') : `${t('Comes in, seen before, not said')}${i.confidence != null ? t(', {pct}% on time', { pct: Math.round(i.confidence * 100) }) : ''}`;
   return i.amount > 0 ? t('A day like this usually costs') : t('In the diary');
@@ -67,6 +69,16 @@ function planLine(plan: MoneyPlan, t: T, locale: string, current: boolean): stri
   return clauses.length ? `${head}; ${clauses.join(', ')}.` : `${head}.`;
 }
 
+/* A row on a day is named by the person's own words: a merchant, a subject they typed. The
+   four fallbacks are the ledger's, and only those are translated (2026-09-16). */
+const OURS = new Set(['A charge', 'A commitment', 'Money in', 'A day in the diary', 'A standing charge']);
+const itemLabel = (label: string | null | undefined, t: T) => (label && OURS.has(label) ? t(label) : label || t('A charge'));
+
+const CADENCE_WORD: Record<string, string> = {
+  weekly: 'Every week', biweekly: 'Every two weeks', monthly: 'Every month',
+  quarterly: 'Every three months', yearly: 'Every year',
+};
+
 function dayLine(c: MoneyPlanCell, t: T): string {
   if (c.past || c.today) {
     const base = c.count
@@ -85,9 +97,9 @@ function dayLine(c: MoneyPlanCell, t: T): string {
 }
 
 export default function PlanPage() {
-  useDocumentTitle('Money, the plan');
   const t = useT();
   const locale = useLocale();
+  useDocumentTitle(t('Money, the plan'));
   const current = monthKey(new Date());
   const [month, setMonth] = useState<string>(current);
   const [plan, setPlan] = useState<MoneyPlan | null>(null);
@@ -209,7 +221,7 @@ export default function PlanPage() {
                   {cell.items.map((i, k) => (
                     <li key={k} className="mv-item mv-item--tight">
                       <span className="mv-item-text">
-                        <span className="mv-item-title">{i.label}</span>
+                        <span className="mv-item-title">{itemLabel(i.label, t)}</span>
                         <span className="mv-item-sub">{itemWords(i, t)}</span>
                       </span>
                       <span className={`mv-item-end${i.kind === 'income' ? ' mv-in' : ''}`}>{i.amount > 0 ? (i.kind === 'income' ? `+${euro(i.amount)}` : euro(i.amount)) : ''}</span>

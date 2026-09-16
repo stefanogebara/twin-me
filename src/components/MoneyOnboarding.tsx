@@ -107,7 +107,7 @@ function PhoneStep({ onNext }: { onNext: () => void }) {
   async function makeKey() {
     setBusy(true); setNote(null);
     try { setKey(await moneyAPI.createCaptureKey()); }
-    catch (e) { setNote((e as Error).message); }
+    catch { setNote(t('That key could not be made. Try again.')); }
     finally { setBusy(false); }
   }
   return (
@@ -188,7 +188,7 @@ function BanksStep({ accounts, onNext }: { accounts: MoneyAccount[]; onNext: () 
               <li key={b.name} className="mv-item">
                 <span className="mv-item-text">
                   <span className="mv-item-title">{b.label}</span>
-                  <span className="mv-item-sub">{rows.length ? rows.map((a) => `${a.name || 'Account'} ${a.iban_mask || ''}`.trim()).join(', ') : t('Read four times a day. You confirm it every six months.')}</span>
+                  <span className="mv-item-sub">{rows.length ? rows.map((a) => `${a.name || t('Account')} ${a.iban_mask || ''}`.trim()).join(', ') : t('Read four times a day. You confirm it every six months.')}</span>
                 </span>
                 <span className="mv-item-end">
                   {rows.length ? <span className="mv-quiet">{t('Connected')}</span> : <button type="button" className="mv-pill mv-pill--ghost" disabled={busy !== null} onClick={() => void connect(b.name)}>{busy === b.name ? t('Opening') : t('Connect')}</button>}
@@ -265,9 +265,9 @@ function PlaceSlot({ slot, fact, onKept }: { slot: Slot; fact: MoneyFact | null;
       {!kept ? (
         <div className="la-search">
           <label className="mv-sr" htmlFor={`la-${slot.kind}`}>{t(slot.title)}</label>
-          <input id={`la-${slot.kind}`} className="mv-field" type="text" autoComplete="off" value={q} placeholder={slot.kind === 'home_area' ? 'Recoletos, Madrid' : slot.kind === 'study_place' ? 'IE University' : 'The company, or the office'} onChange={(e) => setQ(e.target.value)} disabled={busy} />
+          <input id={`la-${slot.kind}`} className="mv-field" type="text" autoComplete="off" value={q} placeholder={slot.kind === 'home_area' ? 'Recoletos, Madrid' : slot.kind === 'study_place' ? 'IE University' : t('The company, or the office')} onChange={(e) => setQ(e.target.value)} disabled={busy} />
           {hits.length ? (
-            <ul className="mv-list la-hits" aria-label={`${slot.title}, results`}>
+            <ul className="mv-list la-hits" aria-label={t('{what}, results', { what: t(slot.title) })}>
               {hits.map((h) => (
                 <li key={h.id}>
                   <button type="button" className="mv-item la-hit" disabled={busy} onClick={() => void keep(h)}>

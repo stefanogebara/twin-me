@@ -434,7 +434,9 @@ function pricePoint(profiles, transactions) {
     detail: p.amount_low === p.amount_high
       ? 'Every one of them the same to the cent.'
       : `The lowest was ${euro(p.amount_low)} and the highest ${euro(p.amount_high)}.`,
-    numbers: { typical_amount: p.typical_amount, times: p.times, amount_low: p.amount_low, amount_high: p.amount_high, total: p.total },
+    /* The name and the first sighting travel with the numbers, so the page can say this
+       line in the reader's own language (2026-09-16). */
+    numbers: { name: p.name, first_seen: p.first_seen, typical_amount: p.typical_amount, times: p.times, amount_low: p.amount_low, amount_high: p.amount_high, total: p.total },
     receipts: rows.sort((a, b) => at(b) - at(a)).slice(0, 3),
     evidence_count: p.times,
   };
@@ -454,7 +456,7 @@ function weekdayHabit(profiles, transactions) {
     month: null,
     sentence: `You pay ${p.name} on ${WEEKDAY[p.usual_weekday]}s, ${onDay} of ${p.times} times.`,
     detail: `Since ${dayMonth(p.first_seen)}, at ${euro(p.typical_amount)} a time.`,
-    numbers: { weekday: p.usual_weekday, on_day: onDay, times: p.times, typical_amount: p.typical_amount, total: p.total },
+    numbers: { name: p.name, first_seen: p.first_seen, weekday: p.usual_weekday, on_day: onDay, times: p.times, typical_amount: p.typical_amount, total: p.total },
     receipts: rows.sort((a, b) => abs(b) - abs(a)).slice(0, 3),
     evidence_count: p.times,
   };
@@ -593,7 +595,7 @@ function pairing(transactions) {
     month: null,
     sentence: `${firstName} and ${secondName} go together, ${top.dates.size} times.`,
     detail: `${secondName} follows ${firstName} by about ${gapMinutes} ${gapMinutes === 1 ? 'minute' : 'minutes'}.`,
-    numbers: { first: top.first.merchant_key, second: top.second.merchant_key, times: top.dates.size, median_gap_minutes: gapMinutes },
+    numbers: { first: top.first.merchant_key, second: top.second.merchant_key, first_name: firstName, second_name: secondName, times: top.dates.size, median_gap_minutes: gapMinutes },
     receipts: top.rows.slice(0, 4),
     evidence_count: top.dates.size,
   };
@@ -624,7 +626,7 @@ function amountOutlier(profiles, transactions, now) {
     month: firstOfMonth(best.t.occurred_at),
     sentence: `${best.p.name} usually takes ${euro(best.p.typical_amount)}; on ${dayMonth(best.t.occurred_at)} it took ${euro(abs(best.t))}.`,
     detail: `That is ${Math.round(best.multiple * 10) / 10} times its usual, across ${best.p.times} payments there.`,
-    numbers: { typical_amount: best.p.typical_amount, amount: round2(abs(best.t)), multiple: Math.round(best.multiple * 10) / 10, times: best.p.times },
+    numbers: { name: best.p.name, on: best.t.occurred_at, typical_amount: best.p.typical_amount, amount: round2(abs(best.t)), multiple: Math.round(best.multiple * 10) / 10, times: best.p.times },
     receipts: [best.t],
     evidence_count: best.p.times,
   };

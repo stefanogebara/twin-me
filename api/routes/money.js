@@ -47,7 +47,7 @@ import { complete as llmComplete, TIER_EXTRACTION } from '../services/llmGateway
 import { accuracy } from '../services/money/predictions.js';
 import { createLogger } from '../services/logger.js';
 import { captureFromBody } from '../services/money/captureParser.js';
-import { ingestSighting, ingestSightings, listTransactions, sightingsFor, refreshRecurring, forecast, setVerdict, userForCaptureKey, saveBankAccounts, listBankAccounts, pullBankFeed, refreshReadings, listReadings, setReadingVerdict, months, feedBudget, categorySpend, listPlaces, setPlaceCategory, enrichPlaces, subscriptionUsage, questionsFor, answerQuestion, skipQuestion, listFacts, deleteFact, recordCallbackFailure, listChatTurns, saveChatTurn, learn, userLanguage } from '../services/money/store.js';
+import { ingestSighting, ingestSightings, listTransactions, sightingsFor, refreshRecurring, forecast, setVerdict, userForCaptureKey, saveBankAccounts, listBankAccounts, pullBankFeed, refreshReadings, listReadings, setReadingVerdict, months, feedBudget, categorySpend, listPlaces, setPlaceCategory, enrichPlaces, subscriptionUsage, questionsFor, answerQuestion, skipQuestion, listFacts, deleteFact, recordCallbackFailure, listChatTurns, saveChatTurn, learn, userLanguage, patternsFor } from '../services/money/store.js';
 import { parseDelimited, parseWorkbook, toSightings } from '../services/money/statements/importer.js';
 import { isConfigured, listBanks, startAuthorisation, createSession, getSession, applicationInfo } from '../services/money/feeds/enableBanking.js';
 import { answer as chatAnswer, answerStream as chatAnswerStream, act as chatAct } from '../services/money/chat.js';
@@ -363,6 +363,17 @@ router.post('/places/:merchantKey/category', async (req, res) => {
 router.get('/bank/budget', async (req, res) => {
   try { res.json({ success: true, data: await feedBudget(req.user.id) }); }
   catch (error) { log.error('budget failed', { error: error.message }); res.status(500).json({ success: false, error: 'Internal server error' }); }
+});
+
+/** What the ledger has worked out on its own: the patterns behind what the twin says. */
+router.get('/patterns', async (req, res) => {
+  try {
+    const findings = await patternsFor(req.user.id);
+    res.json({ success: true, data: { findings } });
+  } catch (error) {
+    log.error('patterns failed', { error: error.message });
+    res.status(500).json({ success: false, error: 'Those could not be read right now.' });
+  }
 });
 
 /** Whether the subscriptions were used, and which of them nothing here can check. */
