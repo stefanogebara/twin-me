@@ -668,7 +668,9 @@ export async function ahead(userId, days = 7, { now = new Date() } = {}) {
   }
   const window = aheadFrom(events, learned, { now, days });
   const routine = stale ? routineSummary(events, { now }) : stored.routine;
-  return { connected: true, google: status.google, feeds: publicFeeds(status.feeds), needsReconnect: false, ...window, routine, learned: learned.slice(0, 8) };
+  /* How much was read and when, so a person can see the diary is being read at all and not
+     merely connected (Stefano, 2026-09-16: "I don't even know if we are extracting data"). */
+  return { connected: true, google: status.google, feeds: publicFeeds(status.feeds), needsReconnect: false, ...window, routine, learned: learned.slice(0, 8), events_seen: events.length, learned_at: stale ? now.toISOString() : (stored.learned_at || null) };
 }
 
 /**

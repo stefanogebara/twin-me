@@ -110,7 +110,7 @@ export type MoneyAccount = {
 };
 /** A pasted calendar link: Canvas, Blackboard, or any .ics. Only ever a label and a link. */
 export type MoneyCalendarFeed = { id: string; kind: string; label: string; added_at: string | null };
-export type MoneyCalendar = { connected: boolean; google?: boolean; feeds?: MoneyCalendarFeed[]; needsReconnect?: boolean; routine?: string | null; total_expected?: number | null; ahead?: unknown[] };
+export type MoneyCalendar = { connected: boolean; google?: boolean; feeds?: MoneyCalendarFeed[]; needsReconnect?: boolean; routine?: string | null; total_expected?: number | null; ahead?: unknown[]; learned?: { key?: string; label?: string; median?: number; occurrences?: number; paid?: number }[]; events_seen?: number; learned_at?: string | null };
 /** The two banks the product offers by name; the aggregator lists more, by country. */
 /* The names are Enable Banking's own for Spain; the labels are what a person calls the bank. */
 export const BANKS = [{ name: 'Banco Santander', label: 'Santander' }, { name: 'Revolut', label: 'Revolut' }, { name: 'Banco de Sabadell', label: 'Sabadell' }] as const;
