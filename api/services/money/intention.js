@@ -41,7 +41,10 @@ export function caps(facts = []) {
     .map((x) => {
       const key = norm(x.subject);
       const category = ALIASES[key] || key;
-      return { subject: category, label: x.subject_label || CATEGORY_WORDS[category] || String(x.subject), amount: r2(x.amount) };
+      /* Their own words win; the product's word for the category is the fallback, and only
+         that one is the product's to translate. */
+      const own = x.subject_label || null;
+      return { subject: category, label: own || CATEGORY_WORDS[category] || String(x.subject), label_is_category: !own && Boolean(CATEGORY_WORDS[category]), amount: r2(x.amount) };
     });
 }
 
@@ -78,7 +81,9 @@ export function capFindings({ facts = [], transactions = [], categoryOf = null, 
       detail: over
         ? `${rows.length} ${rows.length === 1 ? 'payment' : 'payments'} this month.`
         : (perDay !== null ? `That leaves ${euro(left)}, ${euro(perDay)} a day.` : `That leaves ${euro(left)}.`),
-      numbers: { subject: cap.subject, cap: cap.amount, spent, left, over, count: rows.length, days_left: daysLeft },
+      /* The label is either the person's own words or a category the product named; the page
+         translates only the second, so the flag travels with it (2026-09-16). */
+      numbers: { subject: cap.subject, label: cap.label, label_is_category: cap.label_is_category === true, cap: cap.amount, spent, left, over, count: rows.length, days_left: daysLeft },
       receipts: [...rows].sort((a, b) => abs(b) - abs(a)).slice(0, 3),
       evidence_count: rows.length,
     });

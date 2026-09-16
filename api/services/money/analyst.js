@@ -117,7 +117,9 @@ function subscriptionLoad(recurring, transactions) {
     month: null,
     sentence: `${monthly.length} charges come back every month, ${euro(total)} together.`,
     detail: `${names.slice(0, 3).join(', ')}${names.length > 3 ? ` and ${names.length - 3} more` : ''}.`,
-    numbers: { count: monthly.length, monthly_total: total, yearly_total: Math.round(total * 12 * 100) / 100 },
+    /* The names travel with the numbers: the page says this line in the reader's own
+       language and cannot invent them (2026-09-16). */
+    numbers: { count: monthly.length, monthly_total: total, yearly_total: Math.round(total * 12 * 100) / 100, names: names.slice(0, 4) },
     receipts,
     evidence_count: monthly.reduce((s, r) => s + (Number(r.occurrences) || 0), 0),
   };
@@ -227,7 +229,7 @@ export function weekdayShape(transactions, now, weeks = 6, iterations = 600) {
     month: null,
     sentence: `${WEEKDAY[top.weekday]}s cost you ${euro(top.here)} against ${euro(top.rest)} on other days.`,
     detail: `Read from ${weeks} weeks, ${spend.length} payments and ${top.n} ${WEEKDAY[top.weekday]}s.`,
-    numbers: { weekday: top.weekday, per_day: Math.round(top.here * 100) / 100, other_per_day: Math.round(top.rest * 100) / 100, ratio: Math.round(top.ratio * 100) / 100, p, weeks },
+    numbers: { weekday: top.weekday, per_day: Math.round(top.here * 100) / 100, other_per_day: Math.round(top.rest * 100) / 100, ratio: Math.round(top.ratio * 100) / 100, p, weeks, n: top.n, payments: spend.length },
     receipts: spend.filter((t) => new Date(t.occurred_at).getUTCDay() === top.weekday).sort((a, b) => abs(b) - abs(a)).slice(0, 3),
     evidence_count: spend.length,
   };
@@ -261,7 +263,7 @@ function newMerchant(transactions, segments) {
     month: here.month,
     sentence: `${byMerchant.size === 1 ? `${top.name} is` : `${byMerchant.size} places are`} new this month.`,
     detail: `${top.name} has taken ${euro(top.total)} across ${top.rows.length} ${top.rows.length === 1 ? 'payment' : 'payments'}.`,
-    numbers: { new_merchants: byMerchant.size, top_total: Math.round(top.total * 100) / 100, top_count: top.rows.length },
+    numbers: { new_merchants: byMerchant.size, top_total: Math.round(top.total * 100) / 100, top_count: top.rows.length, top_name: top.name },
     receipts: top.rows.sort((a, b) => abs(b) - abs(a)).slice(0, 3),
     evidence_count: fresh.length,
   };
@@ -282,7 +284,7 @@ function dormantCharge(recurring, transactions, now) {
     month: null,
     sentence: `${r.merchant_name || r.merchant_key} came back every month and has not for ${days} days.`,
     detail: `It was ${euro(r.typical_amount)} a time, ${Number(r.occurrences)} times.`,
-    numbers: { days_since: days, typical_amount: Math.abs(Number(r.typical_amount) || 0), occurrences: Number(r.occurrences) },
+    numbers: { days_since: days, typical_amount: Math.abs(Number(r.typical_amount) || 0), occurrences: Number(r.occurrences), name: r.merchant_name || r.merchant_key },
     receipts: transactions.filter((t) => t.merchant_key === r.merchant_key).sort((a, b) => new Date(b.occurred_at) - new Date(a.occurred_at)).slice(0, 2),
     evidence_count: Number(r.occurrences),
   };

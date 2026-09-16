@@ -160,7 +160,7 @@ export function incomeFindings({ facts = [], transactions = [], isIncome = null,
       month: `${month}-01`,
       sentence: `${labelOf(f)}, usually about ${euro(s.typical_amount)} on the ${ordinal(s.typical_day)}, has not come this month.`,
       detail: `The last ${last.length === 1 ? 'one' : last.length} came on the ${last.map((t) => ordinal(new Date(t.occurred_at).getUTCDate())).join(', ')}.`,
-      numbers: { typical_amount: s.typical_amount, typical_day: s.typical_day, times: s.times, days_late: today - s.typical_day },
+      numbers: { source: labelOf(f), source_is_default: labelOf(f) === 'Comes in', typical_amount: s.typical_amount, typical_day: s.typical_day, times: s.times, days_late: today - s.typical_day },
       receipts: last,
       evidence_count: s.times,
     });

@@ -267,6 +267,8 @@ function unusedFinding(series, use) {
     sentence: `${nameOf(series)} took ${euro(use.typical_amount)}${CADENCE_PHRASE[series.cadence] || ''} and has not been used in ${silence} days.`,
     detail: `${plural(use.charges, 'charge', 'charges')}, ${euro(total)} together, and the ${label} connection recorded ${plural(use.uses, 'event', 'events')} in ${use.period_days} days.`,
     numbers: {
+      name: nameOf(series),
+      cadence: series.cadence || null,
       typical_amount: use.typical_amount,
       charges: use.charges,
       total,
@@ -293,6 +295,8 @@ function costPerUseFinding(series, use, peerCostPerUse) {
     sentence: `${nameOf(series)} has taken ${euro(total)} for ${plural(use.uses, 'use', 'uses')}, ${euro(use.cost_per_use)} each.`,
     detail,
     numbers: {
+      name: nameOf(series),
+      days_since_last_use: use.days_since_last_use ?? null,
       typical_amount: use.typical_amount,
       charges: use.charges,
       total,

@@ -21,6 +21,7 @@ import { factRank, factTitle, factWord } from './factWords';
 import Mark from './Mark';
 import { KindTile, Stamp } from './Carved';
 import { markFor } from './carvedKinds';
+import { readingWords } from './readingWords';
 import { MARK_FOR, hasMark } from './markPaths';
 import { moneyAPI, euro, shortDay, bankLabel, BANKS, type MoneyAccount, type MoneyCalendar, type MoneyCategories, type MoneyDayStrip, type MoneyFact, type MoneyForecast, type MoneyQuestions, type MoneyToday, type MoneyMonth, type MoneyReading, type MoneyRecurring, type MoneySighting, type MoneyTransaction, type MoneyUsage } from '../../services/api/moneyAPI';
 import LedgerOrb from '../../components/LedgerOrb';
@@ -455,8 +456,12 @@ export default function MoneyV2Page({ view = 'today' }: { view?: MoneyView } = {
                       the one sentence to read on the way out. Its receipts open under it. */}
                   <p className="mv-eyebrow">{t('What changed')}</p>
                   <button type="button" className="mv-lead" aria-expanded={openReading === lead.id} onClick={() => setOpenReading(openReading === lead.id ? null : lead.id)}>
-                    <h2>{lead.sentence}</h2>
-                    {lead.detail ? <p className="mv-sub">{lead.detail}</p> : null}
+                    {/* The ledger keeps the English sentence for the twin; the page says the same
+                        numbers in the reader's own language (readingWords.ts, 2026-09-16). */}
+                    {(() => { const said = readingWords(lead, t, locale); return (<>
+                      <h2>{said.sentence}</h2>
+                      {said.detail ? <p className="mv-sub">{said.detail}</p> : null}
+                    </>); })()}
                   </button>
                   {openReading === lead.id ? <ReadingBody r={lead} /> : null}
                 </>
@@ -473,8 +478,10 @@ export default function MoneyV2Page({ view = 'today' }: { view?: MoneyView } = {
                     <li key={r.id}>
                       <button type="button" className="mv-item" aria-expanded={isOpen} onClick={() => setOpenReading(isOpen ? null : r.id)}>
                         <span className="mv-item-text">
-                          <span className="mv-item-title">{r.sentence}</span>
-                          {r.detail ? <span className="mv-item-sub">{r.detail}</span> : null}
+                          {(() => { const said = readingWords(r, t, locale); return (<>
+                            <span className="mv-item-title">{said.sentence}</span>
+                            {said.detail ? <span className="mv-item-sub">{said.detail}</span> : null}
+                          </>); })()}
                         </span>
                         <span className="mv-item-end"><Chevron /></span>
                       </button>
@@ -917,8 +924,10 @@ export default function MoneyV2Page({ view = 'today' }: { view?: MoneyView } = {
                 {usage.findings.map((f) => (
                   <li key={f.kind + f.sentence} className="mv-item">
                     <span className="mv-item-text">
-                      <span className="mv-item-title">{f.sentence}</span>
-                      {f.detail ? <span className="mv-item-sub">{f.detail}</span> : null}
+                      {(() => { const said = readingWords(f, t, locale); return (<>
+                        <span className="mv-item-title">{said.sentence}</span>
+                        {said.detail ? <span className="mv-item-sub">{said.detail}</span> : null}
+                      </>); })()}
                     </span>
                   </li>
                 ))}

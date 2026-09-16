@@ -16,7 +16,12 @@ describe('the facts', () => {
     expect(keepAmount([{ kind: 'keep', amount: '200' }])).toBe(200);
     expect(keepAmount([])).toBeNull();
     expect(caps([{ kind: 'cap', subject: 'Restaurants', amount: 120 }, { kind: 'cap', subject: 'Cabify', amount: 30 }]))
-      .toEqual([{ subject: 'eating out', label: 'Eating out', amount: 120 }, { subject: 'cabify', label: 'Cabify', amount: 30 }]);
+      /* label_is_category says whose word the label is: the product's for a kind of place,
+         theirs for a place they named, which the page must never translate. */
+      .toEqual([
+        { subject: 'eating out', label: 'Eating out', label_is_category: true, amount: 120 },
+        { subject: 'cabify', label: 'Cabify', label_is_category: false, amount: 30 },
+      ]);
   });
 });
 

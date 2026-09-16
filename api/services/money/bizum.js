@@ -226,7 +226,7 @@ export function splitFindings(facts = [], transactions = [], opts = {}) {
       month: payment.occurred_at.slice(0, 10),
       sentence: `${nameOf(payment)} ${dayWord(payment.occurred_at, now)}, ${euro(abs(payment))} split ${ways} ways: ${paidText}, ${euro(s.open)} still open.`,
       detail: `Your share is ${euro(s.share)}. ${s.expected - s.paid} of ${s.expected} shares still to come.`,
-      numbers: { total: abs(payment), ways, share: s.share, paid: s.paid, expected: s.expected, open: s.open },
+      numbers: { name: nameOf(payment), who, on: payment.occurred_at, total: abs(payment), ways, share: s.share, paid: s.paid, expected: s.expected, open: s.open },
       receipts: [payment, ...s.repayments].slice(0, 3),
       evidence_count: 1 + s.paid,
     });
