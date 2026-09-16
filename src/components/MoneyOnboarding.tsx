@@ -16,10 +16,11 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import LanguageAsk from './LanguageAsk';
 import { moneyAPI, BANKS, bankLabel, type MoneyAccount, type MoneyFact, type PlaceHit } from '@/services/api/moneyAPI';
+import { APK_URL, SHORTCUT_URL, phoneKind } from '@/lib/downloads';
 import '@/styles/money-v2.css';
 import { useT } from '@/lib/i18n';
 
-type Step = 'language' | 'banks' | 'places';
+type Step = 'language' | 'banks' | 'places' | 'phone';
 const SKIP = (step: Step) => `mv-start-skip:${step}`;
 const skipped = (step: Step) => { try { return localStorage.getItem(SKIP(step)) === '1'; } catch { return false; } };
 const skip = (step: Step) => { try { localStorage.setItem(SKIP(step), '1'); } catch { /* a courtesy */ } };
@@ -30,7 +31,7 @@ export default function MoneyOnboarding() {
   const [facts, setFacts] = useState<MoneyFact[] | null>(null);
   const [rested, setRested] = useState<Record<string, boolean>>({});
   const [languageDone, setLanguageDone] = useState(false);
-  const forced = useMemo(() => { const s = new URLSearchParams(window.location.search).get('start'); return s === 'banks' || s === 'places' ? (s as Step) : null; }, []);
+  const forced = useMemo(() => { const s = new URLSearchParams(window.location.search).get('start'); return s === 'banks' || s === 'places' || s === 'phone' ? (s as Step) : null; }, []);
 
   const load = useCallback(async () => {
     const [a, f] = await Promise.allSettled([moneyAPI.accounts(), moneyAPI.facts()]);
@@ -46,13 +47,79 @@ export default function MoneyOnboarding() {
       : language === null && !languageDone ? 'language'
         : accounts.length === 0 && !skipped('banks') && !rested.banks ? 'banks'
           : !hasPlace && !skipped('places') && !rested.places ? 'places'
-            : null;
+            : !skipped('phone') && !rested.phone ? 'phone'
+              : null;
 
   if (!step) return null;
   const rest = (s: Step) => { skip(s); setRested((r) => ({ ...r, [s]: true })); };
   if (step === 'language') return <LanguageAsk onDone={() => setLanguageDone(true)} />;
   if (step === 'banks') return <BanksStep accounts={accounts || []} onNext={() => rest('banks')} />;
-  return <PlacesStep facts={facts || []} onNext={() => rest('places')} onKept={load} />;
+  if (step === 'places') return <PlacesStep facts={facts || []} onNext={() => rest('places')} onKept={load} />;
+  return <PhoneStep onNext={() => rest('phone')} />;
+}
+
+/**
+ * The phone, last, because it is the only source that sees a payment the moment it happens:
+ * the bank's own feed is a day or two behind. What the phone can do differs by make, and the
+ * step shows the one in the person's hand rather than both with a caveat.
+ */
+function PhoneStep({ onNext }: { onNext: () => void }) {
+  const t = useT();
+  const kind = phoneKind();
+  const [key, setKey] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [note, setNote] = useState<string | null>(null);
+  async function makeKey() {
+    setBusy(true); setNote(null);
+    try { setKey(await moneyAPI.createCaptureKey()); }
+    catch (e) { setNote((e as Error).message); }
+    finally { setBusy(false); }
+  }
+  return (
+    <div className="mv la" role="dialog" aria-modal="true" aria-labelledby="la-title">
+      <div className="la-col">
+        <h1 id="la-title">{t('A payment, the moment it happens.')}</h1>
+        <p className="mv-sub">{t('The bank posts a payment a day or two later. Your phone sees it at the till.')}</p>
+        {kind !== 'iphone' ? (
+          <ul className="mv-list">
+            <li className="mv-item">
+              <span className="mv-item-text">
+                <span className="mv-item-title">{t('Android: the TwinMe app')}</span>
+                <span className="mv-item-sub">{t('It reads your bank app and sends each payment on.')}</span>
+              </span>
+              <span className="mv-item-end"><a className="mv-pill mv-pill--ghost" href={APK_URL}>{t('Get the app')}</a></span>
+            </li>
+          </ul>
+        ) : null}
+        {kind !== 'android' ? (
+          <ul className="mv-list">
+            <li className="mv-item">
+              <span className="mv-item-text">
+                <span className="mv-item-title">{t('iPhone: a Shortcut')}</span>
+                <span className="mv-item-sub">{t('Apple Pay only. No app on iPhone may read notifications.')}</span>
+              </span>
+              <span className="mv-item-end">
+                {key
+                  ? <a className="mv-pill mv-pill--ghost" href={SHORTCUT_URL}>{t('Add the shortcut')}</a>
+                  : <button type="button" className="mv-pill mv-pill--ghost" disabled={busy} onClick={() => void makeKey()}>{t('Make a key')}</button>}
+              </span>
+            </li>
+            {key ? (
+              <li className="mv-item mv-item--sub">
+                <span className="mv-item-text">
+                  <code className="mv-code">{key}</code>
+                  <span className="mv-item-sub">{t('Paste this when the shortcut asks for it. It is shown once.')}</span>
+                </span>
+              </li>
+            ) : null}
+          </ul>
+        ) : null}
+        {kind === 'other' ? <p className="mv-quiet">{t('Open this page on your phone to set it up there.')}</p> : null}
+        {note ? <p className="mv-note" role="status">{note}</p> : null}
+        <div className="mv-ctas"><button type="button" className="mv-pill mv-pill--ghost" onClick={onNext}>{t('Not now')}</button></div>
+      </div>
+    </div>
+  );
 }
 
 function BanksStep({ accounts, onNext }: { accounts: MoneyAccount[]; onNext: () => void }) {

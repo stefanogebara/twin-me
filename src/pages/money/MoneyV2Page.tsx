@@ -27,6 +27,7 @@ import LedgerOrb from '../../components/LedgerOrb';
 import DayGlobe from './figures/DayGlobe';
 import Fortnight from './figures/Fortnight';
 import MonthOrbits from './figures/MonthOrbits';
+import { APK_URL } from '@/lib/downloads';
 import TotalRow from './figures/TotalRow';
 
 /* The English source strings; the page says them through t(), so the dictionaries hold them. */
@@ -85,13 +86,6 @@ function monthYear(locale: string, iso: string) { return new Date(iso).toLocaleD
 function lastDay(iso: string) { const d = new Date(iso); return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 1, 0)).getUTCDate(); }
 
 function Chevron() { return <ChevronRight className="mv-chev" size={16} strokeWidth={1.75} aria-hidden="true" />; }
-
-/* Where the Android app is downloaded from. The public object store holds the build; the
-   environment can point somewhere else (a Play listing, a newer build) without a release.
-   2026-09-16: 39.8 MB, arm64, installed from this address onto a clean Android 15 and
-   opened. */
-const APK_URL = (import.meta.env.VITE_ANDROID_APK_URL as string | undefined)
-  || 'https://lurebwaudisfilhuhmnj.supabase.co/storage/v1/object/public/downloads/twinme-android-1.0.0.apk';
 
 export default function MoneyV2Page({ view = 'today' }: { view?: MoneyView } = {}) {
   /* The tab said "Discover Your Soul Signature" over a page of euros, which is the front
