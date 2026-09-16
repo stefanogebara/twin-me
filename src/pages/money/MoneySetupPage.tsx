@@ -10,6 +10,7 @@
  * Spec: .claude/plans/2026-09-07-money-twin/README.md
  */
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { dayBehind, ordinal } from './readingWords';
 import { Link } from 'react-router-dom';
 import { useLocale, useT } from '@/lib/i18n';
 import '../../styles/money-v2.css';
@@ -62,6 +63,18 @@ function parseShare(s: string): number | undefined {
 }
 
 /** The 1st, not the 1. A system that cannot spell a date is not trusted with a number. */
+
+type T = (s: string, vars?: Record<string, string | number>) => string;
+
+/** A question in the reader's language: its parts when it has them, else its own words. */
+function askWords(q: MoneyQuestion, t: T, locale: string): string {
+  if (!q.say?.key) return t(q.ask);
+  const vars: Record<string, string | number> = { ...q.say.vars };
+  /* A day arrives as a date; a person says it as a day. */
+  if (typeof vars.day === 'string' && /^\d{4}-\d{2}-\d{2}/.test(vars.day)) vars.day = dayBehind(vars.day, t, locale);
+  else if (typeof vars.day === 'number') vars.day = ordinal(t, vars.day);
+  return t(q.say.key, vars);
+}
 
 export default function MoneySetupPage() {
   const t = useT();
@@ -240,8 +253,10 @@ export default function MoneySetupPage() {
             ) : question ? (
               <div className="ms-stage-inner" key={question.id}>
                 <p className="ms-count">{t(fromLedger ? '{i} of {n}, from your payments' : '{i} of {n}', { i: index + 1, n: queue.length })}</p>
-                <h1>{question.ask}</h1>
-                {question.help || question.why ? <p className="mv-sub">{question.help || question.why}</p> : null}
+                {/* The ledger composes the question in English for the model; the page asks it
+                    in the reader's own language, from the same parts (2026-09-16). */}
+                <h1>{askWords(question, t, locale)}</h1>
+                {question.help || question.why ? <p className="mv-sub">{t(question.help || question.why)}</p> : null}
 
                 {question.receipts && question.receipts.length ? (
                   <ul className="mv-list" aria-label={t('The payments behind this question')}>

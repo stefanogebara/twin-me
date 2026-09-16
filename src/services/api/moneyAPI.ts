@@ -83,6 +83,8 @@ export type MoneyQuestionReceipt = { id: string; occurred_at: string; amount: nu
  */
 export type MoneyQuestion = {
   id: string; kind: string; ask: string; help?: string | null; why: string; changes: string;
+  /** The same question in parts, so the page can ask it in the reader's own language. */
+  say?: { key: string; vars: Record<string, string | number> } | null;
   input: string; optional?: boolean; subject?: string | null; receipts?: MoneyQuestionReceipt[];
 };
 export type MoneyQuestions = { opening: MoneyQuestion[]; fromLedger: MoneyQuestion[]; answered: number };

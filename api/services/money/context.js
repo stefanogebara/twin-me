@@ -216,6 +216,11 @@ export function ledgerQuestions({ transactions = [], facts = [], placeOf = () =>
       kind: 'person',
       subject: g.rows[0].merchant_key,
       ask: `${g.name} has sent you ${euro(g.total)}${g.rows.length > 1 ? ` across ${g.rows.length} transfers` : ''}. Who is that?`,
+      /* The same question, in parts, so the page can ask it in the person's own language. The
+         English above stays: it is what the model and the twin read (2026-09-16). */
+      say: g.rows.length > 1
+        ? { key: '{name} has sent you {amount} across {n} transfers. Who is that?', vars: { name: g.name, amount: euro(g.total), n: g.rows.length } }
+        : { key: '{name} has sent you {amount}. Who is that?', vars: { name: g.name, amount: euro(g.total) } },
       help: 'This decides whether the money counts as something you can expect again.',
       why: 'Money you can expect belongs in the month. Money you cannot does not.',
       changes: 'whether this counts as income',
@@ -244,6 +249,9 @@ export function ledgerQuestions({ transactions = [], facts = [], placeOf = () =>
       kind: 'person',
       subject: g.rows[0].merchant_key,
       ask: `You sent ${g.name} ${euro(g.total)} ${g.rows.length === 1 ? 'once' : `${g.rows.length} times`}. Who is that?`,
+      say: g.rows.length === 1
+        ? { key: 'You sent {name} {amount} once. Who is that?', vars: { name: g.name, amount: euro(g.total) } }
+        : { key: 'You sent {name} {amount} {n} times. Who is that?', vars: { name: g.name, amount: euro(g.total), n: g.rows.length } },
       help: 'Paying a flatmate back is not the same as spending.',
       why: 'A cost shared with somebody is not the same as a cost you carried.',
       changes: 'whether this counts as spending',
@@ -272,6 +280,7 @@ export function ledgerQuestions({ transactions = [], facts = [], placeOf = () =>
       kind: 'merchant_kind',
       subject: g.rows[0].merchant_key,
       ask: `What kind of place is ${g.name}? You have paid there ${g.rows.length} times, ${euro(g.total)} in all.`,
+      say: { key: 'What kind of place is {name}? You have paid there {n} times, {amount} in all.', vars: { name: g.name, n: g.rows.length, amount: euro(g.total) } },
       help: 'Your bank writes these names badly and no map could resolve this one.',
       why: 'Until this has a kind, the money it takes is missing from where your month went.',
       changes: 'where your month went',
@@ -301,6 +310,7 @@ export function ledgerQuestions({ transactions = [], facts = [], placeOf = () =>
       kind: 'merchant_kind',
       subject: key,
       ask: `${nameOf(sorted[0])} came every ${Math.round(typical)} days and has not for ${Math.floor(since)}. Did you cancel it?`,
+      say: { key: '{name} came every {gap} days and has not for {days}. Did you cancel it?', vars: { name: nameOf(sorted[0]), gap: Math.round(typical), days: Math.floor(since) } },
       help: 'If you did, the projection should stop expecting it.',
       why: 'A charge that stopped is either money saved or a payment that failed.',
       changes: 'what the month is expected to end at',
@@ -332,6 +342,7 @@ export function ledgerQuestions({ transactions = [], facts = [], placeOf = () =>
       subject: key,
       subjectLabel: nameOf(sorted[0]),
       ask: `${nameOf(sorted[0])} takes about ${euro(amount)} around the ${ordinal(day)}, ${months.size} months running. Is this your rent?`,
+      say: { key: '{name} takes about {amount} around the {day}, {n} months running. Is this your rent?', vars: { name: nameOf(sorted[0]), amount: euro(amount), day: day, n: months.size } },
       help: 'Rent or another fixed cost is money the month has already spoken for.',
       why: 'The month can then be projected with what is already spoken for, instead of finding out later.',
       changes: 'what the month is expected to end at',
