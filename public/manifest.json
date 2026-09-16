@@ -1,13 +1,16 @@
 {
   "name": "TwinMe",
   "short_name": "TwinMe",
-  "description": "Your AI twin that acts for you",
-  "start_url": "/dashboard",
+  "description": "Your money, read to you.",
+  "start_url": "/money",
+  "scope": "/",
   "display": "standalone",
-  "background_color": "#13121a",
-  "theme_color": "#13121a",
+  "orientation": "portrait",
+  "background_color": "#fbfaf9",
+  "theme_color": "#fbfaf9",
   "icons": [
-    { "src": "/images/backgrounds/flower-hero.png", "sizes": "192x192", "type": "image/png" },
-    { "src": "/images/backgrounds/flower-hero.png", "sizes": "512x512", "type": "image/png" }
+    { "src": "/icons/twinme-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/twinme-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/twinme-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
   ]
 }
