@@ -122,6 +122,7 @@
       "src": "/cinematic/(.*)",
       "dest": "/cinematic/$1"
     },
+    { "src": "/downloads/(.*)", "dest": "/downloads/$1" },
     {
       "src": "/(.*)",
       "dest": "/index.html"
