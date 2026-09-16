@@ -246,4 +246,9 @@ export const PT_BR_MONEY: Record<string, string> = {
   "{n} times so far": "{n} vezes at\u00e9 agora",
   "Open Shortcuts, tap Automation at the bottom, then New Automation. Search for Wallet, the one that says when I tap a Wallet card or pass.": "Abra Atalhos, toque em Automacao embaixo, e depois Nova automacao. Procure Wallet, a que diz quando eu toco um cartao ou passe da Wallet.",
   "Pick your card, choose Run Immediately, and tap Next.": "Escolha seu cartao, marque Executar na hora, e toque em Avancar.",
+  "A payment, the moment it happens.": "Um pagamento, no momento em que acontece.",
+  "The bank posts a payment a day or two later. Your phone sees it at the till.": "O banco lanca um pagamento um ou dois dias depois. Seu celular ve na hora da compra.",
+  "Get the app": "Baixar o app",
+  "Paste this when the shortcut asks for it. It is shown once.": "Cole quando o atalho pedir. E mostrada uma vez.",
+  "Open this page on your phone to set it up there.": "Abra esta pagina no seu celular para configurar por la.",
 };
