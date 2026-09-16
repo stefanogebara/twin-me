@@ -379,7 +379,8 @@
 .mv .mv-fig-rows { margin-top: 16px; }
 .mv .mv-item--total { border-bottom: 0; }
 .mv .mv-fortnight { display: grid; gap: 8px; margin: 8px 0 0; }
-.mv .mv-fortnight-canvas { display: block; width: 100%; height: 200px; }
+.mv .mv-fortnight-canvas { display: block; width: 100%; height: 200px; cursor: pointer; }
+.mv .mv-fortnight-canvas:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
 .mv .mv-fortnight-foot { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; }
 .mv .mv-fortnight figcaption { margin: 0; }
 .mv .mv-seg { display: inline-flex; flex: none; border: 1px solid var(--rule); border-radius: 4px; overflow: hidden; }

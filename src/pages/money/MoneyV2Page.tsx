@@ -659,6 +659,9 @@ export default function MoneyV2Page({ view = 'today' }: { view?: MoneyView } = {
           {view === 'month' ? (
           <section className="mv-hero mv-hero--orb" id="month-title">
             <p className="mv-eyebrow">{t('Month')}</p>
+            {/* The day says it is reading; the month printed an ellipsis where its figure goes,
+                which reads as a broken number to anyone who has not seen it work. */}
+            {!loaded ? <Wait inline state="searching" line="Reading your month." /> : null}
             {/* The month as a constellation: a hub per kind of place, a dot per payee. It
                 says nothing until tapped; the list it opens ends in the total. */}
             {categories && categories.groups.some((g) => g.spent > 0) ? (() => {
@@ -675,10 +678,10 @@ export default function MoneyV2Page({ view = 'today' }: { view?: MoneyView } = {
                 />
               );
             })() : null}
-            <h1>{(() => {
+            {loaded ? <h1>{(() => {
               const amount = forecast ? euro(forecast.spent) : (months[0] ? euro(months[0].spent) : '\u2026');
               return incomeEdge ? t('{month}, {amount} of {income}.', { month: monthLabel, amount, income: euro(incomeEdge) }) : t('{month}, {amount}.', { month: monthLabel, amount });
-            })()}</h1>
+            })()}</h1> : null}
             {incomeEdge ? <p className="mv-sub">{today?.keep
               ? t('{income} is what you said comes in, {keep} of it to keep.', { income: euro(incomeEdge), keep: euro(today.keep) })
               : t('{income} is what you said comes in.', { income: euro(incomeEdge) })}</p> : null}
@@ -704,6 +707,7 @@ export default function MoneyV2Page({ view = 'today' }: { view?: MoneyView } = {
             <p className="mv-eyebrow">{t('You')}</p>
             <h1>{user?.firstName ? t('{name}.', { name: user.firstName }) : t('You.')}</h1>
             <p className="mv-sub">{t('What it knows in your words, and where it reads from.')}</p>
+            {facts === null ? <Wait inline state="searching" line="Reading what it knows." /> : null}
           </section>
           ) : null}
 

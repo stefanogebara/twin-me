@@ -275,7 +275,13 @@ export default function MoneyChatPage() {
 
   const asked = useMemo(() => new Set(lines.filter((l) => l.who === 'you').map((l) => l.text.trim().toLowerCase())), [lines]);
   /* Three offers before the first question, two after, so they read as prompts, not a menu. */
-  const offers = useMemo(() => OFFERS.filter((q) => !asked.has(q.toLowerCase())).slice(0, asked.size === 0 ? 3 : 2), [asked]);
+  /* The offer is sent in the person's language, so the transcript holds the translated words
+     and the English source never matched: in Spanish and Portuguese the same suggestion came
+     back after it had been asked (2026-09-16). */
+  const offers = useMemo(
+    () => OFFERS.filter((q) => !asked.has(q.toLowerCase()) && !asked.has(t(q).toLowerCase())).slice(0, asked.size === 0 ? 3 : 2),
+    [asked, t],
+  );
   const last = lines[lines.length - 1];
   const offersShown = offers.length > 0 && !asking && (!last || (last.who === 'twin' && !last.pending));
 
@@ -405,7 +411,7 @@ export default function MoneyChatPage() {
                   {openQuestions > 0 ? (
                     <div className="mc-actions">
                       <Link to="/money/setup" className="mv-pill mv-pill--ghost">
-                        <span>{openQuestions} {openQuestions === 1 ? 'thing' : 'things'} it cannot work out on its own</span>
+                        <span>{openQuestions === 1 ? t('one thing it cannot work out on its own') : t('{n} things it cannot work out on its own', { n: openQuestions })}</span>
                       </Link>
                     </div>
                   ) : null}

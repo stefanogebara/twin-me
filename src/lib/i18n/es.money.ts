@@ -328,4 +328,8 @@ export const ES_MONEY: Record<string, string> = {
   "{amount} expected on one day ahead": "se esperan {amount} en un d\u00eda por delante",
   "{amount} expected on {n} days ahead": "se esperan {amount} en {n} d\u00edas por delante",
   "{amount} coming in": "entran {amount}",
+  "one thing it cannot work out on its own": "una cosa que no puede deducir por su cuenta",
+  "{n} things it cannot work out on its own": "{n} cosas que no puede deducir por su cuenta",
+  "Reading what it knows.": "Leyendo lo que sabe.",
+  "Reading your month.": "Leyendo tu mes.",
 };
