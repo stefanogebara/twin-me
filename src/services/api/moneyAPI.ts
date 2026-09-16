@@ -22,7 +22,7 @@ export type MoneyForecast = {
   projected_p10: number; projected_p50: number; projected_p90: number; history_days: number;
   committed_items: { merchant_key: string; merchant_name?: string | null; typical_amount: number | string; next_expected: string; cadence?: string; occurrences?: number; last_seen?: string }[];
   commitment_items?: { subject?: string | null; amount: number | string; due_on: string; check_status?: string | null }[];
-  income_items?: { subject?: string | null; source?: string | null; amount: number | string; due_on: string; basis?: string | null; confidence?: number | null; said?: boolean }[];
+  income_items?: { subject?: string | null; source?: string | null; amount: number | string; due_on: string; basis?: string | null; confidence?: number | null; said?: boolean; times?: number | null; day?: number | null }[];
   calendar_items?: { title?: string | null; label?: string | null; day?: string; on?: string; amount?: number | string; expected?: { amount: number | string } | null }[];
   band_calibration?: { widen: number; days: number; coverage: number | null; trusted: boolean } | null;
   /** The last thirty days as marks: what each cost, and the range it was given the night before. */

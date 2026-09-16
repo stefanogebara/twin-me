@@ -285,7 +285,7 @@ export function buildFigure(request, ctx) {
     const shown = rows.slice(-MAX_HISTORY_POINTS);
     const name = ctx.placeByKey.get(shown[0].merchant_key)?.name || nameOf(shown[0]);
     const points = shown.map((t) => ({ label: dayMonth(t.occurred_at, ctx.language), value: round2(abs(t)) }));
-    return { figure: { kind, title: `${name}, every payment`, merchant: name, points }, rows: [...shown].reverse() };
+    return { figure: { kind, title: say(ctx.language, '{name}, every payment', { name }), merchant: name, points }, rows: [...shown].reverse() };
   }
 
   return null;
@@ -329,7 +329,7 @@ export function validateAction(action, ctx) {
     const role = String(action.role || '').toLowerCase().trim();
     if (!t || !PERSON_ROLES.includes(role)) return null;
     const note = typeof action.note === 'string' && action.note.trim() ? action.note.trim().slice(0, 240) : null;
-    return { kind: 'person', merchant_key: t.merchant_key, name: nameOf(t), role, note, label: label || `${nameOf(t)} is ${role}${note ? `, ${note}` : ''}` };
+    return { kind: 'person', merchant_key: t.merchant_key, name: nameOf(t), role, note, label: label || say(ctx.language, '{name} is {role}', { name: nameOf(t), role: say(ctx.language, role) }) + (note ? `, ${note}` : '') };
   }
   /* Something they told the ledger that fits no question: kept in their words, read back to the model. */
   if (action.kind === 'remember') {
@@ -517,6 +517,20 @@ function plainProse(raw) {
    English is the source; a language with no line falls back to it. ASCII, \u for accents. */
 const PHRASES = {
   es: {
+    '{what} on {day}, is marked as not yours and leaves the month.': '{what} el {day} queda marcado como no tuyo y sale del mes.',
+    '{place} now counts as {kind}, here and from now on.': '{place} cuenta ahora como {kind}, aqu\u00ed y a partir de ahora.',
+    '{what} counts as {share} of yours. Money back for {share} will count as the others paying, and it will say who still owes.': '{what} cuenta como {share} tuyos. El dinero que vuelva por {share} contar\u00e1 como que los dem\u00e1s pagan, y dir\u00e1 qui\u00e9n sigue debiendo.',
+    '{name} is your landlord: transfers to them read as rent from now on.': '{name} es tu casero: las transferencias a esa persona se leen como alquiler a partir de ahora.',
+    '{name} is {role}: money between you is not spending.': '{name} es {role}: el dinero entre vosotros no es gasto.',
+    '{name} is {role}. Noted, with what you said.': '{name} es {role}. Anotado, con lo que dijiste.',
+    '{name} is {role}. Noted.': '{name} es {role}. Anotado.',
+    '{name} is {role}': '{name} es {role}',
+    'It holds thirty of your notes already. Forget one on You and it will take this.': 'Ya guarda treinta notas tuyas. Olvida una en T\u00fa y aceptar\u00e1 esta.',
+    'Kept, in your words. It reads with that from now on.': 'Guardado, en tus palabras. Lee con eso a partir de ahora.',
+    'Forgotten. If it matters, it will ask again.': 'Olvidado. Si importa, volver\u00e1 a preguntar.',
+    'That one is not yours to forget here.': 'Esa no es tuya para olvidarla aqu\u00ed.',
+    'Noted. The ledger reads with that from now on.': 'Anotado. El libro lee con eso a partir de ahora.',
+    '{name}, every payment': '{name}, todos los pagos',
     'Nothing arrived in that file.': 'No lleg\u00f3 nada en ese archivo.',
     'That file is over 4 MB. A photo of it would come through.': 'Ese archivo pasa de 4 MB. Una foto s\u00ed entrar\u00eda.',
     'It reads photos, PDFs, plain text and bank exports as Excel or CSV.': 'Lee fotos, PDF, texto plano y extractos del banco en Excel o CSV.',
@@ -564,6 +578,20 @@ const PHRASES = {
     'There is nothing in the ledger yet. Connect a bank or add a statement and ask again.': 'Todav\u00eda no hay nada en el libro. Conecta un banco o a\u00f1ade un extracto y pregunta otra vez.',
   },
   'pt-BR': {
+    '{what} on {day}, is marked as not yours and leaves the month.': '{what} em {day} fica marcado como n\u00e3o seu e sai do m\u00eas.',
+    '{place} now counts as {kind}, here and from now on.': '{place} agora conta como {kind}, aqui e daqui em diante.',
+    '{what} counts as {share} of yours. Money back for {share} will count as the others paying, and it will say who still owes.': '{what} conta como {share} seus. O dinheiro que voltar de {share} vai contar como os outros pagando, e ele dir\u00e1 quem ainda deve.',
+    '{name} is your landlord: transfers to them read as rent from now on.': '{name} \u00e9 o seu senhorio: transfer\u00eancias para essa pessoa passam a ser lidas como aluguel.',
+    '{name} is {role}: money between you is not spending.': '{name} \u00e9 {role}: dinheiro entre voc\u00eas n\u00e3o \u00e9 gasto.',
+    '{name} is {role}. Noted, with what you said.': '{name} \u00e9 {role}. Anotado, com o que voc\u00ea disse.',
+    '{name} is {role}. Noted.': '{name} \u00e9 {role}. Anotado.',
+    '{name} is {role}': '{name} \u00e9 {role}',
+    'It holds thirty of your notes already. Forget one on You and it will take this.': 'Ele j\u00e1 guarda trinta notas suas. Esque\u00e7a uma em Voc\u00ea e ele aceitar\u00e1 esta.',
+    'Kept, in your words. It reads with that from now on.': 'Guardado, nas suas palavras. Ele l\u00ea com isso daqui em diante.',
+    'Forgotten. If it matters, it will ask again.': 'Esquecido. Se importar, ele perguntar\u00e1 de novo.',
+    'That one is not yours to forget here.': 'Essa n\u00e3o \u00e9 sua para esquecer aqui.',
+    'Noted. The ledger reads with that from now on.': 'Anotado. O livro l\u00ea com isso daqui em diante.',
+    '{name}, every payment': '{name}, todos os pagamentos',
     'Nothing arrived in that file.': 'N\u00e3o chegou nada nesse arquivo.',
     'That file is over 4 MB. A photo of it would come through.': 'Esse arquivo passa de 4 MB. Uma foto dele passaria.',
     'It reads photos, PDFs, plain text and bank exports as Excel or CSV.': 'Ele l\u00ea fotos, PDFs, texto simples e extratos do banco em Excel ou CSV.',
@@ -1232,41 +1260,48 @@ export async function act(userId, action, { now = new Date() } = {}) {
   if (checked.kind === 'not_me') {
     await setVerdict(userId, checked.transaction_id, 'not_me');
     const t = ctx.byId.get(checked.transaction_id);
-    return { done: true, said: euroGlyphs(`${nameOf(t)}, ${amountText(t.amount)} on ${dayMonth(t.occurred_at)}, is marked as not yours and leaves the month.`) };
+    /* What it did, in the person's own language: this line sits under their answer and was
+       English on every account (2026-09-16). */
+    return { done: true, said: euroGlyphs(say(ctx.language, '{what} on {day}, is marked as not yours and leaves the month.', { what: `${nameOf(t)}, ${amountText(t.amount)}`, day: dayMonth(t.occurred_at, ctx.language) })) };
   }
   if (checked.kind === 'recategorise') {
     await setPlaceCategory(userId, checked.merchant_key, checked.category);
     const place = ctx.placeByKey.get(checked.merchant_key);
-    return { done: true, said: `${place.name} now counts as ${checked.category}, here and from now on.` };
+    return { done: true, said: say(ctx.language, '{place} now counts as {kind}, here and from now on.', { place: place.name, kind: checked.category }) };
   }
   if (checked.kind === 'split') {
     const t = ctx.byId.get(checked.transaction_id);
     await answerQuestion(userId, { questionId: `split:${t.id}`, kind: 'split', subject: String(t.id), subjectLabel: nameOf(t), value: String(checked.ways) });
     const share = round2(abs(t) / checked.ways);
-    return { done: true, said: euroGlyphs(`${nameOf(t)}, ${amountText(t.amount)}, counts as ${amountText(share)} of yours. Bizums back for ${amountText(share)} will count as the others paying, and it will say who still owes.`) };
+    return { done: true, said: euroGlyphs(say(ctx.language, '{what} counts as {share} of yours. Money back for {share} will count as the others paying, and it will say who still owes.', { what: `${nameOf(t)}, ${amountText(t.amount)},`, share: amountText(share) })) };
   }
   if (checked.kind === 'person') {
     /* The question this answers is the one the ledger would have asked: money out or money in. */
     const sent = ctx.transactions.some((t) => String(t.merchant_key || '').toLowerCase() === checked.merchant_key.toLowerCase() && Number(t.amount) < 0);
     await answerQuestion(userId, { questionId: `${sent ? 'person_out' : 'person_in'}:${checked.merchant_key}`, kind: 'person', subject: checked.merchant_key, subjectLabel: checked.name, value: checked.role, note: checked.note });
-    const said = checked.role === 'landlord' ? `${checked.name} is your landlord: transfers to them read as rent from now on.`
-      : ['family', 'friend', 'flatmate', 'partner'].includes(checked.role) ? `${checked.name} is ${checked.role}: money between you is not spending.`
-        : `${checked.name} is ${checked.role}. Noted${checked.note ? `, with what you said` : ''}.`;
+    const role = say(ctx.language, checked.role);
+    const said = checked.role === 'landlord'
+      ? say(ctx.language, '{name} is your landlord: transfers to them read as rent from now on.', { name: checked.name })
+      : ['family', 'friend', 'flatmate', 'partner'].includes(checked.role)
+        ? say(ctx.language, '{name} is {role}: money between you is not spending.', { name: checked.name, role })
+        : checked.note
+          ? say(ctx.language, '{name} is {role}. Noted, with what you said.', { name: checked.name, role })
+          : say(ctx.language, '{name} is {role}. Noted.', { name: checked.name, role });
     return { done: true, said };
   }
   if (checked.kind === 'remember') {
     /* Thirty notes is a memory; more is a diary the prompt cannot carry. */
-    if ((ctx.facts || []).filter((f) => f.kind === 'note').length >= 30) return { done: false, said: 'It holds thirty of your notes already. Forget one on You and it will take this.' };
+    if ((ctx.facts || []).filter((f) => f.kind === 'note').length >= 30) return { done: false, said: say(ctx.language, 'It holds thirty of your notes already. Forget one on You and it will take this.') };
     const hash = crypto.createHash('sha256').update(checked.text).digest('hex').slice(0, 8);
     const subject = `${checked.text.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 50) || 'note'}-${hash}`;
     await answerQuestion(userId, { questionId: null, kind: 'note', subject, subjectLabel: null, value: checked.text });
-    return { done: true, said: 'Kept, in your words. It reads with that from now on.' };
+    return { done: true, said: say(ctx.language, 'Kept, in your words. It reads with that from now on.') };
   }
   if (checked.kind === 'forget') {
     const r = await deleteFact(userId, checked.fact_id);
-    return { done: true, said: r.deleted ? 'Forgotten. If it matters, it will ask again.' : 'That one is not yours to forget here.' };
+    return { done: true, said: say(ctx.language, r.deleted ? 'Forgotten. If it matters, it will ask again.' : 'That one is not yours to forget here.') };
   }
   const q = ctx.questions.find((x) => x.id === checked.question_id);
   await answerQuestion(userId, { questionId: q.id, kind: q.kind, subject: q.subject, subjectLabel: q.subjectLabel || q.receipts?.[0]?.merchant_raw, value: checked.value });
-  return { done: true, said: 'Noted. The ledger reads with that from now on.' };
+  return { done: true, said: say(ctx.language, 'Noted. The ledger reads with that from now on.') };
 }

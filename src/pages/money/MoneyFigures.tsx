@@ -10,6 +10,12 @@
 import { useLocale, useT } from '@/lib/i18n';
 import { euro, shortDay, type ChatFigure, type FigurePoint, type FigureShare } from '../../services/api/moneyAPI';
 
+/* A cadence is a phrase, not a word: the server sends weekly, biweekly, monthly. */
+const CADENCE_WORD: Record<string, string> = {
+  weekly: 'Every week', biweekly: 'Every two weeks', monthly: 'Every month',
+  quarterly: 'Every three months', yearly: 'Every year',
+};
+
 function Bars({ points }: { points: FigurePoint[] }) {
   const top = Math.max(...points.map((p) => p.value), 1);
   return (
@@ -63,7 +69,7 @@ export function Figure({ figure }: { figure: ChatFigure }) {
             <li key={`${it.label}-${i}`} className="mv-item mv-item--tight">
               <span className="mv-item-text">
                 <span className="mv-item-title">{it.label}</span>
-                <span className="mv-item-sub">{[it.cadence, it.next ? t('next around {day}', { day: shortDay(it.next, locale) }) : ''].filter(Boolean).join(', ')}</span>
+                <span className="mv-item-sub">{[it.cadence ? t(CADENCE_WORD[it.cadence] || it.cadence) : '', it.next ? t('next around {day}', { day: shortDay(it.next, locale) }) : ''].filter(Boolean).join(', ')}</span>
               </span>
               <span className="mv-item-end">{euro(it.amount)}</span>
             </li>
