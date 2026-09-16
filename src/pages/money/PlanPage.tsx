@@ -49,6 +49,24 @@ function monthOnly(month: string, locale: string): string {
   return Number.isNaN(d.getTime()) ? month : d.toLocaleDateString(locale, { month: 'long' });
 }
 
+/* The month's own line. The server composes one too, in English, with an English month
+   name; the page has the same four numbers and says it in the reader's language. */
+function planLine(plan: MoneyPlan, t: T, locale: string, current: boolean): string {
+  const month = monthOnly(plan.month, locale);
+  const n = plan.totals.days_ahead;
+  const head = current
+    ? t('{month}: {amount} so far', { month, amount: euro(plan.totals.spent_to_day) })
+    : t('{month}: {amount}', { month, amount: euro(plan.totals.spent_to_day) });
+  if (!current) return `${head}.`;
+  const clauses = [
+    n ? (n === 1
+      ? t('{amount} expected on one day ahead', { amount: euro(plan.totals.expected_rest) })
+      : t('{amount} expected on {n} days ahead', { amount: euro(plan.totals.expected_rest), n })) : '',
+    plan.totals.income_ahead ? t('{amount} coming in', { amount: euro(plan.totals.income_ahead) }) : '',
+  ].filter(Boolean);
+  return clauses.length ? `${head}; ${clauses.join(', ')}.` : `${head}.`;
+}
+
 function dayLine(c: MoneyPlanCell, t: T): string {
   if (c.past || c.today) {
     const base = c.count
@@ -128,7 +146,7 @@ export default function PlanPage() {
         <div className="mv-col">
           <section className="mv-section mv-plan-top">
             <h1>{t('{month}, day by day.', { month: monthOnly(month, locale) })}</h1>
-            <p className="mv-sub">{failed ? t('The plan could not be read right now.') : plan ? glyphs(plan.line) : ''}</p>
+            <p className="mv-sub">{failed ? t('The plan could not be read right now.') : plan ? glyphs(planLine(plan, t, locale, month === current)) : ''}</p>
             <div className="mv-plan-months">
               <button type="button" className="mv-link" onClick={() => setMonth(shiftMonth(month, -1))}>{monthLabel(shiftMonth(month, -1), locale).replace(/ \d{4}$/, '')}</button>
               {month !== current ? <button type="button" className="mv-link" onClick={() => setMonth(shiftMonth(month, 1))}>{monthLabel(shiftMonth(month, 1), locale).replace(/ \d{4}$/, '')}</button> : null}

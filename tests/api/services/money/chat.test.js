@@ -91,6 +91,19 @@ describe('buildFigure', () => {
     ]);
   });
 
+  it('titles and labels a figure in the language the person chose', () => {
+    /* An answer in Spanish over a chart titled "Spent per month" with Mon Tue Wed down its
+       axis was the plainest of the mixed-language screens (2026-09-16). */
+    const es = buildFigure({ kind: 'months' }, { ...ctx(), language: 'es' }).figure;
+    expect(es.title).toBe('Gastado por mes');
+    expect(es.points.map((p) => p.label)).toEqual(['jul', 'ago', 'sep']);
+    const pt = buildFigure({ kind: 'months' }, { ...ctx(), language: 'pt-BR' }).figure;
+    expect(pt.title).toBe('Gasto por m\u00eas');
+    expect(pt.points.map((p) => p.label)).toEqual(['jul', 'ago', 'set']);
+    /* English is the fallback, and it is unchanged. */
+    expect(buildFigure({ kind: 'months' }, ctx()).figure.title).toBe('Spent per month');
+  });
+
   it('months receipts are the full rows behind each biggest payment, never a summary', () => {
     const built = buildFigure({ kind: 'months' }, ctx());
     const receipts = receiptsFor([built], ctx());

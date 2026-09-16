@@ -63,6 +63,19 @@ export const reasoningPatienceMs = () => Number(process.env.MONEY_CHAT_REASONING
 
 const WEEKDAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+/* The days and months a figure is labelled with. English names on a Spanish page were the
+   plainest of the mixed-language screens: an answer in Spanish over a chart reading
+   Mon Tue Wed (2026-09-16). */
+const WEEKDAY_NAMES = {
+  es: ['lun', 'mar', 'mi\u00e9', 'jue', 'vie', 's\u00e1b', 'dom'],
+  'pt-BR': ['seg', 'ter', 'qua', 'qui', 'sex', 's\u00e1b', 'dom'],
+};
+const MONTH_NAMES = {
+  es: ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'],
+  'pt-BR': ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'],
+};
+const weekdayNames = (language) => WEEKDAY_NAMES[language] || WEEKDAYS;
+const monthNames = (language) => MONTH_NAMES[language] || MONTHS;
 const DECIMAL = new Intl.NumberFormat('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
 /* ------------------------------------------------------------------------ basics */
@@ -74,13 +87,13 @@ const abs = (t) => Math.abs(Number(t.amount) || 0);
 const at = (t) => new Date(t.occurred_at).getTime();
 /** An amount as the prompt reads it: es-ES digits and the currency spelled, ASCII throughout. */
 const amountText = (n) => `${DECIMAL.format(Math.abs(Number(n) || 0))} EUR`;
-const dayMonth = (iso) => {
+const dayMonth = (iso, language = null) => {
   const d = new Date(iso);
-  return Number.isNaN(d.getTime()) ? '' : `${d.getUTCDate()} ${MONTHS[d.getUTCMonth()]}`;
+  return Number.isNaN(d.getTime()) ? '' : `${d.getUTCDate()} ${monthNames(language)[d.getUTCMonth()]}`;
 };
-const monthLabel = (iso) => {
+const monthLabel = (iso, language = null) => {
   const d = new Date(iso);
-  return Number.isNaN(d.getTime()) ? '' : MONTHS[d.getUTCMonth()];
+  return Number.isNaN(d.getTime()) ? '' : monthNames(language)[d.getUTCMonth()];
 };
 const monthKeyOf = (iso) => String(iso).slice(0, 7);
 const nameOf = (t) => t.merchant_raw || t.merchant_key || 'unknown';
@@ -190,11 +203,11 @@ export function buildFigure(request, ctx) {
     const segs = [...ctx.segments].sort((a, b) => new Date(a.month) - new Date(b.month));
     if (segs.length < 2) return null;
     const thisKey = monthKeyOf(ctx.now.toISOString());
-    const points = segs.map((s) => ({ label: monthLabel(s.month), value: round2(s.spent), ...(monthKeyOf(s.month) === thisKey ? { current: true } : {}) }));
+    const points = segs.map((s) => ({ label: monthLabel(s.month, ctx.language), value: round2(s.spent), ...(monthKeyOf(s.month) === thisKey ? { current: true } : {}) }));
     /* A segment's biggest payment is a summary (id, merchant, amount). The receipt is the full
        row behind it, found by id; a month whose row is not in hand yields no receipt at all. */
     const rows = segs.map((s) => (s.biggest?.id ? ctx.byId.get(s.biggest.id) : null)).filter(Boolean).reverse();
-    return { figure: { kind, title: 'Spent per month', points }, rows };
+    return { figure: { kind, title: say(ctx.language, 'Spent per month'), points }, rows };
   }
 
   if (kind === 'shares') {
@@ -222,7 +235,9 @@ export function buildFigure(request, ctx) {
       .slice(0, MAX_SHARE_ITEMS)
       .map(([label, g]) => ({ label, value: round2(g.value), share: Math.round((g.value / total) * 1000) / 1000 }));
     const rows = [...groups.values()].flatMap((g) => g.rows).sort((a, b) => abs(b) - abs(a));
-    const title = byMerchant ? `Where ${monthLabel(month)} went, by place` : `Where ${monthLabel(month)} went`;
+    const title = byMerchant
+      ? say(ctx.language, 'Where {month} went, by place', { month: monthLabel(month, ctx.language) })
+      : say(ctx.language, 'Where {month} went', { month: monthLabel(month, ctx.language) });
     return { figure: { kind, title, items }, rows };
   }
 
@@ -235,8 +250,8 @@ export function buildFigure(request, ctx) {
       if (Number.isNaN(d.getTime())) continue;
       totals[(d.getUTCDay() + 6) % 7] += abs(t);
     }
-    const points = WEEKDAYS.map((label, i) => ({ label, value: round2(totals[i]) }));
-    return { figure: { kind, title: 'Spent by day of the week', points }, rows: [...spend].sort((a, b) => abs(b) - abs(a)) };
+    const points = weekdayNames(ctx.language).map((label, i) => ({ label, value: round2(totals[i]) }));
+    return { figure: { kind, title: say(ctx.language, 'Spent by day of the week'), points }, rows: [...spend].sort((a, b) => abs(b) - abs(a)) };
   }
 
   if (kind === 'recurring') {
@@ -249,7 +264,7 @@ export function buildFigure(request, ctx) {
       ...(s.next_expected ? { next: String(s.next_expected).slice(0, 10) } : {}),
     }));
     const rows = series.flatMap((s) => (s.charges || []).map((c) => ctx.byId.get(c.id)).filter(Boolean));
-    return { figure: { kind, title: 'What comes back', items }, rows };
+    return { figure: { kind, title: say(ctx.language, 'What comes back'), items }, rows };
   }
 
   if (kind === 'band') {
@@ -257,7 +272,7 @@ export function buildFigure(request, ctx) {
     if (!f || !(f.projected_p90 - f.projected_p10 > 0.5)) return null;
     const likely = round2(Math.max(f.projected_p50, (f.spent || 0) + (f.committed || 0)));
     return {
-      figure: { kind, title: `${monthLabel(f.month)}, so far and likely`, month: f.month, spent: round2(f.spent), likely, low: round2(f.projected_p10), high: round2(f.projected_p90) },
+      figure: { kind, title: say(ctx.language, '{month}, so far and likely', { month: monthLabel(f.month, ctx.language) }), month: f.month, spent: round2(f.spent), likely, low: round2(f.projected_p10), high: round2(f.projected_p90) },
       rows: ctx.transactions.filter((t) => out(t) && monthKeyOf(t.occurred_at) === monthKeyOf(f.month)).sort((a, b) => abs(b) - abs(a)),
     };
   }
@@ -267,7 +282,7 @@ export function buildFigure(request, ctx) {
     if (rows.length < 2) return null;
     const shown = rows.slice(-MAX_HISTORY_POINTS);
     const name = ctx.placeByKey.get(shown[0].merchant_key)?.name || nameOf(shown[0]);
-    const points = shown.map((t) => ({ label: dayMonth(t.occurred_at), value: round2(abs(t)) }));
+    const points = shown.map((t) => ({ label: dayMonth(t.occurred_at, ctx.language), value: round2(abs(t)) }));
     return { figure: { kind, title: `${name}, every payment`, merchant: name, points }, rows: [...shown].reverse() };
   }
 
@@ -284,25 +299,25 @@ export function validateAction(action, ctx) {
   if (action.kind === 'not_me') {
     const t = ctx.byId.get(action.transaction_id);
     if (!t) return null;
-    return { kind: 'not_me', transaction_id: t.id, label: label || `Not mine: ${nameOf(t)}, ${amountText(t.amount)}` };
+    return { kind: 'not_me', transaction_id: t.id, label: label || say(ctx.language, 'Not mine: {what}', { what: `${nameOf(t)}, ${amountText(t.amount)}` }) };
   }
   if (action.kind === 'recategorise') {
     const place = ctx.placeByKey.get(action.merchant_key);
     const category = String(action.category || '').toLowerCase().trim();
     if (!place || !CATEGORIES.includes(category)) return null;
-    return { kind: 'recategorise', merchant_key: place.merchant_key, category, label: label || `File ${place.name} under ${category}` };
+    return { kind: 'recategorise', merchant_key: place.merchant_key, category, label: label || say(ctx.language, 'File {place} under {kind}', { place: place.name, kind: category }) };
   }
   if (action.kind === 'split') {
     const t = ctx.byId.get(action.transaction_id);
     const ways = Number(action.ways);
     if (!t || Number(t.amount) >= 0 || !Number.isInteger(ways) || ways < MIN_WAYS || ways > MAX_WAYS) return null;
-    return { kind: 'split', transaction_id: t.id, ways, label: label || `Split ${nameOf(t)}, ${amountText(t.amount)}, ${ways} ways` };
+    return { kind: 'split', transaction_id: t.id, ways, label: label || say(ctx.language, 'Split {what}, {n} ways', { what: `${nameOf(t)}, ${amountText(t.amount)}`, n: ways }) };
   }
   if (action.kind === 'answer') {
     const q = ctx.questions.find((x) => x.id === action.question_id);
     const value = action.value == null ? '' : String(action.value).trim();
     if (!q || !value) return null;
-    return { kind: 'answer', question_id: q.id, value, label: label || `Record: ${value}` };
+    return { kind: 'answer', question_id: q.id, value, label: label || say(ctx.language, 'Record: {what}', { what: value }) };
   }
   /* Who somebody on the statement is, in the person's words: a role from the list, and
      whatever else they said about them. The key must be a person the ledger has seen. */
@@ -318,13 +333,13 @@ export function validateAction(action, ctx) {
   if (action.kind === 'remember') {
     const text = typeof action.text === 'string' ? action.text.trim().slice(0, 240) : '';
     if (text.length < 3) return null;
-    return { kind: 'remember', text, label: label || `Remember: ${text}` };
+    return { kind: 'remember', text, label: label || say(ctx.language, 'Remember: {what}', { what: text }) };
   }
   /* A fact they gave and now say is wrong: it goes, and its question is open again. */
   if (action.kind === 'forget') {
     const f = (ctx.facts || []).find((x) => x.id === action.fact_id);
     if (!f) return null;
-    return { kind: 'forget', fact_id: f.id, label: label || `Forget: ${f.subject_label || f.value || f.subject || f.kind}` };
+    return { kind: 'forget', fact_id: f.id, label: label || say(ctx.language, 'Forget: {what}', { what: f.subject_label || f.value || f.subject || f.kind }) };
   }
   return null;
 }
@@ -500,6 +515,18 @@ function plainProse(raw) {
    English is the source; a language with no line falls back to it. ASCII, \u for accents. */
 const PHRASES = {
   es: {
+    'Spent per month': 'Gastado por mes',
+    'Where {month} went, by place': 'A d\u00f3nde fue {month}, por sitio',
+    'Where {month} went': 'A d\u00f3nde fue {month}',
+    'Spent by day of the week': 'Gastado por d\u00eda de la semana',
+    'What comes back': 'Lo que vuelve',
+    '{month}, so far and likely': '{month}, hasta ahora y lo probable',
+    'Not mine: {what}': 'No es m\u00edo: {what}',
+    'File {place} under {kind}': 'Guardar {place} como {kind}',
+    'Split {what}, {n} ways': 'Repartir {what} entre {n}',
+    'Record: {what}': 'Anotar: {what}',
+    'Remember: {what}': 'Recordar: {what}',
+    'Forget: {what}': 'Olvidar: {what}',
     'The ledger cannot answer that from what it has.': 'El libro no puede responder eso con lo que tiene.',
     'The ledger has no total for that; it can only name the parts it holds.': 'El libro no tiene un total para eso; solo puede nombrar las partes que guarda.',
     'That could not be read right now.': 'Eso no se pudo leer ahora.',
@@ -515,6 +542,18 @@ const PHRASES = {
     'There is nothing in the ledger yet. Connect a bank or add a statement and ask again.': 'Todav\u00eda no hay nada en el libro. Conecta un banco o a\u00f1ade un extracto y pregunta otra vez.',
   },
   'pt-BR': {
+    'Spent per month': 'Gasto por m\u00eas',
+    'Where {month} went, by place': 'Para onde foi {month}, por lugar',
+    'Where {month} went': 'Para onde foi {month}',
+    'Spent by day of the week': 'Gasto por dia da semana',
+    'What comes back': 'O que volta',
+    '{month}, so far and likely': '{month}, at\u00e9 agora e o prov\u00e1vel',
+    'Not mine: {what}': 'N\u00e3o \u00e9 meu: {what}',
+    'File {place} under {kind}': 'Guardar {place} como {kind}',
+    'Split {what}, {n} ways': 'Dividir {what} entre {n}',
+    'Record: {what}': 'Anotar: {what}',
+    'Remember: {what}': 'Lembrar: {what}',
+    'Forget: {what}': 'Esquecer: {what}',
     'The ledger cannot answer that from what it has.': 'O livro n\u00e3o consegue responder isso com o que tem.',
     'The ledger has no total for that; it can only name the parts it holds.': 'O livro n\u00e3o tem um total para isso; s\u00f3 pode nomear as partes que guarda.',
     'That could not be read right now.': 'Isso n\u00e3o p\u00f4de ser lido agora.',

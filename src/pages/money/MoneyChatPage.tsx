@@ -171,6 +171,15 @@ function useLedgerTrace(): { steps: TraceStep[]; reading: boolean } {
 
 /* A heading, one grey line, then the steps as rows under the ink rule. The step in
    progress is the one in ink at 500; the rest have gone quiet. */
+/* The step's name comes off the wire in English, one per step id, so the panel is named
+   here and read in the person's own language. A detail that carries a number still comes
+   through as the server wrote it. */
+const STEP_LABEL: Record<string, string> = {
+  bank: 'Reading the bank', ledger: 'Reading the payments', places: 'Working out the places',
+  learn: 'Learning the rhythms', patterns: 'Reading what it means', gaps: 'Finding what it cannot explain',
+  end: 'Done',
+};
+
 function TracePanel({ steps, reading }: { steps: TraceStep[]; reading: boolean }) {
   const t = useT();
   /* Six rows of zeros ending in Done is what a new account saw here: machinery with
@@ -190,8 +199,8 @@ function TracePanel({ steps, reading }: { steps: TraceStep[]; reading: boolean }
           {steps.map((s) => (
             <li key={s.step} className={`mv-item mv-item--tight mc-step${reading && !s.done ? ' is-live' : ''}`}>
               <span className="mv-item-text">
-                <span className="mv-item-title">{s.label}</span>
-                {s.detail ? <span className="mv-item-sub">{s.detail}</span> : null}
+                <span className="mv-item-title">{t(STEP_LABEL[s.step] || s.label)}</span>
+                {s.detail ? <span className="mv-item-sub">{t(s.detail)}</span> : null}
               </span>
               {s.count === null ? null : <span className="mv-item-end">{s.count}</span>}
             </li>
