@@ -7,6 +7,7 @@
  * not know how to draw renders nothing, so a new kind on the server costs the page no
  * broken picture.
  */
+import { useLocale, useT } from '@/lib/i18n';
 import { euro, shortDay, type ChatFigure, type FigurePoint, type FigureShare } from '../../services/api/moneyAPI';
 
 function Bars({ points }: { points: FigurePoint[] }) {
@@ -40,6 +41,8 @@ function Shares({ items }: { items: FigureShare[] }) {
 }
 
 export function Figure({ figure }: { figure: ChatFigure }) {
+  const t = useT();
+  const locale = useLocale();
   let body: React.ReactNode = null;
   switch (figure.kind) {
     case 'week':
@@ -60,7 +63,7 @@ export function Figure({ figure }: { figure: ChatFigure }) {
             <li key={`${it.label}-${i}`} className="mv-item mv-item--tight">
               <span className="mv-item-text">
                 <span className="mv-item-title">{it.label}</span>
-                <span className="mv-item-sub">{[it.cadence, it.next ? `next around ${shortDay(it.next)}` : ''].filter(Boolean).join(', ')}</span>
+                <span className="mv-item-sub">{[it.cadence, it.next ? t('next around {day}', { day: shortDay(it.next, locale) }) : ''].filter(Boolean).join(', ')}</span>
               </span>
               <span className="mv-item-end">{euro(it.amount)}</span>
             </li>

@@ -220,10 +220,12 @@ export function euro(n: number | string | null | undefined): string {
   const v = Math.abs(Number(n) || 0);
   return new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(v);
 }
-export function shortDay(iso: string | null | undefined): string {
+export function shortDay(iso: string | null | undefined, locale?: string): string {
   if (!iso) return '';
   const d = new Date(iso);
-  return Number.isNaN(d.getTime()) ? '' : d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+  /* The language the pages are in, when the caller knows it; the browser's otherwise. A
+     fixed 'en-GB' wrote "22 Sept" onto Portuguese pages (2026-09-16). */
+  return Number.isNaN(d.getTime()) ? '' : d.toLocaleDateString(locale || undefined, { day: 'numeric', month: 'short' });
 }
 
 /* ------------------------------------------------------------ the conversation

@@ -157,3 +157,29 @@ export function parseStructured(p = {}) {
     parse_confidence: merchantRaw ? 0.9 : 0.7,
   };
 }
+
+/**
+ * What the capture endpoint reads from a request body. The structured fields come first when
+ * the sender has them: an iPhone Wallet automation sends the merchant and the amount it was
+ * given, which beats reading them out of a sentence. The notification's text comes next: the
+ * Android listener sends only that. Each falls back to the other, so a Shortcut whose fields
+ * came through empty still counts if its text names an amount. Pure: body in, sighting out.
+ * `refSeed` is what the route hashes into the sighting's source_ref, so the same payment sent
+ * twice is one payment, and two identical coffees a minute apart are two.
+ */
+export function captureFromBody(body = {}) {
+  const { text, receivedAt, merchant, amount, card, date, direction } = body || {};
+  const hasText = typeof text === 'string' && text.trim().length >= 4;
+  const hasAmount = amount !== undefined && amount !== null && String(amount).trim() !== '';
+  if (hasText && text.length > 2000) return { status: 400, error: 'text must be under 2000 chars' };
+  if (!hasText && !hasAmount) return { status: 400, error: 'Send text (the notification) or { merchant, amount, card, date }' };
+  if (hasAmount) {
+    const parsed = parseStructured({ merchant, amount, card, date, direction });
+    if (parsed) return { parsed, refPrefix: 'phone', refSeed: `${merchant}|${amount}|${card}|${date}` };
+  }
+  if (hasText) {
+    const parsed = parseCapture(text, { receivedAt });
+    if (parsed) return { parsed, refPrefix: parsed.source || 'phone', refSeed: text };
+  }
+  return { status: 422, error: 'No amount found' };
+}

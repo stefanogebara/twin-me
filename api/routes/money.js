@@ -46,7 +46,7 @@ import { extractDocumentText } from '../services/documentExtractionService.js';
 import { complete as llmComplete, TIER_EXTRACTION } from '../services/llmGateway.js';
 import { accuracy } from '../services/money/predictions.js';
 import { createLogger } from '../services/logger.js';
-import { parseCapture, parseStructured } from '../services/money/captureParser.js';
+import { captureFromBody } from '../services/money/captureParser.js';
 import { ingestSighting, ingestSightings, listTransactions, sightingsFor, refreshRecurring, forecast, setVerdict, userForCaptureKey, saveBankAccounts, listBankAccounts, pullBankFeed, refreshReadings, listReadings, setReadingVerdict, months, feedBudget, categorySpend, listPlaces, setPlaceCategory, enrichPlaces, subscriptionUsage, questionsFor, answerQuestion, skipQuestion, listFacts, deleteFact, recordCallbackFailure, listChatTurns, saveChatTurn, learn } from '../services/money/store.js';
 import { parseDelimited, parseWorkbook, toSightings } from '../services/money/statements/importer.js';
 import { isConfigured, listBanks, startAuthorisation, createSession, getSession, applicationInfo } from '../services/money/feeds/enableBanking.js';
@@ -85,20 +85,12 @@ async function authenticateUserOrKey(req, res, next) {
 }
 
 router.post('/capture', authenticateUserOrKey, async (req, res) => {
-  const { text, receivedAt, merchant, amount, card, date, direction } = req.body || {};
-  let parsed = null;
-  let ref = null;
-  if (typeof text === 'string' && text.length >= 4) {
-    if (text.length > 2000) return res.status(400).json({ success: false, error: 'text must be under 2000 chars' });
-    parsed = parseCapture(text, { receivedAt });
-    ref = `${parsed?.source || 'phone'}:${crypto.createHash('sha256').update(text).digest('hex').slice(0, 32)}`;
-  } else if (amount !== undefined) {
-    parsed = parseStructured({ merchant, amount, card, date, direction });
-    if (parsed) ref = `phone:${crypto.createHash('sha256').update(`${merchant}|${amount}|${card}|${date}`).digest('hex').slice(0, 32)}`;
-  } else {
-    return res.status(400).json({ success: false, error: 'Send text (the notification) or { merchant, amount, card, date }' });
-  }
-  if (!parsed) return res.status(422).json({ success: false, error: 'No amount found' });
+  /* The Android listener sends the notification's text; an iPhone Wallet automation sends the
+     merchant and amount it was handed (captureFromBody says which wins and why). */
+  const read = captureFromBody(req.body);
+  if (read.error) return res.status(read.status).json({ success: false, error: read.error });
+  const { parsed } = read;
+  const ref = `${read.refPrefix}:${crypto.createHash('sha256').update(read.refSeed).digest('hex').slice(0, 32)}`;
   try {
     const result = await ingestSighting(req.user.id, { ...parsed, source_ref: ref });
     res.status(result.action === 'create' ? 201 : 200).json({ success: true, data: { action: result.action, transaction: result.transaction, sighting: { id: result.sighting.id, parse_confidence: result.sighting.parse_confidence } } });

@@ -26,7 +26,7 @@ import { moneyAPI, euro, shortDay, bankLabel, BANKS, type MoneyAccount, type Mon
 import LedgerOrb from '../../components/LedgerOrb';
 import DayGlobe from './figures/DayGlobe';
 import Fortnight from './figures/Fortnight';
-import MonthConstellation from './figures/MonthConstellation';
+import MonthOrbits from './figures/MonthOrbits';
 import TotalRow from './figures/TotalRow';
 
 /* The English source strings; the page says them through t(), so the dictionaries hold them. */
@@ -42,7 +42,7 @@ type Ahead = { on: string; name: string; amount: number; kind: 'charge' | 'state
 /* Each row says why the ledger expects it: a charge that has come back so many times, a
    commitment they stated, an income seen or said, a diary event with a learned cost. A date
    and a name alone read as random; the reason is what makes it a forecast. */
-function stillToCome(t: T, f: MoneyForecast): Ahead[] {
+function stillToCome(t: T, locale: string, f: MoneyForecast): Ahead[] {
   const rows: Ahead[] = [];
   for (const c of f.committed_items || []) {
     const times = Number(c.occurrences) || 0;
@@ -50,7 +50,7 @@ function stillToCome(t: T, f: MoneyForecast): Ahead[] {
       why: [
         c.cadence ? cap(CADENCE[c.cadence] ? t(CADENCE[c.cadence]) : c.cadence) : t('Comes back'),
         times ? t(times === 1 ? '{n} time so far' : '{n} times so far', { n: times }) : '',
-        c.last_seen ? t('last {day}', { day: shortDay(c.last_seen) }) : '',
+        c.last_seen ? t('last {day}', { day: shortDay(c.last_seen, locale) }) : '',
       ].filter(Boolean).join(', ') });
   }
   for (const c of f.commitment_items || []) rows.push({ on: c.due_on, name: c.subject || t('A standing charge'), amount: -Math.abs(Number(c.amount)), kind: 'stated', why: t('You said it leaves every month') });
@@ -86,6 +86,9 @@ function lastDay(iso: string) { const d = new Date(iso); return new Date(Date.UT
 
 function Chevron() { return <ChevronRight className="mv-chev" size={16} strokeWidth={1.75} aria-hidden="true" />; }
 
+/* Where the Android app is downloaded from, when there is a build to download. */
+const APK_URL = (import.meta.env.VITE_ANDROID_APK_URL as string | undefined) || '';
+
 export default function MoneyV2Page({ view = 'today' }: { view?: MoneyView } = {}) {
   /* The tab said "Discover Your Soul Signature" over a page of euros, which is the front
      door's old promise showing through the new product. */
@@ -105,7 +108,9 @@ export default function MoneyV2Page({ view = 'today' }: { view?: MoneyView } = {
   const [openSeries, setOpenSeries] = useState<string | null>(null);
   const [needsReconnect, setNeedsReconnect] = useState(false);
   const [monthOpen, setMonthOpen] = useState<Record<string, boolean>>({});
-  const [showSteps, setShowSteps] = useState(false);
+  /* Which phone recipe is open: the app on Android, the Shortcut on iPhone, or the raw
+     request for anyone wiring their own tool. */
+  const [openHow, setOpenHow] = useState<'android' | 'iphone' | 'other' | null>(null);
   const [inbox, setInbox] = useState<{ address: string; receiving: boolean } | null>(null);
   const [copied, setCopied] = useState(false);
   /* The calendar lens: Google, or links pasted from Canvas and Blackboard. */
@@ -150,7 +155,7 @@ export default function MoneyV2Page({ view = 'today' }: { view?: MoneyView } = {
   const pendingNet = sinceRows.reduce((sum, t) => sum + Number(t.amount || 0), 0);
   /* "Booked to yesterday" on a working day is the bank's normal lag, not a stale read: today's
      card payments are here from the alerts and book tomorrow. Said as that. */
-  const bookedDay = bookedTo ? shortDay(bookedTo) : null;
+  const bookedDay = bookedTo ? shortDay(bookedTo, locale) : null;
   const bookedIsYesterday = bookedTo ? new Date(bookedTo).toDateString() === new Date(Date.now() - 86400000).toDateString() : false;
   const bookedLine = bookedTo
     ? bookedIsYesterday
@@ -423,7 +428,7 @@ export default function MoneyV2Page({ view = 'today' }: { view?: MoneyView } = {
   const monthLabel = forecast ? monthName(locale, forecast.month) : new Date().toLocaleDateString(locale, { month: 'long' });
   const last = forecast ? lastDay(forecast.month) : 30;
   const unmeasured = usage?.unmeasurable || [];
-  const ahead = forecast ? stillToCome(t, forecast) : [];
+  const ahead = forecast ? stillToCome(t, locale, forecast) : [];
 
   /* What the ledger says, with the payments that say it one press away. Today carries the
      three that changed something today, the one that moved most as the heading; the month
@@ -606,7 +611,7 @@ export default function MoneyV2Page({ view = 'today' }: { view?: MoneyView } = {
                   <ul className="mv-list mv-ahead" aria-label={t('Still to come this month')}>
                     {ahead.map((r) => (
                       <li key={`${r.kind}-${r.on}-${r.name}`} className="mv-item mv-item--tight">
-                        <span className="mv-ahead-day">{shortDay(r.on)}</span>
+                        <span className="mv-ahead-day">{shortDay(r.on, locale)}</span>
                         <KindTile kind={r.kind === 'income' ? 'income' : r.kind === 'stated' ? 'commitment' : r.kind === 'diary' ? 'diary' : 'software'} label={r.name} />
                         <span className="mv-item-text"><span className="mv-item-title">{r.name}</span><span className="mv-item-sub">{r.why}</span></span>
                         <span className={`mv-item-end mv-figures${r.amount > 0 ? ' mv-ahead-in' : ''}`}>{r.amount > 0 ? '+' : ''}{euro(Math.abs(r.amount))}</span>
@@ -632,7 +637,17 @@ export default function MoneyV2Page({ view = 'today' }: { view?: MoneyView } = {
             {categories && categories.groups.some((g) => g.spent > 0) ? (() => {
               const key = (forecast?.month || new Date().toISOString()).slice(0, 7);
               const rows = ledger.filter((tx) => tx.occurred_at.slice(0, 7) === key);
-              return <MonthConstellation groups={categories.groups} rows={rows} label={t('{month}: everyone paid, around the kind of place', { month: monthLabel })} />;
+              return (
+                <MonthOrbits
+                  groups={categories.groups}
+                  rows={rows}
+                  recurring={recurring}
+                  today={new Date().getDate()}
+                  daysInMonth={last}
+                  monthKey={key}
+                  label={t('{month} as orbits: a ring per kind of place, a mark per payment', { month: monthLabel })}
+                />
+              );
             })() : null}
             <h1>{(() => {
               const amount = forecast ? euro(forecast.spent) : (months[0] ? euro(months[0].spent) : '\u2026');
@@ -767,7 +782,7 @@ export default function MoneyV2Page({ view = 'today' }: { view?: MoneyView } = {
                                   <span className="mv-item-text">
                                     <span className="mv-item-title">{merchantLabel(row)}</span>
                                     <span className="mv-item-sub">
-                                      {[shortDay(row.occurred_at), row.posted_at ? '' : t('pending'), row.is_recurring ? t('recurring') : '', row.verdict ? t(row.verdict === 'worth_it' ? 'worth it' : 'not me') : ''].filter(Boolean).join(', ')}
+                                      {[shortDay(row.occurred_at, locale), row.posted_at ? '' : t('pending'), row.is_recurring ? t('recurring') : '', row.verdict ? t(row.verdict === 'worth_it' ? 'worth it' : 'not me') : ''].filter(Boolean).join(', ')}
                                     </span>
                                   </span>
                                   <span className="mv-item-end mv-amount">{Number(row.amount) > 0 ? '+' : ''}{euro(row.amount)}</span>
@@ -1075,7 +1090,7 @@ export default function MoneyV2Page({ view = 'today' }: { view?: MoneyView } = {
                   <span className="mv-icon" aria-hidden="true"><Smartphone size={16} /></span>
                   <span className="mv-item-text">
                     <span className="mv-item-title">{t('Your phone')}</span>
-                    <span className="mv-item-sub">{t('Each bank alert lands here in seconds, through a key.')}</span>
+                    <span className="mv-item-sub">{t('Every payment reaches the ledger the moment the bank announces it.')}</span>
                   </span>
                   <span className="mv-item-end">
                     {key ? null : <button type="button" className="mv-pill mv-pill--ghost" onClick={makeKey} disabled={busy === 'key'}>{t('Make a key')}</button>}
@@ -1084,19 +1099,59 @@ export default function MoneyV2Page({ view = 'today' }: { view?: MoneyView } = {
                 {key ? (
                   <div className="mv-body mv-body--icon">
                     <code className="mv-code">{key}</code>
-                    <p className="mv-quiet">{t('Shown once. Copy it into the macro.')}</p>
+                    <p className="mv-quiet">{t('Shown once. The iPhone shortcut asks for it; the Android app makes its own.')}</p>
                   </div>
                 ) : null}
                 <ul className="mv-sublist">
+                  {/* Android reads the bank's own notifications, which is one switch and then
+                      nothing to think about. iPhone cannot: no app may read another app's
+                      notifications, so it is a Shortcut on Apple Pay. The two are not equal and
+                      the page says so rather than implying they are. */}
                   <li>
-                    <button type="button" className="mv-item mv-item--sub" aria-expanded={showSteps} onClick={() => setShowSteps((s) => !s)}>
-                      <span className="mv-item-text"><span className="mv-item-title">{t('How to set it up')}</span></span>
+                    <button type="button" className="mv-item mv-item--sub" aria-expanded={openHow === 'android'} onClick={() => setOpenHow((o) => (o === 'android' ? null : 'android'))}>
+                      <span className="mv-item-text">
+                        <span className="mv-item-title">{t('Android: the TwinMe app')}</span>
+                        <span className="mv-item-sub">{t('It reads your bank app and sends each payment on.')}</span>
+                      </span>
                       <span className="mv-item-end"><Chevron /></span>
                     </button>
-                    {showSteps ? (
+                    {openHow === 'android' ? (
                       <ol className="mv-steps">
-                        <li>{t('Install MacroDroid, or Tasker if you already use it.')}</li>
-                        <li>{t('New macro. Trigger: notification received, from the Santander app. Allow notification access.')}</li>
+                        <li>
+                          {APK_URL
+                            ? <a className="mv-link" href={APK_URL}>{t('Download the app')}</a>
+                            : t('The app is not out yet; ask for it and it comes by email.')}
+                        </li>
+                        <li>{t('Open it and sign in with this email.')}</li>
+                        <li>{t('Allow notification access when it asks. Android shows a long list; TwinMe is in it.')}</li>
+                        <li>{t('Nothing else. Each bank alert is read and sent, and it keeps any it could not send.')}</li>
+                      </ol>
+                    ) : null}
+                  </li>
+                  <li>
+                    <button type="button" className="mv-item mv-item--sub" aria-expanded={openHow === 'iphone'} onClick={() => setOpenHow((o) => (o === 'iphone' ? null : 'iphone'))}>
+                      <span className="mv-item-text">
+                        <span className="mv-item-title">{t('iPhone: a Shortcut')}</span>
+                        <span className="mv-item-sub">{t('Apple Pay only. No app on iPhone may read notifications.')}</span>
+                      </span>
+                      <span className="mv-item-end"><Chevron /></span>
+                    </button>
+                    {openHow === 'iphone' ? (
+                      <ol className="mv-steps">
+                        <li>{t('Make a key above and copy it.')}</li>
+                        <li><a className="mv-link" href="/downloads/TwinMe-payments.shortcut">{t('Add the shortcut')}</a>{t(', and paste the key when it asks.')}</li>
+                        <li>{t('Open Shortcuts, then Automation, then new. Choose Transaction, pick your card, and set it to run immediately.')}</li>
+                        <li>{t('Choose the TwinMe payments shortcut. The first time it runs, tap Allow.')}</li>
+                      </ol>
+                    ) : null}
+                  </li>
+                  <li>
+                    <button type="button" className="mv-item mv-item--sub" aria-expanded={openHow === 'other'} onClick={() => setOpenHow((o) => (o === 'other' ? null : 'other'))}>
+                      <span className="mv-item-text"><span className="mv-item-title">{t('Any other tool')}</span></span>
+                      <span className="mv-item-end"><Chevron /></span>
+                    </button>
+                    {openHow === 'other' ? (
+                      <ol className="mv-steps">
                         <li>
                           {/* The sentence is one line in the dictionary; its three holes are code, so the
                               translated line is split on them and each hole rendered as <code>. */}

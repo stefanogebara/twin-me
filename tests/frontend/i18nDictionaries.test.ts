@@ -12,6 +12,7 @@ import { ES } from '../../src/lib/i18n/es';
 import { PT_BR } from '../../src/lib/i18n/pt-BR';
 import { ES_MONEY } from '../../src/lib/i18n/es.money';
 import { PT_BR_MONEY } from '../../src/lib/i18n/pt-BR.money';
+import { langFrom } from '../../src/lib/i18n';
 
 const all: [string, Record<string, string>][] = [['es', ES], ['pt-BR', PT_BR], ['es.money', ES_MONEY], ['pt-BR.money', PT_BR_MONEY]];
 const C1 = /[\u0080-\u009f]/;
@@ -30,5 +31,21 @@ describe('the dictionaries', () => {
     expect(ES_MONEY['Looking up\u2026']).toBe('Buscando\u2026');
     expect(PT_BR_MONEY['Money, the month']).toBe('Dinheiro, o m\u00eas');
     expect(ES['Reading your month.']).toBe('Leyendo tu mes.');
+  });
+});
+
+/* 2026-09-16: on a Portuguese account the first frame of a page load said "One moment." in
+   English, because the language lives on the account and the account has not loaded yet. */
+describe('which language a frame speaks', () => {
+  it('takes the account when it has one', () => {
+    expect(langFrom({ preferred_language: 'pt-BR' }, 'es')).toBe('pt-BR');
+  });
+  it('takes what this browser remembers while the account is still loading', () => {
+    expect(langFrom(null, 'pt-BR')).toBe('pt-BR');
+    expect(langFrom({ preferred_language: null }, 'es')).toBe('es');
+  });
+  it('falls back to English when nothing is known, and ignores a language it does not speak', () => {
+    expect(langFrom(null, null)).toBe('en');
+    expect(langFrom({ preferred_language: 'fr' }, null)).toBe('en');
   });
 });

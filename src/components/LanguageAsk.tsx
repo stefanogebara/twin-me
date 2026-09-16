@@ -9,9 +9,11 @@
 import { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { LANGUAGES, saveLanguage, type LanguageCode } from '@/lib/language';
+import { useT } from '@/lib/i18n';
 import '@/styles/money-v2.css';
 
 export default function LanguageAsk({ onDone }: { onDone?: () => void } = {}) {
+  const t = useT();
   const { user } = useAuth();
   const [picked, setPicked] = useState<LanguageCode>('en');
   const [busy, setBusy] = useState(false);
@@ -31,8 +33,8 @@ export default function LanguageAsk({ onDone }: { onDone?: () => void } = {}) {
     <div className="mv la" role="dialog" aria-modal="true" aria-labelledby="la-title">
       <div className="la-col">
         <h1 id="la-title">Which language should TwinMe speak?</h1>
-        <p className="mv-sub">You can change it later under Settings.</p>
-        <ul className="mv-list" role="radiogroup" aria-label="Language">
+        <p className="mv-sub">{t('You can change it later under Settings.')}</p>
+        <ul className="mv-list" role="radiogroup" aria-label={t('Language')}>
           {LANGUAGES.map((l) => (
             <li key={l.code}>
               <button type="button" role="radio" aria-checked={picked === l.code} className={`mv-item la-choice${picked === l.code ? ' is-picked' : ''}`} onClick={() => setPicked(l.code)}>

@@ -336,8 +336,19 @@ function StepFrame({ children, onNext, nextLabel = 'Continue' }: { children: Rea
 export default function App() {
   /* Two weights, because 500 is the ceiling: a font nobody can reach for is a rule
      that cannot be broken by accident, and it is one less file to fetch at launch. */
-  const [fontsLoaded] = useFonts({ Inter_400Regular, Inter_500Medium });
-  if (!fontsLoaded) {
+  /* A font that never arrives must not cost the person the app. On 2026-09-16 a release
+     build sat on this blank canvas for good: the hook had neither loaded nor failed, and
+     the ledger was unreachable behind it. The system face is a worse typeface and a far
+     better product than a white screen, so the app opens either way, and only a font that
+     is still on its way (neither loaded nor failed) holds the first frame. */
+  const [fontsLoaded, fontError] = useFonts({ Inter_400Regular, Inter_500Medium });
+  const [fontsLate, setFontsLate] = useState(false);
+  useEffect(() => {
+    if (fontsLoaded || fontError) return undefined;
+    const t = setTimeout(() => setFontsLate(true), 2500);
+    return () => clearTimeout(t);
+  }, [fontsLoaded, fontError]);
+  if (!fontsLoaded && !fontError && !fontsLate) {
     return <View style={styles.fill} />;
   }
   return (

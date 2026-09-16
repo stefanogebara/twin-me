@@ -2,7 +2,7 @@
  * captureParser: a Santander España or Bizum push notification becomes a sighting.
  */
 import { describe, it, expect } from 'vitest';
-import { parseCapture, parseEuroAmount, merchantKey } from '../../../../api/services/money/captureParser.js';
+import { parseCapture, parseEuroAmount, merchantKey, captureFromBody } from '../../../../api/services/money/captureParser.js';
 
 describe('parseEuroAmount reads Spanish and machine formats', () => {
   it.each([
@@ -109,5 +109,30 @@ describe('parseCapture reads an Android notification', () => {
 
   it('reads an amount even where no merchant is named, rather than dropping the payment', () => {
     expect(parseCapture('Retirada de efectivo de 50,00 EUR en cajero')).toMatchObject({ amount: 50, channel: 'cash' });
+  });
+});
+
+/* 2026-09-16: the iPhone path is a Wallet automation that sends the transaction's merchant,
+   amount and card; the Android path sends the notification text. */
+describe('captureFromBody', () => {
+  it('reads a Wallet automation by its fields, amount in either decimal style, card by its last four', () => {
+    const a = captureFromBody({ merchant: 'Mercadona', amount: '12,50 \u20ac', card: 'Santander Visa \u2022\u20221234', date: '2026-09-16T10:02:00+02:00', text: 'Mercadona' });
+    expect(a.parsed).toMatchObject({ amount: 12.5, merchant_key: 'mercadona', card_last4: '1234', direction: 'out' });
+    expect(a.refSeed).toContain('2026-09-16T10:02');
+    expect(captureFromBody({ merchant: 'Cafe', amount: '\u20ac3.20' }).parsed.amount).toBe(3.2);
+  });
+  it('falls back to the text when the fields came through empty', () => {
+    const a = captureFromBody({ merchant: '', amount: '', text: 'Pago de 3,20 \u20ac con Apple Pay en METRO MADRID' });
+    expect(a.parsed).toMatchObject({ amount: 3.2 });
+    expect(a.refSeed).toBe('Pago de 3,20 \u20ac con Apple Pay en METRO MADRID');
+  });
+  it('reads the Android listener by its text, as before', () => {
+    const a = captureFromBody({ text: 'Compra realizada con tu tarjeta terminada en 1234 por 12,50\u20ac en MERCADONA el 07/09/2026' });
+    expect(a.parsed).toMatchObject({ amount: 12.5, card_last4: '1234' });
+  });
+  it('says what is wrong otherwise', () => {
+    expect(captureFromBody({})).toMatchObject({ status: 400 });
+    expect(captureFromBody({ text: 'Tu tarjeta ha sido activada' })).toMatchObject({ status: 422 });
+    expect(captureFromBody({ text: 'x'.repeat(2001) })).toMatchObject({ status: 400 });
   });
 });
