@@ -24,7 +24,7 @@ type Mark = {
 };
 type Pick = { kind: Kind } | { mark: Mark } | null;
 
-const TILT = 0.36;
+const TILT = 0.42;
 const DUR = 1900;
 const ease = (x: number) => 1 - Math.pow(1 - Math.min(1, Math.max(0, x)), 3);
 const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
@@ -129,8 +129,8 @@ export default function MonthOrbits({ groups, rows, recurring, today, daysInMont
         for (let i = 0; i < n; i += 1) {
           const [x, y, z] = at(ring.R, (i / n) * Math.PI * 2);
           items.push({ z, paint: () => {
-            ctx.fillStyle = rgba(lerp(pal.ink, pal.page, 0.6 + 0.22 * ((1 - z) / 2)), fade * dim);
-            ctx.beginPath(); ctx.arc(x, y, 0.95, 0, Math.PI * 2); ctx.fill();
+            ctx.fillStyle = rgba(lerp(pal.ink, pal.page, 0.82 + 0.1 * ((1 - z) / 2)), fade * dim);
+            ctx.beginPath(); ctx.arc(x, y, 0.8, 0, Math.PI * 2); ctx.fill();
           } });
         }
       }
@@ -145,7 +145,12 @@ export default function MonthOrbits({ groups, rows, recurring, today, daysInMont
         items.push({ z: z + 0.001, paint: () => {
           ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2);
           if (m.ahead) { ctx.strokeStyle = rgba(lerp(col, pal.page, depth * 0.4), dim); ctx.lineWidth = 1.2; ctx.stroke(); }
-          else { ctx.fillStyle = rgba(lerp(col, pal.page, depth * 0.45), dim); ctx.fill(); }
+          else {
+            ctx.fillStyle = rgba(lerp(col, pal.page, depth * 0.3), dim); ctx.fill();
+            /* A hairline of the page around each mark: two payments an hour apart used to
+               melt into one blob (2026-09-16). */
+            ctx.strokeStyle = rgba(pal.page, dim); ctx.lineWidth = 1; ctx.stroke();
+          }
           const on = hover === m || (chosen && 'mark' in chosen && chosen.mark === m);
           if (on) { ctx.strokeStyle = rgba(pal.ink, 1); ctx.lineWidth = 1.5; ctx.beginPath(); ctx.arc(x, y, r + 3.5, 0, Math.PI * 2); ctx.stroke(); }
         } });

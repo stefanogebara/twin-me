@@ -55,10 +55,13 @@ export default function DayGlobe({ left, spent, over = false, size = 240, label,
       for (const d of [...f.dots].sort((a, b) => a.z - b.z)) {
         const sx = cx + (d.x - cx) * (1 + puff), sy = cy + (d.y - cy) * (1 + puff); const r = Math.max(0.9, d.r);
         ctx.beginPath();
-        if (d.y >= water) { ctx.fillStyle = rgba(lerp(fill, pal.page, d.white * 0.6), 0.95); ctx.arc(sx, sy, r, 0, Math.PI * 2); ctx.fill(); }
-        else { ctx.strokeStyle = rgba(lerp(pal.ink, pal.page, d.white), 0.7); ctx.lineWidth = 0.9; ctx.arc(sx, sy, r, 0, Math.PI * 2); ctx.stroke(); }
+        /* Both halves are filled discs. Drawn as hollow rings, the unspent half read as
+           scratches rather than as a globe (2026-09-16); ink at a third of its strength says
+           the same thing and holds together at any size. */
+        if (d.y >= water) { ctx.fillStyle = rgba(lerp(fill, pal.page, d.white * 0.45), 1); ctx.arc(sx, sy, r, 0, Math.PI * 2); ctx.fill(); }
+        else { ctx.fillStyle = rgba(lerp(pal.ink, pal.page, 0.55 + d.white * 0.3), 1); ctx.arc(sx, sy, r * 0.85, 0, Math.PI * 2); ctx.fill(); }
       }
-      ctx.fillStyle = rgba(pal.page, 0.8); ctx.beginPath(); ctx.ellipse(cx, cy + 4, size * 0.21, size * 0.095, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = rgba(pal.page, 1); ctx.beginPath(); ctx.ellipse(cx, cy + 6, size * 0.235, size * 0.125, 0, 0, Math.PI * 2); ctx.fill();
       ctx.fillStyle = rgba(over ? pal.danger : pal.ink, 1); ctx.font = `300 ${Math.round(size * 0.11)}px Geist, sans-serif`; ctx.textAlign = 'center';
       ctx.fillText(over ? euro(Math.abs(left)) : euro(Math.max(0, left)), cx, cy + size * 0.03);
       ctx.fillStyle = rgba(pal.quiet, 1); ctx.font = `350 ${Math.round(size * 0.045)}px Geist, sans-serif`;
