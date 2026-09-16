@@ -293,3 +293,24 @@ describe('the base the budget rests on', () => {
     expect(a).toMatchObject({ basis: 'income', base: 1750, keep: 200, budget: 1550 });
   });
 });
+
+describe('which account today is read from', () => {
+  const at = '2026-09-09T10:00:00Z';
+  const acc = (id, balance, over = {}) => ({ id, balance, balance_at: at, balance_type: 'CLBD', bank_name: 'Santander', ...over });
+
+  it('counts every account until the person says which ones they spend from', () => {
+    const accounts = [acc('a1', 400), acc('a2', 2000, { bank_name: 'Revolut' })];
+    expect(freshBalance(accounts, NOW).amount).toBe(2400);
+    /* Once one is ruled out, a savings balance stops being money for today. */
+    const said = [{ kind: 'spend_account', subject: 'a1', value: 'yes' }, { kind: 'spend_account', subject: 'a2', value: 'no' }];
+    expect(freshBalance(accounts, NOW, said).amount).toBe(400);
+    /* An account nobody has been asked about yet still counts. */
+    const partly = [{ kind: 'spend_account', subject: 'a2', value: 'no' }];
+    expect(freshBalance(accounts, NOW, partly).amount).toBe(400);
+  });
+
+  it('says nothing when every account is ruled out', () => {
+    const accounts = [acc('a1', 400)];
+    expect(freshBalance(accounts, NOW, [{ kind: 'spend_account', subject: 'a1', value: 'no' }])).toBeNull();
+  });
+});

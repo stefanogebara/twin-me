@@ -91,9 +91,15 @@ export const BALANCE_FRESH_MS = 48 * 3600 * 1000;
  * What the bank says is in the account, when it said so recently enough to act on.
  * Returns { amount, banks, at } summed over the accounts that qualify, or null.
  */
-export function freshBalance(accounts = [], now = new Date()) {
+export function freshBalance(accounts = [], now = new Date(), facts = []) {
+  /* A savings account is money, but it is not today's money. Once a person has said which
+     accounts they spend from, only those count; before they have said, all of them do. */
+  const said = (facts || []).filter((f) => f && f.kind === 'spend_account');
+  const spends = new Set(said.filter((f) => String(f.value || '').toLowerCase() === 'yes').map((f) => String(f.subject)));
+  const kept = new Set(said.map((f) => String(f.subject)));
   const fresh = (accounts || []).filter((a) => a && a.balance !== null && a.balance !== undefined && a.balance_at
     && !String(a.balance_type || '').includes('/credit')
+    && (!kept.has(String(a.id)) || spends.has(String(a.id)))
     && now.getTime() - new Date(a.balance_at).getTime() < BALANCE_FRESH_MS);
   if (!fresh.length) return null;
   const amount = r2(fresh.reduce((sum, a) => sum + (Number(a.balance) || 0), 0));
@@ -155,7 +161,7 @@ export function safeToSpend({ cast = null, segments = [], facts = [], accounts =
 
   const income = statedIncome(facts);
   const keep = keepAmount(facts);
-  const balance = freshBalance(accounts, now);
+  const balance = freshBalance(accounts, now, facts);
   const todays = eventsToday(cast.calendar_items || [], now);
   const todaysCost = r2(todays.reduce((s, e) => s + e.amount, 0));
   const spent = Number(cast.spent) || 0;

@@ -25,7 +25,7 @@ import { tellTwin, tellTwinFacts, tellTwinPatterns, tellTwinTurn } from './twinB
 import { lookupPlace, providerFor, categoryFromBrand, PROVIDER_NONE } from './places.js';
 import { readUsage, unmeasurable, platformForMerchant } from './usage.js';
 import { learnMerchants, predictNext, learnPatterns, describeForTwin, TWIN_PREDICTION_CONFIDENCE } from './brain.js';
-import { openingQuestions, ledgerQuestions, checkCommitment, describeContext, FACT_KINDS } from './context.js';
+import { openingQuestions, followUpQuestions, ledgerQuestions, checkCommitment, describeContext, FACT_KINDS } from './context.js';
 import { calendarForecast, calendarFromFacts } from './calendar.js';
 import { dayIn, dayOfMonthIn } from './zone.js';
 
@@ -1149,18 +1149,25 @@ export async function listFacts(userId, { includeInternal = false } = {}) {
  * skipped is not asked again — a person who declined once declined for a reason.
  */
 export async function questionsFor(userId, now = new Date()) {
-  const [facts, transactions, asked] = await Promise.all([
+  const [facts, transactions, asked, accounts] = await Promise.all([
     listFacts(userId),
     listTransactions(userId, { limit: 5000 }),
     supabaseAdmin.from('money_questions_asked').select('question_id, skipped').eq('user_id', userId).then((r) => r.data || []),
+    listBankAccounts(userId).catch(() => []),
   ]);
   const declined = new Set(asked.filter((a) => a.skipped).map((a) => a.question_id));
   const keys = [...new Set(transactions.map((t) => t.merchant_key))];
   const categories = await categoriesFor(userId, keys);
   const placeOf = (t) => categories.get(t.merchant_key) || null;
 
+  /* What they already said, followed up where a number on the screen is wrong without the
+     answer: an income with no day, an account nobody has said whether they spend from. */
+  const oldest = transactions.length ? transactions.map((t) => t.occurred_at).sort()[0] : null;
+  const daysOfLedger = oldest ? Math.floor((now.getTime() - new Date(oldest).getTime()) / 86400000) : 0;
+  const standingCharge = transactions.some((t) => Math.abs(Number(t.amount) || 0) >= 200 && Number(t.amount) < 0);
+  const follow = followUpQuestions({ facts, accounts, daysOfLedger, standingCharge }).filter((q) => !declined.has(q.id));
   return {
-    opening: openingQuestions(facts).filter((q) => !declined.has(q.id)),
+    opening: openingQuestions(facts).filter((q) => !declined.has(q.id)).concat(follow),
     fromLedger: ledgerQuestions({ transactions, facts, placeOf, now }).filter((q) => !declined.has(q.id)),
     answered: facts.length,
   };
@@ -1183,6 +1190,20 @@ export async function answerQuestion(userId, { questionId, kind, subject, subjec
     const n = Number(String(value).replace(/[^0-9.,]/g, '').replace(/\.(?=\d{3}\b)/g, '').replace(',', '.'));
     if (!Number.isFinite(n) || n <= 0) return skipQuestion(userId, questionId);
     amount = Math.round(n * 100) / 100; value = null; subject = subject || '';
+  }
+  /* A day given for an income already known: the row is keyed on (kind, subject), so an
+     answer carrying only a day would upsert the amount away. The amount and the words stay
+     and the day joins them (2026-09-16). */
+  if (kind === 'income' && String(questionId || '').startsWith('income_day:')) {
+    const typed = Number(String(value ?? '').replace(/[^0-9]/g, ''));
+    if (!Number.isFinite(typed) || typed < 1 || typed > 31) return skipQuestion(userId, questionId);
+    const { data: said } = await supabaseAdmin.from('money_facts')
+      .select('*').eq('user_id', userId).eq('kind', 'income').eq('subject', subject || '').maybeSingle();
+    if (!said) return skipQuestion(userId, questionId);
+    day = typed;
+    amount = said.amount;
+    value = said.value;
+    subjectLabel = subjectLabel || said.subject_label;
   }
   if (kind === 'commitment' && String(questionId || '').startsWith('rent:')) {
     if (String(value || '').toLowerCase() === 'not fixed') return skipQuestion(userId, questionId);
