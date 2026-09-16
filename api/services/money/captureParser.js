@@ -172,7 +172,14 @@ export function captureFromBody(body = {}) {
   const hasText = typeof text === 'string' && text.trim().length >= 4;
   const hasAmount = amount !== undefined && amount !== null && String(amount).trim() !== '';
   if (hasText && text.length > 2000) return { status: 400, error: 'text must be under 2000 chars' };
-  if (!hasText && !hasAmount) return { status: 400, error: 'Send text (the notification) or { merchant, amount, card, date }' };
+  if (!hasText && !hasAmount) {
+    /* An iPhone shortcut run by hand, before any card has been tapped: every field it sends
+       is empty. That is the person checking their setup, not a fault, so it gets an answer
+       that says the key works rather than a complaint about what it failed to send
+       (Stefano relaying a tester, 2026-09-16). */
+    if (String(body.source || '') === 'shortcut') return { ready: true };
+    return { status: 400, error: 'Send text (the notification) or { merchant, amount, card, date }' };
+  }
   if (hasAmount) {
     const parsed = parseStructured({ merchant, amount, card, date, direction });
     if (parsed) return { parsed, refPrefix: 'phone', refSeed: `${merchant}|${amount}|${card}|${date}` };
