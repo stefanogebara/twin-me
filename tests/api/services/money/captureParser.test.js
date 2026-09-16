@@ -136,3 +136,18 @@ describe('captureFromBody', () => {
     expect(captureFromBody({ text: 'x'.repeat(2001) })).toMatchObject({ status: 400 });
   });
 });
+
+/* A tester ran the iPhone shortcut by hand to check it, before tapping any card, and got a
+   complaint about what it had not sent. An empty run from the shortcut is a setup check. */
+describe('a shortcut run by hand, with nothing to send', () => {
+  it('is a setup check, not an error', () => {
+    expect(captureFromBody({ source: 'shortcut', merchant: '', amount: '', card: '', text: '' })).toEqual({ ready: true });
+  });
+  it('still complains when the sender is not the shortcut', () => {
+    expect(captureFromBody({ merchant: '', amount: '' })).toMatchObject({ status: 400 });
+    expect(captureFromBody({})).toMatchObject({ status: 400 });
+  });
+  it('reads a real payment from the shortcut as before', () => {
+    expect(captureFromBody({ source: 'shortcut', merchant: 'Mercadona', amount: '12,50 €' }).parsed).toMatchObject({ amount: 12.5 });
+  });
+});

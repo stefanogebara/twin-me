@@ -89,6 +89,8 @@ router.post('/capture', authenticateUserOrKey, async (req, res) => {
      merchant and amount it was handed (captureFromBody says which wins and why). */
   const read = captureFromBody(req.body);
   if (read.error) return res.status(read.status).json({ success: false, error: read.error });
+  /* The setup check: the shortcut, run by hand, with nothing to send yet. */
+  if (read.ready) return res.json({ success: true, data: { outcome: 'ready', message: 'The key works. Tap a card with your phone and the payment arrives here.' } });
   const { parsed } = read;
   const ref = `${read.refPrefix}:${crypto.createHash('sha256').update(read.refSeed).digest('hex').slice(0, 32)}`;
   try {
