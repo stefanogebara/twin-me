@@ -39,6 +39,7 @@
  */
 
 import { detectSplits, splitQuestions } from './bizum.js';
+import { dayOfMonthIn, monthIn } from './zone.js';
 
 const DAY = 86400000;
 /** Below this a monthly charge is a subscription, not a roof. */
@@ -328,9 +329,9 @@ export function ledgerQuestions({ transactions = [], facts = [], placeOf = () =>
     if (committed.has(key) || known.has(key)) continue;
     const big = list.filter((t) => abs(t) >= RENT_FLOOR);
     if (big.length < 2) continue;
-    const months = new Set(big.map((t) => t.occurred_at.slice(0, 7)));
+    const months = new Set(big.map((t) => monthIn(t.occurred_at)));
     if (months.size < 2) continue;
-    const days = big.map((t) => new Date(t.occurred_at).getUTCDate()).sort((a, b) => a - b);
+    const days = big.map((t) => dayOfMonthIn(t.occurred_at)).sort((a, b) => a - b);
     const day = days[Math.floor(days.length / 2)];
     if (!days.every((d) => Math.abs(d - day) <= 3)) continue;
     const amounts = big.map(abs).sort((a, b) => a - b);
@@ -375,7 +376,7 @@ export function checkCommitment(fact, transactions = [], now = new Date()) {
       note: `Nothing near ${euro(amount)} has left the account in three months. It may be paid from somewhere else.`,
     };
   }
-  const onDay = fact.day ? near.filter((t) => Math.abs(new Date(t.occurred_at).getUTCDate() - Number(fact.day)) <= 3) : near;
+  const onDay = fact.day ? near.filter((t) => Math.abs(dayOfMonthIn(t.occurred_at) - Number(fact.day)) <= 3) : near;
   if (fact.day && !onDay.length) {
     return {
       fact, status: 'different', seen: near.slice(0, 3),

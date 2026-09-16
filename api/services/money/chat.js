@@ -39,6 +39,7 @@ import { CATEGORIES } from './places.js';
 import { markCounted, personRoles } from './spending.js';
 import { calendarLines } from './calendar.js';
 import { safeToSpend, allowanceLine } from './allowance.js';
+import { partsIn, weekdayIn } from './zone.js';
 
 const log = createLogger('money-chat');
 
@@ -89,7 +90,8 @@ const at = (t) => new Date(t.occurred_at).getTime();
 const amountText = (n) => `${DECIMAL.format(Math.abs(Number(n) || 0))} EUR`;
 const dayMonth = (iso, language = null) => {
   const d = new Date(iso);
-  return Number.isNaN(d.getTime()) ? '' : `${d.getUTCDate()} ${monthNames(language)[d.getUTCMonth()]}`;
+  const p = partsIn(d);
+  return p ? `${p.day} ${monthNames(language)[p.month - 1]}` : '';
 };
 const monthLabel = (iso, language = null) => {
   const d = new Date(iso);
@@ -248,7 +250,7 @@ export function buildFigure(request, ctx) {
     for (const t of spend) {
       const d = new Date(t.occurred_at);
       if (Number.isNaN(d.getTime())) continue;
-      totals[(d.getUTCDay() + 6) % 7] += abs(t);
+      totals[(weekdayIn(t.occurred_at) + 6) % 7] += abs(t);
     }
     const points = weekdayNames(ctx.language).map((label, i) => ({ label, value: round2(totals[i]) }));
     return { figure: { kind, title: say(ctx.language, 'Spent by day of the week'), points }, rows: [...spend].sort((a, b) => abs(b) - abs(a)) };
@@ -365,7 +367,7 @@ export function receiptsFor(built, ctx, citedIds = []) {
 export function contextText(ctx) {
   const lines = [];
   const today = ctx.now;
-  lines.push(`Today is ${dayMonth(today.toISOString())} ${today.getUTCFullYear()}. Amounts are in EUR.`);
+  lines.push(`Today is ${dayMonth(today.toISOString())} ${partsIn(today).year}. Amounts are in EUR.`);
   const LANGUAGE_NAMES = { en: 'English', es: 'Spanish', 'pt-BR': 'Brazilian Portuguese' };
   if (ctx.language && LANGUAGE_NAMES[ctx.language]) lines.push(`The person chose ${LANGUAGE_NAMES[ctx.language]} for TwinMe.`);
   /* Last line, and plainly: a ledger full of Spanish shops and Spanish names talked the model
@@ -515,6 +517,26 @@ function plainProse(raw) {
    English is the source; a language with no line falls back to it. ASCII, \u for accents. */
 const PHRASES = {
   es: {
+    'Nothing arrived in that file.': 'No lleg\u00f3 nada en ese archivo.',
+    'That file is over 4 MB. A photo of it would come through.': 'Ese archivo pasa de 4 MB. Una foto s\u00ed entrar\u00eda.',
+    'It reads photos, PDFs, plain text and bank exports as Excel or CSV.': 'Lee fotos, PDF, texto plano y extractos del banco en Excel o CSV.',
+    'Read {n} payment from {name}': 'Le\u00eddo {n} pago de {name}',
+    'Read {n} payments from {name}': 'Le\u00eddos {n} pagos de {name}',
+    '{n} was new to the ledger': '{n} era nuevo en el libro',
+    '{n} were new to the ledger': '{n} eran nuevos en el libro',
+    '{name} has a statement header but no row in it read as a payment.': '{name} tiene cabecera de extracto pero ninguna fila se ley\u00f3 como un pago.',
+    '{name} is a scan with no text layer. A photo of the page reads.': '{name} es un escaneo sin capa de texto. Una foto de la p\u00e1gina s\u00ed se lee.',
+    '{name} could not be read.': 'No se pudo leer {name}.',
+    'Read {name}. Nothing in it about your money to keep.': 'Le\u00eddo {name}. No hay nada sobre tu dinero que guardar.',
+    'Read {name}: {summary} It holds thirty of your notes already, so this one is not kept; forget one on You and send it again.': 'Le\u00eddo {name}: {summary} Ya guarda treinta notas tuyas, as\u00ed que esta no se guarda; olvida una en T\u00fa y vuelve a enviarla.',
+    'Kept from {name}: {summary}': 'Guardado de {name}: {summary}',
+    '{merchant}, {amount} on {day}, kept as a payment.': '{merchant}, {amount} el {day}, guardado como un pago.',
+    '{n} item on it.': '{n} art\u00edculo en \u00e9l.',
+    '{n} items on it.': '{n} art\u00edculos en \u00e9l.',
+    'It was already in the ledger.': 'Ya estaba en el libro.',
+    'Your note stays with it.': 'Tu nota se queda con \u00e9l.',
+    'That receipt': 'Ese recibo',
+    'today': 'hoy',
     'Spent per month': 'Gastado por mes',
     'Where {month} went, by place': 'A d\u00f3nde fue {month}, por sitio',
     'Where {month} went': 'A d\u00f3nde fue {month}',
@@ -542,6 +564,26 @@ const PHRASES = {
     'There is nothing in the ledger yet. Connect a bank or add a statement and ask again.': 'Todav\u00eda no hay nada en el libro. Conecta un banco o a\u00f1ade un extracto y pregunta otra vez.',
   },
   'pt-BR': {
+    'Nothing arrived in that file.': 'N\u00e3o chegou nada nesse arquivo.',
+    'That file is over 4 MB. A photo of it would come through.': 'Esse arquivo passa de 4 MB. Uma foto dele passaria.',
+    'It reads photos, PDFs, plain text and bank exports as Excel or CSV.': 'Ele l\u00ea fotos, PDFs, texto simples e extratos do banco em Excel ou CSV.',
+    'Read {n} payment from {name}': 'Lido {n} pagamento de {name}',
+    'Read {n} payments from {name}': 'Lidos {n} pagamentos de {name}',
+    '{n} was new to the ledger': '{n} era novo no livro',
+    '{n} were new to the ledger': '{n} eram novos no livro',
+    '{name} has a statement header but no row in it read as a payment.': '{name} tem cabe\u00e7alho de extrato, mas nenhuma linha foi lida como pagamento.',
+    '{name} is a scan with no text layer. A photo of the page reads.': '{name} \u00e9 um escaneamento sem camada de texto. Uma foto da p\u00e1gina \u00e9 lida.',
+    '{name} could not be read.': 'N\u00e3o foi poss\u00edvel ler {name}.',
+    'Read {name}. Nothing in it about your money to keep.': 'Lido {name}. N\u00e3o h\u00e1 nada sobre o seu dinheiro para guardar.',
+    'Read {name}: {summary} It holds thirty of your notes already, so this one is not kept; forget one on You and send it again.': 'Lido {name}: {summary} Ele j\u00e1 guarda trinta notas suas, ent\u00e3o esta n\u00e3o foi guardada; esque\u00e7a uma em Voc\u00ea e envie de novo.',
+    'Kept from {name}: {summary}': 'Guardado de {name}: {summary}',
+    '{merchant}, {amount} on {day}, kept as a payment.': '{merchant}, {amount} em {day}, guardado como pagamento.',
+    '{n} item on it.': '{n} item nele.',
+    '{n} items on it.': '{n} itens nele.',
+    'It was already in the ledger.': 'J\u00e1 estava no livro.',
+    'Your note stays with it.': 'Sua nota fica com ele.',
+    'That receipt': 'Esse recibo',
+    'today': 'hoje',
     'Spent per month': 'Gasto por m\u00eas',
     'Where {month} went, by place': 'Para onde foi {month}, por lugar',
     'Where {month} went': 'Para onde foi {month}',

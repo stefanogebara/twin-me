@@ -75,6 +75,18 @@ beforeEach(() => {
   store.answerQuestion.mockResolvedValue({});
 });
 
+describe('the phrases the ledger says itself', () => {
+  it('has the same lines in both languages', () => {
+    /* A phrase added to one table and not the other is an English sentence in the middle of
+       an answer, and nothing else notices (2026-09-16). */
+    const sources = ['The ledger cannot answer that from what it has.', 'Spent per month', 'Not mine: {what}', 'Nothing arrived in that file.', 'Kept from {name}: {summary}'];
+    for (const source of sources) {
+      expect(say('es', source)).not.toBe(source);
+      expect(say('pt-BR', source)).not.toBe(source);
+    }
+  });
+});
+
 describe('buildFigure', () => {
   it('drops a kind that is not in the catalogue', () => {
     expect(buildFigure({ kind: 'pie' }, ctx())).toBe(null);

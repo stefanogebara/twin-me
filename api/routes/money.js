@@ -47,7 +47,7 @@ import { complete as llmComplete, TIER_EXTRACTION } from '../services/llmGateway
 import { accuracy } from '../services/money/predictions.js';
 import { createLogger } from '../services/logger.js';
 import { captureFromBody } from '../services/money/captureParser.js';
-import { ingestSighting, ingestSightings, listTransactions, sightingsFor, refreshRecurring, forecast, setVerdict, userForCaptureKey, saveBankAccounts, listBankAccounts, pullBankFeed, refreshReadings, listReadings, setReadingVerdict, months, feedBudget, categorySpend, listPlaces, setPlaceCategory, enrichPlaces, subscriptionUsage, questionsFor, answerQuestion, skipQuestion, listFacts, deleteFact, recordCallbackFailure, listChatTurns, saveChatTurn, learn } from '../services/money/store.js';
+import { ingestSighting, ingestSightings, listTransactions, sightingsFor, refreshRecurring, forecast, setVerdict, userForCaptureKey, saveBankAccounts, listBankAccounts, pullBankFeed, refreshReadings, listReadings, setReadingVerdict, months, feedBudget, categorySpend, listPlaces, setPlaceCategory, enrichPlaces, subscriptionUsage, questionsFor, answerQuestion, skipQuestion, listFacts, deleteFact, recordCallbackFailure, listChatTurns, saveChatTurn, learn, userLanguage } from '../services/money/store.js';
 import { parseDelimited, parseWorkbook, toSightings } from '../services/money/statements/importer.js';
 import { isConfigured, listBanks, startAuthorisation, createSession, getSession, applicationInfo } from '../services/money/feeds/enableBanking.js';
 import { answer as chatAnswer, answerStream as chatAnswerStream, act as chatAct } from '../services/money/chat.js';
@@ -627,7 +627,8 @@ router.post('/chat/attach', attachOne, async (req, res) => {
   const note = typeof req.body?.note === 'string' ? req.body.note.replace(/\s+/g, ' ').trim().slice(0, 500) : '';
   const name = String(req.file.originalname || 'file').replace(/[\r\n\t]/g, ' ').trim().slice(0, 120) || 'file';
   try {
-    const r = await readAttachment(req.user.id, { buffer: req.file.buffer, filename: name, mimeType: req.file.mimetype, note }, ATTACHMENT_DEPS);
+    const language = await userLanguage(req.user.id).catch(() => null);
+    const r = await readAttachment(req.user.id, { buffer: req.file.buffer, filename: name, mimeType: req.file.mimetype, note, language }, ATTACHMENT_DEPS);
     await saveChatTurn(req.user.id, { role: 'user', text: `Sent ${name}${note ? `. ${note}` : ''}` }).catch(() => null);
     await saveChatTurn(req.user.id, { role: 'twin', text: r.said, receipts: r.receipts || null }).catch(() => null);
     log.info('chat attachment read', { userId: req.user.id, kind: r.kind, bytes: req.file.size });

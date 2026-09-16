@@ -24,6 +24,7 @@
  */
 
 import { dailyTotals } from './projection.js';
+import { dayIn, weekdayIn } from './zone.js';
 
 /** The miscoverage a p10..p90 band is meant to have. */
 export const ALPHA = 0.2;
@@ -38,7 +39,7 @@ export const HISTORY_WEEKS = 12;
 
 const DAY = 86400000;
 const r2 = (n) => Math.round(Number(n) * 100) / 100;
-const dayOf = (d) => new Date(d).toISOString().slice(0, 10);
+const dayOf = (d) => dayIn(d);
 function quantile(sorted, q) {
   if (!sorted.length) return 0;
   const pos = (sorted.length - 1) * q; const lo = Math.floor(pos); const hi = Math.ceil(pos);
@@ -64,7 +65,7 @@ export function dayForecast(transactions, forDay, opts = {}) {
   /* Zero-filled days are not history. A fortnight of days that had a payment is the least. */
   const seen = new Set(rows.filter((t) => { const d = new Date(t.occurred_at); return d >= from && d <= new Date(to.getTime() + DAY - 1); }).map((t) => dayOf(t.occurred_at)));
   if (seen.size < 14) return null;
-  const same = history.filter((d) => d.weekday === target.getUTCDay()).map((d) => d.total);
+  const same = history.filter((d) => d.weekday === weekdayIn(target)).map((d) => d.total);
   const pool = (same.length >= 4 ? same : history.map((d) => d.total)).sort((a, b) => a - b);
   return {
     kind: 'day_total',

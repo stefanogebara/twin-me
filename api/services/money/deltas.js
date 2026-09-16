@@ -44,6 +44,7 @@ export const WEEKDAY_MIN_PREVIOUS = 4;
 export const MAX_DELTAS = 3;
 
 import { awayDaysBetween } from './covariates.js';
+import { dayIn, startOfDayIn, weekdayIn } from './zone.js';
 
 const DAY = 86400000;
 const EUR = new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR' });
@@ -57,7 +58,7 @@ const CATEGORY_WORDS = { 'eating out': 'Eating out', coffee: 'Coffee', groceries
 const categoryWord = (c) => CATEGORY_WORDS[c] || (c ? c.charAt(0).toUpperCase() + c.slice(1) : 'Other');
 const nameOf = (t) => t.merchant_name || t.merchant_raw || t.merchant_key || 'somewhere';
 function median(xs) { const s = [...xs].sort((a, b) => a - b); if (!s.length) return 0; const m = Math.floor(s.length / 2); return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2; }
-const dayOf = (ms) => new Date(ms).toISOString().slice(0, 10);
+const dayOf = (ms) => dayIn(ms);
 
 /** Outgoing rows that count as spending, recurring charges left out: the discretionary day. */
 function discretionary(transactions, isSpending) {
@@ -150,8 +151,10 @@ export function silenceDeltas(profiles, { now, away = [] } = {}) {
 export function weekdayDelta(transactions, { now, isSpending } = {}) {
   const rows = discretionary(transactions, isSpending);
   /* The most recent finished day, its weekday, and the same weekday in the previous six weeks. */
-  const yesterday = new Date(new Date(now.toISOString().slice(0, 10)).getTime() - DAY);
-  const wd = yesterday.getUTCDay();
+  const yesterday = new Date(startOfDayIn(dayIn(now)).getTime() - DAY);
+  /* The weekday where the person is: `yesterday` is their midnight, which in UTC is still
+     the evening before, so the UTC accessor named the day before that (2026-09-16). */
+  const wd = weekdayIn(yesterday);
   const key = dayOf(yesterday.getTime());
   const todayRows = rows.filter((t) => dayOf(at(t)) === key);
   const previous = [];

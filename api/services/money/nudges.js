@@ -25,6 +25,7 @@
  * Pure: the forecast, the allowance and the readings in; findings in the analyst's shape
  * out, so they pour into the same list as everything else the money says.
  */
+import { dayIn } from './zone.js';
 
 export const CHARGE_AHEAD = 'charge_ahead';
 export const NAMED_EXPENSE = 'named_expense';
@@ -45,7 +46,8 @@ const EUR = new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR' 
 /* The same form the analyst uses on the screen: Intl's own, sign and no-break space kept. */
 const euro = (n) => EUR.format(Math.abs(Number(n) || 0));
 const r2 = (n) => Math.round(Number(n) * 100) / 100;
-const dayOf = (d) => new Date(d).toISOString().slice(0, 10);
+/* The day a person is living, not the day in UTC: see zone.js. */
+const dayOf = (d) => dayIn(d);
 const WEEKDAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 function dayWord(iso, now) {
   const d = new Date(`${iso}T12:00:00Z`);

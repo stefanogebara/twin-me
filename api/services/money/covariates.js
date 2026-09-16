@@ -13,10 +13,11 @@
  *
  * Pure.
  */
+import { dayIn } from './zone.js';
 
 const DAY = 86400000;
 const ms = (iso) => new Date(iso).getTime();
-const dayOf = (t) => new Date(t).toISOString().slice(0, 10);
+const dayOf = (t) => dayIn(t);
 const norm = (s) => String(s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
 
 /** Titles that say the person is somewhere else. 'Holiday' alone is not here: Google's

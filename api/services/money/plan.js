@@ -18,9 +18,10 @@
  * Pure: the forecast, the rows and the facts in, cells out. The page phrases nothing but
  * the cells; the one sentence this offers (planLine) is computed.
  */
+import { dayIn, partsIn } from './zone.js';
 
 const r2 = (n) => Math.round(Number(n) * 100) / 100;
-const iso = (d) => d.toISOString().slice(0, 10);
+const iso = (d) => dayIn(d);
 const EUR = new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR' });
 const euro = (n) => EUR.format(Math.abs(Number(n) || 0)).replace(/\u20ac/g, 'EUR').replace(/[\u00a0\u202f]/g, ' ');
 
@@ -32,7 +33,8 @@ export const isDayNote = (fact) => Boolean(fact && fact.kind === 'note' && /^day
 function monthStart(month, now) {
   const m = /^(\d{4})-(\d{2})/.exec(String(month || ''));
   if (m) return new Date(Date.UTC(Number(m[1]), Number(m[2]) - 1, 1));
-  return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
+  const here = partsIn(now);
+  return new Date(Date.UTC(here.year, here.month - 1, 1));
 }
 
 /**
@@ -66,7 +68,10 @@ export function monthPlan({ forecast = null, transactions = [], facts = [], mont
       note: null,
     });
   }
-  const cellOf = (when) => cells.get(String(when || '').slice(0, 10)) || null;
+  /* The first ten characters of a timestamp are its UTC day, so a payment at half past
+     midnight landed on the square before (2026-09-16). A plain day string is unchanged:
+     read as midnight UTC it is still the same day where the person is. */
+  const cellOf = (when) => (when ? cells.get(iso(when)) || null : null);
 
   /* What the days cost: the ledger's own rows, spending only, money in kept aside. */
   for (const t of transactions || []) {

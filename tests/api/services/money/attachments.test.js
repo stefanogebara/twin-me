@@ -71,6 +71,16 @@ describe('readAttachment', () => {
     expect(d.extractText).not.toHaveBeenCalled();
   });
 
+  it('says it back in the language the person chose', async () => {
+    /* A chat turn is a transcript of a moment, so it keeps the language it was said in; the
+       page cannot say it later (2026-09-16). */
+    const d = deps({ parseStatement: vi.fn(() => ({ sightings: [{ source: 'statement', source_ref: 'r1', amount: 10 }, { source: 'statement', source_ref: 'r2', amount: 20 }], skipped: [], header: { index: 0 } })), ingestSightings: vi.fn(async () => ({ created: 1 })) });
+    const r = await readAttachment(USER, { buffer: Buffer.from('a;b'), filename: 'movimientos.xlsx', language: 'es' }, d);
+    expect(r.said).toBe('Le\u00eddos 2 pagos de movimientos.xlsx; 1 era nuevo en el libro.');
+    const pt = await readAttachment(USER, { buffer: Buffer.from('a;b'), filename: 'movimientos.xlsx', language: 'pt-BR' }, d);
+    expect(pt.said).toBe('Lidos 2 pagamentos de movimientos.xlsx; 1 era novo no livro.');
+  });
+
   it('a CSV with a header but no payments says so; one with no header is read as text', async () => {
     const withHeader = deps({ parseStatement: vi.fn(() => ({ sightings: [], skipped: [{}], header: { index: 0 } })) });
     expect((await readAttachment(USER, { buffer: Buffer.from('Fecha;Importe'), filename: 'x.csv' }, withHeader)).kind).toBe('nothing');

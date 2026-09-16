@@ -34,6 +34,7 @@
 import { median, cadenceOf } from './recurring.js';
 import { awayDaysBetween } from './covariates.js';
 import { applyPriors } from './priors.js';
+import { dayIn, dayOfMonthIn, weekdayIn } from './zone.js';
 
 const DAY = 86400000;
 const HOUR = 3600000;
@@ -142,7 +143,7 @@ function firstOfMonth(iso) { return `${monthKey(iso)}-01`; }
 function at(t) { return new Date(t.occurred_at).getTime(); }
 function dayMonth(iso) { return new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', timeZone: 'UTC' }); }
 function monthName(iso) { return new Date(iso).toLocaleDateString('en-GB', { month: 'long', timeZone: 'UTC' }); }
-function isoDate(ms) { return new Date(ms).toISOString().slice(0, 10); }
+function isoDate(ms) { return dayIn(ms); }
 function daysInMonth(key) { return new Date(Date.UTC(Number(key.slice(0, 4)), Number(key.slice(5, 7)), 0)).getUTCDate(); }
 
 /** The value that appears most often, which is the right answer for a name or a city:
@@ -251,7 +252,7 @@ function dailyTotals(rows, fromMs, toMs) {
   const totals = new Map();
   for (let ms = fromMs; ms <= toMs; ms += DAY) totals.set(isoDate(ms), 0);
   for (const t of rows) {
-    const date = String(t.occurred_at).slice(0, 10);
+    const date = dayIn(t.occurred_at);
     if (!totals.has(date)) continue;
     totals.set(date, totals.get(date) + abs(t));
   }
@@ -285,7 +286,7 @@ export function merchantProfile(transactions, merchantKey, opts = {}) {
   const high = round2(Math.max(...amounts));
 
   const weekdayCounts = [0, 0, 0, 0, 0, 0, 0];
-  for (const t of rows) weekdayCounts[new Date(t.occurred_at).getUTCDay()] += 1;
+  for (const t of rows) weekdayCounts[weekdayIn(t.occurred_at)] += 1;
   const topWeekday = weekdayCounts.indexOf(Math.max(...weekdayCounts));
   const usualWeekday = rows.length >= MIN_WEEKDAY_VISITS && weekdayCounts[topWeekday] >= rows.length * WEEKDAY_SHARE
     ? topWeekday
@@ -294,7 +295,7 @@ export function merchantProfile(transactions, merchantKey, opts = {}) {
   /* A date in the month is only a date when the charges keep it. A charge that wanders
      between the 3rd and the 24th has a cadence, not a day. Month-end wrap (the 31st
      landing on the 1st) is not corrected here; it reads as drift and stays silent. */
-  const daysOfMonth = rows.map((t) => new Date(t.occurred_at).getUTCDate());
+  const daysOfMonth = rows.map((t) => dayOfMonthIn(t.occurred_at));
   const middleDay = Math.round(median(daysOfMonth));
   const usualDayOfMonth = rows.length >= MIN_GAP_VISITS && daysOfMonth.every((d) => Math.abs(d - middleDay) <= DAY_OF_MONTH_DRIFT)
     ? middleDay
@@ -447,7 +448,7 @@ function weekdayHabit(profiles, transactions) {
   const p = habits[0];
   if (!p) return null;
   const onDay = p.weekday_counts[p.usual_weekday];
-  const rows = transactions.filter((t) => t.merchant_key === p.merchant_key && out(t) && new Date(t.occurred_at).getUTCDay() === p.usual_weekday);
+  const rows = transactions.filter((t) => t.merchant_key === p.merchant_key && out(t) && weekdayIn(t.occurred_at) === p.usual_weekday);
   return {
     kind: 'weekday_habit',
     month: null,
@@ -469,7 +470,7 @@ function completeMonths(rows, now) {
   if (!keys.length) return [];
   /* A first month the ledger joined halfway through has no first third to speak of,
      and keeping it would prove the last third is where the money goes. */
-  const firstDay = Math.min(...rows.filter((t) => monthKey(t.occurred_at) === keys[0]).map((t) => new Date(t.occurred_at).getUTCDate()));
+  const firstDay = Math.min(...rows.filter((t) => monthKey(t.occurred_at) === keys[0]).map((t) => dayOfMonthIn(t.occurred_at)));
   return firstDay > 3 ? keys.slice(1) : keys;
 }
 
@@ -488,7 +489,7 @@ function monthShape(transactions, now) {
     const totals = new Map();
     for (let d = 1; d <= daysInMonth(key); d += 1) totals.set(`${key}-${String(d).padStart(2, '0')}`, 0);
     for (const t of inMonths) {
-      const date = String(t.occurred_at).slice(0, 10);
+      const date = dayIn(t.occurred_at);
       if (totals.has(date)) totals.set(date, totals.get(date) + abs(t));
     }
     for (const [date, total] of totals) days.push({ total, third: thirdOf(Number(date.slice(8, 10))) });
@@ -515,7 +516,7 @@ function monthShape(transactions, now) {
   const p = permutationP(values, labels, shareOf, observed);
   if (p > MAX_P) return null;
 
-  const inThird = inMonths.filter((t) => thirdOf(new Date(t.occurred_at).getUTCDate()) === winner);
+  const inThird = inMonths.filter((t) => thirdOf(dayOfMonthIn(t.occurred_at)) === winner);
   return {
     kind: 'month_shape',
     month: null,
@@ -574,7 +575,7 @@ function pairing(transactions) {
       const pair = pairs.get(key);
       /* One day contributes one occurrence. Three coffees beside one metro ride is
          one morning, not three pairings. */
-      const date = String(spend[i].occurred_at).slice(0, 10);
+      const date = dayIn(spend[i].occurred_at);
       if (pair.dates.has(date)) continue;
       pair.dates.add(date);
       pair.gaps.push(gapMs / 60000);

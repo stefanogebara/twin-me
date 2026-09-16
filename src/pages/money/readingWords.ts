@@ -53,11 +53,24 @@ export function monthName(ym: string | null | undefined, locale: string, shift =
   return d.toLocaleDateString(locale, { month: 'long', timeZone: 'UTC' });
 }
 
+/**
+ * Today, where the person is reading. `toISOString` is UTC, so in Spain everything between
+ * midnight and two in the morning called today yesterday (2026-09-16); the browser's own
+ * zone is the right answer here, and en-CA is the shape every key in the ledger has.
+ */
+export const todayHere = (now = new Date()) => now.toLocaleDateString('en-CA');
+
+/** The day a payment falls on where the person is, from its instant. */
+export const localDay = (at: string | Date) => {
+  const d = at instanceof Date ? at : new Date(at);
+  return Number.isNaN(d.getTime()) ? '' : d.toLocaleDateString('en-CA');
+};
+
 /** A day coming: today, tomorrow, the weekday it falls on, or its date. */
 export function dayAhead(iso: string, t: T, locale: string, now = new Date()): string {
   const d = new Date(`${String(iso).slice(0, 10)}T12:00:00Z`);
   if (Number.isNaN(d.getTime())) return String(iso);
-  const days = Math.round((d.getTime() - new Date(`${now.toISOString().slice(0, 10)}T12:00:00Z`).getTime()) / 86400000);
+  const days = Math.round((d.getTime() - new Date(`${todayHere(now)}T12:00:00Z`).getTime()) / 86400000);
   if (days <= 0) return t('today');
   if (days === 1) return t('tomorrow');
   if (days < 7) return weekdayName(d.getUTCDay(), locale);
@@ -68,7 +81,7 @@ export function dayAhead(iso: string, t: T, locale: string, now = new Date()): s
 export function dayBehind(iso: string, t: T, locale: string, now = new Date()): string {
   const d = new Date(`${String(iso).slice(0, 10)}T12:00:00Z`);
   if (Number.isNaN(d.getTime())) return String(iso);
-  const days = Math.round((new Date(`${now.toISOString().slice(0, 10)}T12:00:00Z`).getTime() - d.getTime()) / 86400000);
+  const days = Math.round((new Date(`${todayHere(now)}T12:00:00Z`).getTime() - d.getTime()) / 86400000);
   if (days <= 0) return t('today');
   if (days === 1) return t('yesterday');
   if (days < 7) return weekdayName(d.getUTCDay(), locale);

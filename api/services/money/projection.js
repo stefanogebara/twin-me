@@ -16,6 +16,7 @@
  * Pure and deterministic (seeded RNG) so it can be tested and called on every
  * ledger write without cost. No LLM.
  */
+import { dayIn, weekdayIn, partsIn, dayOfMonthIn } from './zone.js';
 
 /** How far from the day they said a payment can be and still be that commitment. */
 const PAID_NEAR_DAYS = 6;
@@ -27,8 +28,8 @@ export function rng(seed = 42) {
   return () => { s = (s * 1664525 + 1013904223) >>> 0; return s / 4294967296; };
 }
 
-function dayKey(d) { return new Date(d).toISOString().slice(0, 10); }
-function weekdayOf(d) { return new Date(d).getUTCDay(); }
+function dayKey(d) { return dayIn(d); }
+function weekdayOf(d) { return weekdayIn(d); }
 function median(xs) { if (!xs.length) return 0; const s = [...xs].sort((a, b) => a - b); const m = Math.floor(s.length / 2); return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2; }
 function quantile(sorted, q) { if (!sorted.length) return 0; const pos = (sorted.length - 1) * q; const lo = Math.floor(pos); const hi = Math.ceil(pos); return sorted[lo] + (sorted[hi] - sorted[lo]) * (pos - lo); }
 
@@ -69,10 +70,11 @@ function sameThing(series, commitment) {
 
 export function projectMonth(p) {
   const now = new Date(p.now);
-  const year = now.getUTCFullYear(); const month = now.getUTCMonth();
+  /* The month and the day the person is in, not the one UTC is in. */
+  const here = partsIn(now); const year = here.year; const month = here.month - 1;
   const monthStart = new Date(Date.UTC(year, month, 1));
   const monthEnd = new Date(Date.UTC(year, month + 1, 0));
-  const today = new Date(Date.UTC(year, month, now.getUTCDate()));
+  const today = new Date(Date.UTC(year, month, here.day));
   const daysLeft = Math.round((monthEnd.getTime() - today.getTime()) / DAY); // days after today
 
   /* What a payment actually cost this person, which is not always what left the account.

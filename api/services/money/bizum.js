@@ -22,6 +22,7 @@
  *
  * Pure: rows and facts in, questions, findings and functions out.
  */
+import { dayIn, startOfDayIn } from './zone.js';
 
 /** Days after a payment within which an incoming person movement can settle it. */
 export const SETTLE_DAYS = 30;
@@ -59,7 +60,7 @@ export function shortName(full) {
 function listOf(names) { return names.length > 2 ? `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}` : names.join(' and '); }
 const WEEKDAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 function dayWord(iso, now) {
-  const d = new Date(iso); const diff = Math.round((new Date(now.toISOString().slice(0, 10)).getTime() - new Date(iso.slice(0, 10)).getTime()) / DAY);
+  const d = new Date(iso); const diff = Math.round((startOfDayIn(dayIn(now)).getTime() - startOfDayIn(dayIn(iso)).getTime()) / DAY);
   if (diff === 0) return 'today';
   if (diff === 1) return 'yesterday';
   if (diff < 7) return WEEKDAYS[d.getUTCDay()];
@@ -224,7 +225,7 @@ export function splitFindings(facts = [], transactions = [], opts = {}) {
     const paidText = s.paid === 0 ? 'nobody has paid yet' : `${listOf(who)} ${s.paid === 1 ? 'has' : 'have'} paid`;
     out.push({
       kind: SPLIT_OPEN,
-      month: payment.occurred_at.slice(0, 10),
+      month: dayIn(payment.occurred_at),
       sentence: `${nameOf(payment)} ${dayWord(payment.occurred_at, now)}, ${euro(abs(payment))} split ${ways} ways: ${paidText}, ${euro(s.open)} still open.`,
       detail: `Your share is ${euro(s.share)}. ${s.expected - s.paid} of ${s.expected} shares still to come.`,
       numbers: { name: nameOf(payment), who, on: payment.occurred_at, total: abs(payment), ways, share: s.share, paid: s.paid, expected: s.expected, open: s.open },

@@ -7,7 +7,7 @@
  * Spec: .claude/plans/2026-09-07-money-twin/README.md
  * Register: .claude/plans/2026-09-11-instinct-register/README.md
  */
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { useAuth } from '@/contexts/AuthContext';
@@ -21,7 +21,7 @@ import { factRank, factTitle, factWord } from './factWords';
 import Mark from './Mark';
 import { KindTile, Stamp } from './Carved';
 import { markFor } from './carvedKinds';
-import { readingWords } from './readingWords';
+import { readingWords, todayHere, localDay } from './readingWords';
 import { MARK_FOR, hasMark } from './markPaths';
 import { moneyAPI, euro, shortDay, bankLabel, BANKS, type MoneyAccount, type MoneyCalendar, type MoneyCategories, type MoneyDayStrip, type MoneyFact, type MoneyForecast, type MoneyQuestions, type MoneyToday, type MoneyMonth, type MoneyReading, type MoneyRecurring, type MoneySighting, type MoneyTransaction, type MoneyUsage } from '../../services/api/moneyAPI';
 import LedgerOrb from '../../components/LedgerOrb';
@@ -178,11 +178,19 @@ export default function MoneyV2Page({ view = 'today' }: { view?: MoneyView } = {
     : read ? (read.created ? t('{n} new just now.', { n: read.created }) : t('Nothing new just now. {line}', { line: bookedLine }))
     : bookedLine;
 
+  /* One read at a time, and only the newest one counts. Nine requests went out on every
+     view change with nothing to cancel them, so a slow answer from the page before could
+     land on top of a newer one, and Today to Month and back was twenty seven requests. */
+  const seq = useRef(0);
+  const lastLoad = useRef(0);
   const load = useCallback(async () => {
+    const mine = ++seq.current;
+    lastLoad.current = Date.now();
     const [f, l, r, a, m, rd, c, u, td] = await Promise.allSettled([
       moneyAPI.forecast(), moneyAPI.ledger(), moneyAPI.recurring(), moneyAPI.accounts(), moneyAPI.months(), moneyAPI.readings(),
-      moneyAPI.categories(`${new Date().toISOString().slice(0, 7)}-01`), moneyAPI.usage(), moneyAPI.today(),
+      moneyAPI.categories(`${todayHere().slice(0, 7)}-01`), moneyAPI.usage(), moneyAPI.today(),
     ]);
+    if (mine !== seq.current) return;
     if (f.status === 'fulfilled') setForecast(f.value);
     if (td.status === 'fulfilled') setToday(td.value);
     if (l.status === 'fulfilled') setLedger(l.value);
@@ -201,7 +209,12 @@ export default function MoneyV2Page({ view = 'today' }: { view?: MoneyView } = {
   /* Read again on every page (the three views share one mounted component, so a switch
      alone reloaded nothing) and when the tab comes back after a minute away: a bank read
      from the phone or another tab was showing on one page and not the next. */
-  useEffect(() => { void load(); }, [load, view]);
+  /* A page the person has just been on is not read again: the switch is theirs, the data is
+     seconds old, and the bank has not moved. Anything older than half a minute is read. */
+  useEffect(() => {
+    if (Date.now() - lastLoad.current < 30000) return;
+    void load();
+  }, [load, view]);
   useEffect(() => {
     let hiddenAt = 0;
     const onVisibility = () => {
@@ -282,7 +295,7 @@ export default function MoneyV2Page({ view = 'today' }: { view?: MoneyView } = {
      every render, so any unrelated state change tore down the orbits and replayed their
      entrance; for the second and a half that took, nothing on the figure could be clicked. */
   const monthKey = (forecast?.month || new Date().toISOString()).slice(0, 7);
-  const monthRows = useMemo(() => ledger.filter((tx) => tx.occurred_at.slice(0, 7) === monthKey), [ledger, monthKey]);
+  const monthRows = useMemo(() => ledger.filter((tx) => localDay(tx.occurred_at).slice(0, 7) === monthKey), [ledger, monthKey]);
   /* What they said comes in each month is the band's right edge; the month is drawn against
      it, not against its own worst case. Without a stated income the band keeps its old edge. */
   const incomeEdge = today && today.basis === 'income' && today.base ? Number(today.base) : null;
@@ -424,7 +437,7 @@ export default function MoneyV2Page({ view = 'today' }: { view?: MoneyView } = {
     setBusy('category'); setNote(null);
     try {
       await moneyAPI.setPlaceCategory(merchantKey, category, name);
-      setCategories(await moneyAPI.categories(`${new Date().toISOString().slice(0, 7)}-01`));
+      setCategories(await moneyAPI.categories(`${todayHere().slice(0, 7)}-01`));
     } catch { setNote(t('That could not be saved. Try again.')); }
     finally { setBusy(null); }
   }
@@ -583,8 +596,8 @@ export default function MoneyV2Page({ view = 'today' }: { view?: MoneyView } = {
                       <p className="mv-sub">{t('The diary expects {what} today.', { what: today.today_events.map((e) => `${e.title}, ${euro(e.amount)}`).join('; ') })}</p>
                     ) : null}
                     {dayOpen ? (() => {
-                      const todayKey = new Date().toISOString().slice(0, 10);
-                      const rows = ledger.filter((t) => t.occurred_at.slice(0, 10) === todayKey && Number(t.amount) < 0);
+                      const todayKey = todayHere();
+                      const rows = ledger.filter((t) => localDay(t.occurred_at) === todayKey && Number(t.amount) < 0);
                       return rows.length ? (
                         <ul className="mv-list mv-day-rows" aria-label={t("Today's payments")}>
                           {rows.map((row) => (
