@@ -98,6 +98,18 @@ function lastDay(iso: string) { const d = new Date(iso); return new Date(Date.UT
 
 function Chevron() { return <ChevronRight className="mv-chev" size={16} strokeWidth={1.75} aria-hidden="true" />; }
 
+/* The last read, kept across mounts. Today, Month and You share this component, but Ask is
+   another route: Today, then Ask, then Today unmounted it, and it came back with nothing,
+   showed the waiting orb and read nine endpoints again. A page that mounts with a recent
+   read paints from it at once and reads again quietly only when it is older than half a
+   minute (Stefano, 2026-09-16: "it loads all over again"). */
+type Snapshot = {
+  at: number; forecast: MoneyForecast | null; today: MoneyToday | null; ledger: MoneyTransaction[]; recurring: MoneyRecurring[];
+  accounts: MoneyAccount[]; months: MoneyMonth[]; readings: MoneyReading[]; categories: MoneyCategories | null; usage: MoneyUsage | null; unread: boolean;
+};
+let SNAPSHOT: Snapshot | null = null;
+const SNAPSHOT_FRESH_MS = 30000;
+
 export default function MoneyV2Page({ view = 'today' }: { view?: MoneyView } = {}) {
   /* The tab said "Discover Your Soul Signature" over a page of euros, which is the front
      door's old promise showing through the new product. */
@@ -105,15 +117,15 @@ export default function MoneyV2Page({ view = 'today' }: { view?: MoneyView } = {
   const locale = useLocale();
   useDocumentTitle(view === 'today' ? t('Money') : view === 'month' ? t('Money, the month') : t('Money, you'));
   const { user } = useAuth();
-  const [forecast, setForecast] = useState<MoneyForecast | null>(null);
+  const [forecast, setForecast] = useState<MoneyForecast | null>(SNAPSHOT?.forecast ?? null);
   /* The one number a person opens the app for. It leads Today; the month sits under it. */
-  const [today, setToday] = useState<MoneyToday | null>(null);
-  const [unread, setUnread] = useState(false);
-  const [ledger, setLedger] = useState<MoneyTransaction[]>([]);
-  const [recurring, setRecurring] = useState<MoneyRecurring[]>([]);
-  const [accounts, setAccounts] = useState<MoneyAccount[]>([]);
-  const [months, setMonths] = useState<MoneyMonth[]>([]);
-  const [readings, setReadings] = useState<MoneyReading[]>([]);
+  const [today, setToday] = useState<MoneyToday | null>(SNAPSHOT?.today ?? null);
+  const [unread, setUnread] = useState(SNAPSHOT?.unread ?? false);
+  const [ledger, setLedger] = useState<MoneyTransaction[]>(SNAPSHOT?.ledger ?? []);
+  const [recurring, setRecurring] = useState<MoneyRecurring[]>(SNAPSHOT?.recurring ?? []);
+  const [accounts, setAccounts] = useState<MoneyAccount[]>(SNAPSHOT?.accounts ?? []);
+  const [months, setMonths] = useState<MoneyMonth[]>(SNAPSHOT?.months ?? []);
+  const [readings, setReadings] = useState<MoneyReading[]>(SNAPSHOT?.readings ?? []);
   const [openReading, setOpenReading] = useState<string | null>(null);
   const [openSeries, setOpenSeries] = useState<string | null>(null);
   const [needsReconnect, setNeedsReconnect] = useState(false);
@@ -129,10 +141,10 @@ export default function MoneyV2Page({ view = 'today' }: { view?: MoneyView } = {
   const [facts, setFacts] = useState<MoneyFact[] | null>(null);
   const [questions, setQuestions] = useState<MoneyQuestions | null>(null);
   const [feedUrl, setFeedUrl] = useState('');
-  const [categories, setCategories] = useState<MoneyCategories | null>(null);
-  const [usage, setUsage] = useState<MoneyUsage | null>(null);
+  const [categories, setCategories] = useState<MoneyCategories | null>(SNAPSHOT?.categories ?? null);
+  const [usage, setUsage] = useState<MoneyUsage | null>(SNAPSHOT?.usage ?? null);
   const [bankReady, setBankReady] = useState(true);
-  const [loaded, setLoaded] = useState(false);
+  const [loaded, setLoaded] = useState(Boolean(SNAPSHOT));
   const [open, setOpen] = useState<string | null>(null);
   const [receipts, setReceipts] = useState<Record<string, MoneySighting[]>>({});
   const [key, setKey] = useState<string | null>(null);
@@ -186,7 +198,7 @@ export default function MoneyV2Page({ view = 'today' }: { view?: MoneyView } = {
      view change with nothing to cancel them, so a slow answer from the page before could
      land on top of a newer one, and Today to Month and back was twenty seven requests. */
   const seq = useRef(0);
-  const lastLoad = useRef(0);
+  const lastLoad = useRef(SNAPSHOT?.at ?? 0);
   const load = useCallback(async () => {
     const mine = ++seq.current;
     lastLoad.current = Date.now();
@@ -207,8 +219,26 @@ export default function MoneyV2Page({ view = 'today' }: { view?: MoneyView } = {
     /* A month that could not be read is not an empty month. Every rejection was dropped, so a
        server that was down told the person their ledger was empty and offered to connect the
        bank they already have (2026-09-16). */
-    setUnread(f.status === 'rejected' && l.status === 'rejected' && td.status === 'rejected');
+    const unreadNow = f.status === 'rejected' && l.status === 'rejected' && td.status === 'rejected';
+    setUnread(unreadNow);
     setLoaded(true);
+    /* Kept for the next mount. A read that failed outright is not kept: the next page should
+       try again rather than paint a failure it has not seen. */
+    if (!unreadNow) {
+      SNAPSHOT = {
+        at: Date.now(),
+        forecast: f.status === 'fulfilled' ? f.value : SNAPSHOT?.forecast ?? null,
+        today: td.status === 'fulfilled' ? td.value : SNAPSHOT?.today ?? null,
+        ledger: l.status === 'fulfilled' ? l.value : SNAPSHOT?.ledger ?? [],
+        recurring: r.status === 'fulfilled' ? r.value : SNAPSHOT?.recurring ?? [],
+        accounts: a.status === 'fulfilled' ? a.value : SNAPSHOT?.accounts ?? [],
+        months: m.status === 'fulfilled' ? m.value : SNAPSHOT?.months ?? [],
+        readings: rd.status === 'fulfilled' ? rd.value : SNAPSHOT?.readings ?? [],
+        categories: c.status === 'fulfilled' ? c.value : SNAPSHOT?.categories ?? null,
+        usage: u.status === 'fulfilled' ? u.value : SNAPSHOT?.usage ?? null,
+        unread: false,
+      };
+    }
   }, []);
   /* Read again on every page (the three views share one mounted component, so a switch
      alone reloaded nothing) and when the tab comes back after a minute away: a bank read
@@ -216,7 +246,7 @@ export default function MoneyV2Page({ view = 'today' }: { view?: MoneyView } = {
   /* A page the person has just been on is not read again: the switch is theirs, the data is
      seconds old, and the bank has not moved. Anything older than half a minute is read. */
   useEffect(() => {
-    if (Date.now() - lastLoad.current < 30000) return;
+    if (Date.now() - lastLoad.current < SNAPSHOT_FRESH_MS) return;
     void load();
   }, [load, view]);
   useEffect(() => {
@@ -306,7 +336,8 @@ export default function MoneyV2Page({ view = 'today' }: { view?: MoneyView } = {
   const monthRows = useMemo(() => ledger.filter((tx) => localDay(tx.occurred_at).slice(0, 7) === monthKey), [ledger, monthKey]);
   /* What they said comes in each month is the band's right edge; the month is drawn against
      it, not against its own worst case. Without a stated income the band keeps its old edge. */
-  const incomeEdge = today && today.basis === 'income' && today.base ? Number(today.base) : null;
+  /* The month is framed by what they said comes in even when the day rests on the balance. */
+  const incomeEdge = today && (today.income ?? (today.basis === 'income' ? today.base : null)) ? Number(today.income ?? today.base) : null;
   const edge = incomeEdge ? Math.max(incomeEdge, forecast ? forecast.projected_p90 : 0) : null;
   /* What the bank says is in each account, freshest read named. XPCD and ITAV include pending
      charges; a figure with a credit line in it is not shown as the person's. */

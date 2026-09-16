@@ -2,24 +2,28 @@
  * Safe to spend today.
  * ====================
  * The one number a person opens a money app for: whether tonight is affordable. Everything
- * else in this product looks backwards; this looks at the rest of the month.
+ * else in this product looks backwards; this looks at the days until the next money.
  *
- * It is never "what is in your account". The bank feed carries no balance, so a number
- * claiming to be one would be a lie. It is what is left of a budget the person can
- * recognise, spread over the days that remain, with what today already owes taken off.
+ * It rests on what is in the account. The bank feed returns a balance on every read now, and
+ * the page prints it as available, so a day computed from anything else sat two lines from a
+ * figure it did not agree with: 1,97 EUR for the day over 447,98 EUR in the bank, because
+ * the day was spreading what was left of a stated 1750 (Stefano, 2026-09-16). What is in the
+ * account, less what is spoken for before the next money arrives, over the days until then:
+ * a person can check that against their own bank app in one glance, which is the point.
  *
- * The budget is what they told us comes in each month, and otherwise their own typical
- * month. The sentence under the number always names which, because a number whose basis is
- * hidden is a guess wearing a suit.
+ * Without a fresh balance it falls back to a budget the person can recognise: what they said
+ * comes in, else their own typical month, else a student prior. The sentence always names
+ * which, because a number whose basis is hidden is a guess wearing a suit. The month itself
+ * is still framed by what they said comes in; that is a different question from tonight.
  *
- * Silence over softening: with neither a stated income nor two complete months behind them,
- * this says nothing, and says what would let it speak.
+ * Silence over softening: with no balance, no stated income and fewer than two complete
+ * months, this says nothing, and says what would let it speak.
  */
 
-import { forecast, months, listFacts } from './store.js';
+import { forecast, months, listFacts, listBankAccounts } from './store.js';
 import { studentMonth } from './priors.js';
 import { keepAmount } from './intention.js';
-import { dayIn, weekdayIn } from './zone.js';
+import { dayIn, weekdayIn, daysBetweenIn } from './zone.js';
 
 /** Two complete months is the least that can stand for "a typical month" of this person. */
 export const MIN_MONTHS_FOR_TYPICAL = 2;
@@ -59,11 +63,18 @@ export const SHAPE_LIMIT = 0.3;
  * `{ share, ratio, weekday }` where share is today's part of the whole, and ratio is how it
  * compares with an even split; null when there is no shape to read.
  */
+/** Weekdays with a non-zero median before the week is allowed to shape a day. */
+export const SHAPE_MIN_WEEKDAYS = 4;
+
 export function weekdayShare(baseline, now = new Date(), daysIncludingToday = 1) {
   if (!Array.isArray(baseline) || baseline.length !== 7) return null;
   const weights = baseline.map((x) => Math.max(0, Number(x) || 0));
   const total = weights.reduce((a, b) => a + b, 0);
   if (!(total > 0)) return null;
+  /* A week of mostly zeros is not a shape, it is a person who pays by card twice a week:
+     read as one, a Wednesday with a zero median fell to the floor and the line blamed the
+     weekday (2026-09-16). */
+  if (weights.filter((w) => w > 0).length < SHAPE_MIN_WEEKDAYS) return null;
   const from = weekdayIn(now);
   let sum = 0;
   for (let i = 0; i < daysIncludingToday; i += 1) sum += weights[(from + i) % 7];
@@ -71,6 +82,54 @@ export function weekdayShare(baseline, now = new Date(), daysIncludingToday = 1)
   const share = weights[from] / sum;
   const even = 1 / daysIncludingToday;
   return { share, ratio: r2(share / even), weekday: from };
+}
+
+/** A balance is fresh for two days; a credit line is not money of theirs. */
+export const BALANCE_FRESH_MS = 48 * 3600 * 1000;
+
+/**
+ * What the bank says is in the account, when it said so recently enough to act on.
+ * Returns { amount, banks, at } summed over the accounts that qualify, or null.
+ */
+export function freshBalance(accounts = [], now = new Date()) {
+  const fresh = (accounts || []).filter((a) => a && a.balance !== null && a.balance !== undefined && a.balance_at
+    && !String(a.balance_type || '').includes('/credit')
+    && now.getTime() - new Date(a.balance_at).getTime() < BALANCE_FRESH_MS);
+  if (!fresh.length) return null;
+  const amount = r2(fresh.reduce((sum, a) => sum + (Number(a.balance) || 0), 0));
+  const banks = [...new Set(fresh.map((a) => a.bank_name || 'Santander'))];
+  const at = fresh.map((a) => a.balance_at).sort().pop();
+  return { amount, banks, at };
+}
+
+/**
+ * The next money in, and the days until it: the earliest income the forecast expects after
+ * today, else the end of the month. Returns { day, days, source }, days counting today.
+ */
+export function nextInflow(cast, now = new Date()) {
+  const today = dayIn(now);
+  const monthEnd = Math.max(1, (Number(cast?.days_left) || 0) + 1);
+  const incomes = (cast?.income_items || [])
+    .filter((i) => i && i.due_on && String(i.due_on).slice(0, 10) > today && Number(i.amount) > 0)
+    .sort((a, b) => (a.due_on < b.due_on ? -1 : 1));
+  const first = incomes[0];
+  if (!first) return { day: null, days: monthEnd, source: null };
+  const days = daysBetweenIn(now, `${String(first.due_on).slice(0, 10)}T12:00:00Z`);
+  if (days === null || days < 1 || days >= monthEnd) return { day: null, days: monthEnd, source: null };
+  return { day: String(first.due_on).slice(0, 10), days, source: first.source || first.subject || null };
+}
+
+/** What is spoken for before a day: the dated items of the forecast that land before it. */
+function spokenBefore(cast, horizonDay) {
+  const before = (on) => !horizonDay || !on || String(on).slice(0, 10) <= horizonDay;
+  const committed = (cast.committed_items || []).length
+    ? (cast.committed_items || []).filter((c) => before(c.next_expected)).reduce((s, c) => s + Math.abs(Number(c.typical_amount) || 0), 0)
+    : Number(cast.committed) || 0;
+  const stated = (cast.commitment_items || []).filter((c) => before(c.due_on)).reduce((s, c) => s + Math.abs(Number(c.amount) || 0), 0);
+  const calendar = (cast.calendar_items || []).length
+    ? (cast.calendar_items || []).filter((i) => before(i.day || i.on)).reduce((s, i) => s + (Number(i.amount ?? i.expected?.amount) || 0), 0)
+    : Number(cast.calendar_ahead) || 0;
+  return { committed: r2(committed + stated), calendar: r2(calendar) };
 }
 
 /** The events today that the calendar already expects to cost something. */
@@ -85,45 +144,65 @@ export function eventsToday(items = [], now = new Date()) {
  * The number and the words for it. Pure: everything it needs is passed in, so the rules can
  * be read in one place and tested without a database.
  */
-export function safeToSpend({ cast = null, segments = [], facts = [], now = new Date() } = {}) {
+export function safeToSpend({ cast = null, segments = [], facts = [], accounts = [], now = new Date() } = {}) {
   const none = (why) => ({
-    amount: null, basis: null, budget: null, free: null, over: false,
-    days_left: cast ? cast.days_left : null, spent: null, committed: null, calendar_ahead: null, shape: null, today_events: [], sentence: null, why,
+    amount: null, basis: null, base: null, income: statedIncome(facts), keep: null, budget: null, free: null, over: false,
+    days_left: cast ? cast.days_left : null, horizon: null, balance: null, spent: null, committed: null, calendar_ahead: null, shape: null,
+    basis_label: null, today_events: [], sentence: null, why,
   });
 
   if (!cast) return none('There is no month to read yet.');
 
   const income = statedIncome(facts);
-  const typical = income === null ? typicalMonth(segments) : null;
-  /* Before two full months and without a stated income, a student whose rent is known can
-     still be read against a typical student month on top of that rent (priors.js). The
-     sentence names it as typical, never as theirs. */
-  const student = income === null && typical === null ? studentMonth(facts) : null;
-  /* What they said they want left comes off the top: a budget is what may go, not what comes in. */
   const keep = keepAmount(facts);
-  const base = income ?? typical ?? (student ? student.amount : null);
-  const budget = base === null ? null : r2(base - (keep ?? 0));
-  if (budget === null) {
-    return none('It does not know what a month of yours looks like yet. Tell it what comes in, or give it one more full month.');
-  }
-
-  const spent = Number(cast.spent) || 0;
-  const committed = Number(cast.committed) || 0;
-  const calendarAhead = Number(cast.calendar_ahead) || 0;
+  const balance = freshBalance(accounts, now);
   const todays = eventsToday(cast.calendar_items || [], now);
   const todaysCost = r2(todays.reduce((s, e) => s + e.amount, 0));
+  const spent = Number(cast.spent) || 0;
 
-  /* What is free for the rest of the month: the budget, less what has gone, less what is
-     already spoken for, whether by a standing charge or by something in the diary. */
-  const free = r2(budget - spent - committed - calendarAhead);
+  /* Which days the number is spread over. With a balance it is the days until the next
+     money arrives; a budget is a month's, so it runs to the month's end. */
+  const monthDays = Math.max(1, (Number(cast.days_left) || 0) + 1);
+  const horizon = balance ? nextInflow(cast, now) : { day: null, days: monthDays, source: null };
+  const days = Math.max(1, horizon.days);
+
+  let basis; let base; let budget; let free; let committed; let calendarAhead; let student = null; let typical = null;
+  if (balance) {
+    /* What is in the account, less what is spoken for before the next money, less what they
+       want kept. The stated income does not enter here: it frames the month, not tonight. */
+    const spoken = spokenBefore(cast, horizon.day);
+    committed = spoken.committed;
+    calendarAhead = spoken.calendar;
+    basis = 'balance';
+    base = balance.amount;
+    budget = r2(balance.amount - (keep ?? 0));
+    free = r2(budget - committed - calendarAhead);
+  } else {
+    typical = income === null ? typicalMonth(segments) : null;
+    /* Before two full months and without a stated income, a student whose rent is known can
+       still be read against a typical student month on top of that rent (priors.js). The
+       sentence names it as typical, never as theirs. */
+    student = income === null && typical === null ? studentMonth(facts) : null;
+    base = income ?? typical ?? (student ? student.amount : null);
+    if (base === null) {
+      return none('It does not know what a month of yours looks like yet. Tell it what comes in, or give it one more full month.');
+    }
+    basis = income !== null ? 'income' : typical !== null ? 'typical' : 'student_prior';
+    committed = Number(cast.committed) || 0;
+    calendarAhead = Number(cast.calendar_ahead) || 0;
+    budget = r2(base - (keep ?? 0));
+    /* What is free for the rest of the month: the budget, less what has gone, less what is
+       already spoken for, whether by a standing charge or by something in the diary. */
+    free = r2(budget - spent - committed - calendarAhead);
+  }
+
   /* Today counts: a person spending this evening has today, not only the days after it. */
-  const daysIncludingToday = Math.max(1, (Number(cast.days_left) || 0) + 1);
-  const perDay = free / daysIncludingToday;
+  const perDay = free / days;
   /* The days left are not worth the same to this person. Their own week, from the projection,
      gives today its share: a Friday carries more than a Tuesday, because theirs does. The
      shape is held inside a third either way, so the number stays a number a person can act
-     on and never swings on one loud weekend (2026-09-16). */
-  const shape = weekdayShare(cast.weekday_baseline, now, daysIncludingToday);
+     on and never swings on one loud weekend. */
+  const shape = weekdayShare(cast.weekday_baseline, now, days);
   const shaped = shape ? free * shape.share : perDay;
   const bounded = Math.max(perDay * (1 - SHAPE_LIMIT), Math.min(perDay * (1 + SHAPE_LIMIT), shaped));
   /* Today's own events are already inside `free`; what is left for anything else today is
@@ -132,40 +211,44 @@ export function safeToSpend({ cast = null, segments = [], facts = [], now = new 
   const over = free < 0;
 
   const keepWord = keep ? `, keeping ${money(keep)}` : '';
-  const basisWord = income !== null
-    ? `the ${money(base)} you said comes in${keepWord}`
-    : typical !== null
-      ? `your usual month of ${money(base)}${keepWord}`
-      : `${student.label}, ${money(base)}${keepWord}`;
+  const basisWord = basis === 'balance'
+    ? `the ${money(base)} in ${balance.banks.join(' and ')}${keepWord}`
+    : income !== null
+      ? `the ${money(base)} you said comes in${keepWord}`
+      : typical !== null
+        ? `your usual month of ${money(base)}${keepWord}`
+        : `${student.label}, ${money(base)}${keepWord}`;
   const spoken = [];
+  if (basis !== 'balance') spoken.push(`${money(spent)} spent`);
   if (committed > 0) spoken.push(`${money(committed)} still to be charged`);
   if (calendarAhead > 0) spoken.push(`${money(calendarAhead)} the diary expects`);
+  const until = horizon.day && horizon.source ? `until ${horizon.source} arrives` : daysText(days);
 
   let sentence;
   if (over) {
-    sentence = `That is ${money(Math.abs(free))} past ${basisWord}, with ${daysText(daysIncludingToday)} to go.`;
+    sentence = `That is ${money(Math.abs(free))} past ${basisWord}, with ${daysText(days)} to go.`;
   } else {
-    sentence = `From ${basisWord}, after ${money(spent)} spent${spoken.length ? ` and ${spoken.join(' and ')}` : ''}, over ${daysText(daysIncludingToday)}.`;
+    sentence = `From ${basisWord}${spoken.length ? `, after ${spoken.join(' and ')}` : ''}, over ${until}.`;
   }
-  /* What the diary expects today used to be appended here in English. It is data the screen
-     already has (today_events), and the screen says it in the reader's own language, so the
-     sentence keeps to the basis and stops being two languages at once (2026-09-16). */
 
   return {
     amount: over ? 0 : amount,
-    basis: income !== null ? 'income' : typical !== null ? 'typical' : 'student_prior',
-    /* The month the budget rests on, before the keep comes off: what they said comes in, or
-       their typical month, or the student prior. The screen draws the month against it. */
+    basis,
+    /* What the day rests on: the balance, or the month the budget rests on before the keep
+       comes off. The screen draws the month against `income`, whichever the day used. */
     base: r2(base),
+    income,
     keep: keep ?? null,
     budget,
     free,
     over,
     days_left: Number(cast.days_left) || 0,
+    /* The days the number is spread over, and what ends them: the next money in, or the month. */
+    horizon: { day: horizon.day, days, source: horizon.source },
+    balance: balance ? { amount: balance.amount, banks: balance.banks, at: balance.at } : null,
     /* What the screen needs to say this line itself: the numbers behind it, the word for a
        basis that is not theirs, and the shape of the week when it moved today's share. */
     basis_label: student ? student.label : null,
-    /* the numbers behind the line */
     spent: r2(spent),
     committed: r2(committed),
     calendar_ahead: r2(calendarAhead),
@@ -190,12 +273,13 @@ function daysText(days) {
 
 /** The same, for a person: three reads, no model, no network beyond the ledger. */
 export async function todayAllowance(userId, now = new Date()) {
-  const [cast, segments, facts] = await Promise.all([
+  const [cast, segments, facts, accounts] = await Promise.all([
     forecast(userId, now).catch(() => null),
     months(userId, now).catch(() => []),
     listFacts(userId).catch(() => []),
+    listBankAccounts(userId).catch(() => []),
   ]);
-  return safeToSpend({ cast, segments, facts, now });
+  return safeToSpend({ cast, segments, facts, accounts, now });
 }
 
 /** One line for a prompt, so the twin can answer "can I afford tonight?" the same way. */

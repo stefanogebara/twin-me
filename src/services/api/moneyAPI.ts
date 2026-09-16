@@ -60,7 +60,8 @@ export type MoneyReading = {
 export type MoneyBudget = { used: number; left: number; resets_at: string | null };
 /** Safe to spend today, with the basis it rests on; amount null until a month can be read. */
 export type MoneyToday = {
-  amount: number | null; basis: 'income' | 'typical' | 'student_prior' | null; base?: number | null; keep?: number | null; budget: number | null; free: number | null; over: boolean;
+  amount: number | null; basis: 'balance' | 'income' | 'typical' | 'student_prior' | null; base?: number | null; income?: number | null; keep?: number | null; budget: number | null; free: number | null; over: boolean;
+  horizon?: { day: string | null; days: number; source: string | null } | null; balance?: { amount: number; banks: string[]; at: string } | null;
   days_left: number | null; today_events: { title: string; amount: number }[]; sentence: string | null; why: string | null;
   /* What the screen needs to say the line itself, in the reader's own language. */
   basis_label?: string | null; spent?: number | null; committed?: number | null; calendar_ahead?: number | null;

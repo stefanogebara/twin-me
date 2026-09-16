@@ -138,7 +138,8 @@ const weekPhrase = (t: T, week: unknown) => (typeof week === 'string' && week ? 
 
 /** What the allowance sends, beyond its number. */
 export type Allowance = {
-  amount: number | null; basis: 'income' | 'typical' | 'student_prior' | null; basis_label?: string | null;
+  amount: number | null; basis: 'balance' | 'income' | 'typical' | 'student_prior' | null; basis_label?: string | null;
+  horizon?: { day: string | null; days: number; source: string | null } | null; balance?: { amount: number; banks: string[] } | null;
   base?: number | null; keep?: number | null; free: number | null; over: boolean; days_left: number | null;
   spent?: number | null; committed?: number | null; calendar_ahead?: number | null;
   shape?: { weekday: number; ratio: number } | null;
@@ -151,12 +152,18 @@ export type Allowance = {
  * ledger keeps composing its English one for the twin; this says the same thing from the
  * same numbers.
  */
+/* A bank is a name, not a phrase; the fallback stays outside the translator's reach. */
+const FIRST_BANK = 'Santander';
+const bankNames = (a: Allowance, t: T) => (a.balance?.banks || []).join(t(' and ')) || FIRST_BANK;
+
 export function allowanceWords(a: Allowance, t: T, locale: string): string | null {
   if (!a || a.amount === null || a.days_left === null) return a?.sentence ?? null;
-  const days = Math.max(1, (a.days_left || 0) + 1);
+  const days = Math.max(1, a.horizon?.days ?? ((a.days_left || 0) + 1));
   const keep = a.keep ? t(', keeping {amount}', { amount: euro(a.keep) }) : '';
   const base = a.base ?? null;
-  const basis = a.basis === 'income' && base !== null
+  const basis = a.basis === 'balance' && base !== null
+    ? t('the {amount} in {bank}', { amount: euro(base), bank: bankNames(a, t) }) + keep
+    : a.basis === 'income' && base !== null
     ? t('the {amount} you said comes in', { amount: euro(base) }) + keep
     : a.basis === 'typical' && base !== null
       ? t('your usual month of {amount}', { amount: euro(base) }) + keep
@@ -170,12 +177,14 @@ export function allowanceWords(a: Allowance, t: T, locale: string): string | nul
     return t('That is {amount} past {basis}, with {days} to go.', { amount: euro(Math.abs(a.free || 0)), basis, days: daysWord });
   }
   const spoken: string[] = [];
+  /* With the balance, what has been spent is already gone from it and is not said again. */
+  if (a.basis !== 'balance') spoken.push(t('{amount} spent', { amount: euro(a.spent || 0) }));
   if ((a.committed || 0) > 0) spoken.push(t('{amount} still to be charged', { amount: euro(a.committed || 0) }));
   if ((a.calendar_ahead || 0) > 0) spoken.push(t('{amount} the diary expects', { amount: euro(a.calendar_ahead || 0) }));
-  const after = spoken.length
-    ? t('after {spent} spent and {rest}', { spent: euro(a.spent || 0), rest: spoken.join(t(' and ')) })
-    : t('after {spent} spent', { spent: euro(a.spent || 0) });
-  const line = t('From {basis}, {after}, over {days}.', { basis, after, days: daysWord });
+  const until = a.horizon?.day && a.horizon.source ? t('until {source} arrives', { source: a.horizon.source }) : daysWord;
+  const line = spoken.length
+    ? t('From {basis}, after {after}, over {days}.', { basis, after: spoken.join(t(' and ')), days: until })
+    : t('From {basis}, over {days}.', { basis, days: until });
   /* Why today is not simply the month divided by its days. */
   if (!a.shape) return line;
   const weekday = weekdayName(a.shape.weekday, locale);
