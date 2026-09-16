@@ -89,7 +89,7 @@ function Pending({ status, thinking, still }: { status: string; thinking?: strin
 const OFFERS = ['What can I spend today?', 'What changed this week?', 'Where did the money go?', 'What comes back every month?', 'How does this month compare?', 'What is still to come?'];
 let askSeq = 0;
 
-type TraceStep = { step: string; label: string; detail: string | null; count: number | null; done: boolean };
+type TraceStep = { step: string; label: string; detail: string | null; count: number | null; done: boolean; say?: { key: string; vars?: Record<string, string | number> } | null };
 
 /**
  * The live read of the ledger, over server-sent events. The endpoint is optional by
@@ -200,7 +200,7 @@ function TracePanel({ steps, reading }: { steps: TraceStep[]; reading: boolean }
             <li key={s.step} className={`mv-item mv-item--tight mc-step${reading && !s.done ? ' is-live' : ''}`}>
               <span className="mv-item-text">
                 <span className="mv-item-title">{t(STEP_LABEL[s.step] || s.label)}</span>
-                {s.detail ? <span className="mv-item-sub">{t(s.detail)}</span> : null}
+                {s.say?.key ? <span className="mv-item-sub">{t(s.say.key, s.say.vars)}</span> : s.detail ? <span className="mv-item-sub">{t(s.detail)}</span> : null}
               </span>
               {s.count === null ? null : <span className="mv-item-end">{s.count}</span>}
             </li>

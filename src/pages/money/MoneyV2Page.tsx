@@ -58,7 +58,10 @@ function stillToCome(t: T, locale: string, f: MoneyForecast): Ahead[] {
   }
   for (const c of f.commitment_items || []) rows.push({ on: c.due_on, name: c.subject || t('A standing charge'), amount: -Math.abs(Number(c.amount)), kind: 'stated', why: t('You said it leaves every month') });
   for (const i of f.income_items || []) rows.push({ on: i.due_on, name: i.subject || i.source || t('Comes in'), amount: Math.abs(Number(i.amount)), kind: 'income',
-    why: i.basis ? t('Comes in, {basis}', { basis: i.basis }) : t('Comes in, as you said') });
+    /* The basis arrives as an English phrase; the same two numbers say it here. */
+    why: i.said && i.basis === 'said' ? t('Comes in, as you said')
+      : i.times ? t('Comes in, seen {n} times, usually the {day}', { n: i.times, day: ordinalDay(t, Number(i.day) || 1) })
+        : t('Comes in, as you said') });
   /* { title, day, amount } is what the calendar sends; asking for e.expected.amount and e.on
      meant a day in the diary never appeared here at all (2026-09-16). */
   for (const e of f.calendar_items || []) {
@@ -1138,7 +1141,7 @@ export default function MoneyV2Page({ view = 'today' }: { view?: MoneyView } = {
                   {(calendar?.feeds || []).map((f) => (
                     <li key={f.id} className="mv-item mv-item--sub">
                       <span className="mv-item-text">
-                        <span className="mv-item-title">{hasMark(f.kind) ? <span className="mv-mark-small" aria-hidden="true"><Mark name={f.kind} size={12} /></span> : null}{f.label}</span>
+                        <span className="mv-item-title">{hasMark(f.kind) ? <span className="mv-mark-small" aria-hidden="true"><Mark name={f.kind} size={12} /></span> : null}{t(f.label)}</span>
                         <span className="mv-item-sub">{f.added_at ? t('Added {day}, read once a day.', { day: shortDay(f.added_at, locale) }) : t('Read once a day.')}</span>
                       </span>
                       <span className="mv-item-end"><button type="button" className="mv-pill mv-pill--ghost" onClick={() => void removeFeed(f.id)} disabled={busy === 'feed'}>{t('Remove')}</button></span>
@@ -1147,7 +1150,7 @@ export default function MoneyV2Page({ view = 'today' }: { view?: MoneyView } = {
                   {(calendar?.learned || []).map((l, i) => (
                     <li key={l.key || l.label || i} className="mv-item mv-item--sub">
                       <span className="mv-item-text">
-                        <span className="mv-item-title">{l.label}</span>
+                        <span className="mv-item-title">{t(l.label)}</span>
                         <span className="mv-item-sub">{t('about {amount}, on {n} of {m} days like it', { amount: euro(l.median || 0), n: l.paid ?? 0, m: l.occurrences ?? 0 })}</span>
                       </span>
                     </li>

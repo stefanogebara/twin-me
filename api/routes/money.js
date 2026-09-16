@@ -415,11 +415,13 @@ router.get('/stream', async (req, res) => {
       /* Only the four small fields go down the wire. A step that returns rows for the next
          step's use must not have them serialised into the browser: an early version of this
          streamed the entire ledger, 59 KB of it, to draw a one-line progress row. */
-      const { detail = null, count = null, done = false } = result;
-      send({ step: name, label, state: 'done', ms: Date.now() - startedAt, detail, count, done });
+      /* `say` is the same line in parts, so the panel can read it in the person's own
+         language; `detail` stays for anything that has not been given parts yet. */
+      const { detail = null, count = null, done = false, say = null } = result;
+      send({ step: name, label, state: 'done', ms: Date.now() - startedAt, detail, count, done, say });
       return result;
     } catch (error) {
-      send({ step: name, label, state: 'failed', detail: 'That step could not run.', ms: Date.now() - startedAt });
+      send({ step: name, label, state: 'failed', detail: 'That step could not run.', say: { key: 'That step could not run.' }, ms: Date.now() - startedAt });
       log.warn(`stream step ${name} failed`, { error: error.message });
       return null;
     }
@@ -431,17 +433,17 @@ router.get('/stream', async (req, res) => {
     await step('bank', 'Reading the bank', async () => {
       const budget = await feedBudget(userId);
       if (budget.left <= 0) {
-        return { detail: 'Four reads a day is the limit and today is spent. Using what is stored.', count: 0 };
+        return { detail: 'Four reads a day is the limit and today is spent. Using what is stored.', say: { key: 'Four reads a day is the limit and today is spent. Using what is stored.' }, count: 0 };
       }
       const accounts = await listBankAccounts(userId);
-      if (!accounts.length) return { detail: 'No account connected yet.', count: 0 };
+      if (!accounts.length) return { detail: 'No account connected yet.', say: { key: 'No account connected yet.' }, count: 0 };
       /* The same ten minutes the rest of the product holds itself to. This step read the bank
          on every mount of Ask, past the one policy that was written down so the phone and the
          web could not drift apart on what stale means (2026-09-16). */
       const newest = accounts.map((a) => a.last_pulled_at).filter(Boolean).sort().pop();
       const ageMinutes = newest ? (Date.now() - new Date(newest).getTime()) / 60000 : Infinity;
       if (ageMinutes < STALE_AFTER_MINUTES) {
-        return { detail: 'Read a moment ago; using what is stored.', count: 0 };
+        return { detail: 'Read a moment ago; using what is stored.', say: { key: 'Read a moment ago; using what is stored.' }, count: 0 };
       }
       /* A read that failed and a bank that was never connected are different things, and
          saying the wrong one sends somebody to reconnect an account that is already there. */
@@ -456,44 +458,69 @@ router.get('/stream', async (req, res) => {
         const why = /429|budget|exceeded/i.test(error.message) ? 'the daily limit is spent'
           : /fetch failed|network|ENOTFOUND|timeout/i.test(error.message) ? 'it could not be reached'
             : 'it refused the read';
-        return { detail: `The bank did not answer: ${why}.`, count: 0 };
+        /* One key per reason, not a hole: a reason pushed through a hole would arrive in
+           English inside a translated sentence. */
+        const reason = /429|budget|exceeded/i.test(error.message) ? 'The bank did not answer: the daily limit is spent.'
+          : /fetch failed|network|ENOTFOUND|timeout/i.test(error.message) ? 'The bank did not answer: it could not be reached.'
+            : 'The bank did not answer: it refused the read.';
+        return { detail: `The bank did not answer: ${why}.`, say: { key: reason }, count: 0 };
       }
       const seen = pulled.reduce((n, x) => n + x.seen, 0);
       const created = pulled.reduce((n, x) => n + x.created, 0);
-      return { detail: created ? `${created} new` : 'nothing new', count: seen };
+      return {
+        detail: created ? `${created} new` : 'nothing new',
+        say: created ? { key: '{n} new', vars: { n: created } } : { key: 'nothing new' },
+        count: seen,
+      };
     });
 
     const ledger = await step('ledger', 'Reading the payments', async () => {
       const rows = await listTransactions(userId, { limit: 5000 });
       const named = rows.filter((t) => t.merchant_raw).length;
-      return { detail: `${named} named by the bank`, count: rows.length, rows };
+      return { detail: `${named} named by the bank`, say: { key: '{n} named by the bank', vars: { n: named } }, count: rows.length, rows };
     });
 
     await step('places', 'Working out the places', async () => {
       const r = await enrichPlaces(userId, { limit: 8 });
-      if (r.provider === 'none') return { detail: 'Place lookups are off.', count: 0 };
-      return { detail: r.left ? `${r.left} still to do` : 'all of them placed', count: r.placed };
+      if (r.provider === 'none') return { detail: 'Place lookups are off.', say: { key: 'Place lookups are off.' }, count: 0 };
+      return {
+        detail: r.left ? `${r.left} still to do` : 'all of them placed',
+        say: r.left ? { key: '{n} still to do', vars: { n: r.left } } : { key: 'all of them placed' },
+        count: r.placed,
+      };
     });
 
     const learned = await step('learn', 'Learning the rhythms', async () => {
       const r = await learn(userId);
       return {
         detail: r.profiles.length ? `${r.predictions.length} expected next` : 'nothing steady yet',
+        say: r.profiles.length ? { key: '{n} expected next', vars: { n: r.predictions.length } } : { key: 'nothing steady yet' },
         count: r.profiles.length,
       };
     });
 
     await step('patterns', 'Reading what it means', async () => {
       const r = await refreshReadings(userId);
+      /* The finding's own sentence is English and belongs to the reading, not to this row;
+         the panel says how many there are, in the person's language (2026-09-16). */
       return {
         detail: r.findings.length ? r.findings[0].sentence : 'nothing it can say yet',
+        say: r.findings.length
+          ? { key: r.findings.length === 1 ? '{n} thing to say about this month' : '{n} things to say about this month', vars: { n: r.findings.length } }
+          : { key: 'nothing it can say yet' },
         count: r.findings.length,
       };
     });
 
     await step('gaps', 'Finding what it cannot explain', async () => {
       const q = await questionsFor(userId);
-      return { detail: q.fromLedger.length ? q.fromLedger[0].ask : 'nothing left unexplained', count: q.fromLedger.length };
+      return {
+        detail: q.fromLedger.length ? q.fromLedger[0].ask : 'nothing left unexplained',
+        say: q.fromLedger.length
+          ? { key: q.fromLedger.length === 1 ? '{n} question it cannot answer on its own' : '{n} questions it cannot answer on its own', vars: { n: q.fromLedger.length } }
+          : { key: 'nothing left unexplained' },
+        count: q.fromLedger.length,
+      };
     });
 
     send({ step: 'end', label: 'Done', state: 'done', done: true, learned: learned?.count ?? 0, ledger: ledger?.count ?? 0 });

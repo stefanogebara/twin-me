@@ -25,8 +25,8 @@ export default function Wait({ line = 'One moment.', sub = null, action = null, 
       <div className={`mv-wait-col${line ? '' : ' is-bare'}`}>
         {action ? null : <LedgerOrb state={state} size={64} label={t(line || 'One moment.')} />}
         {line ? <p className="mv-wait-line">{t(line)}</p> : null}
-        {sub ? <p className="mv-sub">{sub}</p> : null}
-        {action ? <div className="mv-ctas"><button type="button" className="mv-pill" onClick={action.onClick}>{action.label}</button></div> : null}
+        {sub ? <p className="mv-sub">{t(sub)}</p> : null}
+        {action ? <div className="mv-ctas"><button type="button" className="mv-pill" onClick={action.onClick}>{t(action.label)}</button></div> : null}
       </div>
     </Tag>
   );
