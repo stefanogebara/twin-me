@@ -1144,7 +1144,8 @@ export default function MoneyV2Page({ view = 'today' }: { view?: MoneyView } = {
                       <ol className="mv-steps">
                         <li>{t('Make a key above and copy it.')}</li>
                         <li><a className="mv-link" href="/downloads/TwinMe-payments.shortcut">{t('Add the shortcut')}</a>{t(', and paste the key when it asks.')}</li>
-                        <li>{t('Open Shortcuts, then Automation, then new. Choose Transaction, pick your card, and set it to run immediately.')}</li>
+                        <li>{t('Open Shortcuts, tap Automation at the bottom, then New Automation. Search for Wallet, the one that says when I tap a Wallet card or pass.')}</li>
+                        <li>{t('Pick your card, choose Run Immediately, and tap Next.')}</li>
                         <li>{t('Choose the TwinMe payments shortcut. The first time it runs, tap Allow.')}</li>
                       </ol>
                     ) : null}

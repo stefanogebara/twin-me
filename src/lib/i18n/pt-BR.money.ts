@@ -218,7 +218,6 @@ export const PT_BR_MONEY: Record<string, string> = {
   "Make a key above and copy it.": "Crie uma chave acima e copie.",
   "Add the shortcut": "Adicionar o atalho",
   ", and paste the key when it asks.": ", e cole a chave quando ele pedir.",
-  "Open Shortcuts, then Automation, then new. Choose Transaction, pick your card, and set it to run immediately.": "Abra Atalhos, depois Automa\u00e7\u00e3o, depois nova. Escolha Transa\u00e7\u00e3o, escolha seu cart\u00e3o e deixe executar na hora.",
   "Choose the TwinMe payments shortcut. The first time it runs, tap Allow.": "Escolha o atalho TwinMe payments. Na primeira vez que rodar, toque em Permitir.",
   "Any other tool": "Qualquer outra ferramenta",
   "Shown once. The iPhone shortcut asks for it; the Android app makes its own.": "Mostrada uma vez. O atalho do iPhone pede por ela; o app do Android cria a sua.",
@@ -245,4 +244,6 @@ export const PT_BR_MONEY: Record<string, string> = {
   "Subscription": "Assinatura",
   "{n} time so far": "{n} vez at\u00e9 agora",
   "{n} times so far": "{n} vezes at\u00e9 agora",
+  "Open Shortcuts, tap Automation at the bottom, then New Automation. Search for Wallet, the one that says when I tap a Wallet card or pass.": "Abra Atalhos, toque em Automacao embaixo, e depois Nova automacao. Procure Wallet, a que diz quando eu toco um cartao ou passe da Wallet.",
+  "Pick your card, choose Run Immediately, and tap Next.": "Escolha seu cartao, marque Executar na hora, e toque em Avancar.",
 };

@@ -218,7 +218,6 @@ export const ES_MONEY: Record<string, string> = {
   "Make a key above and copy it.": "Crea una clave arriba y c\u00f3piala.",
   "Add the shortcut": "A\u00f1adir el atajo",
   ", and paste the key when it asks.": ", y pega la clave cuando la pida.",
-  "Open Shortcuts, then Automation, then new. Choose Transaction, pick your card, and set it to run immediately.": "Abre Atajos, luego Automatizaci\u00f3n, luego nueva. Elige Transacci\u00f3n, elige tu tarjeta y ponla en ejecutar al momento.",
   "Choose the TwinMe payments shortcut. The first time it runs, tap Allow.": "Elige el atajo TwinMe payments. La primera vez que se ejecute, toca Permitir.",
   "Any other tool": "Cualquier otra herramienta",
   "Shown once. The iPhone shortcut asks for it; the Android app makes its own.": "Se muestra una vez. El atajo del iPhone la pide; la app de Android crea la suya.",
@@ -245,4 +244,6 @@ export const ES_MONEY: Record<string, string> = {
   "Subscription": "Suscripci\u00f3n",
   "{n} time so far": "{n} vez hasta ahora",
   "{n} times so far": "{n} veces hasta ahora",
+  "Open Shortcuts, tap Automation at the bottom, then New Automation. Search for Wallet, the one that says when I tap a Wallet card or pass.": "Abre Atajos, toca Automatizacion abajo, y luego Nueva automatizacion. Busca Wallet, la que dice cuando toco una tarjeta o pase de Wallet.",
+  "Pick your card, choose Run Immediately, and tap Next.": "Elige tu tarjeta, marca Ejecutar al momento, y toca Siguiente.",
 };
