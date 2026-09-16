@@ -12,6 +12,7 @@ import { euro, shortDay, type MoneyDayStrip, type MoneyForecast, type MoneyTrans
 import TotalRow from './TotalRow';
 import { useLocale, useT } from '@/lib/i18n';
 import { paletteOf, rgba } from './orbColors';
+import { localDay } from '../readingWords';
 
 type View = 'columns' | 'wave';
 const KEY = 'mv-fortnight-view';
@@ -92,7 +93,7 @@ export default function Fortnight({ strip, tomorrow, ledger = [] }: { strip: Mon
 
   const biggest = days.reduce((m, d) => (d.total > (m?.total ?? 0) ? d : m), null as MoneyDayStrip['days'][number] | null);
   const day = lit ? days.find((d) => d.day === lit) : null;
-  const dayRows = opened ? ledger.filter((r) => r.occurred_at.slice(0, 10) === opened && Number(r.amount) < 0) : [];
+  const dayRows = opened ? ledger.filter((r) => localDay(r.occurred_at) === opened && Number(r.amount) < 0) : [];
   const dayName = (iso: string) => new Date(`${iso}T12:00:00Z`).toLocaleDateString(locale, { weekday: 'short', day: 'numeric', month: 'short' });
   const line = day
     ? `${t(day.today ? '{day}, so far: {amount}' : '{day}: {amount}', { day: dayName(day.day), amount: euro(day.total) })}${day.count ? `, ${day.count === 1 ? t('{n} payment', { n: 1 }) : t('{n} payments', { n: day.count })}` : ''}${day.said ? `. ${t('It said {low} to {high}, and {verdict}.', { low: euro(day.said.low), high: euro(day.said.high), verdict: day.hit ? t('held') : t('broke') })}` : '.'}`

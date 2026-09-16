@@ -19,6 +19,7 @@
 import { supabaseAdmin } from '../database.js';
 import { listTransactions, listFacts } from './store.js';
 import { describeContext } from './context.js';
+import { dayIn } from './zone.js';
 
 export const GEOCODE_URL = 'https://maps.googleapis.com/maps/api/geocode/json';
 export const STATIC_MAP_URL = 'https://maps.googleapis.com/maps/api/staticmap';
@@ -93,7 +94,7 @@ export function weighPlaces(transactions, places, { now = new Date() } = {}) {
     if (!Number.isFinite(at) || at < since) continue;
     if (!byKey.has(t.merchant_key)) continue;
     if (!days.has(t.merchant_key)) days.set(t.merchant_key, new Set());
-    days.get(t.merchant_key).add(t.occurred_at.slice(0, 10));
+    days.get(t.merchant_key).add(dayIn(t.occurred_at));
   }
   const out = [];
   for (const [key, set] of days) {

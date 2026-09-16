@@ -19,6 +19,7 @@
 import { forecast, months, listFacts } from './store.js';
 import { studentMonth } from './priors.js';
 import { keepAmount } from './intention.js';
+import { dayIn } from './zone.js';
 
 /** Two complete months is the least that can stand for "a typical month" of this person. */
 export const MIN_MONTHS_FOR_TYPICAL = 2;
@@ -50,7 +51,7 @@ export function typicalMonth(segments = []) {
 
 /** The events today that the calendar already expects to cost something. */
 export function eventsToday(items = [], now = new Date()) {
-  const today = now.toISOString().slice(0, 10);
+  const today = dayIn(now);
   return items
     .filter((i) => i && i.day === today && Number(i.amount) > 0)
     .map((i) => ({ title: String(i.title || 'Something on today'), amount: r2(i.amount) }));

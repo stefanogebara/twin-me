@@ -17,6 +17,7 @@
  * series per merchant. The rows in the series are named by id, so only those are
  * flagged recurring and the odd purchase stays in the day's spending.
  */
+import { dayIn } from './zone.js';
 
 export const MIN_OCCURRENCES = 3;
 export const AMOUNT_CV = 0.2;
@@ -119,7 +120,7 @@ export function detectRecurring(transactions, opts = {}) {
       last_seen: new Date(last).toISOString(),
       /* Rolled forward past today: a biweekly last seen on 22 August is next due in the
          future, not "around 5 September" said on the 15th. */
-      next_expected: nextAfter(last, Math.round(med) * DAY, now).toISOString().slice(0, 10),
+      next_expected: dayIn(nextAfter(last, Math.round(med) * DAY, now)),
       is_subscription: Boolean(platforms[key]),
       platform: platforms[key] || null,
       transaction_ids: rows.map((r) => r.id).filter(Boolean),

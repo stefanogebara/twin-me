@@ -14,6 +14,7 @@
  */
 
 import { shortName } from './bizum.js';
+import { dayIn, dayOfMonthIn, partsIn, monthIn } from './zone.js';
 
 export const INCOME_LATE = 'income_late';
 /** An arrival within this many days of the usual day counts as on time. */
@@ -33,7 +34,7 @@ const EUR = new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR' 
 /* The same form the analyst uses on the screen: Intl's own, sign and no-break space kept. */
 const euro = (n) => EUR.format(Math.abs(Number(n) || 0));
 const r2 = (n) => Math.round(Number(n) * 100) / 100;
-const dayOf = (d) => new Date(d).toISOString().slice(0, 10);
+const dayOf = (d) => dayIn(d);
 const norm = (s) => String(s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9 ]+/g, ' ').replace(/\s+/g, ' ').trim();
 function median(xs) { const s = [...xs].sort((a, b) => a - b); if (!s.length) return 0; const m = Math.floor(s.length / 2); return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2; }
 const ordinal = (n) => `${n}${n % 10 === 1 && n !== 11 ? 'st' : n % 10 === 2 && n !== 12 ? 'nd' : n % 10 === 3 && n !== 13 ? 'rd' : 'th'}`;
@@ -59,10 +60,10 @@ export function incomeSeries(transactions = [], { isIncome = null, now = new Dat
   const out = [];
   for (const g of groups.values()) {
     g.arrivals.sort((a, b) => (a.occurred_at < b.occurred_at ? -1 : 1));
-    const daysOfMonth = g.arrivals.map((t) => new Date(t.occurred_at).getUTCDate());
+    const daysOfMonth = g.arrivals.map((t) => dayOfMonthIn(t.occurred_at));
     const typicalDay = Math.round(median(daysOfMonth));
-    const onTime = g.arrivals.filter((t) => Math.abs(new Date(t.occurred_at).getUTCDate() - typicalDay) <= MATCH_DAYS).length;
-    const months = new Set(g.arrivals.map((t) => String(t.occurred_at).slice(0, 7)));
+    const onTime = g.arrivals.filter((t) => Math.abs(dayOfMonthIn(t.occurred_at) - typicalDay) <= MATCH_DAYS).length;
+    const months = new Set(g.arrivals.map((t) => monthIn(t.occurred_at)));
     out.push({
       key: g.key,
       name: shortName(g.name),
@@ -90,7 +91,7 @@ function matches(fact, series) {
 
 /** The next day-of-month occurrence on or after `now`, as an ISO day. */
 function nextDue(dayOfMonth, now) {
-  const y = now.getUTCFullYear(); const m = now.getUTCMonth();
+  const here = partsIn(now); const y = here.year; const m = here.month - 1;
   const clamp = (yy, mm) => new Date(Date.UTC(yy, mm, Math.min(Math.max(dayOfMonth, 1), new Date(Date.UTC(yy, mm + 1, 0)).getUTCDate())));
   const thisMonth = clamp(y, m);
   return dayOf(thisMonth.getTime() >= new Date(`${dayOf(now)}T00:00:00Z`).getTime() ? thisMonth : clamp(y, m + 1));
@@ -146,7 +147,7 @@ export function incomeEvents({ facts = [], transactions = [], isIncome = null, n
  */
 export function incomeFindings({ facts = [], transactions = [], isIncome = null, now = new Date() } = {}) {
   const month = dayOf(now).slice(0, 7);
-  const today = now.getUTCDate();
+  const today = dayOfMonthIn(now);
   const series = incomeSeries(transactions, { isIncome, now });
   const out = [];
   for (const f of (facts || []).filter((x) => x && x.kind === 'income')) {
@@ -159,7 +160,7 @@ export function incomeFindings({ facts = [], transactions = [], isIncome = null,
       kind: INCOME_LATE,
       month: `${month}-01`,
       sentence: `${labelOf(f)}, usually about ${euro(s.typical_amount)} on the ${ordinal(s.typical_day)}, has not come this month.`,
-      detail: `The last ${last.length === 1 ? 'one' : last.length} came on the ${last.map((t) => ordinal(new Date(t.occurred_at).getUTCDate())).join(', ')}.`,
+      detail: `The last ${last.length === 1 ? 'one' : last.length} came on the ${last.map((t) => ordinal(dayOfMonthIn(t.occurred_at))).join(', ')}.`,
       numbers: { source: labelOf(f), source_is_default: labelOf(f) === 'Comes in', typical_amount: s.typical_amount, typical_day: s.typical_day, times: s.times, days_late: today - s.typical_day },
       receipts: last,
       evidence_count: s.times,

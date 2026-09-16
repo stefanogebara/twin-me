@@ -18,6 +18,7 @@
  * Pure functions: rows in, findings out. No Supabase, no LLM, no clock except the
  * `now` passed in.
  */
+import { dayOfMonthIn, weekdayIn, dayIn } from './zone.js';
 
 const DAY = 86400000;
 const EUR = new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR', maximumFractionDigits: 2 });
@@ -54,7 +55,7 @@ export function monthSegments(transactions, now = new Date(), isSpending = null,
       if (isSpending && !isSpending(t)) continue;
       m.spent += abs(t);
       /* The same days of every month, so a half month is compared with half months. */
-      if (new Date(t.occurred_at).getUTCDate() <= now.getUTCDate()) m.spent_to_day += abs(t);
+      if (dayOfMonthIn(t.occurred_at) <= dayOfMonthIn(now)) m.spent_to_day += abs(t);
       if (!m.biggest || abs(t) > abs(m.biggest)) m.biggest = t;
     } else if (!isIncome || isIncome(t)) m.received += abs(t);
   }
@@ -63,7 +64,7 @@ export function monthSegments(transactions, now = new Date(), isSpending = null,
     .map((m) => {
       const key = monthKey(m.month);
       const daysInMonth = new Date(Date.UTC(Number(key.slice(0, 4)), Number(key.slice(5, 7)), 0)).getUTCDate();
-      const covered = key === thisMonth ? now.getUTCDate() : daysInMonth;
+      const covered = key === thisMonth ? dayOfMonthIn(now) : daysInMonth;
       return {
         ...m,
         spent: Math.round(m.spent * 100) / 100,
@@ -85,7 +86,7 @@ function monthPace(transactions, now, segments) {
   if (!here || !previous) return null;
   const day = here.days_covered;
   const prevKey = monthKey(previous.month);
-  const sameDays = transactions.filter((t) => out(t) && monthKey(t.occurred_at) === prevKey && new Date(t.occurred_at).getUTCDate() <= day);
+  const sameDays = transactions.filter((t) => out(t) && monthKey(t.occurred_at) === prevKey && dayOfMonthIn(t.occurred_at) <= day);
   if (!sameDays.length) return null;
   const thenSpent = Math.round(sameDays.reduce((s, t) => s + abs(t), 0) * 100) / 100;
   const gap = Math.round((here.spent - thenSpent) * 100) / 100;
@@ -180,7 +181,7 @@ export function weekdayShape(transactions, now, weeks = 6, iterations = 600) {
   const totalPerDate = new Map();
   for (let d = new Date(from); d <= now; d = new Date(d.getTime() + DAY)) totalPerDate.set(d.toISOString().slice(0, 10), 0);
   for (const t of spend) {
-    const date = t.occurred_at.slice(0, 10);
+    const date = dayIn(t.occurred_at);
     if (!totalPerDate.has(date)) continue;
     totalPerDate.set(date, totalPerDate.get(date) + abs(t));
   }
@@ -230,7 +231,7 @@ export function weekdayShape(transactions, now, weeks = 6, iterations = 600) {
     sentence: `${WEEKDAY[top.weekday]}s cost you ${euro(top.here)} against ${euro(top.rest)} on other days.`,
     detail: `Read from ${weeks} weeks, ${spend.length} payments and ${top.n} ${WEEKDAY[top.weekday]}s.`,
     numbers: { weekday: top.weekday, per_day: Math.round(top.here * 100) / 100, other_per_day: Math.round(top.rest * 100) / 100, ratio: Math.round(top.ratio * 100) / 100, p, weeks, n: top.n, payments: spend.length },
-    receipts: spend.filter((t) => new Date(t.occurred_at).getUTCDay() === top.weekday).sort((a, b) => abs(b) - abs(a)).slice(0, 3),
+    receipts: spend.filter((t) => weekdayIn(t.occurred_at) === top.weekday).sort((a, b) => abs(b) - abs(a)).slice(0, 3),
     evidence_count: spend.length,
   };
 }

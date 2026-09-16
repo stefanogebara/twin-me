@@ -25,13 +25,14 @@ import { forecast, listTransactions, listFacts, months, scorePredictions as scor
 import { safeToSpend } from './allowance.js';
 import { TWIN_PREDICTION_CONFIDENCE } from './brain.js';
 import { dayForecast, dayActual, calibrate } from './calibration.js';
+import { dayIn } from './zone.js';
 
 const log = createLogger('MoneyPredictions');
 /** A charge counts as on the day if it lands within this many days of when it was expected. */
 export const ON_DAY_DAYS = 1;
 
 const r2 = (n) => Math.round(Number(n) * 100) / 100;
-const day = (d) => new Date(d).toISOString().slice(0, 10);
+const day = (d) => dayIn(d);
 const endOfMonth = (iso) => {
   const d = new Date(iso);
   return day(new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 1, 0)));

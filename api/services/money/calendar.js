@@ -25,6 +25,7 @@ import { createLogger } from '../logger.js';
 import { createCalendarClient } from '../calendar/client.js';
 import { getValidAccessToken } from '../tokenRefreshService.js';
 import { listTransactions, listFacts, categoriesFor } from './store.js';
+import { weekdayIn, partsIn, dayIn } from './zone.js';
 
 const log = createLogger('MoneyCalendar');
 
@@ -205,7 +206,7 @@ export function learnShapes(events, transactions, { categoryOf = () => null, now
     const spent = spendByEvent.get(ev.id) || 0;
     if (spent > 0) { s.paid += 1; s.spends.push(round2(spent)); }
     for (const [cat, amt] of categoriesByEvent.get(ev.id) || []) s.categories.set(cat, (s.categories.get(cat) || 0) + amt);
-    const wd = new Date(ev.start).getUTCDay();
+    const wd = weekdayIn(ev.start);
     s.weekdays.set(wd, (s.weekdays.get(wd) || 0) + 1);
     if (!s.last || ms(ev.start) > ms(s.last)) s.last = ev.start;
     byShape.set(key, s);
@@ -244,10 +245,11 @@ export function routineSummary(events, { now = new Date() } = {}) {
   const perDay = new Map();
   const firstByDate = new Map();
   for (const e of past) {
-    const d = new Date(e.start);
-    perDay.set(d.getUTCDay(), (perDay.get(d.getUTCDay()) || 0) + 1);
+    /* A ten o'clock class is ten o'clock where the person is, not eight in UTC. */
+    const p = partsIn(e.start);
+    perDay.set(p.weekday, (perDay.get(p.weekday) || 0) + 1);
     const key = dayOf(e.start);
-    const minutes = d.getUTCHours() * 60 + d.getUTCMinutes();
+    const minutes = p.hour * 60 + p.minute;
     if (!firstByDate.has(key) || minutes < firstByDate.get(key)) firstByDate.set(key, minutes);
   }
   const busiest = [...perDay.entries()].sort((a, b) => b[1] - a[1]).slice(0, 2).map(([wd]) => WEEKDAYS[wd]);
@@ -346,7 +348,8 @@ export function calendarFromFacts(facts, { now = new Date() } = {}) {
  */
 export function calendarForecast(facts, { now = new Date() } = {}) {
   const { snapshot } = calendarFromFacts(facts, { now });
-  const monthEnd = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1)).getTime();
+  const hereNow = partsIn(now);
+  const monthEnd = new Date(Date.UTC(hereNow.year, hereNow.month, 1)).getTime();
   const items = snapshot
     .filter((i) => i.expected?.amount && ms(i.start) < monthEnd)
     .map((i) => ({ title: i.label || i.title, day: dayOf(i.start), amount: i.expected.amount }));
@@ -359,7 +362,7 @@ export function calendarLines(facts, { now = new Date() } = {}) {
   const lines = [];
   const week = snapshot.filter((i) => ms(i.start) < now.getTime() + 7 * DAY_MS).slice(0, 7);
   const fmt = (n) => `${Number(n).toFixed(2).replace('.', ',')} EUR`;
-  const day = (iso) => { const d = new Date(iso); return `${WEEKDAYS[d.getUTCDay()].slice(0, 3)} ${d.getUTCDate()}`; };
+  const day = (iso) => { const p = partsIn(iso); return `${WEEKDAYS[p.weekday].slice(0, 3)} ${p.day}`; };
   if (week.length) {
     lines.push('Calendar, next 7 days: ' + week.map((i) => `${day(i.start)} "${i.label || i.title}"${i.expected ? ` usually about ${fmt(i.expected.amount)} (${i.expected.basis.split(',')[0]})` : ' (no spend learned)'}`).join('; ') + '.');
   }

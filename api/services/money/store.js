@@ -27,6 +27,7 @@ import { readUsage, unmeasurable, platformForMerchant } from './usage.js';
 import { learnMerchants, predictNext, learnPatterns, describeForTwin, TWIN_PREDICTION_CONFIDENCE } from './brain.js';
 import { openingQuestions, ledgerQuestions, checkCommitment, describeContext, FACT_KINDS } from './context.js';
 import { calendarForecast, calendarFromFacts } from './calendar.js';
+import { dayIn, dayOfMonthIn } from './zone.js';
 
 const log = createLogger('money-store');
 
@@ -215,7 +216,7 @@ export async function refreshRecurring(userId, now = new Date()) {
       merchant_name: names.get(x.merchant_key) || null,
       charges: paid.slice(0, 12),
       total_paid: Math.round(paid.reduce((sum, c) => sum + c.amount, 0) * 100) / 100,
-      day_of_month: paid.length ? new Date(paid[0].occurred_at).getUTCDate() : null,
+      day_of_month: paid.length ? dayOfMonthIn(paid[0].occurred_at) : null,
     };
   });
 }
@@ -278,7 +279,7 @@ export async function forecast(userId, now = new Date()) {
   /* The last thirty days as marks, with the range the twin gave each one and whether it
      held, and the range it has given tomorrow, widened by what it has earned so far. */
   result.days = dayStrip(rows, band.record, { now, isSpending });
-  const tomorrowKey = new Date(now.getTime() + 86400000).toISOString().slice(0, 10);
+  const tomorrowKey = dayIn(new Date(now.getTime() + 86400000));
   const open = (figureDays || []).filter((r) => !r.scored_at && r.predicted_for === tomorrowKey).pop();
   result.tomorrow = open ? { day: open.predicted_for, value: Number(open.value), low: Math.max(0, Number(open.low ?? open.value) - band.widen), high: Number(open.high ?? open.value) + band.widen } : null;
   /* What is still to come is named on the hero, so it needs a name and not a key. */
@@ -1088,7 +1089,7 @@ export async function scorePredictions(userId, now = new Date()) {
       && Math.abs(new Date(t.occurred_at).getTime() - target) <= 3 * 86400000
       && (!p.typical_amount || Math.abs(Math.abs(Number(t.amount)) - Number(p.typical_amount)) <= Number(p.typical_amount) * 0.25));
     const update = match
-      ? { happened: true, happened_on: match.occurred_at.slice(0, 10), happened_amount: Math.abs(Number(match.amount)), scored_at: now.toISOString() }
+      ? { happened: true, happened_on: dayIn(match.occurred_at), happened_amount: Math.abs(Number(match.amount)), scored_at: now.toISOString() }
       : { happened: false, scored_at: now.toISOString() };
     if (match) hit += 1;
     await supabaseAdmin.from('money_predictions').update(update).eq('id', p.id);
@@ -1165,7 +1166,7 @@ export async function answerQuestion(userId, { questionId, kind, subject, subjec
         .filter((t) => t.merchant_key === subject && Number(t.amount) < 0 && Math.abs(Number(t.amount)) >= 200);
       if (rows.length) {
         const amounts = rows.map((t) => Math.abs(Number(t.amount))).sort((a, b) => a - b);
-        const days = rows.map((t) => new Date(t.occurred_at).getUTCDate()).sort((a, b) => a - b);
+        const days = rows.map((t) => dayOfMonthIn(t.occurred_at)).sort((a, b) => a - b);
         amount = amounts[Math.floor(amounts.length / 2)];
         day = day || days[Math.floor(days.length / 2)];
       }

@@ -39,6 +39,7 @@ import { CATEGORIES } from './places.js';
 import { markCounted, personRoles } from './spending.js';
 import { calendarLines } from './calendar.js';
 import { safeToSpend, allowanceLine } from './allowance.js';
+import { partsIn, weekdayIn } from './zone.js';
 
 const log = createLogger('money-chat');
 
@@ -89,7 +90,8 @@ const at = (t) => new Date(t.occurred_at).getTime();
 const amountText = (n) => `${DECIMAL.format(Math.abs(Number(n) || 0))} EUR`;
 const dayMonth = (iso, language = null) => {
   const d = new Date(iso);
-  return Number.isNaN(d.getTime()) ? '' : `${d.getUTCDate()} ${monthNames(language)[d.getUTCMonth()]}`;
+  const p = partsIn(d);
+  return p ? `${p.day} ${monthNames(language)[p.month - 1]}` : '';
 };
 const monthLabel = (iso, language = null) => {
   const d = new Date(iso);
@@ -248,7 +250,7 @@ export function buildFigure(request, ctx) {
     for (const t of spend) {
       const d = new Date(t.occurred_at);
       if (Number.isNaN(d.getTime())) continue;
-      totals[(d.getUTCDay() + 6) % 7] += abs(t);
+      totals[(weekdayIn(t.occurred_at) + 6) % 7] += abs(t);
     }
     const points = weekdayNames(ctx.language).map((label, i) => ({ label, value: round2(totals[i]) }));
     return { figure: { kind, title: say(ctx.language, 'Spent by day of the week'), points }, rows: [...spend].sort((a, b) => abs(b) - abs(a)) };
@@ -365,7 +367,7 @@ export function receiptsFor(built, ctx, citedIds = []) {
 export function contextText(ctx) {
   const lines = [];
   const today = ctx.now;
-  lines.push(`Today is ${dayMonth(today.toISOString())} ${today.getUTCFullYear()}. Amounts are in EUR.`);
+  lines.push(`Today is ${dayMonth(today.toISOString())} ${partsIn(today).year}. Amounts are in EUR.`);
   const LANGUAGE_NAMES = { en: 'English', es: 'Spanish', 'pt-BR': 'Brazilian Portuguese' };
   if (ctx.language && LANGUAGE_NAMES[ctx.language]) lines.push(`The person chose ${LANGUAGE_NAMES[ctx.language]} for TwinMe.`);
   /* Last line, and plainly: a ledger full of Spanish shops and Spanish names talked the model
