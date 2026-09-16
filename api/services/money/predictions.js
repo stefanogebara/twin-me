@@ -175,19 +175,26 @@ export function ownScoreFinding(summary) {
 
 /* ------------------------------------------------------------------ rows */
 
-let tableMissing = false;
+/* A table that is not there yet is a deployment state, not an error to raise on every call:
+   the first one is logged and the rest go quiet. Two things this must not do, and used to:
+   latch on any error whose text merely names the table (a timeout carrying the table name in
+   its message disabled scoring for the life of the instance), and stay latched forever after
+   a migration lands. The test is the postgres code, and the quiet lasts an hour (2026-09-16). */
+const MISSING_QUIET_MS = 60 * 60 * 1000;
+let missingUntil = 0;
+const tableGone = (now = Date.now()) => missingUntil > now;
 const missing = (error) => {
-  if (error && /money_figure_scores|42P01|schema cache/.test(String(error.message))) {
-    if (!tableMissing) log.warn('money_figure_scores is not there yet; the month and the day are not scored');
-    tableMissing = true;
-    return true;
-  }
-  return false;
+  const text = String(error?.message || '');
+  const code = String(error?.code || '');
+  if (!error || !(code === '42P01' || /42P01/.test(text) || /schema cache/i.test(text) || /relation .*money_figure_scores.* does not exist/i.test(text))) return false;
+  if (!tableGone()) log.warn('money_figure_scores is not there yet; the month and the day are not scored');
+  missingUntil = Date.now() + MISSING_QUIET_MS;
+  return true;
 };
 
 /** Write today's figures for one person. Idempotent per day. */
 export async function recordPredictions(userId, { cast, allowance, day = null, now = new Date() }) {
-  if (tableMissing) return { recorded: 0 };
+  if (tableGone()) return { recorded: 0 };
   const rows = predictionsFrom({ cast, allowance, day, now });
   if (!rows.length) return { recorded: 0 };
   const { error } = await supabaseAdmin
@@ -199,7 +206,7 @@ export async function recordPredictions(userId, { cast, allowance, day = null, n
 
 /** Score every figure whose day has passed, against the ledger as it stands now. */
 export async function scoreFigures(userId, { transactions, facts = [], now = new Date() }) {
-  if (tableMissing) return { scored: 0 };
+  if (tableGone()) return { scored: 0 };
   const { data: open, error } = await supabaseAdmin
     .from('money_figure_scores')
     .select('*')
@@ -229,7 +236,7 @@ export async function accuracy(userId) {
     .eq('user_id', userId).not('happened', 'is', null)
     .order('expected_on', { ascending: false }).limit(200);
   let figures = [];
-  if (!tableMissing) {
+  if (!tableGone()) {
     const { data, error } = await supabaseAdmin
       .from('money_figure_scores')
       .select('kind, predicted_for, value, low, high, actual, hit, scored_at')
@@ -248,7 +255,7 @@ export async function accuracy(userId) {
  */
 export async function learnFromLedger(userId, now = new Date()) {
   const charges = await scoreCharges(userId, now).catch((e) => { log.warn('charge scoring failed', { error: e.message }); return { scored: 0, hit: 0 }; });
-  if (tableMissing) return { recorded: 0, scored: 0, charges };
+  if (tableGone()) return { recorded: 0, scored: 0, charges };
   const [cast, transactions, facts, segments] = await Promise.all([
     forecast(userId, now).catch(() => null),
     listTransactions(userId, { limit: 5000 }).catch(() => []),

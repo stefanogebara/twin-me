@@ -71,8 +71,12 @@ export function upcoming(cast, now = new Date()) {
   for (const c of cast.commitment_items || []) {
     items.push({ name: c.subject || 'A standing charge', amount: r2(c.amount), on: c.due_on, source: 'stated' });
   }
+  /* The calendar's own shape is { title, day, amount } (calendarForecast in calendar.js).
+     Reading only e.expected.amount and e.on meant a priced day in the diary never became a
+     charge ahead, the same mismatch that kept it off the plan's squares (2026-09-16). */
   for (const e of cast.calendar_items || []) {
-    if (e.expected && Number(e.expected.amount) > 0) items.push({ name: e.label || e.title, amount: r2(e.expected.amount), on: dayOf(e.on), source: 'calendar' });
+    const amount = Number(e.amount ?? e.expected?.amount) || 0;
+    if (amount > 0) items.push({ name: e.title || e.label, amount: r2(amount), on: dayOf(e.day || e.on), source: 'calendar' });
   }
   return items.filter((i) => i.on && i.on >= today && Number.isFinite(i.amount) && i.amount > 0).sort((a, b) => (a.on < b.on ? -1 : a.on > b.on ? 1 : b.amount - a.amount));
 }

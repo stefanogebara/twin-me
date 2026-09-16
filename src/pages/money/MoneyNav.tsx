@@ -31,7 +31,7 @@ export default function MoneyNav({ links }: { links: MoneyNavLink[] }) {
           onClick={() => setOpen((o) => !o)}
         >
           {open ? <X size={16} aria-hidden="true" /> : <Menu size={16} aria-hidden="true" />}
-          <span>Menu</span>
+          <span>{t('Menu')}</span>
         </button>
       </div>
       <nav id="mv-side-links" className="mv-side-links" aria-label={t('Money')}>

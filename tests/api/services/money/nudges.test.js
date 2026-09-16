@@ -13,7 +13,7 @@ const cast = {
     { merchant_key: 'vercel', merchant_name: 'Vercel', typical_amount: 73.34, next_expected: '2026-09-23' },
   ],
   commitment_items: [{ subject: 'Habitacion', amount: 600, due_on: '2026-10-01' }],
-  calendar_items: [{ label: 'Dinner with Ana', on: '2026-09-15T20:00:00Z', expected: { amount: 24 } }, { label: 'Lecture', on: '2026-09-15T09:00:00Z', expected: null }],
+  calendar_items: [{ title: 'Dinner with Ana', day: '2026-09-15', amount: 24 }, { title: 'Lecture', day: '2026-09-15', amount: 0 }],
 };
 
 describe('upcoming', () => {
@@ -25,6 +25,16 @@ describe('upcoming', () => {
       ['Vercel', 73.34, '2026-09-23', 'series'],
       ['Habitacion', 600, '2026-10-01', 'stated'],
     ]);
+  });
+
+  it('takes the calendar in its own shape, and still reads the older one', () => {
+    /* calendarForecast sends { title, day, amount }; an earlier reader asked for e.on and
+       e.expected.amount, so a priced day in the diary was never a charge ahead. */
+    const own = upcoming({ ...cast, committed_items: [], commitment_items: [], calendar_items: [{ title: 'Trip to Valencia', day: '2026-09-26', amount: 48.5 }] }, NOW);
+    expect(own.map((i) => [i.name, i.amount, i.on, i.source])).toEqual([['Trip to Valencia', 48.5, '2026-09-26', 'calendar']]);
+
+    const older = upcoming({ ...cast, committed_items: [], commitment_items: [], calendar_items: [{ label: 'Trip to Valencia', on: '2026-09-26T09:00:00Z', expected: { amount: 48.5 } }] }, NOW);
+    expect(older.map((i) => [i.name, i.amount, i.on, i.source])).toEqual([['Trip to Valencia', 48.5, '2026-09-26', 'calendar']]);
   });
 });
 

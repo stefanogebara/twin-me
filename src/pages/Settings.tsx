@@ -470,8 +470,8 @@ const Settings = () => {
               {facts === null ? <Row title={t('Reading')} line={t('One moment.')} /> : facts.length === 0 ? <Row title={t('Nothing yet')} line={t('Answer a question on Money, You, or tell the chat something.')} /> : facts.map((f) => (
                 <Row
                   key={f.id}
-                  title={factTitle(f)}
-                  line={factWord(f)}
+                  title={factTitle(f, t)}
+                  line={factWord(f, t)}
                   action={<button type="button" className="n-btn n-btn--ghost" disabled={forgetting === f.id} onClick={() => void forget(f)}>{forgetting === f.id ? t('Forgetting') : t('Forget')}</button>}
                 />
               ))}

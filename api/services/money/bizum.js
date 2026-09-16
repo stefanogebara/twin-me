@@ -191,6 +191,7 @@ export function splitQuestions(candidates = [], opts = {}) {
       subject: String(c.payment.id),
       subjectLabel: nameOf(c.payment),
       ask: `You paid ${euro(abs(c.payment))} at ${nameOf(c.payment)} ${dayWord(c.payment.occurred_at, now)}, and ${list} sent you ${euro(abs(c.repayments[0]))} each. Was that split?`,
+      say: { key: 'You paid {amount} at {name} {day}, and {who} sent you {each} each. Was that split?', vars: { amount: euro(abs(c.payment)), name: nameOf(c.payment), day: c.payment.occurred_at, who: list, each: euro(abs(c.repayments[0])) } },
       help: 'Say how many people it was for, you included.',
       why: 'A dinner split five ways is one fifth of your money, and the Bizums back are not income.',
       changes: 'your share of this payment, and who still owes you',
@@ -226,7 +227,7 @@ export function splitFindings(facts = [], transactions = [], opts = {}) {
       month: payment.occurred_at.slice(0, 10),
       sentence: `${nameOf(payment)} ${dayWord(payment.occurred_at, now)}, ${euro(abs(payment))} split ${ways} ways: ${paidText}, ${euro(s.open)} still open.`,
       detail: `Your share is ${euro(s.share)}. ${s.expected - s.paid} of ${s.expected} shares still to come.`,
-      numbers: { total: abs(payment), ways, share: s.share, paid: s.paid, expected: s.expected, open: s.open },
+      numbers: { name: nameOf(payment), who, on: payment.occurred_at, total: abs(payment), ways, share: s.share, paid: s.paid, expected: s.expected, open: s.open },
       receipts: [payment, ...s.repayments].slice(0, 3),
       evidence_count: 1 + s.paid,
     });

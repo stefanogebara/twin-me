@@ -12,7 +12,7 @@
  * items as rows, and a note field. A note is a fact the ledger reads with everything else,
  * in the person's own words: the twin knows the trip before the payments arrive.
  */
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import '../../styles/money-v2.css';
 import MoneyNav, { type MoneyNavLink } from './MoneyNav';
 import Wait from '../../components/Wait';
@@ -49,6 +49,24 @@ function monthOnly(month: string, locale: string): string {
   return Number.isNaN(d.getTime()) ? month : d.toLocaleDateString(locale, { month: 'long' });
 }
 
+/* The month's own line. The server composes one too, in English, with an English month
+   name; the page has the same four numbers and says it in the reader's language. */
+function planLine(plan: MoneyPlan, t: T, locale: string, current: boolean): string {
+  const month = monthOnly(plan.month, locale);
+  const n = plan.totals.days_ahead;
+  const head = current
+    ? t('{month}: {amount} so far', { month, amount: euro(plan.totals.spent_to_day) })
+    : t('{month}: {amount}', { month, amount: euro(plan.totals.spent_to_day) });
+  if (!current) return `${head}.`;
+  const clauses = [
+    n ? (n === 1
+      ? t('{amount} expected on one day ahead', { amount: euro(plan.totals.expected_rest) })
+      : t('{amount} expected on {n} days ahead', { amount: euro(plan.totals.expected_rest), n })) : '',
+    plan.totals.income_ahead ? t('{amount} coming in', { amount: euro(plan.totals.income_ahead) }) : '',
+  ].filter(Boolean);
+  return clauses.length ? `${head}; ${clauses.join(', ')}.` : `${head}.`;
+}
+
 function dayLine(c: MoneyPlanCell, t: T): string {
   if (c.past || c.today) {
     const base = c.count
@@ -78,13 +96,23 @@ export default function PlanPage() {
   const [draft, setDraft] = useState('');
   const [busy, setBusy] = useState(false);
 
+  /* One month at a time: a second request started before the first came back could land
+     second and paint the month the reader had already left. The newest read wins. */
+  const seq = useRef(0);
   const load = useCallback(async (key: string) => {
+    const mine = ++seq.current;
     try {
       const p = await moneyAPI.plan(key === current ? null : key);
+      if (mine !== seq.current) return;
       setPlan(p);
       setFailed(false);
       setPicked((was) => (was && p.cells.some((c) => c.day === was) ? was : p.today));
     } catch {
+      if (mine !== seq.current) return;
+      /* The grid goes with it: thirty squares of the month before sat under the heading of
+         the month that failed to load. */
+      setPlan(null);
+      setPicked(null);
       setFailed(true);
     }
   }, [current]);
@@ -118,7 +146,7 @@ export default function PlanPage() {
         <div className="mv-col">
           <section className="mv-section mv-plan-top">
             <h1>{t('{month}, day by day.', { month: monthOnly(month, locale) })}</h1>
-            <p className="mv-sub">{failed ? t('The plan could not be read right now.') : plan ? glyphs(plan.line) : ''}</p>
+            <p className="mv-sub">{failed ? t('The plan could not be read right now.') : plan ? glyphs(planLine(plan, t, locale, month === current)) : ''}</p>
             <div className="mv-plan-months">
               <button type="button" className="mv-link" onClick={() => setMonth(shiftMonth(month, -1))}>{monthLabel(shiftMonth(month, -1), locale).replace(/ \d{4}$/, '')}</button>
               {month !== current ? <button type="button" className="mv-link" onClick={() => setMonth(shiftMonth(month, 1))}>{monthLabel(shiftMonth(month, 1), locale).replace(/ \d{4}$/, '')}</button> : null}

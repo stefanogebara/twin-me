@@ -67,7 +67,7 @@ export default function Fortnight({ strip, tomorrow, ledger = [] }: { strip: Mon
           const today = days[dayIdx]?.today && Math.abs(u * (n - 1) - dayIdx) < 0.5;
           const ahead = dayIdx >= days.length;
           ctx.fillStyle = today ? rgba(pal.ember, 0.3 + 0.7 * sw) : rgba(pal.ink, 0.18 + 0.72 * sw);
-          ctx.beginPath(); ctx.arc(x, y, 1.2 + sw * 1.6, 0, Math.PI * 2); if (ahead) { ctx.strokeStyle = rgba(pal.quiet, 0.6); ctx.lineWidth = 1; ctx.stroke(); } else ctx.fill();
+          ctx.beginPath(); ctx.arc(x, y, 1.2 + sw * 1.6, 0, Math.PI * 2); if (ahead) { ctx.strokeStyle = rgba(pal.quiet, 1); ctx.lineWidth = 1; ctx.stroke(); } else ctx.fill();
         }
       } else {
         for (let i = 0; i < n; i += 1) {
@@ -75,10 +75,12 @@ export default function Fortnight({ strip, tomorrow, ledger = [] }: { strip: Mon
           const arrive = still ? 1 : Math.min(1, Math.max(0, (since - i * 0.03) / 0.5)); const x = colX(i);
           for (let k = 0; k < Math.round(dots * arrive); k += 1) {
             const y = H - 26 - k * DOT; ctx.beginPath(); ctx.arc(x, y, DOT / 2 - 0.2, 0, Math.PI * 2);
-            if (ahead) { ctx.strokeStyle = rgba(pal.quiet, 0.8); ctx.lineWidth = 1; ctx.stroke(); }
+            if (ahead) { ctx.strokeStyle = rgba(pal.quiet, 1); ctx.lineWidth = 1; ctx.stroke(); }
             else { ctx.fillStyle = today ? rgba(pal.ember, 1) : miss ? rgba(pal.danger, 0.9) : rgba(pal.ink, litRef.current && litRef.current !== days[i].day ? 0.45 : 1); ctx.fill(); }
           }
-          if (dots === 0) { ctx.fillStyle = rgba(pal.quiet, 0.45); ctx.beginPath(); ctx.arc(x, H - 26, 1.2, 0, Math.PI * 2); ctx.fill(); }
+          /* A day ahead and a day with nothing on it are marks a person reads, so they clear 3:1:
+             at 0.45 and 0.6 of ink-3 they measured under 2:1 (2026-09-16). */
+          if (dots === 0) { ctx.fillStyle = rgba(pal.mark, 1); ctx.beginPath(); ctx.arc(x, H - 26, 1.2, 0, Math.PI * 2); ctx.fill(); }
         }
       }
       if (running && (!still || view === 'columns') && since < 3) raf = requestAnimationFrame(draw); else if (running && !still && view === 'wave') raf = requestAnimationFrame(draw);
@@ -115,9 +117,28 @@ export default function Fortnight({ strip, tomorrow, ledger = [] }: { strip: Mon
     repaint.current();
   }
 
+  /* The same days by keyboard: a day is a thing to open, so the drawing takes focus and the
+     arrows walk it. Pointer only, the strip was unusable without a mouse (2026-09-16). */
+  function step(by: number) {
+    const at = days.findIndex((d) => d.day === (opened || litRef.current));
+    const i = Math.max(0, Math.min(days.length - 1, (at === -1 ? days.length - 1 : at) + by));
+    const day = days[i].day;
+    litRef.current = day; setPicked(day); repaint.current();
+  }
+  function onKey(e: React.KeyboardEvent<HTMLCanvasElement>) {
+    if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') { e.preventDefault(); step(e.key === 'ArrowRight' ? 1 : -1); return; }
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      const day = picked || litRef.current;
+      if (!day) return;
+      setOpened((o) => { const next = o === day ? null : day; litRef.current = next || day; return next; });
+      repaint.current();
+    }
+  }
+
   return (
     <figure className="mv-fortnight" aria-label={t('The last thirty days')}>
-      <canvas ref={ref} className="mv-fortnight-canvas" role="img" aria-label={line} onMouseMove={pick} onMouseLeave={() => { setPicked(null); litRef.current = opened; repaint.current(); }} onClick={openAt} />
+      <canvas ref={ref} className="mv-fortnight-canvas" role="button" tabIndex={0} aria-label={line} onKeyDown={onKey} onMouseMove={pick} onMouseLeave={() => { setPicked(null); litRef.current = opened; repaint.current(); }} onClick={openAt} />
       <div className="mv-band-labels"><span>{shortDay(strip.from, locale)}</span><span>{tomorrow ? t('Tomorrow') : t('Today')}</span></div>
       <div className="mv-fortnight-foot">
         <figcaption className="mv-sub">{line}</figcaption>

@@ -171,6 +171,15 @@ function useLedgerTrace(): { steps: TraceStep[]; reading: boolean } {
 
 /* A heading, one grey line, then the steps as rows under the ink rule. The step in
    progress is the one in ink at 500; the rest have gone quiet. */
+/* The step's name comes off the wire in English, one per step id, so the panel is named
+   here and read in the person's own language. A detail that carries a number still comes
+   through as the server wrote it. */
+const STEP_LABEL: Record<string, string> = {
+  bank: 'Reading the bank', ledger: 'Reading the payments', places: 'Working out the places',
+  learn: 'Learning the rhythms', patterns: 'Reading what it means', gaps: 'Finding what it cannot explain',
+  end: 'Done',
+};
+
 function TracePanel({ steps, reading }: { steps: TraceStep[]; reading: boolean }) {
   const t = useT();
   /* Six rows of zeros ending in Done is what a new account saw here: machinery with
@@ -178,6 +187,9 @@ function TracePanel({ steps, reading }: { steps: TraceStep[]; reading: boolean }
   const idle = steps.length > 0 && steps.every((s) => !s.count);
   return (
     <aside className="mc-trace" aria-label={t('What it is doing')}>
+      {/* One orb for the whole panel, at its head. One per unfinished row meant three or four
+          canvases turning at once, and on a long read they never stopped (2026-09-16). */}
+      {reading && steps.length ? <p className="mc-trace-head"><LedgerOrb state="searching" size={20} label="" /><span className="mv-sub">{t('Reading the ledger.')}</span></p> : null}
       {steps.length === 0 ? (
         <p className="mv-sub">{t('Not reading the ledger right now.')}</p>
       ) : idle ? (
@@ -187,10 +199,10 @@ function TracePanel({ steps, reading }: { steps: TraceStep[]; reading: boolean }
           {steps.map((s) => (
             <li key={s.step} className={`mv-item mv-item--tight mc-step${reading && !s.done ? ' is-live' : ''}`}>
               <span className="mv-item-text">
-                <span className="mv-item-title">{s.label}</span>
-                {s.detail ? <span className="mv-item-sub">{s.detail}</span> : null}
+                <span className="mv-item-title">{t(STEP_LABEL[s.step] || s.label)}</span>
+                {s.detail ? <span className="mv-item-sub">{t(s.detail)}</span> : null}
               </span>
-              {reading && !s.done ? <LedgerOrb state="searching" size={20} label="" /> : s.count === null ? null : <span className="mv-item-end">{s.count}</span>}
+              {s.count === null ? null : <span className="mv-item-end">{s.count}</span>}
             </li>
           ))}
         </ul>
@@ -263,7 +275,13 @@ export default function MoneyChatPage() {
 
   const asked = useMemo(() => new Set(lines.filter((l) => l.who === 'you').map((l) => l.text.trim().toLowerCase())), [lines]);
   /* Three offers before the first question, two after, so they read as prompts, not a menu. */
-  const offers = useMemo(() => OFFERS.filter((q) => !asked.has(q.toLowerCase())).slice(0, asked.size === 0 ? 3 : 2), [asked]);
+  /* The offer is sent in the person's language, so the transcript holds the translated words
+     and the English source never matched: in Spanish and Portuguese the same suggestion came
+     back after it had been asked (2026-09-16). */
+  const offers = useMemo(
+    () => OFFERS.filter((q) => !asked.has(q.toLowerCase()) && !asked.has(t(q).toLowerCase())).slice(0, asked.size === 0 ? 3 : 2),
+    [asked, t],
+  );
   const last = lines[lines.length - 1];
   const offersShown = offers.length > 0 && !asking && (!last || (last.who === 'twin' && !last.pending));
 
@@ -393,7 +411,7 @@ export default function MoneyChatPage() {
                   {openQuestions > 0 ? (
                     <div className="mc-actions">
                       <Link to="/money/setup" className="mv-pill mv-pill--ghost">
-                        <span>{openQuestions} {openQuestions === 1 ? 'thing' : 'things'} it cannot work out on its own</span>
+                        <span>{openQuestions === 1 ? t('one thing it cannot work out on its own') : t('{n} things it cannot work out on its own', { n: openQuestions })}</span>
                       </Link>
                     </div>
                   ) : null}
@@ -491,7 +509,7 @@ export default function MoneyChatPage() {
                       if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); ask(text); }
                     }}
                   />
-                  <button type="submit" className="mv-pill mc-send" disabled={asking || !text.trim()} aria-label="Ask">
+                  <button type="submit" className="mv-pill mc-send" disabled={asking || !text.trim()} aria-label={t('Ask')}>
                     <ArrowUp size={16} strokeWidth={2} aria-hidden="true" />
                   </button>
                 </form>

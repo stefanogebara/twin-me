@@ -21,6 +21,7 @@ import { factRank, factTitle, factWord } from './factWords';
 import Mark from './Mark';
 import { KindTile, Stamp } from './Carved';
 import { markFor } from './carvedKinds';
+import { readingWords } from './readingWords';
 import { MARK_FOR, hasMark } from './markPaths';
 import { moneyAPI, euro, shortDay, bankLabel, BANKS, type MoneyAccount, type MoneyCalendar, type MoneyCategories, type MoneyDayStrip, type MoneyFact, type MoneyForecast, type MoneyQuestions, type MoneyToday, type MoneyMonth, type MoneyReading, type MoneyRecurring, type MoneySighting, type MoneyTransaction, type MoneyUsage } from '../../services/api/moneyAPI';
 import LedgerOrb from '../../components/LedgerOrb';
@@ -57,7 +58,13 @@ function stillToCome(t: T, locale: string, f: MoneyForecast): Ahead[] {
   for (const c of f.commitment_items || []) rows.push({ on: c.due_on, name: c.subject || t('A standing charge'), amount: -Math.abs(Number(c.amount)), kind: 'stated', why: t('You said it leaves every month') });
   for (const i of f.income_items || []) rows.push({ on: i.due_on, name: i.subject || i.source || t('Comes in'), amount: Math.abs(Number(i.amount)), kind: 'income',
     why: i.basis ? t('Comes in, {basis}', { basis: i.basis }) : t('Comes in, as you said') });
-  for (const e of f.calendar_items || []) if (e.expected && Number(e.expected.amount) > 0) rows.push({ on: e.on.slice(0, 10), name: e.label || e.title || t('In the diary'), amount: -Math.abs(Number(e.expected.amount)), kind: 'diary', why: t('In the diary; this kind of day usually costs about this') });
+  /* { title, day, amount } is what the calendar sends; asking for e.expected.amount and e.on
+     meant a day in the diary never appeared here at all (2026-09-16). */
+  for (const e of f.calendar_items || []) {
+    const amount = Number(e.amount ?? e.expected?.amount) || 0;
+    const on = String(e.day || e.on || '').slice(0, 10);
+    if (amount > 0 && on) rows.push({ on, name: e.title || e.label || t('In the diary'), amount: -Math.abs(amount), kind: 'diary', why: t('In the diary; this kind of day usually costs about this') });
+  }
   return rows.filter((r) => Number.isFinite(r.amount) && r.on).sort((a, b) => (a.on < b.on ? -1 : a.on > b.on ? 1 : Math.abs(b.amount) - Math.abs(a.amount))).slice(0, 8);
 }
 
@@ -97,6 +104,7 @@ export default function MoneyV2Page({ view = 'today' }: { view?: MoneyView } = {
   const [forecast, setForecast] = useState<MoneyForecast | null>(null);
   /* The one number a person opens the app for. It leads Today; the month sits under it. */
   const [today, setToday] = useState<MoneyToday | null>(null);
+  const [unread, setUnread] = useState(false);
   const [ledger, setLedger] = useState<MoneyTransaction[]>([]);
   const [recurring, setRecurring] = useState<MoneyRecurring[]>([]);
   const [accounts, setAccounts] = useState<MoneyAccount[]>([]);
@@ -184,6 +192,10 @@ export default function MoneyV2Page({ view = 'today' }: { view?: MoneyView } = {
     if (rd.status === 'fulfilled') setReadings(rd.value);
     if (c.status === 'fulfilled') setCategories(c.value);
     if (u.status === 'fulfilled') setUsage(u.value);
+    /* A month that could not be read is not an empty month. Every rejection was dropped, so a
+       server that was down told the person their ledger was empty and offered to connect the
+       bank they already have (2026-09-16). */
+    setUnread(f.status === 'rejected' && l.status === 'rejected' && td.status === 'rejected');
     setLoaded(true);
   }, []);
   /* Read again on every page (the three views share one mounted component, so a switch
@@ -201,13 +213,23 @@ export default function MoneyV2Page({ view = 'today' }: { view?: MoneyView } = {
     return () => document.removeEventListener('visibilitychange', onVisibility);
   }, [load]);
   useEffect(() => { moneyAPI.inbox().then(setInbox).catch(() => setInbox(null)); }, []);
-  const loadCalendar = useCallback(() => moneyAPI.calendar().then(setCalendar).catch(() => setCalendar({ connected: false })), []);
+  /* A read that failed is not a calendar that was never connected: mapped to connected:false,
+     one failed request offered Connect Google to somebody who had already connected it. */
+  const [calendarFailed, setCalendarFailed] = useState(false);
+  const loadCalendar = useCallback(
+    () => moneyAPI.calendar().then((c) => { setCalendar(c); setCalendarFailed(false); }).catch(() => setCalendarFailed(true)),
+    [],
+  );
   /* Only You shows the calendar, and reading it fetches every pasted link: not on every page. */
   useEffect(() => { if (view === 'you') void loadCalendar(); }, [view, loadCalendar]);
+  const [youFailed, setYouFailed] = useState(false);
   const loadYou = useCallback(async () => {
     const [f, q] = await Promise.allSettled([moneyAPI.facts(), moneyAPI.questions()]);
-    setFacts(f.status === 'fulfilled' ? f.value : []);
-    setQuestions(q.status === 'fulfilled' ? q.value : null);
+    /* Same rule as the calendar: nothing to show and nothing could be read are different
+       lines, and the second one must not read as the first. */
+    if (f.status === 'fulfilled') setFacts(f.value);
+    if (q.status === 'fulfilled') setQuestions(q.value);
+    setYouFailed(f.status === 'rejected');
   }, []);
   useEffect(() => { if (view === 'you') void loadYou(); }, [view, loadYou]);
   async function forget(f: MoneyFact) {
@@ -256,6 +278,11 @@ export default function MoneyV2Page({ view = 'today' }: { view?: MoneyView } = {
   }, [load, t]);
 
   const empty = loaded && ledger.length === 0;
+  /* The month's payments, held still between renders. Built inline, they were a new array on
+     every render, so any unrelated state change tore down the orbits and replayed their
+     entrance; for the second and a half that took, nothing on the figure could be clicked. */
+  const monthKey = (forecast?.month || new Date().toISOString()).slice(0, 7);
+  const monthRows = useMemo(() => ledger.filter((tx) => tx.occurred_at.slice(0, 7) === monthKey), [ledger, monthKey]);
   /* What they said comes in each month is the band's right edge; the month is drawn against
      it, not against its own worst case. Without a stated income the band keeps its old edge. */
   const incomeEdge = today && today.basis === 'income' && today.base ? Number(today.base) : null;
@@ -439,8 +466,12 @@ export default function MoneyV2Page({ view = 'today' }: { view?: MoneyView } = {
                       the one sentence to read on the way out. Its receipts open under it. */}
                   <p className="mv-eyebrow">{t('What changed')}</p>
                   <button type="button" className="mv-lead" aria-expanded={openReading === lead.id} onClick={() => setOpenReading(openReading === lead.id ? null : lead.id)}>
-                    <h2>{lead.sentence}</h2>
-                    {lead.detail ? <p className="mv-sub">{lead.detail}</p> : null}
+                    {/* The ledger keeps the English sentence for the twin; the page says the same
+                        numbers in the reader's own language (readingWords.ts, 2026-09-16). */}
+                    {(() => { const said = readingWords(lead, t, locale); return (<>
+                      <h2>{said.sentence}</h2>
+                      {said.detail ? <p className="mv-sub">{said.detail}</p> : null}
+                    </>); })()}
                   </button>
                   {openReading === lead.id ? <ReadingBody r={lead} /> : null}
                 </>
@@ -457,8 +488,10 @@ export default function MoneyV2Page({ view = 'today' }: { view?: MoneyView } = {
                     <li key={r.id}>
                       <button type="button" className="mv-item" aria-expanded={isOpen} onClick={() => setOpenReading(isOpen ? null : r.id)}>
                         <span className="mv-item-text">
-                          <span className="mv-item-title">{r.sentence}</span>
-                          {r.detail ? <span className="mv-item-sub">{r.detail}</span> : null}
+                          {(() => { const said = readingWords(r, t, locale); return (<>
+                            <span className="mv-item-title">{said.sentence}</span>
+                            {said.detail ? <span className="mv-item-sub">{said.detail}</span> : null}
+                          </>); })()}
                         </span>
                         <span className="mv-item-end"><Chevron /></span>
                       </button>
@@ -493,6 +526,14 @@ export default function MoneyV2Page({ view = 'today' }: { view?: MoneyView } = {
               /* The first seconds of a new account are the month being read; an ellipsis
                  where the number goes read as a broken figure to a stranger. */
               <Wait inline state="searching" line="Reading your month." />
+            ) : unread ? (
+              <>
+                <h1>{t('Your month could not be read.')}</h1>
+                <p className="mv-sub">{t('Nothing is lost. Try again in a moment.')}</p>
+                <div className="mv-ctas">
+                  <button type="button" className="mv-pill" onClick={() => void load()}>{t('Try again')}</button>
+                </div>
+              </>
             ) : empty ? (
               <>
                 <h1>{t('Nothing read yet.')}</h1>
@@ -536,6 +577,11 @@ export default function MoneyV2Page({ view = 'today' }: { view?: MoneyView } = {
                     {/* The real thing under it: what the bank says is in the account, read with you
                         present, named as available and never as safe to spend. */}
                     {balanceLine ? <p className="mv-sub">{balanceLine}</p> : null}
+                    {/* What the diary already expects today. The allowance has taken it off the
+                        number above; without this line it is taken off for no visible reason. */}
+                    {today.today_events?.length ? (
+                      <p className="mv-sub">{t('The diary expects {what} today.', { what: today.today_events.map((e) => `${e.title}, ${euro(e.amount)}`).join('; ') })}</p>
+                    ) : null}
                     {dayOpen ? (() => {
                       const todayKey = new Date().toISOString().slice(0, 10);
                       const rows = ledger.filter((t) => t.occurred_at.slice(0, 10) === todayKey && Number(t.amount) < 0);
@@ -630,15 +676,17 @@ export default function MoneyV2Page({ view = 'today' }: { view?: MoneyView } = {
           {view === 'month' ? (
           <section className="mv-hero mv-hero--orb" id="month-title">
             <p className="mv-eyebrow">{t('Month')}</p>
+            {/* The day says it is reading; the month printed an ellipsis where its figure goes,
+                which reads as a broken number to anyone who has not seen it work. */}
+            {!loaded ? <Wait inline state="searching" line="Reading your month." /> : null}
             {/* The month as a constellation: a hub per kind of place, a dot per payee. It
                 says nothing until tapped; the list it opens ends in the total. */}
             {categories && categories.groups.some((g) => g.spent > 0) ? (() => {
-              const key = (forecast?.month || new Date().toISOString()).slice(0, 7);
-              const rows = ledger.filter((tx) => tx.occurred_at.slice(0, 7) === key);
+              const key = monthKey;
               return (
                 <MonthOrbits
                   groups={categories.groups}
-                  rows={rows}
+                  rows={monthRows}
                   recurring={recurring}
                   today={new Date().getDate()}
                   daysInMonth={last}
@@ -647,10 +695,10 @@ export default function MoneyV2Page({ view = 'today' }: { view?: MoneyView } = {
                 />
               );
             })() : null}
-            <h1>{(() => {
+            {loaded ? <h1>{(() => {
               const amount = forecast ? euro(forecast.spent) : (months[0] ? euro(months[0].spent) : '\u2026');
               return incomeEdge ? t('{month}, {amount} of {income}.', { month: monthLabel, amount, income: euro(incomeEdge) }) : t('{month}, {amount}.', { month: monthLabel, amount });
-            })()}</h1>
+            })()}</h1> : null}
             {incomeEdge ? <p className="mv-sub">{today?.keep
               ? t('{income} is what you said comes in, {keep} of it to keep.', { income: euro(incomeEdge), keep: euro(today.keep) })
               : t('{income} is what you said comes in.', { income: euro(incomeEdge) })}</p> : null}
@@ -676,6 +724,7 @@ export default function MoneyV2Page({ view = 'today' }: { view?: MoneyView } = {
             <p className="mv-eyebrow">{t('You')}</p>
             <h1>{user?.firstName ? t('{name}.', { name: user.firstName }) : t('You.')}</h1>
             <p className="mv-sub">{t('What it knows in your words, and where it reads from.')}</p>
+            {facts === null && !youFailed ? <Wait inline state="searching" line="Reading what it knows." /> : null}
           </section>
           ) : null}
 
@@ -885,8 +934,10 @@ export default function MoneyV2Page({ view = 'today' }: { view?: MoneyView } = {
                 {usage.findings.map((f) => (
                   <li key={f.kind + f.sentence} className="mv-item">
                     <span className="mv-item-text">
-                      <span className="mv-item-title">{f.sentence}</span>
-                      {f.detail ? <span className="mv-item-sub">{f.detail}</span> : null}
+                      {(() => { const said = readingWords(f, t, locale); return (<>
+                        <span className="mv-item-title">{said.sentence}</span>
+                        {said.detail ? <span className="mv-item-sub">{said.detail}</span> : null}
+                      </>); })()}
                     </span>
                   </li>
                 ))}
@@ -914,7 +965,9 @@ export default function MoneyV2Page({ view = 'today' }: { view?: MoneyView } = {
             <h2>{t('What it knows.')}</h2>
             <p className="mv-sub">{t('Forget one and it asks again.')}</p>
             <ul className="mv-list">
-              {facts === null ? null : facts.length === 0 ? (
+              {facts === null && !youFailed ? null : youFailed && !facts?.length ? (
+                <li><p className="mv-empty">{t('That could not be read right now.')}</p></li>
+              ) : facts && facts.length === 0 ? (
                 <li><p className="mv-empty">{t('Nothing yet. The questions are where this fills.')}</p></li>
               ) : [...facts].sort((a, b) => factRank(a) - factRank(b)).map((f) => {
                 /* A row of fifteen identical buttons is a form, not a list: the fact opens, and
@@ -925,8 +978,8 @@ export default function MoneyV2Page({ view = 'today' }: { view?: MoneyView } = {
                     <button type="button" className="mv-item mv-item--icon" aria-expanded={isOpen} onClick={() => setOpen(isOpen ? null : `fact:${f.id}`)}>
                       <KindTile kind={f.kind === 'commitment' && f.value !== 'rent' ? 'cash' : f.kind} label={f.kind} />
                       <span className="mv-item-text">
-                        <span className="mv-item-title">{factTitle(f)}</span>
-                        <span className="mv-item-sub">{factWord(f)}</span>
+                        <span className="mv-item-title">{factTitle(f, t)}</span>
+                        <span className="mv-item-sub">{factWord(f, t)}</span>
                       </span>
                       <span className="mv-item-end mv-figures">{f.amount ? euro(f.amount) : ''}<Chevron /></span>
                     </button>
@@ -972,6 +1025,9 @@ export default function MoneyV2Page({ view = 'today' }: { view?: MoneyView } = {
                 /* Rows from before the second bank carry no name; they were all Santander. */
                 const mine = accounts.filter((a) => (a.bank_name || BANKS[0].name) === bank.name);
                 const first = i === 0;
+                /* One row owns Read now, and only that row turns while it reads. Every connected
+                   bank used to show its own orb and its own "Reading the bank." for one press. */
+                const owns = mine.length > 0 && (first || !accounts.some((a) => (a.bank_name || BANKS[0].name) === BANKS[0].name));
                 return (
                   <li key={bank.name}>
                     <div className="mv-item mv-item--icon">
@@ -980,19 +1036,21 @@ export default function MoneyV2Page({ view = 'today' }: { view?: MoneyView } = {
                         <span className="mv-item-title">{bank.label}</span>
                         {/* The booked line describes the accounts under this row, not the other bank's. */}
                         <span className="mv-item-sub mv-item-sub--live" aria-live="polite">
-                          {(mine.length && busy === 'pull') || (busy === 'connect' && connecting === bank.name) ? <LedgerOrb state={busy === 'pull' ? 'searching' : 'connecting'} size={20} label="" /> : null}
-                          {mine.length ? bankLine : first ? t('Read four times a day. You confirm it every six months.') : t('Read four times a day, like the other.')}
+                          {(owns && busy === 'pull') || (busy === 'connect' && connecting === bank.name) ? <LedgerOrb state={busy === 'pull' ? 'searching' : 'connecting'} size={20} label="" /> : null}
+                          {mine.length ? (owns || busy !== 'pull' ? bankLine : bookedLine) : first ? t('Read four times a day. You confirm it every six months.') : t('Read four times a day, like the other.')}
                         </span>
                       </span>
                       {/* Only once the accounts are in: before that the row offered a black Connect
                           that turned into Read now a moment later. */}
                       <span className="mv-item-end">
                         {!loaded ? null : mine.length ? (
-                          first || !accounts.some((a) => (a.bank_name || BANKS[0].name) === BANKS[0].name)
+                          owns
                             ? <button key="read" type="button" className="mv-pill mv-pill--ghost" onClick={pull} disabled={busy === 'pull'}>{t('Read now')}</button>
                             : null
                         ) : (
-                          <button key="connect" type="button" className={`mv-pill ${empty && first ? 'mv-pill--ghost' : 'mv-pill--ghost'}`} onClick={() => void connect(bank.name)} disabled={busy === 'connect' || !bankReady}>{t('Connect')}</button>
+                          /* With nothing read yet, connecting the first bank is the one thing to do
+                             on this page, so it is the page's one ink button. */
+                          <button key="connect" type="button" className={empty && first ? 'mv-pill' : 'mv-pill mv-pill--ghost'} onClick={() => void connect(bank.name)} disabled={busy === 'connect' || !bankReady}>{t('Connect')}</button>
                         )}
                       </span>
                     </div>
@@ -1019,7 +1077,7 @@ export default function MoneyV2Page({ view = 'today' }: { view?: MoneyView } = {
                   <span className="mv-item-text">
                     <span className="mv-item-title">{t('Your calendar')}</span>
                     <span className="mv-item-sub">
-                      {calendar?.events_seen
+                      {calendarFailed ? t('That could not be read right now.') : calendar?.events_seen
                         ? (calendar.learned_at
                             ? t('{n} events read, last {day}.', { n: calendar.events_seen, day: shortDay(calendar.learned_at, locale) })
                             : t('{n} events read.', { n: calendar.events_seen }))
