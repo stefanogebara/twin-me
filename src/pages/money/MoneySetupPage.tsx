@@ -11,7 +11,7 @@
  */
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { useT } from '@/lib/i18n';
+import { useLocale, useT } from '@/lib/i18n';
 import '../../styles/money-v2.css';
 import '../../styles/money-setup.css';
 import MoneyNav, { type MoneyNavLink } from './MoneyNav';
@@ -65,6 +65,7 @@ function parseShare(s: string): number | undefined {
 
 export default function MoneySetupPage() {
   const t = useT();
+  const locale = useLocale();
   const [queue, setQueue] = useState<MoneyQuestion[]>([]);
   const [openingCount, setOpeningCount] = useState(0);
   const [answeredBefore, setAnsweredBefore] = useState(0);
@@ -248,7 +249,7 @@ export default function MoneySetupPage() {
                       <li key={r.id} className="mv-item mv-item--tight">
                         <span className="mv-item-text">
                           <span className="mv-item-title">{r.merchant_raw || r.merchant_key}</span>
-                          <span className="mv-item-sub">{shortDay(r.occurred_at)}</span>
+                          <span className="mv-item-sub">{shortDay(r.occurred_at, locale)}</span>
                         </span>
                         <span className="mv-item-end">{euro(r.amount)}</span>
                       </li>

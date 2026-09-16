@@ -39,7 +39,12 @@ class TwinNotificationListenerService : NotificationListenerService() {
       "es.openbank.mobile",
       "com.revolut.revolut",
       "com.n26.mobile",
-      "es.bankinter.movil"
+      "es.bankinter.movil",
+      // 2026-09-16: Sabadell (its Play id is a legacy name), ING and Wise, the banks the first
+      // beta testers actually hold.
+      "net.inverline.bancosabadell.officelocator.android",
+      "www.ingdirect.nativeframe",
+      "com.transferwise.android"
     )
 
     /* A bank notification that names no money is not a payment: a login alert, a statement

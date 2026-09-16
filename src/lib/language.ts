@@ -3,6 +3,7 @@
  * asks (LanguageAsk) so fast refresh keeps working and Settings can share the list.
  */
 import { authFetch } from '@/services/api/apiBase';
+import { rememberLang } from '@/lib/i18n';
 
 export const LANGUAGES = [
   { code: 'en', name: 'English', line: 'The ledger speaks to you in English.' },
@@ -15,6 +16,8 @@ export type LanguageCode = typeof LANGUAGES[number]['code'];
 export async function saveLanguage(code: LanguageCode): Promise<void> {
   const r = await authFetch('/account/language', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ language: code }) });
   if (!r.ok) throw new Error('The language could not be saved.');
+  /* And in this browser, so the next visit opens in it rather than in English. */
+  rememberLang(code);
 }
 
 /** The choice on the account, or null when never asked. */

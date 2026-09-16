@@ -22,7 +22,7 @@ export default function MoneyNav({ links }: { links: MoneyNavLink[] }) {
     <MoneyOnboarding />
     <aside className={`mv-side${open ? ' is-open' : ''}`}>
       <div className="mv-side-bar">
-        <Link to="/money" className="mv-mark" aria-label="TwinMe, this month" onClick={close}><i /><i /><i /><i /><i /><i /></Link>
+        <Link to="/money" className="mv-mark" aria-label={t('TwinMe, this month')} onClick={close}><i /><i /><i /><i /><i /><i /></Link>
         <button
           type="button"
           className="mv-pill mv-pill--ghost mv-side-toggle"
@@ -34,7 +34,7 @@ export default function MoneyNav({ links }: { links: MoneyNavLink[] }) {
           <span>Menu</span>
         </button>
       </div>
-      <nav id="mv-side-links" className="mv-side-links" aria-label="Money">
+      <nav id="mv-side-links" className="mv-side-links" aria-label={t('Money')}>
         {links.map((l) => (l.to.startsWith('#') ? (
           <a key={l.to} href={l.to} className={l.sub ? 'is-sub' : undefined} onClick={close}>{t(l.label)}</a>
         ) : (

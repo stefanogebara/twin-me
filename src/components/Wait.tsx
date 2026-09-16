@@ -1,6 +1,9 @@
 /**
  * A page that is waiting.
  *
+ * The orb shapes itself while the page is on its way (2026-09-16: Stefano asked for the
+ * shape-changing one here), centred on the screen with its line under it.
+ *
  * The orb at 64, breathing, and one line in the register under it, nothing else: no mark,
  * no card, no spinner. It is what a person sees for a second or two between pressing
  * something and getting the page, so it should look like the page they are about to get.
@@ -14,7 +17,7 @@ import { useT } from '@/lib/i18n';
 
 type Action = { label: string; onClick: () => void };
 
-export default function Wait({ line = 'One moment.', sub = null, action = null, state = 'breathing', inline = false }: { line?: string; sub?: string | null; action?: Action | null; state?: OrbState; /** Inside a page's column, while its first read is in flight. */ inline?: boolean }) {
+export default function Wait({ line = 'One moment.', sub = null, action = null, state = 'shaping', inline = false }: { line?: string; sub?: string | null; action?: Action | null; state?: OrbState; /** Inside a page's column, while its first read is in flight. */ inline?: boolean }) {
   const t = useT();
   const Tag = inline ? 'div' : 'main';
   return (

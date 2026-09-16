@@ -26,7 +26,7 @@ import { moneyAPI, moneyChat, euro, shortDay, type ChatFigure, type ChatReceipt,
 import { Figure } from './MoneyFigures';
 import LedgerOrb from '../../components/LedgerOrb';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
-import { useT } from '@/lib/i18n';
+import { useLocale, useT } from '@/lib/i18n';
 
 const NAV: MoneyNavLink[] = MONEY_NAV('ask');
 
@@ -172,15 +172,16 @@ function useLedgerTrace(): { steps: TraceStep[]; reading: boolean } {
 /* A heading, one grey line, then the steps as rows under the ink rule. The step in
    progress is the one in ink at 500; the rest have gone quiet. */
 function TracePanel({ steps, reading }: { steps: TraceStep[]; reading: boolean }) {
+  const t = useT();
   /* Six rows of zeros ending in Done is what a new account saw here: machinery with
      nothing in it. Until something has been read, the panel is one quiet line. */
   const idle = steps.length > 0 && steps.every((s) => !s.count);
   return (
-    <aside className="mc-trace" aria-label="What it is doing">
+    <aside className="mc-trace" aria-label={t('What it is doing')}>
       {steps.length === 0 ? (
-        <p className="mv-sub">Not reading the ledger right now.</p>
+        <p className="mv-sub">{t('Not reading the ledger right now.')}</p>
       ) : idle ? (
-        <p className="mv-sub">Nothing to read yet. Connect Santander under Sources.</p>
+        <p className="mv-sub">{t('Nothing to read yet. Connect Santander under Sources.')}</p>
       ) : (
         <ul className="mv-list mc-steps" aria-live="polite">
           {steps.map((s) => (
@@ -199,6 +200,7 @@ function TracePanel({ steps, reading }: { steps: TraceStep[]; reading: boolean }
 }
 
 export default function MoneyChatPage() {
+  const locale = useLocale();
   useDocumentTitle('Ask');
   const t = useT();
   const [openQuestions, setOpenQuestions] = useState(0);
@@ -403,12 +405,12 @@ export default function MoneyChatPage() {
                     {l.pending ? (
                       <Pending status={l.text} thinking={l.thinking} still={Boolean(stillMotion)} />
                     ) : (
-                      <p className="mc-line-text">{l.text}{l.writing ? <LedgerOrb state="composing" size={16} className="mc-writing" label="Writing" /> : null}</p>
+                      <p className="mc-line-text">{l.text}{l.writing ? <LedgerOrb state="composing" size={16} className="mc-writing" label={t('Writing')} /> : null}</p>
                     )}
                     {l.file?.url ? <img className="mc-file" src={l.file.url} alt="" /> : null}
                     {l.figures?.map((f, k) => <Figure key={k} figure={f} />)}
                     {l.who === 'twin' && l.actions && l.actions.length ? (
-                      <div className="mc-acts" role="group" aria-label="What it can do">
+                      <div className="mc-acts" role="group" aria-label={t('What it can do')}>
                         {l.actions.map((a, k) => (
                           <button key={k} type="button" className="mv-pill mv-pill--ghost" onClick={() => void take(l.id, a)}><span>{a.label}</span></button>
                         ))}
@@ -438,7 +440,7 @@ export default function MoneyChatPage() {
                             <li key={r.id} className="mv-item mv-item--tight">
                               <span className="mv-item-text">
                                 <span className="mv-item-title">{r.merchant}</span>
-                                <span className="mv-item-sub">{shortDay(r.occurred_at)}</span>
+                                <span className="mv-item-sub">{shortDay(r.occurred_at, locale)}</span>
                               </span>
                               <span className="mv-item-end">{euro(r.amount)}</span>
                             </li>
@@ -450,7 +452,7 @@ export default function MoneyChatPage() {
                 ))}
 
                 {offersShown ? (
-                  <div className="mc-offers" role="group" aria-label="Things to ask">
+                  <div className="mc-offers" role="group" aria-label={t('Things to ask')}>
                     {offers.map((q) => (
                       <button key={q} type="button" className="mv-pill mv-pill--ghost" onClick={() => ask(t(q))}><span>{t(q)}</span></button>
                     ))}

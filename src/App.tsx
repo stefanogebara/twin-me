@@ -7,6 +7,7 @@ import { BrowserRouter, Routes, Route, Navigate, Outlet, useLocation } from "rea
 import { useEffect, useRef, lazy, Suspense } from "react";
 import Wait from "@/components/Wait";
 import ErrorBoundary from "@/components/ErrorBoundary";
+import { lazyWithRetry } from "@/lib/lazyWithRetry";
 import { SidebarLayout } from "./components/layout/SidebarLayout";
 import { LoadingProvider } from "./contexts/LoadingContext";
 import { ErrorProvider } from "./contexts/ErrorContext";
@@ -32,17 +33,17 @@ import NotFound from "./pages/NotFound";
 // Design prototypes: dev-only routes (see the /preview block below). The
 // DEV ternary lets Vite dead-code-eliminate the dynamic imports in prod, so
 // no prototype chunks are emitted at all.
-const CinematicFrame = import.meta.env.DEV ? lazy(() => import("./pages/preview/CinematicFrame")) : () => null;
-const PresencePrototype = import.meta.env.DEV ? lazy(() => import("./pages/preview/PresencePrototype")) : () => null;
-const PresenceDesignSystem = import.meta.env.DEV ? lazy(() => import("./pages/preview/PresenceDesignSystem")) : () => null;
-const StardustHero = import.meta.env.DEV ? lazy(() => import("./components/landing/StardustHero")) : () => null;
-const StardustLanding = import.meta.env.DEV ? lazy(() => import("./pages/StardustLanding")) : () => null;
+const CinematicFrame = import.meta.env.DEV ? lazyWithRetry(() => import("./pages/preview/CinematicFrame")) : () => null;
+const PresencePrototype = import.meta.env.DEV ? lazyWithRetry(() => import("./pages/preview/PresencePrototype")) : () => null;
+const PresenceDesignSystem = import.meta.env.DEV ? lazyWithRetry(() => import("./pages/preview/PresenceDesignSystem")) : () => null;
+const StardustHero = import.meta.env.DEV ? lazyWithRetry(() => import("./components/landing/StardustHero")) : () => null;
+const StardustLanding = import.meta.env.DEV ? lazyWithRetry(() => import("./pages/StardustLanding")) : () => null;
 // Nocturne — design-system rebuild preview (design/nocturne branch). Public
 // routes on purpose: the flagship must be judgeable on a real deploy.
-const NocturneLanding = lazy(() => import("./pages/nocturne/NocturneLanding"));
-const NocturneSpec = lazy(() => import("./pages/nocturne/NocturneSpec"));
-const NocturneSignature = lazy(() => import("./pages/nocturne/NocturneSignature"));
-const NocturneTwin = lazy(() => import("./pages/nocturne/NocturneTwin"));
+const NocturneLanding = lazyWithRetry(() => import("./pages/nocturne/NocturneLanding"));
+const NocturneSpec = lazyWithRetry(() => import("./pages/nocturne/NocturneSpec"));
+const NocturneSignature = lazyWithRetry(() => import("./pages/nocturne/NocturneSignature"));
+const NocturneTwin = lazyWithRetry(() => import("./pages/nocturne/NocturneTwin"));
 // audit-2026-05-13 H1: route-local Suspense fallback for /talk-to-twin so
 // mobile users see the chat shell (header + composer placeholder) within
 // the first paint instead of waiting on a centered loading spinner.
@@ -55,49 +56,49 @@ import { TalkToTwinSkeleton } from "./pages/components/TalkToTwinSkeleton";
 const loadTalkToTwin = () => import("./pages/TalkToTwin");
 const loadTodayPage = () => import("./pages/TodayPage");
 const loadMoneyPage = () => import("./pages/MoneyPage");
-const MoneyV2Page = lazy(() => import("./pages/money/MoneyV2Page"));
-const MoneySetupPage = lazy(() => import("./pages/money/MoneySetupPage"));
-const MoneyChatPage = lazy(() => import("./pages/money/MoneyChatPage"));
-const PlanPage = lazy(() => import("./pages/money/PlanPage"));
+const MoneyV2Page = lazyWithRetry(() => import("./pages/money/MoneyV2Page"));
+const MoneySetupPage = lazyWithRetry(() => import("./pages/money/MoneySetupPage"));
+const MoneyChatPage = lazyWithRetry(() => import("./pages/money/MoneyChatPage"));
+const PlanPage = lazyWithRetry(() => import("./pages/money/PlanPage"));
 const loadMoneyInsightsPage = () => import("./pages/MoneyInsightsPage");
 
-const Settings = lazy(() => import("./pages/Settings"));
-const VoiceSetupPage = lazy(() => import("./pages/VoiceSetupPage"));
-const InstantTwinOnboarding = lazy(() => import("./pages/InstantTwinOnboarding"));
-const BrainPage = lazy(() => import("./pages/BrainPage"));
-const DataExportsPage = lazy(() => import("./pages/DataExportsPage"));
+const Settings = lazyWithRetry(() => import("./pages/Settings"));
+const VoiceSetupPage = lazyWithRetry(() => import("./pages/VoiceSetupPage"));
+const InstantTwinOnboarding = lazyWithRetry(() => import("./pages/InstantTwinOnboarding"));
+const BrainPage = lazyWithRetry(() => import("./pages/BrainPage"));
+const DataExportsPage = lazyWithRetry(() => import("./pages/DataExportsPage"));
 const TalkToTwin = lazy(loadTalkToTwin);
-const AdminLLMCosts = lazy(() => import("./pages/AdminLLMCosts"));
-const AdminBetaDashboard = lazy(() => import("./pages/AdminBetaDashboard"));
-const AdminBetaPage = lazy(() => import("./pages/AdminBetaPage"));
-const PrivacyPolicy = lazy(() => import("./pages/PrivacyPolicy"));
-const TermsOfService = lazy(() => import("./pages/TermsOfService"));
-const PortfolioPage = lazy(() => import("./pages/PortfolioPage"));
-const NewDiscoverFlow = lazy(() => import("./pages/onboarding/NewDiscoverFlow"));
-const OnboardingWowPage = lazy(() => import("./pages/onboarding/OnboardingWowPage"));
-const WaitlistPage = lazy(() => import("./pages/WaitlistPage"));
-const BetaSignupPage = lazy(() => import("./pages/BetaSignupPage"));
-const GmailCallback = lazy(() => import("./pages/oauth/GmailCallback"));
-const SpotifyInsightsPage = lazy(() => import("./pages/insights/SpotifyInsightsPage"));
-const CalendarInsightsPage = lazy(() => import("./pages/insights/CalendarInsightsPage"));
-const YouTubeInsightsPage = lazy(() => import("./pages/insights/YouTubeInsightsPage"));
-const WebBrowsingInsightsPage = lazy(() => import("./pages/insights/WebBrowsingInsightsPage"));
-const DiscordInsightsPage = lazy(() => import("./pages/insights/DiscordInsightsPage"));
-const PrivacySpectrumDashboard = lazy(() => import("./pages/PrivacySpectrumDashboard"));
-const MemoryHealth = lazy(() => import("./pages/MemoryHealth"));
-const EvalDashboard = lazy(() => import("./pages/EvalDashboard"));
-const IdentityPage = lazy(() => import("./pages/IdentityPage"));
-const LifeStoryPage = lazy(() => import("./pages/LifeStoryPage"));
-const FidelityPage = lazy(() => import("./pages/FidelityPage"));
+const AdminLLMCosts = lazyWithRetry(() => import("./pages/AdminLLMCosts"));
+const AdminBetaDashboard = lazyWithRetry(() => import("./pages/AdminBetaDashboard"));
+const AdminBetaPage = lazyWithRetry(() => import("./pages/AdminBetaPage"));
+const PrivacyPolicy = lazyWithRetry(() => import("./pages/PrivacyPolicy"));
+const TermsOfService = lazyWithRetry(() => import("./pages/TermsOfService"));
+const PortfolioPage = lazyWithRetry(() => import("./pages/PortfolioPage"));
+const NewDiscoverFlow = lazyWithRetry(() => import("./pages/onboarding/NewDiscoverFlow"));
+const OnboardingWowPage = lazyWithRetry(() => import("./pages/onboarding/OnboardingWowPage"));
+const WaitlistPage = lazyWithRetry(() => import("./pages/WaitlistPage"));
+const BetaSignupPage = lazyWithRetry(() => import("./pages/BetaSignupPage"));
+const GmailCallback = lazyWithRetry(() => import("./pages/oauth/GmailCallback"));
+const SpotifyInsightsPage = lazyWithRetry(() => import("./pages/insights/SpotifyInsightsPage"));
+const CalendarInsightsPage = lazyWithRetry(() => import("./pages/insights/CalendarInsightsPage"));
+const YouTubeInsightsPage = lazyWithRetry(() => import("./pages/insights/YouTubeInsightsPage"));
+const WebBrowsingInsightsPage = lazyWithRetry(() => import("./pages/insights/WebBrowsingInsightsPage"));
+const DiscordInsightsPage = lazyWithRetry(() => import("./pages/insights/DiscordInsightsPage"));
+const PrivacySpectrumDashboard = lazyWithRetry(() => import("./pages/PrivacySpectrumDashboard"));
+const MemoryHealth = lazyWithRetry(() => import("./pages/MemoryHealth"));
+const EvalDashboard = lazyWithRetry(() => import("./pages/EvalDashboard"));
+const IdentityPage = lazyWithRetry(() => import("./pages/IdentityPage"));
+const LifeStoryPage = lazyWithRetry(() => import("./pages/LifeStoryPage"));
+const FidelityPage = lazyWithRetry(() => import("./pages/FidelityPage"));
 const MoneyPage = lazy(loadMoneyPage);
 const MoneyInsightsPage = lazy(loadMoneyInsightsPage);
 const TodayPage = lazy(loadTodayPage);
-const PricingPage = lazy(() => import("./pages/PricingPage"));
-const PresencePage = lazy(() => import("./pages/PresencePage"));
-const PresenceLandingPage = lazy(() => import("./pages/PresenceLandingPage"));
-const PresenceLoginPage = lazy(() => import("./pages/PresenceLoginPage"));
-const PresenceHome = lazy(() => import("./pages/presence/PresenceHome"));
-const PresenceCallPage = lazy(() => import("./pages/presence/PresenceCallPage"));
+const PricingPage = lazyWithRetry(() => import("./pages/PricingPage"));
+const PresencePage = lazyWithRetry(() => import("./pages/PresencePage"));
+const PresenceLandingPage = lazyWithRetry(() => import("./pages/PresenceLandingPage"));
+const PresenceLoginPage = lazyWithRetry(() => import("./pages/PresenceLoginPage"));
+const PresenceHome = lazyWithRetry(() => import("./pages/presence/PresenceHome"));
+const PresenceCallPage = lazyWithRetry(() => import("./pages/presence/PresenceCallPage"));
 
 
 
