@@ -36,6 +36,7 @@
  * Spec: .claude/plans/2026-09-07-money-twin/README.md
  */
 
+import { accountsWithCards, labelCard } from '../services/money/instruments.js';
 import { listReceiptNotices } from '../services/money/notices.js';
 import { Router } from 'express';
 import crypto from 'node:crypto';
@@ -244,8 +245,18 @@ router.get('/bank/accounts', async (req, res) => {
     /* The connection's state travels with the accounts, each with its own: a month that
        stopped moving because one bank ended its session must say which bank, and not send
        the person to reconnect the other. */
-    res.json({ success: true, data: accounts.map(({ session_id, created_at, ...a }) => ({ ...a, needs_reconnect: gone.has(a.id) })) });
+    res.json({ success: true, data: (await accountsWithCards(req.user.id, accounts)).map(({ session_id, created_at, ...a }) => ({ ...a, needs_reconnect: gone.has(a.id) })) });
   } catch (error) { log.error('bank accounts failed', { error: error.message }); res.status(500).json({ success: false, error: 'Internal server error' }); }
+});
+
+router.post('/bank/accounts/:accountId/cards/:last4/type', async (req, res) => {
+  try {
+    res.json({ success: true, data: await labelCard(req.user.id, req.params.accountId, req.params.last4, req.body?.type) });
+  } catch (error) {
+    if (error.status === 400 || error.status === 404) return res.status(error.status).json({ success: false, error: error.message });
+    log.error('card label failed', { error: error.message });
+    res.status(500).json({ success: false, error: 'Could not save the card type' });
+  }
 });
 
 /**

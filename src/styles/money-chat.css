@@ -21,7 +21,7 @@
 /* The transcript grows upward from the composer, the way a conversation does. Anchored to
    the top instead, the first question sat alone at the ceiling with the composer far below
    it and a field of empty paper between the two. */
-.mc-scroll { display: grid; align-content: end; gap: 40px; padding-bottom: 24px; }
+.mc-scroll { display: grid; align-content: end; gap: 32px; padding-bottom: 24px; }
 /* Nothing asked yet: the heading, the offers and the prompt sit at the top, not the foot of an empty screen. */
 .mc-scroll.is-empty { align-content: start; gap: 24px; }
 .mc-thread:has(.mc-scroll.is-empty) { grid-template-rows: auto auto; align-content: start; }
@@ -61,10 +61,10 @@
 
 /* ------------------------------------------------------------------ composer
    A field like every other: the warm box, a 4 corner, the send as a 32 ink button. */
-.mc-composer { position: sticky; bottom: 0; padding: 12px 0 24px; background: var(--page); }
+.mc-composer { position: sticky; bottom: 0; padding: 12px 0 max(20px, env(safe-area-inset-bottom)); background: var(--page); }
 .mc-composer-inner {
   display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: end; gap: 4px;
-  min-height: 44px; box-sizing: border-box; padding: 6px; border-radius: 4px; background: var(--field);
+  min-height: 44px; box-sizing: border-box; padding: 10px; border-radius: 28px; background: var(--field);
 }
 /* The one way a file gets in: a quiet clip, ink on hover, the same 32 as the send. */
 .mc .mc-attach {

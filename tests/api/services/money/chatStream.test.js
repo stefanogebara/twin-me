@@ -15,7 +15,7 @@ vi.mock('../../../../api/services/llmGateway.js', () => ({
 vi.mock('../../../../api/services/logger.js', () => ({ createLogger: () => ({ warn() {}, info() {}, error() {} }) }));
 
 const store = {
-  listTransactions: vi.fn(), months: vi.fn(), forecast: vi.fn(), categorySpend: vi.fn(), refreshRecurring: vi.fn(),
+  saveChatTurn: vi.fn(), listTransactions: vi.fn(), months: vi.fn(), forecast: vi.fn(), categorySpend: vi.fn(), refreshRecurring: vi.fn(),
   listReadings: vi.fn(), listFacts: vi.fn(), questionsFor: vi.fn(), listPlaces: vi.fn(),
   setVerdict: vi.fn(), setPlaceCategory: vi.fn(), answerQuestion: vi.fn(), listBankAccounts: vi.fn(), userLanguage: vi.fn(),
 };
@@ -24,7 +24,7 @@ const store = {
    second one. Everything else the chat reads from the store is still stubbed. */
 vi.mock('../../../../api/services/money/store.js', async (importOriginal) => {
   const { categoryOfPayment } = await importOriginal();
-  return { ...store, categoryOfPayment, saveChatTurn: async () => null, listChatTurns: async () => [], deleteFact: async () => ({ deleted: true }) };
+  return { ...store, categoryOfPayment, listChatTurns: async () => [], deleteFact: async () => ({ deleted: true }) };
 });
 
 const { answerStream, textStreamer, completeSentences } = await import('../../../../api/services/money/chat.js');
@@ -71,6 +71,7 @@ beforeEach(() => {
   complete.mockReset();
   streamCall.mockReset();
   for (const fn of Object.values(store)) fn.mockReset();
+  store.saveChatTurn.mockResolvedValue(null);
   store.listTransactions.mockResolvedValue(transactions);
   store.months.mockResolvedValue(segments);
   store.forecast.mockResolvedValue(cast);
@@ -393,4 +394,30 @@ describe('prose and then the object', () => {
     expect(text).not.toContain('"text"');
     expect(phases(events).at(-1)).toBe('done');
   });
+});
+
+
+it('does not finish a streamed answer until both conversation turns are durable', async () => {
+  let release;
+  let started;
+  const began = new Promise(resolve => { started = resolve; });
+  store.saveChatTurn.mockImplementationOnce(() => new Promise(resolve => { release = resolve; started(); }));
+  streamCall.mockImplementation(streamsIn(['{"text":"Read from your payments.","figures":[],"actions":[],"cites":[]}']));
+  const r = recorder();
+  const pending = answerStream('u', 'Explain my spending', [], { now: NOW, onEvent: r.onEvent });
+  await began;
+  expect(phases(r.events)).not.toContain('done');
+  release(null);
+  await pending;
+  expect(store.saveChatTurn).toHaveBeenCalledTimes(2);
+  expect(phases(r.events).at(-1)).toBe('done');
+});
+
+it('reports a history write failure instead of promising the answer was saved', async () => {
+  store.saveChatTurn.mockRejectedValueOnce(new Error('database unavailable'));
+  streamCall.mockImplementation(streamsIn(['{"text":"Read from your payments.","figures":[],"actions":[],"cites":[]}']));
+  const r = recorder();
+  await answerStream('u', 'Explain my spending', [], { now: NOW, onEvent: r.onEvent });
+  expect(phases(r.events)).not.toContain('done');
+  expect(phases(r.events).at(-1)).toBe('failed');
 });

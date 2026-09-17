@@ -27,7 +27,9 @@ import { askWords } from './askWords';
 import { MARK_FOR, hasMark } from './markPaths';
 import { moneyAPI, euro, shortDay, bankLabel, BANKS, type MoneyAccount, type MoneyCalendar, type MoneyCategories, type MoneyDayStrip, type MoneyFact, type MoneyForecast, type MoneyPattern, type MoneyQuestions, type MoneyToday, type MoneyMonth, type MoneyReading, type MoneyRecurring, type MoneySighting, type MoneyTransaction, type MoneyUsage } from '../../services/api/moneyAPI';
 import LedgerOrb from '../../components/LedgerOrb';
-import DayGlobe from './figures/DayGlobe';
+import { moneyRevision, MONEY_CHANGED } from '../../services/api/moneyChanges';
+import HomeAsk from './HomeAsk';
+import BankAccounts from './BankAccounts';
 import Fortnight from './figures/Fortnight';
 import MonthOrbits from './figures/MonthOrbits';
 import { APK_URL } from '@/lib/downloads';
@@ -105,7 +107,7 @@ function Chevron() { return <ChevronRight className="mv-chev" size={16} strokeWi
    read paints from it at once and reads again quietly only when it is older than half a
    minute (Stefano, 2026-09-16: "it loads all over again"). */
 type Snapshot = {
-  userId: string | null; at: number; forecast: MoneyForecast | null; today: MoneyToday | null; ledger: MoneyTransaction[]; recurring: MoneyRecurring[];
+  userId: string | null; revision: number; at: number; forecast: MoneyForecast | null; today: MoneyToday | null; ledger: MoneyTransaction[]; recurring: MoneyRecurring[];
   accounts: MoneyAccount[]; months: MoneyMonth[]; readings: MoneyReading[]; categories: MoneyCategories | null; usage: MoneyUsage | null; unread: boolean;
 };
 let SNAPSHOT: Snapshot | null = null;
@@ -117,7 +119,7 @@ export default function MoneyV2Page(props: { view?: MoneyView } = {}) {
 }
 
 function MoneyForAccount({ view = 'today', userId }: { view?: MoneyView; userId: string | null }) {
-  if (SNAPSHOT?.userId !== userId) SNAPSHOT = null;
+  if (SNAPSHOT?.userId !== userId || SNAPSHOT?.revision !== moneyRevision()) SNAPSHOT = null;
   /* The tab said "Discover Your Soul Signature" over a page of euros, which is the front
      door's old promise showing through the new product. */
   const t = useT();
@@ -183,7 +185,7 @@ function MoneyForAccount({ view = 'today', userId }: { view?: MoneyView; userId:
   /* How far the bank has booked, and what the phone or the inbox saw after that. The bank
      posts card payments on working days, so a weekend's spending is here before it is there. */
   const bookedTo = ledger.reduce<string | null>((m, t) => (t.posted_at && (!m || t.occurred_at > m) ? t.occurred_at : m), null);
-  const sinceRows = bookedTo ? ledger.filter((t) => (!t.currency || t.currency === 'EUR') && !t.posted_at && t.occurred_at > bookedTo) : [];
+  const sinceRows = bookedTo ? ledger.filter((t) => t.verdict !== 'not_me' && (!t.currency || t.currency === 'EUR') && !t.posted_at && t.occurred_at > bookedTo) : [];
   const since = sinceRows.length;
   /* What the pending alerts add up to, signed: the bank's booked figure minus these is about
      what is really left, and the bank does not say it. */
@@ -239,7 +241,7 @@ function MoneyForAccount({ view = 'today', userId }: { view?: MoneyView; userId:
        try again rather than paint a failure it has not seen. */
     if (!unreadNow) {
       SNAPSHOT = {
-        userId, at: Date.now(),
+        userId, revision: moneyRevision(), at: Date.now(),
         forecast: f.status === 'fulfilled' ? f.value : SNAPSHOT?.forecast ?? null,
         today: td.status === 'fulfilled' ? td.value : SNAPSHOT?.today ?? null,
         ledger: l.status === 'fulfilled' ? l.value : SNAPSHOT?.ledger ?? [],
@@ -262,6 +264,11 @@ function MoneyForAccount({ view = 'today', userId }: { view?: MoneyView; userId:
     if (Date.now() - lastLoad.current < SNAPSHOT_FRESH_MS) return;
     void load();
   }, [load, view]);
+  useEffect(() => {
+    const refresh = () => { void load(); };
+    window.addEventListener(MONEY_CHANGED, refresh);
+    return () => window.removeEventListener(MONEY_CHANGED, refresh);
+  }, [load]);
   useEffect(() => {
     let hiddenAt = 0;
     const onVisibility = () => {
@@ -346,7 +353,7 @@ function MoneyForAccount({ view = 'today', userId }: { view?: MoneyView; userId:
      every render, so any unrelated state change tore down the orbits and replayed their
      entrance; for the second and a half that took, nothing on the figure could be clicked. */
   const monthKey = (forecast?.month || new Date().toISOString()).slice(0, 7);
-  const monthRows = useMemo(() => ledger.filter((tx) => (!tx.currency || tx.currency === 'EUR') && localDay(tx.occurred_at).slice(0, 7) === monthKey), [ledger, monthKey]);
+  const monthRows = useMemo(() => ledger.filter((tx) => tx.verdict !== 'not_me' && (!tx.currency || tx.currency === 'EUR') && localDay(tx.occurred_at).slice(0, 7) === monthKey), [ledger, monthKey]);
   /* What they said comes in each month is the band's right edge; the month is drawn against
      it, not against its own worst case. Without a stated income the band keeps its old edge. */
   /* The month is framed by what they said comes in even when the day rests on the balance. */
@@ -586,28 +593,11 @@ function MoneyForAccount({ view = 'today', userId }: { view?: MoneyView; userId:
                     under it. Until a month can be read, the month figure leads as before. */}
                 {today && today.amount !== null ? (
                   <>
-                    {/* The day as a globe: the number inside it, ember filling from the bottom as
-                        the day is spent. Tapping it opens today's payments under the hero. */}
-                    {(() => {
-                      const mark = forecast?.days?.days.find((d) => d.today);
-                      const spentToday = mark ? mark.total : 0;
-                      return (
-                        <div className="mv-globe-slot">
-                          <DayGlobe
-                            size={typeof window !== 'undefined' && window.innerWidth < 768 ? 280 : 360}
-                            left={today.over ? -(today.free ?? 0) : today.amount}
-                            spent={spentToday}
-                            over={Boolean(today.over)}
-                            label={today.over
-                              ? t('Over today, {spent} spent. Tap to see the payments.', { spent: euro(spentToday) })
-                              : t('{left} left today, {spent} spent. Tap to see the payments.', { left: euro(today.amount), spent: euro(spentToday) })}
-                            onTap={() => setDayOpen((o) => !o)}
-                            open={dayOpen}
-                          />
-                        </div>
-                      );
-                    })()}
-                    <h1>{today.over ? t('Nothing today.') : t('{amount} today.', { amount: euro(today.amount) })}</h1>
+                    <button type="button" className="mv-day-figure" aria-expanded={dayOpen} onClick={() => setDayOpen((o) => !o)}>
+                      <span className="mv-day-value">{euro(today.over ? Math.abs(today.free ?? 0) : today.amount)}</span>
+                      <span className="mv-quiet">{today.over ? t('Over your budget') : t("Today's estimate")}</span>
+                    </button>
+                    <h1 className="mv-sr">{today.over ? t('Nothing today.') : t('{amount} today.', { amount: euro(today.amount) })}</h1>
                     {/* One line: the basis. The month lives in the band's two labels below. */}
                     {allowanceWords(today, t, locale) ? <p className="mv-sub">{allowanceWords(today, t, locale)}</p> : null}
                     {/* The real thing under it: what the bank says is in the account, read with you
@@ -622,7 +612,7 @@ function MoneyForAccount({ view = 'today', userId }: { view?: MoneyView; userId:
                     ) : null}
                     {dayOpen ? (() => {
                       const todayKey = todayHere();
-                      const rows = ledger.filter((t) => (!t.currency || t.currency === 'EUR') && localDay(t.occurred_at) === todayKey && Number(t.amount) < 0);
+                      const rows = ledger.filter((t) => t.verdict !== 'not_me' && (!t.currency || t.currency === 'EUR') && localDay(t.occurred_at) === todayKey && Number(t.amount) < 0);
                       return rows.length ? (
                         <ul className="mv-list mv-day-rows" aria-label={t("Today's payments")}>
                           {rows.map((row) => (
@@ -655,7 +645,7 @@ function MoneyForAccount({ view = 'today', userId }: { view?: MoneyView; userId:
                 {/* The band's own record, once it has one: how many days it has been checked
                     against, and how many it held. A range nobody scores is a range nobody
                     should trust, so the number is printed as soon as there is one. */}
-                {forecast?.band_calibration && forecast.band_calibration.days >= 14 && forecast.band_calibration.coverage !== null ? (
+                {forecast?.band_calibration && forecast.band_calibration.days > 0 && forecast.band_calibration.coverage !== null ? (
                   <p className="mv-sub">{t('The range has held on {held} of the last {days} days.', { held: Math.round(forecast.band_calibration.coverage * forecast.band_calibration.days), days: forecast.band_calibration.days })}</p>
                 ) : null}
                 {/* A month that stopped moving must say why: the bank ends its session on its
@@ -663,6 +653,7 @@ function MoneyForAccount({ view = 'today', userId }: { view?: MoneyView; userId:
                 {reconnect ? <p className="mv-sub">{t('The bank connection has ended. Reconnect it under Sources.')}</p> : null}
               </>
             )}
+            {loaded && !unread ? <HomeAsk /> : null}
             {forecast && !empty ? (
               <div className="mv-band">
                 {/* Ink for what has gone, grey to where the month lands. The spread stays in the
@@ -1120,20 +1111,7 @@ function MoneyForAccount({ view = 'today', userId }: { view?: MoneyView; userId:
                         )}
                       </span>
                     </div>
-                    {mine.length ? (
-                      <ul className="mv-sublist">
-                        {mine.map((a) => (
-                          <li key={a.id} className="mv-item mv-item--sub">
-                            <span className="mv-item-text">
-                              <span className="mv-item-title">{a.name || t('Account')} {a.iban_mask || ''}</span>
-                              <span className="mv-item-sub">
-                                {[a.consent_expires_at ? t('Confirmed to {day}', { day: shortDay(a.consent_expires_at, locale) }) : '', a.last_pulled_at ? t('last read {day}', { day: shortDay(a.last_pulled_at, locale) }) : ''].filter(Boolean).join(', ')}
-                              </span>
-                            </span>
-                          </li>
-                        ))}
-                      </ul>
-                    ) : null}
+                    {mine.length ? <BankAccounts accounts={mine} /> : null}
                   </li>
                 );
               })}

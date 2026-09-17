@@ -3,6 +3,7 @@
  * Spec: .claude/plans/2026-09-07-money-twin/README.md
  */
 import { authFetch, getAuthHeaders, API_URL } from './apiBase';
+import { moneyChanged } from './moneyChanges';
 
 export type MoneyTransaction = {
   id: string; occurred_at: string; posted_at: string | null; amount: number | string; currency: string;
@@ -115,7 +116,9 @@ export type MoneyAnswer = {
   /** Their own words, when a choice was not enough. */
   note?: string;
 };
+export type MoneyCard = { last4: string; type: 'credit' | 'debit' | 'unknown'; source: 'user' | null };
 export type MoneyAccount = {
+  cards?: MoneyCard[]; unidentified_card_payments?: number;
   id: string; provider: string; name: string | null; iban_mask: string | null; currency: string; consent_expires_at: string | null; last_pulled_at: string | null; needs_reconnect?: boolean; bank_name?: string | null;
   /** The bank's own figure for what is in the account, read with the person present; the type says what it counts. */
   balance?: number | string | null; balance_type?: string | null; balance_at?: string | null;
@@ -167,7 +170,7 @@ export const moneyAPI = {
   ledger: completeLedger,
   sightings: (id: string) => authFetch(`/money/transactions/${id}/sightings`).then((r) => json<MoneySighting[]>(r)),
   verdict: (id: string, verdict: 'worth_it' | 'not_me' | null) =>
-    authFetch(`/money/transactions/${id}/verdict`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ verdict }) }).then((r) => json<MoneyTransaction>(r)),
+    authFetch(`/money/transactions/${id}/verdict`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ verdict }) }).then((r) => json<MoneyTransaction>(r)).then(moneyChanged),
   recurring: () => authFetch('/money/recurring').then((r) => json<MoneyRecurring[]>(r)),
   months: () => authFetch('/money/months').then((r) => json<MoneyMonth[]>(r)),
   readings: (refresh = false) => authFetch(`/money/readings${refresh ? '?refresh=1' : ''}`).then((r) => json<MoneyReading[]>(r)),
@@ -210,6 +213,7 @@ export const moneyAPI = {
     const res = await fetch(`${API_URL}/money/statement`, { method: 'POST', headers, body, credentials: 'include' });
     const payload = await res.json().catch(() => ({}));
     if (!res.ok || payload?.success === false) throw new Error(payload?.error || 'That statement could not be read.');
+    moneyChanged(undefined);
     return payload.data as { read: number; created: number; attached: number; skipped: number };
   },
   questions: () => authFetch('/money/questions').then((r) => json<MoneyQuestions>(r)),
@@ -220,12 +224,14 @@ export const moneyAPI = {
     authFetch('/money/home', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ district: hit.label, city: hit.secondary || undefined, lat: hit.lat, lng: hit.lng, place_id: hit.id, source: 'confirmed' }) }).then((r) => json<{ said: string; value: string }>(r)),
   /** One row of a list answer is one fact, so a list question sends one of these per row. */
   answerQuestion: (payload: MoneyAnswer) =>
-    authFetch('/money/questions/answer', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) }).then((r) => json<MoneyFact>(r)),
+    authFetch('/money/questions/answer', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) }).then((r) => json<MoneyFact>(r)).then(moneyChanged),
   skipQuestion: (id: string) =>
     authFetch(`/money/questions/${encodeURIComponent(id)}/skip`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' }).then((r) => json<{ skipped: string }>(r)),
   facts: () => authFetch('/money/facts').then((r) => json<MoneyFact[]>(r)),
   /** Forget one thing they said; the question that produced it is asked again. */
-  deleteFact: (id: string) => authFetch(`/money/facts/${encodeURIComponent(id)}`, { method: 'DELETE' }).then((r) => json<{ deleted: boolean }>(r)),
+  deleteFact: (id: string) => authFetch(`/money/facts/${encodeURIComponent(id)}`, { method: 'DELETE' }).then((r) => json<{ deleted: boolean }>(r)).then(moneyChanged),
+  labelCard: (accountId: string, last4: string, type: MoneyCard['type']) =>
+    authFetch(`/money/bank/accounts/${encodeURIComponent(accountId)}/cards/${encodeURIComponent(last4)}/type`, { method: 'POST', body: JSON.stringify({ type }) }).then((r) => json<MoneyCard>(r)).then(moneyChanged),
   accounts: () => authFetch('/money/bank/accounts').then((r) => json<MoneyAccount[]>(r)),
   /** Start a bank's consent; `back` is the money page to return to (Sources by default). */
   connect: (bank = 'Banco Santander', country = 'ES', back = '') =>
@@ -320,11 +326,11 @@ export const moneyChat = {
        the boundary header the browser writes itself. Only the bearer goes. */
     const { 'Content-Type': _json, ...headers } = getAuthHeaders();
     void _json;
-    return fetch(`${API_URL}/money/chat/attach`, { method: 'POST', headers, body: form }).then((r) => json<ChatAttachment>(r));
+    return fetch(`${API_URL}/money/chat/attach`, { method: 'POST', headers, body: form }).then((r) => json<ChatAttachment>(r)).then(moneyChanged);
   },
   /** Run an offer the person tapped; the ledger checks it again and says what it did. */
   act: (action: ChatAction) =>
-    authFetch('/money/chat/act', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action }) }).then((r) => json<{ done: boolean; said: string }>(r)),
+    authFetch('/money/chat/act', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action }) }).then((r) => json<{ done: boolean; said: string }>(r)).then((r) => r.done ? moneyChanged(r) : r),
   ask: (message: string, history: ChatTurn[]) =>
     authFetch('/money/chat', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ message, history: history.slice(-10) }) })
       .then((r) => json<ChatReply>(r)),
@@ -358,12 +364,16 @@ export const moneyChat = {
             buffer = buffer.slice(cut + 2);
             const line = block.split('\n').find((l) => l.startsWith('data:'));
             if (line) {
-              try { handlers.onEvent(JSON.parse(line.slice(5).trim()) as ChatStreamEvent); } catch { /* a torn line waits for the next chunk */ }
+              try {
+                const event = JSON.parse(line.slice(5).trim()) as ChatStreamEvent;
+                if (event.phase === 'done') ok = true;
+                if (event.phase === 'failed') ok = false;
+                handlers.onEvent(event);
+              } catch { /* a torn line waits for the next chunk */ }
             }
             cut = buffer.indexOf('\n\n');
           }
         }
-        ok = true;
       } catch {
         ok = false;
       } finally {

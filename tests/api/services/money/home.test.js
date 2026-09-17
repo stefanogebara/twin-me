@@ -158,7 +158,7 @@ describe('keeping a home', () => {
     expect(JSON.parse(point.row.value)).toMatchObject({ lat: 40.4343, lng: -3.7031, district: 'Chamberi' });
     expect(asked.row).toMatchObject({ question_id: 'home_area', answered: true });
     expect(describeContext([area.row])).toContain('Lives in Chamberi, Madrid.');
-    expect(out.said).toBe('Lives in Chamberi, Madrid. The shops around it read as near home now.');
+    expect(out.said).toBe('Lives in Chamberi, Madrid. Your answers can use that local context now.');
   });
 
   it('does not repeat the city when it is the district, and refuses an empty home', async () => {

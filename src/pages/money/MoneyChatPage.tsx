@@ -14,7 +14,8 @@
  * real counts, nothing invented. If the trace stream is not there, the column says so.
  */
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
+import { useAuth } from '@/contexts/AuthContext';
 import { motion, useReducedMotion } from 'framer-motion';
 import { authFetch } from '../../services/api/apiBase';
 import { ArrowUp, Paperclip } from 'lucide-react';
@@ -36,7 +37,7 @@ type AskLine = {
   /** The offers under an answer, the model's own reasoning, and the context lines it stood on. */
   actions?: ChatAction[]; thinking?: string; basis?: string[]; acted?: string; howOpen?: boolean;
   /** Still being written: the caret sits at the end. A file you sent, with its picture when it has one. */
-  writing?: boolean; file?: { name: string; url?: string };
+  writing?: boolean; error?: string; file?: { name: string; url?: string };
 };
 
 /** Vercel takes 4 MB of body; a photo bigger than this is shrunk before it goes. */
@@ -212,6 +213,11 @@ function TracePanel({ steps, reading }: { steps: TraceStep[]; reading: boolean }
 }
 
 export default function MoneyChatPage() {
+  const { user } = useAuth();
+  return <MoneyConversation key={user?.id || 'signed-out'} />;
+}
+
+function MoneyConversation() {
   const locale = useLocale();
     const t = useT();
 useDocumentTitle(t('Ask'));
@@ -219,7 +225,10 @@ useDocumentTitle(t('Ask'));
   const [lines, setLines] = useState<AskLine[]>([]);
   const [traceOpen, setTraceOpen] = useState(false);
   const [asking, setAsking] = useState(false);
-  const [text, setText] = useState('');
+  const location = useLocation();
+  const [text, setText] = useState(() => typeof location.state?.draft === 'string' ? location.state.draft.slice(0, 2000) : '');
+  const [historyFailed, setHistoryFailed] = useState(false);
+  const acting = useRef(new Set<string>());
 
   const stop = useRef<(() => void) | null>(null);
   const boxRef = useRef<HTMLTextAreaElement | null>(null);
@@ -244,7 +253,7 @@ useDocumentTitle(t('Ask'));
         /* Whatever was typed while this loaded stays: the kept turns go in front of it. */
         setLines((all) => (all.length ? [...kept, ...all] : kept));
       })
-      .catch(() => { /* a fresh page is fine */ });
+      .catch(() => { if (live) setHistoryFailed(true); });
     return () => { live = false; };
   }, []);
 
@@ -329,13 +338,13 @@ useDocumentTitle(t('Ask'));
         } else if (e.phase === 'actions') {
           amend((l) => ({ ...l, receipts: e.receipts || [], actions: e.actions || [], basis: e.basis || [] }));
         } else if (e.phase === 'failed') {
-          amend((l) => ({ ...l, pending: false, text: e.detail || t('That could not be read right now.') }));
+          amend((l) => ({ ...l, pending: false, text: wrote ? l.text : '', error: e.detail ? t(e.detail) : t('That could not be read right now.') }));
           wrote = true;
         }
       },
       onEnd: (ok) => {
         stop.current = null;
-        if (!ok && !wrote) amend((l) => ({ ...l, pending: false, text: t('That could not be read right now.') }));
+        if (!ok) amend((l) => ({ ...l, pending: false, text: wrote ? l.text : '', error: l.error || t('The answer was interrupted. Please try again.') }));
         amend((l) => ({ ...l, writing: false }));
         setAsking(false);
       },
@@ -379,14 +388,16 @@ useDocumentTitle(t('Ask'));
   /* An offer tapped: the ledger checks it again and says what it did; the offers go, the
      sentence stays under the answer. */
   async function take(lineId: string, action: ChatAction) {
+    if (acting.current.has(lineId)) return;
+    acting.current.add(lineId);
     /* The offers go the moment one is tapped, so a second tap cannot run it twice. */
     setLines((all) => all.map((l) => (l.id === lineId ? { ...l, actions: [], acted: t('Doing it.') } : l)));
     try {
       const r = await moneyChat.act(action);
       setLines((all) => all.map((l) => (l.id === lineId ? { ...l, actions: [], acted: r.said } : l)));
     } catch (e) {
-      setLines((all) => all.map((l) => (l.id === lineId ? { ...l, acted: t('That could not be done.') } : l)));
-    }
+      setLines((all) => all.map((l) => (l.id === lineId ? { ...l, actions: [action], acted: t('That could not be done.') } : l)));
+    } finally { acting.current.delete(lineId); }
   }
   const toggleHow = (lineId: string) => setLines((all) => all.map((l) => (l.id === lineId ? { ...l, howOpen: !l.howOpen } : l)));
 
@@ -418,6 +429,7 @@ useDocumentTitle(t('Ask'));
                   ) : null}
                 </div>
 
+                {historyFailed ? <p role="alert" className="mv-note">{t('Your earlier conversation could not be loaded. Refresh to try again.')}</p> : null}
                 {lines.map((l) => (
                   <motion.div key={l.id} className={`mc-line ${l.who === 'you' ? 'mc-line--you' : ''}`} {...rise}>
                     <span className="mc-line-who">{l.who === 'you' ? t('You') : t('The ledger')}</span>
@@ -426,6 +438,7 @@ useDocumentTitle(t('Ask'));
                     ) : (
                       <p className="mc-line-text">{l.text}{l.writing ? <LedgerOrb state="composing" size={16} className="mc-writing" label={t('Writing')} /> : null}</p>
                     )}
+                    {l.error ? <p role="alert" className="mv-note">{l.error}</p> : null}
                     {l.file?.url ? <img className="mc-file" src={l.file.url} alt="" /> : null}
                     {l.figures?.map((f, k) => <Figure key={k} figure={f} />)}
                     {l.who === 'twin' && l.actions && l.actions.length ? (
@@ -501,6 +514,7 @@ useDocumentTitle(t('Ask'));
                     ref={boxRef}
                     className="mc-say"
                     rows={1}
+                    maxLength={2000}
                     value={text}
                     placeholder={t('Ask about your money')}
                     disabled={asking}

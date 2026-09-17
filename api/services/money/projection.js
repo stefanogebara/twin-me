@@ -57,15 +57,18 @@ export function dailyTotals(transactions, from, to) {
  * @param {number} [p.widen=0]     euros per remaining day the band has earned from its scored
  *                                 misses (calibration.js); the month band widens by the square root
  */
-/** A stated commitment and a detected series are the same thing when the money matches. */
+/** Match both identity and amount before merging a stated bill with a detected series. */
+function sameMerchant(a, b) {
+  const key = (s) => String(s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+  return Boolean(key(a) && key(a) === key(b));
+}
+
 function sameThing(series, commitment) {
   const a = Math.abs(Number(series.typical_amount) || 0);
   const b = Math.abs(Number(commitment.amount) || 0);
   if (!a || !b) return false;
   const sameAmount = Math.abs(a - b) <= Math.max(2, b * 0.15);
-  const sameName = commitment.subject && series.merchant_key
-    && String(series.merchant_key).includes(String(commitment.subject).toLowerCase().slice(0, 6));
-  return sameAmount || sameName;
+  return sameAmount && sameMerchant(series.merchant_key, commitment.subject);
 }
 
 export function projectMonth(p) {
@@ -120,8 +123,9 @@ export function projectMonth(p) {
        either near the day they said or paid the way these are paid, by transfer. */
     .filter((c) => !p.transactions.some((t) => {
       if (!(Number(t.amount) < 0)) return false;
+      if (!sameMerchant(t.merchant_key, c.subject)) return false;
       const at = new Date(t.occurred_at);
-      if (!(at >= monthStart) || at > monthEnd) return false;
+      if (!(at >= monthStart) || at > now) return false;
       const like = Math.abs(Math.abs(Number(t.amount)) - Math.abs(Number(c.amount))) <= Math.max(2, Math.abs(Number(c.amount)) * 0.08);
       if (!like) return false;
       const near = Math.abs(at.getTime() - c.due.getTime()) <= PAID_NEAR_DAYS * 86400000;
@@ -147,7 +151,9 @@ export function projectMonth(p) {
   const weeks = p.historyWeeks ?? 12;
   const histFrom = new Date(today.getTime() - weeks * 7 * DAY);
   const histTo = new Date(today.getTime() - DAY);
-  const history = dailyTotals(p.transactions, histFrom, histTo);
+  const personalHistory = p.transactions.filter((t) => t.verdict !== 'not_me' && isSpending(t))
+    .map((t) => ({ ...t, amount: Number(t.amount) * shareOf(t) }));
+  const history = dailyTotals(personalHistory, histFrom, histTo);
   const byWeekday = Array.from({ length: 7 }, (_, w) => history.filter((d) => d.weekday === w).map((d) => d.total));
   const baseline = byWeekday.map((xs) => (xs.length ? median(xs) : median(history.map((d) => d.total))));
 
@@ -164,7 +170,7 @@ export function projectMonth(p) {
   const lastMonthEnd = new Date(Date.UTC(year, month, 0));
   let sameDaysRest = null;
   if (lastMonthStart >= histFrom && daysLeft > 0) {
-    const lastMonth = dailyTotals(p.transactions, lastMonthStart, lastMonthEnd);
+    const lastMonth = dailyTotals(personalHistory, lastMonthStart, lastMonthEnd);
     const wanted = new Set(remainingDays.map((d) => d.getUTCDate()));
     sameDaysRest = lastMonth.filter((d) => wanted.has(Number(d.date.slice(8, 10)))).reduce((s, d) => s + d.total, 0);
   }

@@ -20,13 +20,13 @@ export async function transactionPage(userId, { since, cursor, limit = 200, curr
 }
 
 /** Complete evidence for calculations. Fail explicitly if the safety bound is exceeded. */
-export async function listTransactions(userId, { since, limit = 10000, currency = null } = {}) {
+export async function listTransactions(userId, { since, limit = 10000, currency = null, includeRejected = false } = {}) {
   const all = []; let cursor = null;
   do {
     const page = await transactionPage(userId, { since, cursor, limit: Math.min(500,limit-all.length), currency });
     all.push(...page.data); cursor = page.next_cursor;
     if (cursor && all.length >= limit) throw new Error('The ledger is larger than this analysis window. Choose a shorter date range.');
   } while (cursor);
-  return all;
+  return includeRejected ? all : all.filter((row) => row.verdict !== 'not_me');
 }
 export const listEuroTransactions = (userId, options = {}) => listTransactions(userId, { ...options, currency: 'EUR' });
