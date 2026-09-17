@@ -1,6 +1,34 @@
 import { expect, test } from '@playwright/test';
 import { moneyFixture } from './money-beta-fixture';
 
+for (const start of ['', '?start=banks', '?start=phone']) {
+  test(`first-visit statement beta cannot open advanced onboarding ${start || 'automatically'}`, async ({page}) => {
+    const state = await moneyFixture(page, {firstVisit:true}); state.advanced=false; state.empty=true;
+    await page.goto('/money/you'+start);
+    await page.getByRole('button',{name:/Add a statement/}).click();
+    await expect(page.getByLabel('Statement account',{exact:true})).toBeVisible();
+    await expect(page.getByRole('dialog')).toHaveCount(0);
+    await expect(page.getByRole('button',{name:'Make a key',exact:true})).toHaveCount(0);
+  });
+}
+
+for (const [start, title] of [['banks', 'Connect your bank.'], ['phone', 'A payment, the moment it happens.']]) {
+  test(`owner retains ${start} setup`, async ({page}) => {
+    await moneyFixture(page, {firstVisit:true});
+    await page.goto('/money/you?start='+start);
+    await expect(page.getByRole('dialog').getByRole('heading',{name:title,exact:true})).toBeVisible();
+  });
+}
+
+test('failed capability lookup keeps advanced onboarding closed', async ({page}) => {
+  const state = await moneyFixture(page, {firstVisit:true}); state.empty=true;
+  await page.route('**/api/money/capabilities', route => route.fulfill({status:503,contentType:'application/json',body:JSON.stringify({success:false,error:'Unavailable'})}));
+  await page.goto('/money/you?start=banks');
+  await page.getByRole('button',{name:/Add a statement/}).click();
+  await expect(page.getByLabel('Statement account',{exact:true})).toBeVisible();
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+});
+
 test('student beta offers statements without bank or phone setup', async ({page}) => {
   const state=await moneyFixture(page); state.advanced=false; state.empty=true;
   await page.goto('/money');

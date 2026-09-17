@@ -1,5 +1,13 @@
 # Money: ten-person student beta
 
+## Release follow-up (supersedes older pre-deployment notes below)
+
+PR #415 merged as `4c6f21f4` after all six required checks passed: 5,337 regular tests, 23 PostgreSQL invariants, 22 Playwright checks, mobile types, Android compilation/JVM tests, baseline and secret scanning. All six additive migrations were applied and verified live; advanced integrations are allowlisted to the existing owner. The private backup restored successfully with all 18 Money tables and matching counts.
+
+A live preview test with a temporary user verified statement account creation, replay, distinct accounts, ownership and currency guards. Its browser step exposed an unguarded first-visit bank dialog that the previous fixture hid by pre-skipping onboarding. Production build `dpl_4Ryu9Cb71x4gLCCJVNrRSW1t9PAv` was canceled before activation; the previous production deployment remains live. The temporary user's records were removed and zero remaining payments/sightings verified.
+
+Follow-up: first-visit onboarding now uses the same server capabilities as Sources, including direct `?start=banks` and `?start=phone` links. Capability failure closes advanced setup; responses are bound to the current owner and stale loads are ignored. New browser cases retain first-visit state and verify both statement-user restrictions and owner access. Final deployment and live verification will be recorded in the follow-up PR.
+
 Owner authorization: 2026-09-17, implement the audit milestones; owner is currently the only user and plans to invite about ten friends. Make ordinary technical decisions, use existing accounts and simulator, and request login when necessary.
 
 Draft PR: https://github.com/stefanogebara/twin-me/pull/415. Branch: `codex/money-student-beta`, based on `d66f84a1`. Isolated from the older, modified shared checkout. Audit: `/Users/stefanogebara/code/twin-me/.Codex/plans/2026-09-17-money-product-audit/README.md`.
