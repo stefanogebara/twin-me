@@ -11,6 +11,8 @@ const OTHER = '00000000-0000-4000-8000-000000000002';
 const phone = { source: 'phone', source_ref: 'event-1', amount: 5, currency: 'EUR', direction: 'out', merchant_key: 'cafe', merchant_raw: 'Cafe', occurred_at: '2026-09-11T19:00:00Z' };
 const bank = (overrides = {}) => ({ ...phone, source: 'bankfeed', source_ref: 'bank-1', raw_json: { status: 'BOOK', entry_reference: 'bank-1' }, ...overrides });
 import { transactionPage, listTransactions } from '../../../../api/services/money/transactionRepository.js';
+import { createStatementAccount, statementAccounts, ownedStatementAccount, checkStatementEvidence } from '../../../../api/services/money/statements/accounts.js';
+import { toSightings } from '../../../../api/services/money/statements/importer.js';
 let pool;
 beforeAll(async () => {
   pool = testPool();
@@ -26,6 +28,43 @@ const ACCOUNT2 = '00000000-0000-4000-8000-000000000011';
 const rows = async () => (await pool.query('SELECT * FROM money_transactions ORDER BY created_at,id')).rows;
 
 describe('Money persisted invariants', () => {
+  it('keeps account creation idempotent and never resolves another owner’s account', async () => {
+    const a = await createStatementAccount(USER, { name: 'Everyday' });
+    const again = await createStatementAccount(USER, { name: ' everyday ' });
+    const other = await createStatementAccount(OTHER, { name: 'Everyday' });
+    expect(again.id).toBe(a.id);
+    expect(other.id).not.toBe(a.id);
+    expect(a).toMatchObject({ provider: 'statement', currency: 'EUR' });
+    expect(a).not.toHaveProperty('session_id');
+    expect((await statementAccounts(USER)).map((x) => x.id)).not.toContain(other.id);
+    await expect(ownedStatementAccount(USER, other.id)).rejects.toMatchObject({ status: 404 });
+    await expect(ownedStatementAccount(USER, null)).rejects.toMatchObject({ status: 400 });
+  });
+  it('imports identical statements for two accounts independently and replays each once', async () => {
+    const a = await createStatementAccount(USER, { name: 'Statement A' });
+    const b = await createStatementAccount(USER, { name: 'Statement B' });
+    const file = [['Fecha', 'Concepto', 'Importe'], ['17/09/2026', 'Cafe', '-5,00']];
+    for (const account of [a, b, a, b]) {
+      const { sightings } = toSightings(file, { accountId: account.id });
+      await checkStatementEvidence(USER, account, sightings);
+      await ingestSightings(USER, sightings);
+    }
+    expect(await rows()).toHaveLength(2);
+    expect(new Set((await rows()).map((r) => r.account_id))).toEqual(new Set([a.id, b.id]));
+  });
+  it('refuses currency mismatches and old unassigned imports without adding a payment', async () => {
+    const account = await createStatementAccount(USER, { name: 'Historical' });
+    const file = [['Fecha', 'Concepto', 'Importe'], ['17/09/2026', 'Cafe', '-5,00']];
+    const { sightings } = toSightings(file, { accountId: account.id });
+    await expect(checkStatementEvidence(USER, account, [{ ...sightings[0], currency: 'USD' }])).rejects.toMatchObject({ status: 422 });
+    await pool.query("INSERT INTO money_sightings (user_id,source,source_ref,amount,currency,direction,occurred_at) VALUES ($1,'statement',$2,5,'EUR','out','2026-09-17')", [USER, sightings[0].legacy_refs[0]]);
+    await expect(checkStatementEvidence(USER, account, sightings)).rejects.toMatchObject({ status: 409 });
+    expect(await rows()).toHaveLength(0);
+  });
+  it('refuses statement evidence without an account before writing anything', async () => {
+    await expect(ingestSighting(USER, { ...phone, source: 'statement' })).rejects.toThrow(/account/i);
+    expect(await rows()).toHaveLength(0);
+  });
   it('keeps two same-price purchases from the same source distinct', async () => {
     await ingestSighting(USER, phone);
     await ingestSighting(USER, { ...phone, source_ref: 'event-2', occurred_at: '2026-09-11T20:00:00Z' });

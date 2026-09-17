@@ -116,6 +116,9 @@ export async function readAttachment(userId, { buffer, filename = '', mimeType =
     let rows = null;
     try { rows = parseStatement(buffer, name); } catch { rows = null; }
     if (rows && rows.sightings && rows.sightings.length) {
+      if (rows.sightings.some((s) => !s.account_id)) {
+        return said('nothing', w('Upload this statement in Sources and choose the account it belongs to.'));
+      }
       const result = await ingestSightings(userId, rows.sightings);
       if (afterLedgerChange) await afterLedgerChange(userId).catch(() => {});
       const created = Number(result?.created) || 0;

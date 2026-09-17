@@ -22,7 +22,7 @@ const data={
 };
 
 export async function moneyFixture(page: Page) {
-  const state = { failing: false, empty: false, paginated: false };
+  const state = { failing: false, empty: false, paginated: false, statementFailed: false, imports: [] as string[], accountCreations: 0 };
   await page.addInitScript(({ user }) => {
     sessionStorage.setItem('oauth_bootstrap_token','audit.synthetic.token');
     sessionStorage.setItem('twinme_new_user_check_done_v1','1');
@@ -38,6 +38,18 @@ export async function moneyFixture(page: Page) {
     if(path==='/auth/verify') return json({success:true,user});
     if(path==='/auth/refresh') return json({success:true,token:'audit.synthetic.token',user});
     if(state.failing && path.startsWith('/money/')) return json({success:false,error:'Synthetic outage'},503);
+    if(path==='/money/statement/accounts') {
+      if(route.request().method()==='POST') {
+        state.accountCreations++;
+        return json({success:true,data:{...account,id:'manual-account',provider:'statement',name:'Everyday'}},201);
+      }
+      return json({success:true,data:[account,{...account,id:'acc2',name:'Second Account'}]});
+    }
+    if(path==='/money/statement') {
+      state.imports.push(route.request().postData() || '');
+      if(state.statementFailed) return json({success:false,error:'The statement service is unavailable. Try again.'},503);
+      return json({success:true,data:{read:1,created:1,skipped:0,attached:0}});
+    }
     if(path==='/money/chat/stream') return route.fulfill({status:200,contentType:'text/event-stream',body:[
       'data: {"phase":"reading"}', 'data: {"phase":"text","delta":"You spent 12.50 EUR at Audit Cafe."}',
       'data: {"phase":"figures","figures":[]}', 'data: {"phase":"actions","actions":[],"receipts":[],"basis":[]}', 'data: {"phase":"done"}',

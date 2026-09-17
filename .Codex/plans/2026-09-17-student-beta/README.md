@@ -13,6 +13,13 @@ Draft PR: https://github.com/stefanogebara/twin-me/pull/415. Branch: `codex/mone
 - Keep the sixty-second deployment ceiling and existing bank-access limits.
 - Use real disposable PostgreSQL for persistence/tenant/rollback tests; no production credentials in tests.
 - Delay inviting friends until financial correctness/account isolation checks pass and Enable Banking application eligibility is verified.
+- Owner confirmed this is a personal student project with no registered company. Continue owner-only live banking; prepare a statement-led pilot while provider eligibility is unresolved. Do not create a company, accept paid terms or contact the provider without separate authorisation.
+
+### Statement selection design lock
+
+Direct build within the existing Money Sources screen. Primary references are `src/styles/money-v2.css` and the current Sources account/feed rows; supporting reference is Refero's bundled `references/craft-details.md` (explicit labels, focus-visible, inline errors and accessible asynchronous status). Live Refero tools are unavailable. Preserve white canvas, Geist, ink-only actions, weight at most 500, existing field/button radii and section rhythm. A chevron opens the statement form; no nested row button. Choose an existing account or name a statement-only account, then select one file and import. Keep selection/file on failure, announce result inline, and distinguish manual records from a live bank connection. No new visual system or imagery.
+
+Statement follow-up verification: reproduced anonymous chat import in a failing test, then added the shared account requirement. The full regression run passed 5,333 regular tests (18 existing skips), 22 real PostgreSQL tests passed, and 20 desktop/phone Playwright checks passed. A subsequent failing test reproduced an unknown explicit currency being labelled EUR; after correction, all 66 focused importer, HTTP, attachment and persistence checks passed. The database tests cover cross-owner selection, repeated account creation, identical statements on different accounts, replay, currency conflicts and old unassigned evidence. HTTP tests verify the authenticated owner and selected account reach ingestion and that failed ownership/historical checks prevent writes. Browser tests cover required selection and retry retaining the file without creating a second account. Production build passed; existing lint/type baselines did not increase. Visual review at phone and desktop sizes led to shortening the selected-account label while preserving its full masked identifier underneath. These changes remain on the draft branch, not deployed.
 
 ## Milestone status
 
@@ -23,7 +30,7 @@ Draft PR: https://github.com/stefanogebara/twin-me/pull/415. Branch: `codex/mone
 | T02 CI gates | 0 | Money database/browser/native jobs added and passed hosted checks. Main now requires Build & Test, Mobile typecheck, Money persistence, Money browser, Android capture and gitleaks; other protection settings were preserved. |
 | T03 Upload and table access | 1 | Multer/ZIP/CSV and Vite patched; development binds to loopback and rejects untrusted Host headers. Places RLS/grants fixed and verified live. |
 | T04 Capture account lifecycle | 1 | Account-scoped credentials, immediate detach, delayed-refresh guards and per-owner screen reset implemented. |
-| T05 Event/account identity | 1 | Stable capture/provider identity and reconnect fingerprint implemented. Multi-account statement selection remains open; do not invite statement-only multi-account users yet. |
+| T05 Event/account identity | 1 | Stable capture/provider identity and reconnect fingerprint implemented. Statement uploads now require an owned account, with an account selector and statement-only identities for users without a bank connection. Historical unassigned matches are blocked for review; linking a statement-only identity to a future live bank connection remains a separate migration task. |
 | T06 Reconciliation | 1 | One policy for batch/single; same-source purchases preserved; pending/booked and currency/card/account guards tested. |
 | T07 Atomic writes and repair | 1 | Two-RPC atomic path and private read-only historical repair report implemented. One proven primary-evidence pointer repaired after reviewing an exact guarded patch; financial fields are unchanged and backed up privately. Ambiguous payments were preserved. |
 | T08 Balance guidance | 1 | Provider timestamps, unresolved outflows, supported balance types and EUR-only aggregates implemented. |
@@ -47,7 +54,7 @@ Draft PR: https://github.com/stefanogebara/twin-me/pull/415. Branch: `codex/mone
 - Local verification: 5,328 regular tests (18 existing skips), 18 real PostgreSQL tests, six mobile lifecycle tests and 16 Playwright checks passed. Mobile TypeScript and Vite build passed. Baseline gate held at 73 lint/110 type/113 direct-route-DB findings. The staged gitleaks scan found no secrets.
 - Dependency patch pass: full production-and-development audit now reports zero High/Critical and four Moderate package entries. Remaining breaking upgrades will be triaged separately; no force downgrade of Bull.
 - Backend changes remain local until the complete release checks pass. Six Money routes passed browser checks at desktop and phone sizes, including receipt expansion, chat, outages, retry and pagination. The new iOS native build compiled in Xcode and the iOS JavaScript bundle exported successfully; interactive simulator checks await macOS control permission.
-- Enable Banking login requested in Playwright; the application’s ten-person eligibility is still unverified.
+- Enable Banking login completed in Playwright on 2026-09-17. The production TwinMe application is Active with Account Information marked Restricted and one owner-linked account. The dashboard explicitly limits retrieval to linked accounts. Billing shows no accessible billing account and says unrestricted production access is available only to organisations. The ten-person bank-connected beta is blocked pending provider approval; login itself did not remove the restriction.
 
 Implementation decisions: two bounded RPCs with optimistic per-owner revisions; one JS matching policy; 250 rows per atomic chunk; stable bank entry reference scoped to account, unstable transaction_id excluded; pending multiplicity tracked across pages; future/unconfirmed receipt notices held outside spending; EUR-only aggregates; explicit ledger pagination; encrypted per-owner capture credentials and durable native retry queue.
 
@@ -78,8 +85,8 @@ Historical review: `node scripts/money/repair-preview.mjs --user-id UUID --env-f
 
 ## Remaining limits and deliberate trade-offs
 
-- Provider eligibility for ten unrelated friends is unverified until Enable Banking login completes. Own-account access is not evidence of general production approval.
-- Multi-account statement attribution needs a selected account or reliable account identifier from the statement. Until that flow is implemented, keep that beta case excluded; do not merge anonymous statement identities across accounts.
+- Provider eligibility for ten unrelated friends is now a confirmed live-banking release blocker: the production application remains restricted to the owner's linked account. Owner confirmed this is a personal student project with no company. No activation request, quote request, contract or billing change was submitted. The standard unrestricted application form requires an organisation; a student exception is unverified. Do not add friends' accounts to the owner's whitelist as a workaround.
+- Statement selection now supports multiple accounts explicitly. Supported formats remain the existing day-first Excel/CSV importer, EUR only, one account per file. Account names identify statement-only accounts; use distinct names for distinct accounts. Moving an existing manual ledger onto a future live bank connection requires an explicit account-linking workflow to avoid duplicates. Old unassigned statement matches return a review-required conflict; historical attribution is not guessed.
 - Unnamed bank-alert emails cannot be safely matched by amount alone. They remain distinct evidence; resolving ambiguity needs a review flow. Future notices are accessible via the authenticated notices API and attachment acknowledgment; a dedicated inbox view is pending.
 - Backfill pagination stores a continuation cursor, but bank-specific cursor expiry/restart behavior needs a real provider exercise. The one-page unattended policy favors budget safety over fast large backfills.
 - Remaining production advisories: React Router's backslash navigation and SSR hydration advisories require a deliberate router upgrade and navigation review; the app is a Vite SPA, but that does not make the navigation issue irrelevant. Bull uses uuid.v4 without caller-provided buffers; the reported uuid issue concerns v3/v5/v6 with buffers. Do not force npm's suggested Bull downgrade. References: [Router navigation](https://github.com/advisories/GHSA-wrjc-x8rr-h8h6), [UUID buffer handling](https://github.com/advisories/GHSA-w5hq-g745-h8pq). The CSV parser was upgraded to address [the columns-path advisory](https://github.com/advisories/GHSA-8cw4-87c7-c6xx).
@@ -90,3 +97,25 @@ Hosted verification: the first run passed Build & Test, Mobile typecheck, Money 
 Final validation follow-up: the Android job passed after explicit SDK package selection. Upgraded Vite to 7.3.6 (supported by the existing React SWC plugin), retained the previous browser compilation targets, and verified localhost returns 200 while an untrusted development Host returns 403. Vite build and all 16 Playwright checks passed. A full local run hit four worker-start timeouts under concurrent activity; the bounded two-worker rerun passed all 5,328 tests with no unhandled errors. The existing baseline gate remains green. The final dependency scan contains four Moderate package entries and no High/Critical findings, including development dependencies. Source: [Vite advisory](https://github.com/advisories/GHSA-fx2h-pf6j-xcff).
 
 Live changes in this session are limited to places-table RLS/grants, required merge checks, and the one verified primary-evidence pointer correction. Application code, remaining additive migrations, and the rebuilt phone release are not yet in production. PR #415 remains a draft while rollout conditions are checked.
+
+## Enable Banking verification and prepared enquiry
+
+Observed in the authenticated [applications dashboard](https://enablebanking.com/cp/applications) and [billing page](https://enablebanking.com/cp/billing) on 2026-09-17: production TwinMe is active but restricted; sandbox is active; billing offers a quote form requiring company name, incorporation country, registration number, usage estimates and an effective date. The page explicitly states that unrestricted access is available only to organisations. No price or student exception was shown. Account identifiers and login tokens are intentionally omitted here.
+
+The provider's [FAQ](https://enablebanking.com/docs/faq/) explains that full activation requires a contract and company KYB, and that non-whitelisted accounts are filtered out even after successful bank authorisation. Its [control-panel guide](https://enablebanking.com/docs/api/control-panel/) describes manual review of the application, policy links, contract and billing association. This makes a successful bank consent screen insufficient evidence that a friend's account can be imported.
+
+Decision: continue owner-only bank testing. Keep bank-connected friend invitations closed until the provider approves the intended use and the remaining software/device gates pass. Owner confirmed there is no registered company. Prepare a statement-only pilot instead; it must not imply that live bank connections are available. The new account selector, guarded import API and chat guard close the account-attribution gap without a paid provider or new database migration.
+
+Prepared enquiry for owner review; **not sent**. Recipient: info@enablebanking.com (published in the provider FAQ). Subject: TwinMe student pilot — eligibility and pricing for 10 invited users.
+
+> Hello Enable Banking team,
+>
+> I am building TwinMe, a student project that helps users understand their spending from bank transactions and receipts. I currently test it with my own linked account, and my production application is active in restricted mode. I would like to run an invite-only beta with approximately ten friends, each consenting to read-only access to their own accounts. The product does not initiate payments.
+> This is a personal student project; I have not incorporated a company.
+>
+> Before inviting them, could you confirm the appropriate approval route, whether you support a student pilot before company incorporation, and the contract, identity/business verification and minimum monthly pricing requirements? Please also explain how accounts are counted for billing and whether any pilot fees or commitments apply. I will confirm the participants' countries and account counts before requesting a quote.
+>
+> I am seeking eligibility and pricing information only at this stage, with no paid activation or contractual commitment.
+>
+> Thank you,
+> Stefano Gebara

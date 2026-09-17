@@ -274,7 +274,9 @@ function currencyFrom(cell, fallback) {
   if (/€|^eur/.test(n)) return 'EUR';
   if (/^\$|^usd/.test(n)) return 'USD';
   if (/^£|^gbp/.test(n)) return 'GBP';
-  return /^[a-z]{3}$/.test(n) ? n.toUpperCase() : fallback;
+  // A present but unreadable currency must fail the account-currency check, not
+  // silently become EUR. Only an absent currency can inherit the selected account.
+  return /^[a-z]{3}$/.test(n) ? n.toUpperCase() : null;
 }
 
 /**
@@ -354,7 +356,7 @@ export function toSightings(rows, { accountId = null, defaultCurrency = 'EUR' } 
     sightings.push({
       source: 'statement',
       source_ref: occurrence === 1 ? identity : `${identity}#${occurrence}`,
-      legacy_refs: occurrence === 1 ? [legacyRef] : [],
+      legacy_refs: occurrence === 1 ? [legacyRef, ...(accountId ? [sourceRef(when, signed, `unassigned|${currency}|${concept}`)] : [])] : [],
       account_id: accountId,
       raw_json: { row, header },
       raw_text: concept || null,

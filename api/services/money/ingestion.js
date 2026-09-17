@@ -24,7 +24,7 @@ const sightingSchema = z.object({
   channel: nullableText(40),
   card_last4: z.string().regex(/^\d{4}$/).nullable().optional(),
   parse_confidence: z.number().min(0).max(1).nullable().optional(),
-});
+}).refine((s) => s.source !== 'statement' || Boolean(s.account_id), 'Statement account is required');
 
 const key = (s) => `${s.source}:${s.source_ref}`;
 

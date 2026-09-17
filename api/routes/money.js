@@ -50,6 +50,7 @@ import { createLogger } from '../services/logger.js';
 import { captureFromBody } from '../services/money/captureParser.js';
 import { ingestSighting, ingestSightings, listTransactions, transactionPage, sightingsFor, refreshRecurring, forecast, setVerdict, userForCaptureKey, saveBankAccounts, listBankAccounts, pullBankFeed, refreshReadings, listReadings, setReadingVerdict, months, feedBudget, categorySpend, listPlaces, setPlaceCategory, enrichPlaces, subscriptionUsage, questionsFor, answerQuestion, skipQuestion, listFacts, deleteFact, recordCallbackFailure, listChatTurns, saveChatTurn, learn, userLanguage, patternsFor } from '../services/money/store.js';
 import { parseDelimited, parseWorkbook, toSightings } from '../services/money/statements/importer.js';
+import { statementAccounts, createStatementAccount, ownedStatementAccount, checkStatementEvidence, StatementInputError } from '../services/money/statements/accounts.js';
 import { isConfigured, listBanks, startAuthorisation, createSession, getSession, applicationInfo } from '../services/money/feeds/enableBanking.js';
 import { answer as chatAnswer, answerStream as chatAnswerStream, act as chatAct } from '../services/money/chat.js';
 import { ahead as calendarAhead, learnEventSpend, addFeed as addCalendarFeed, removeFeed as removeCalendarFeed } from '../services/money/calendar.js';
@@ -315,14 +316,29 @@ const upload = multer({
   },
 });
 
+const statementFailure = (res, error) => {
+  if (error instanceof StatementInputError) return res.status(error.status).json({ success: false, error: error.message });
+  if (error.name === 'ZodError') return res.status(400).json({ success: false, error: 'Check the account name and statement details.' });
+  log.error('statement request failed', { error: error.message });
+  return res.status(503).json({ success: false, error: 'The statement service is unavailable. Try again.' });
+};
+router.get('/statement/accounts', async (req, res) => {
+  try { res.json({ success: true, data: await statementAccounts(req.user.id) }); }
+  catch (error) { statementFailure(res, error); }
+});
+router.post('/statement/accounts', async (req, res) => {
+  try { res.status(201).json({ success: true, data: await createStatementAccount(req.user.id, req.body) }); }
+  catch (error) { statementFailure(res, error); }
+});
 router.post('/statement', upload.single('file'), async (req, res) => {
   if (!req.file?.buffer?.length) return res.status(400).json({ success: false, error: 'No file received' });
   try {
+    const account = await ownedStatementAccount(req.user.id, req.body?.accountId);
     const name = req.file.originalname || '';
     const rows = /\.(xlsx|xls)$/i.test(name)
       ? parseWorkbook(req.file.buffer)
       : parseDelimited(req.file.buffer.toString('utf8'));
-    const { sightings, skipped, header } = toSightings(rows, {});
+    const { sightings, skipped, header } = toSightings(rows, { accountId: account.id, defaultCurrency: account.currency });
     if (!sightings.length) {
       return res.status(422).json({
         success: false,
@@ -330,14 +346,14 @@ router.post('/statement', upload.single('file'), async (req, res) => {
         data: { skipped: skipped.length },
       });
     }
+    await checkStatementEvidence(req.user.id, account, sightings);
     const result = await ingestSightings(req.user.id, sightings);
     await refreshRecurring(req.user.id).catch((e) => log.warn('recurring after statement failed', { error: e.message }));
     await refreshReadings(req.user.id).catch((e) => log.warn('readings after statement failed', { error: e.message }));
     log.info('statement imported', { userId: req.user.id, rows: sightings.length, created: result.created });
     res.json({ success: true, data: { read: sightings.length, created: result.created, attached: result.attached, skipped: skipped.length } });
   } catch (error) {
-    log.error('statement import failed', { error: error.message });
-    res.status(500).json({ success: false, error: 'That statement could not be read.' });
+    statementFailure(res, error);
   }
 });
 

@@ -120,6 +120,7 @@ export type MoneyAccount = {
   /** The bank's own figure for what is in the account, read with the person present; the type says what it counts. */
   balance?: number | string | null; balance_type?: string | null; balance_at?: string | null;
 };
+export type MoneyStatementAccount = Pick<MoneyAccount, 'id' | 'provider' | 'name' | 'iban_mask' | 'currency'>;
 /** A pasted calendar link: Canvas, Blackboard, or any .ics. Only ever a label and a link. */
 export type MoneyCalendarFeed = { id: string; kind: string; label: string; added_at: string | null };
 export type MoneyCalendar = { connected: boolean; google?: boolean; feeds?: MoneyCalendarFeed[]; needsReconnect?: boolean; routine?: string | null; total_expected?: number | null; ahead?: unknown[]; learned?: { key?: string; label?: string; median?: number; occurrences?: number; paid?: number }[]; events_seen?: number; learned_at?: string | null };
@@ -196,9 +197,12 @@ export const moneyAPI = {
    * Raw fetch: authFetch always sets a JSON content type, and multipart needs the
    * browser to write its own boundary.
    */
-  importStatement: async (file: File) => {
+  statementAccounts: () => authFetch('/money/statement/accounts').then((r) => json<MoneyStatementAccount[]>(r)),
+  createStatementAccount: (name: string) => authFetch('/money/statement/accounts', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name }) }).then((r) => json<MoneyStatementAccount>(r)),
+  importStatement: async (file: File, accountId: string) => {
     const body = new FormData();
     body.append('file', file);
+    body.append('accountId', accountId);
     const auth = getAuthHeaders() as unknown as Record<string, string>;
     const headers: Record<string, string> = {};
     if (auth.Authorization) headers.Authorization = auth.Authorization;

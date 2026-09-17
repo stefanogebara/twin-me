@@ -35,6 +35,12 @@ const BLANK_ROW = ['', '', '', '', ''];
 
 const SANTANDER_SHEET = [...PREAMBLE, HEADER, CARD_ROW, BIZUM_ROW, TRANSFER_ROW, BLANK_ROW];
 
+it('does not label an unrecognised explicit currency as euros', () => {
+  const { sightings } = toSightings([['Fecha', 'Concepto', 'Importe', 'Divisa'], ['17/09/2026', 'Cafe', '-5,00', 'Unknown currency']]);
+  expect(sightings).toHaveLength(1);
+  expect(sightings[0].currency).toBeNull();
+});
+
 describe('parseSpanishAmount', () => {
   it('reads Spanish, English and accounting spellings of the same money', () => {
     expect(parseSpanishAmount('1.234,56')).toBe(1234.56);
@@ -151,7 +157,7 @@ describe('toSightings', () => {
     expect(sightings[0]).toEqual({
       source: 'statement',
       source_ref: 'st:005bb65b70e812090f35d79fb341388e',
-      legacy_refs: ['st:124055d0871eaa18f48e1d59930f047b'],
+      legacy_refs: expect.arrayContaining(['st:124055d0871eaa18f48e1d59930f047b']),
       account_id: 'acc-1',
       raw_json: { row: CARD_ROW, header },
       raw_text: 'PAGO MOVIL EN EL CORTE INGLES, MADRID ES, TARJ. :*741245',

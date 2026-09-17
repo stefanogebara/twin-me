@@ -12,9 +12,10 @@ import { Link } from 'react-router-dom';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLocale, useT } from '@/lib/i18n';
-import { ChevronRight, FileText, Landmark, Mail, Smartphone } from 'lucide-react';
+import { ChevronRight, Landmark, Mail, Smartphone } from 'lucide-react';
 import '../../styles/money-v2.css';
 import MoneyNav from './MoneyNav';
+import StatementImport from './StatementImport';
 import Wait from '../../components/Wait';
 import { MONEY_NAV, type MoneyView } from './navLinks';
 import { factRank, factTitle, factWord } from './factWords';
@@ -446,15 +447,6 @@ function MoneyForAccount({ view = 'today', userId }: { view?: MoneyView; userId:
       await load();
     } catch { setNote(t('The pull did not go through.')); }
     finally { setBusy(null); }
-  }
-  async function importStatement(file: File | null) {
-    if (!file) return;
-    setBusy('statement'); setNote(null);
-    try {
-      const r = await moneyAPI.importStatement(file);
-      setNote(r.skipped ? t('{read} rows read, {created} new, {skipped} lines skipped.', { read: r.read, created: r.created, skipped: r.skipped }) : t('{read} rows read, {created} new.', { read: r.read, created: r.created }));
-      await load();
-    } catch { setNote(t('Those rows could not be read.')); } finally { setBusy(null); }
   }
   /* The free provider allows one request a second, so the button comes back for the rest
      rather than holding a request open until it finishes. */
@@ -1195,24 +1187,7 @@ function MoneyForAccount({ view = 'today', userId }: { view?: MoneyView; userId:
                 </ul>
               </li>
               <li>
-                <div className="mv-item mv-item--icon">
-                  <span className="mv-icon" aria-hidden="true"><FileText size={16} /></span>
-                  <span className="mv-item-text">
-                    <span className="mv-item-title">{t('Older months')}</span>
-                    <span className="mv-item-sub">{t('The bank opens 90 days. A Santander Excel or CSV adds the rest.')}</span>
-                  </span>
-                  <span className="mv-item-end">
-                    <label className="mv-pill mv-pill--ghost mv-pill--file">
-                      {busy === 'statement' ? t('Reading\u2026') : t('Add a statement')}
-                      <input
-                        type="file"
-                        accept=".xlsx,.xls,.csv,.txt,.tsv"
-                        onChange={(e) => { const f = e.target.files?.[0] || null; e.target.value = ''; void importStatement(f); }}
-                        disabled={busy === 'statement'}
-                      />
-                    </label>
-                  </span>
-                </div>
+                <StatementImport onImported={load} />
               </li>
               {inbox ? (
                 <li>

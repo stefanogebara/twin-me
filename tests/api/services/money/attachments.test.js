@@ -53,6 +53,13 @@ describe('gateSummary', () => {
 });
 
 describe('readAttachment', () => {
+  it('does not import an unassigned statement through chat', async () => {
+    const d = deps({ parseStatement: vi.fn(() => ({ sightings: [{ source: 'statement', amount: 10 }], header: { index: 0 } })) });
+    const r = await readAttachment(USER, { buffer: Buffer.from('a;b'), filename: 'payments.csv' }, d);
+    expect(r.said).toMatch(/choose.*account/i);
+    expect(d.ingestSightings).not.toHaveBeenCalled();
+    expect(d.extractText).not.toHaveBeenCalled();
+  });
   it('refuses what it cannot take before reading a byte', async () => {
     const d = deps();
     expect((await readAttachment(USER, { buffer: Buffer.alloc(0), filename: 'a.jpg' }, d)).kind).toBe('unreadable');
@@ -62,7 +69,7 @@ describe('readAttachment', () => {
   });
 
   it('a bank export joins the ledger through the statement importer, and the readings refresh', async () => {
-    const d = deps({ parseStatement: vi.fn(() => ({ sightings: [{ source: 'statement', source_ref: 'r1', amount: 10 }, { source: 'statement', source_ref: 'r2', amount: 20 }], skipped: [], header: { index: 0 } })), ingestSightings: vi.fn(async () => ({ created: 1 })) });
+    const d = deps({ parseStatement: vi.fn(() => ({ sightings: [{ source: 'statement', source_ref: 'r1', account_id: 'account-1', amount: 10 }, { source: 'statement', source_ref: 'r2', account_id: 'account-1', amount: 20 }], skipped: [], header: { index: 0 } })), ingestSightings: vi.fn(async () => ({ created: 1 })) });
     const r = await readAttachment(USER, { buffer: Buffer.from('a;b'), filename: 'movimientos.xlsx' }, d);
     expect(r.kind).toBe('statement');
     expect(r.said).toBe('Read 2 payments from movimientos.xlsx; 1 was new to the ledger.');
@@ -74,7 +81,7 @@ describe('readAttachment', () => {
   it('says it back in the language the person chose', async () => {
     /* A chat turn is a transcript of a moment, so it keeps the language it was said in; the
        page cannot say it later (2026-09-16). */
-    const d = deps({ parseStatement: vi.fn(() => ({ sightings: [{ source: 'statement', source_ref: 'r1', amount: 10 }, { source: 'statement', source_ref: 'r2', amount: 20 }], skipped: [], header: { index: 0 } })), ingestSightings: vi.fn(async () => ({ created: 1 })) });
+    const d = deps({ parseStatement: vi.fn(() => ({ sightings: [{ source: 'statement', source_ref: 'r1', account_id: 'account-1', amount: 10 }, { source: 'statement', source_ref: 'r2', account_id: 'account-1', amount: 20 }], skipped: [], header: { index: 0 } })), ingestSightings: vi.fn(async () => ({ created: 1 })) });
     const r = await readAttachment(USER, { buffer: Buffer.from('a;b'), filename: 'movimientos.xlsx', language: 'es' }, d);
     expect(r.said).toBe('Le\u00eddos 2 pagos de movimientos.xlsx; 1 era nuevo en el libro.');
     const pt = await readAttachment(USER, { buffer: Buffer.from('a;b'), filename: 'movimientos.xlsx', language: 'pt-BR' }, d);
