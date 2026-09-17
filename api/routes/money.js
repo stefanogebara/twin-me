@@ -49,6 +49,7 @@ import { accuracy } from '../services/money/predictions.js';
 import { createLogger } from '../services/logger.js';
 import { captureFromBody } from '../services/money/captureParser.js';
 import { moneyCapabilities } from '../services/money/betaCapabilities.js';
+import { holdUndatedCapture } from '../services/money/legacyCapture.js';
 import { ingestSighting, ingestSightings, listTransactions, transactionPage, sightingsFor, refreshRecurring, forecast, setVerdict, userForCaptureKey, saveBankAccounts, listBankAccounts, pullBankFeed, refreshReadings, listReadings, setReadingVerdict, months, feedBudget, categorySpend, listPlaces, setPlaceCategory, enrichPlaces, subscriptionUsage, questionsFor, answerQuestion, skipQuestion, listFacts, deleteFact, recordCallbackFailure, listChatTurns, saveChatTurn, learn, userLanguage, patternsFor } from '../services/money/store.js';
 import { parseDelimited, parseWorkbook, toSightings } from '../services/money/statements/importer.js';
 import { statementAccounts, createStatementAccount, ownedStatementAccount, checkStatementEvidence, StatementInputError } from '../services/money/statements/accounts.js';
@@ -93,6 +94,14 @@ router.post('/capture', authenticateUserOrKey, async (req, res) => {
   /* The Android listener sends the notification's text; an iPhone Wallet automation sends the
      merchant and amount it was handed (captureFromBody says which wins and why). */
   const read = captureFromBody(req.body);
+  if (read.code === 'CAPTURE_TIME_REQUIRED') {
+    try {
+      await holdUndatedCapture(req.user.id, req.body);
+      return res.status(202).json({ success: true, data: { outcome: 'needs_capture_update', message: 'Saved for review, not counted as a payment. Update the capture app to send the original payment time.' } });
+    } catch {
+      return res.status(503).set('Retry-After', '60').json({ success: false, error: 'Capture storage unavailable. Retry later.' });
+    }
+  }
   if (read.error) return res.status(read.status).json({ success: false, error: read.error });
   /* The setup check: the shortcut, run by hand, with nothing to send yet. */
   if (read.ready) return res.json({ success: true, data: { outcome: 'ready', message: 'The key works. Tap a card with your phone and the payment arrives here.' } });

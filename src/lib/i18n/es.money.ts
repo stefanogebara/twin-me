@@ -1,5 +1,7 @@
 /** Spanish for the money pages (MoneyV2Page, MoneySetupPage). Keys are the English source strings. */
 export const ES_MONEY: Record<string, string> = {
+  "Use the updated app or Shortcut.": "Usa la app actualizada o el atajo.",
+  "Undated notifications are kept for review, outside your spending.": "Los avisos sin fecha se guardan para revisar, sin contarlos como gastos.",
   "Live bank connections are not available in this beta. Add a statement instead.": "Las conexiones bancarias no están disponibles en esta beta. Añade un extracto.",
   "Start with a statement from your bank.": "Empieza con un extracto de tu banco.",
   "{read} read, {created} added, {skipped} skipped.": "Leídos: {read}. Añadidos: {created}. Omitidos: {skipped}.",

@@ -1215,12 +1215,13 @@ function MoneyForAccount({ view = 'today', userId }: { view?: MoneyView; userId:
                   <span className="mv-icon" aria-hidden="true"><Smartphone size={16} /></span>
                   <span className="mv-item-text">
                     <span className="mv-item-title">{t('Your phone')}</span>
-                    <span className="mv-item-sub">{t('Every payment reaches the ledger the moment the bank announces it.')}</span>
+                    <span className="mv-item-sub">{t('Use the updated app or Shortcut.')}</span>
                   </span>
                   <span className="mv-item-end">
                     {key ? null : <button type="button" className="mv-pill mv-pill--ghost" onClick={makeKey} disabled={busy === 'key'}>{t('Make a key')}</button>}
                   </span>
                 </div>
+                <p className="mv-body mv-body--icon mv-quiet">{t('Undated notifications are kept for review, outside your spending.')}</p>
                 {key ? (
                   <div className="mv-body mv-body--icon">
                     <code className="mv-code">{key}</code>

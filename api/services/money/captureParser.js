@@ -187,7 +187,7 @@ export function captureFromBody(body = {}) {
   // A text hash cannot distinguish two identical purchases. Send the original event time
   // or a durable event id, and reuse it on every retry (never generate it during delivery).
   const originalTime = date || receivedAt;
-  if (!originalTime) return { status: 400, error: 'Send the original date/receivedAt with this payment; reuse eventId on retries' };
+  if (!originalTime) return { status: 400, code: 'CAPTURE_TIME_REQUIRED', error: 'Send the original date/receivedAt with this payment; reuse eventId on retries' };
   const identity = eventId ? `event:${eventId}` : `${merchant || ''}|${amount || ''}|${card || ''}|${originalTime}|${direction || 'out'}|${text || ''}`;
   if (hasAmount) {
     const parsed = parseStructured({ merchant, amount, card, date: date || receivedAt, direction });

@@ -13,6 +13,7 @@ const bank = (overrides = {}) => ({ ...phone, source: 'bankfeed', source_ref: 'b
 import { transactionPage, listTransactions } from '../../../../api/services/money/transactionRepository.js';
 import { createStatementAccount, statementAccounts, ownedStatementAccount, checkStatementEvidence } from '../../../../api/services/money/statements/accounts.js';
 import { toSightings } from '../../../../api/services/money/statements/importer.js';
+import { holdUndatedCapture } from '../../../../api/services/money/legacyCapture.js';
 let pool;
 beforeAll(async () => {
   pool = testPool();
@@ -21,13 +22,22 @@ beforeAll(async () => {
   await pool.query('INSERT INTO users(id) VALUES ($1),($2)', [USER, OTHER]);
   await pool.query("INSERT INTO money_accounts(id,user_id,provider) VALUES ($1,$2,'enablebanking'),($3,$4,'enablebanking')", [ACCOUNT,USER,ACCOUNT2,OTHER]);
 });
-beforeEach(async () => { state.db = postgresSupabase(pool); await pool.query('TRUNCATE money_sightings, money_transactions, money_feed_accesses, money_feed_leases, money_sync_jobs CASCADE'); });
+beforeEach(async () => { state.db = postgresSupabase(pool); await pool.query('TRUNCATE money_sightings, money_transactions, money_feed_accesses, money_feed_leases, money_sync_jobs, money_notices CASCADE'); });
 afterAll(async () => { await pool?.end(); });
 const ACCOUNT = '00000000-0000-4000-8000-000000000010';
 const ACCOUNT2 = '00000000-0000-4000-8000-000000000011';
 const rows = async () => (await pool.query('SELECT * FROM money_transactions ORDER BY created_at,id')).rows;
 
 describe('Money persisted invariants', () => {
+  it('preserves old undated captures outside the ledger and isolates their retries by owner', async () => {
+    const body={text:'Compra 5,00 EUR en Cafe'};
+    await holdUndatedCapture(USER, body); await holdUndatedCapture(USER, body); await holdUndatedCapture(OTHER, body);
+    const held=(await pool.query("SELECT user_id,amount,due_at,evidence FROM money_notices WHERE kind='capture_needs_update'")).rows;
+    expect(held).toHaveLength(2);
+    expect(new Set(held.map((x)=>x.user_id))).toEqual(new Set([USER,OTHER]));
+    expect(held.every(x=>x.amount===null && x.due_at===null && x.evidence.text===body.text)).toBe(true);
+    expect(await rows()).toHaveLength(0);
+  });
   it('keeps account creation idempotent and never resolves another owner’s account', async () => {
     const a = await createStatementAccount(USER, { name: 'Everyday' });
     const again = await createStatementAccount(USER, { name: ' everyday ' });
