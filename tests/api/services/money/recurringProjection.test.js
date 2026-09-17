@@ -116,7 +116,7 @@ describe('projectMonth: what the person said, made to count', () => {
     const r = projectMonth({
       transactions: rows, now: NOW,
       recurring: [{ merchant_key: 'rentals sl', typical_amount: 500, next_expected: '2026-09-28' }],
-      commitments: [{ subject: 'rent', amount: 500, day: 28 }],
+      commitments: [{ subject: 'rentals sl', amount: 500, day: 28 }],
     });
     expect(r.commitments).toBe(0);
     expect(r.committed).toBe(500);
@@ -124,7 +124,7 @@ describe('projectMonth: what the person said, made to count', () => {
 
   it('does not count a commitment already paid this month', () => {
     const rows = [t('2026-09-01', -500, 'Landlord', 'transfer')];
-    const r = projectMonth({ transactions: rows, recurring: [], now: NOW, commitments: [{ subject: 'rent', amount: 500, day: 28 }] });
+    const r = projectMonth({ transactions: rows, recurring: [], now: NOW, commitments: [{ subject: 'landlord', amount: 500, day: 28 }] });
     expect(r.commitments).toBe(0);
   });
 
@@ -135,7 +135,7 @@ describe('projectMonth: what the person said, made to count', () => {
     const r = projectMonth({ transactions: rows, recurring: [], now: NOW, commitments: [{ subject: 'rent', amount: 600, day: 28 }] });
     expect(r.commitments).toBe(600);
     /* Paid by transfer, at any point in the month, it is that commitment. */
-    const paid = projectMonth({ transactions: [t('2026-09-12', -590, 'Landlord', 'transfer')], recurring: [], now: NOW, commitments: [{ subject: 'rent', amount: 600, day: 28 }] });
+    const paid = projectMonth({ transactions: [t('2026-09-12', -590, 'Landlord', 'transfer')], recurring: [], now: new Date('2026-09-18T12:00:00Z'), commitments: [{ subject: 'landlord', amount: 600, day: 28 }] });
     expect(paid.commitments).toBe(0);
   });
 

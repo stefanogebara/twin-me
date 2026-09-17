@@ -14,14 +14,13 @@
    column held open for a closed panel left the transcript narrow with an empty band beside
    it, which is what it looked like from outside: the chat cut short and grey to its right
    (Stefano, 2026-09-16). The link that opens it sits quietly above, on the right. */
-.mc-columns { display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px 48px; align-items: stretch; min-height: 0; }
-.mc-columns:has(.mc-trace) { grid-template-columns: minmax(0, 1fr) 220px; gap: 48px; }
+.mc-columns { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px 48px; grid-template-rows: auto minmax(0, 1fr); align-items: stretch; min-height: 0; }
+.mc-columns:has(.mc-trace) { grid-template-columns: minmax(0, 1fr) 220px; grid-template-rows: minmax(0, 1fr); gap: 48px; }
 .mc-columns:not(:has(.mc-trace)) > .mc-side { order: -1; justify-self: end; position: static; }
 .mc-thread { display: grid; grid-template-rows: minmax(0, 1fr) auto; min-width: 0; min-height: 0; }
-/* The transcript grows upward from the composer, the way a conversation does. Anchored to
-   the top instead, the first question sat alone at the ceiling with the composer far below
-   it and a field of empty paper between the two. */
-.mc-scroll { display: grid; align-content: end; gap: 40px; padding-bottom: 24px; }
+/* Keep the introduction and transcript stable as the first answer arrives.
+   The flexible thread row holds the composer near the viewport edge. */
+.mc-scroll { display: grid; align-content: start; gap: 32px; padding-bottom: 24px; }
 /* Nothing asked yet: the heading, the offers and the prompt sit at the top, not the foot of an empty screen. */
 .mc-scroll.is-empty { align-content: start; gap: 24px; }
 .mc-thread:has(.mc-scroll.is-empty) { grid-template-rows: auto auto; align-content: start; }
@@ -60,11 +59,11 @@
 .mc .mc-drop { grid-column: 1 / -1; justify-self: end; }
 
 /* ------------------------------------------------------------------ composer
-   A field like every other: the warm box, a 4 corner, the send as a 32 ink button. */
-.mc-composer { position: sticky; bottom: 0; padding: 12px 0 24px; background: var(--page); }
+   A warm pill with the attachment and send controls on a shared baseline. */
+.mc-composer { position: sticky; bottom: 0; padding: 12px 0 max(20px, env(safe-area-inset-bottom)); background: var(--page); }
 .mc-composer-inner {
   display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: end; gap: 4px;
-  min-height: 44px; box-sizing: border-box; padding: 6px; border-radius: 4px; background: var(--field);
+  min-height: 44px; box-sizing: border-box; padding: 10px; border-radius: 28px; background: var(--field);
 }
 /* The one way a file gets in: a quiet clip, ink on hover, the same 32 as the send. */
 .mc .mc-attach {
@@ -92,10 +91,14 @@
 .mc .mc-step.is-live .mv-item-title { color: var(--ink); font-weight: 500; }
 
 @media (max-width: 1099px) {
-  .mc-columns { grid-template-columns: minmax(0, 1fr); gap: 40px; }
-  .mc-side { position: static; padding-bottom: 40px; }
+  .mc-columns, .mc-columns:has(.mc-trace) { grid-template-columns: minmax(0, 1fr); gap: 16px; }
+  .mc-side { position: static; padding-bottom: 0; }
 }
 @media (max-width: 767px) {
+  .mc .mv-col { min-height: calc(100dvh - 108px); }
+  .mc .mc-say { font-size: 16px; line-height: 24px; }
+  .mc .mc-attach, .mc .mc-send { width: 44px; min-height: 44px; }
+
   .mc-row--three { grid-template-columns: 1fr 1fr; }
   .mc-row--three > :first-child { grid-column: 1 / -1; }
   .mc-row--share { grid-template-columns: 1fr auto; }

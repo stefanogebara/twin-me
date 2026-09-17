@@ -22,7 +22,7 @@ const data={
 };
 
 export async function moneyFixture(page: Page, { firstVisit = false } = {}) {
-  const state = { failing: false, empty: false, paginated: false, advanced: true, statementFailed: false, imports: [] as string[], accountCreations: 0 };
+  const state = { failing: false, empty: false, paginated: false, advanced: true, statementFailed: false, changed: false, offer: false, interrupted: false, cards: false, cardTypes: {} as Record<string,string>, imports: [] as string[], accountCreations: 0 };
   await page.addInitScript(({ user, firstVisit }) => {
     sessionStorage.setItem('oauth_bootstrap_token','audit.synthetic.token');
     sessionStorage.setItem('twinme_new_user_check_done_v1','1');
@@ -52,6 +52,23 @@ export async function moneyFixture(page: Page, { firstVisit = false } = {}) {
       if(state.statementFailed) return json({success:false,error:'The statement service is unavailable. Try again.'},503);
       return json({success:true,data:{read:1,created:1,skipped:0,attached:0}});
     }
+    if (path==='/money/bank/accounts' && state.cards) return json({success:true,data:[
+      {...account,cards:[{last4:'1234',type:state.cardTypes['acc1:1234'] || 'unknown',source:state.cardTypes['acc1:1234']?'user':null},{last4:'5678',type:'credit',source:'user'}]},
+      {...account,id:'acc2',name:'Second Account',cards:[{last4:'1234',type:'debit',source:'user'}]}
+    ]});
+    if (/^\/money\/bank\/accounts\/[^/]+\/cards\/\d{4}\/type$/.test(path)) {
+      const parts=path.split('/'); const body=route.request().postDataJSON();
+      state.cardTypes[parts[4]+':'+parts[6]]=body.type;
+      return json({success:true,data:{last4:parts[6],type:body.type,source:'user'}});
+    }
+    if(path==='/money/chat/act') { state.changed=true; return json({success:true,data:{done:true,said:'Updated your ledger.'}}); }
+    if(path==='/money/today' && state.changed) return json({success:true,data:{...today,amount:29.99}});
+    if(path==='/money/chat/stream' && state.interrupted) return route.fulfill({status:200,contentType:'text/event-stream',body:'data: {"phase":"text","delta":"An unfinished answer"}\n\n'});
+    if(path==='/money/chat/stream' && state.offer) return route.fulfill({status:200,contentType:'text/event-stream',body:[
+      'data: {"phase":"text","delta":"Confirm the correction below."}',
+      'data: {"phase":"actions","actions":[{"kind":"not_me","transaction_id":"tx1","label":"Not my payment"}],"receipts":[],"basis":[]}',
+      'data: {"phase":"done"}'
+    ].join('\n\n')+'\n\n'});
     if(path==='/money/chat/stream') return route.fulfill({status:200,contentType:'text/event-stream',body:[
       'data: {"phase":"reading"}', 'data: {"phase":"text","delta":"You spent 12.50 EUR at Audit Cafe."}',
       'data: {"phase":"figures","figures":[]}', 'data: {"phase":"actions","actions":[],"receipts":[],"basis":[]}', 'data: {"phase":"done"}',

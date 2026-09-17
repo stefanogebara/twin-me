@@ -14,7 +14,7 @@
  */
 
 import { supabaseAdmin } from '../database.js';
-import { awayWindows, weekWord, AWAY_WORDS, EXAM_WORDS, DEADLINE_WORDS, AWAY_MIN_DAYS } from './covariates.js';
+import { awayWindows, weekWord, AWAY_WORDS, EXAM_WORDS, DEADLINE_WORDS } from './covariates.js';
 import { parseIcs, feedKind, isFeedUrl, looksLikeIcs, FEED_LABELS } from './ics.js';
 import crypto from 'node:crypto';
 import { encryptToken, decryptToken } from '../encryption.js';
@@ -638,7 +638,7 @@ export async function learnEventSpend(userId, { now = new Date(), events = null 
   /* The past kept slim, for the covariates: only events that are windows or name a kind
      of week (covariates.js), as title and dates. The ninety days of the rest are not stored. */
   const past = evs
-    .filter((e) => ms(e.start) < now.getTime() && (AWAY_WORDS.test(String(e.title).toLowerCase()) || EXAM_WORDS.test(String(e.title).toLowerCase()) || DEADLINE_WORDS.test(String(e.title).toLowerCase()) || (e.all_day && (ms(e.end) - ms(e.start)) / DAY_MS >= AWAY_MIN_DAYS)))
+    .filter((e) => ms(e.start) < now.getTime() && (AWAY_WORDS.test(String(e.title).toLowerCase()) || EXAM_WORDS.test(String(e.title).toLowerCase()) || DEADLINE_WORDS.test(String(e.title).toLowerCase())))
     .map((e) => ({ title: e.title, start: e.start, end: e.end, all_day: e.all_day }));
   const meta = { learned_at: now.toISOString(), routine: routineSummary(evs, { now }), events_seen: evs.length, snapshot, past };
   await persist(userId, learned, meta);

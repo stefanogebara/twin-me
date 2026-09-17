@@ -436,5 +436,5 @@ export async function saveHome(userId, { district, city, lat, lng, source = 'con
   await supabaseAdmin.from('money_questions_asked')
     .upsert({ user_id: userId, question_id: HOME_KIND, answered: true, skipped: false }, { onConflict: 'user_id,question_id' });
   const said = describeContext([{ kind: HOME_KIND, value }]).split('\n').pop().replace(/^- /, '');
-  return { value, said: `${said} The shops around it read as near home now.` };
+  return { value, said: `${said} Your answers can use that local context now.` };
 }

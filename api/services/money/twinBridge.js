@@ -70,7 +70,7 @@ export const FACT_IMPORTANCE = {
 };
 
 /** Fact kinds that are the lens's own working memory and never describe the person. */
-const INTERNAL_KINDS = new Set(['event_spend', 'event_spend_meta', 'calendar_feed', 'home_point', 'inbox_address']);
+const INTERNAL_KINDS = new Set(['event_spend', 'event_spend_meta', 'calendar_feed', 'home_point', 'inbox_address', 'card_type']);
 
 /**
  * One finding as a sentence the twin can retrieve, with the money words spelled out

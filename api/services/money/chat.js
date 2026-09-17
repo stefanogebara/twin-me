@@ -419,7 +419,7 @@ export function contextText(ctx) {
   for (const r of ctx.readings.slice(0, 4)) if (r?.sentence) lines.push(`Reading${r.verdict === 'true' ? ' (they confirmed this)' : ''}: ${r.sentence}${r.detail ? ` ${r.detail}` : ''}`.replace(/\u20ac/g, 'EUR'));
 
   const said = describeContext(ctx.facts);
-  const theirs = (ctx.facts || []).filter((f) => f.id && f.source === 'asked' && !['event_spend', 'event_spend_meta', 'calendar_feed', 'home_point', 'inbox_address'].includes(f.kind)).slice(0, 30);
+  const theirs = (ctx.facts || []).filter((f) => f.id && f.source === 'asked' && !['event_spend', 'event_spend_meta', 'calendar_feed', 'home_point', 'inbox_address', 'card_type'].includes(f.kind)).slice(0, 30);
   if (theirs.length) lines.push('Facts they gave (fact_id: what): ' + theirs.map((f) => `${f.id}: ${f.kind} ${f.subject_label || f.subject || ''} ${f.value || ''} ${f.amount ? amountText(f.amount) : ''}`.replace(/\s+/g, ' ').trim()).join(' | '));
   if (said) lines.push(`The person said: ${said.replace(/\u20ac/g, 'EUR')}`);
   /* Money between people: who sent what, who paid back, what is still open (bizum.js). */
@@ -470,6 +470,7 @@ export const RULES = [
   'An answer is a claim: prefer naming the payments behind it.',
   'The earlier turns are the conversation so far. Do not restate the question, do not repeat a number or a sentence you already said unless asked for it again, and do not explain again what the ledger is or where answers come from.',
   'Vary your openings; never begin two answers the same way. On a follow-up ("and last month?", "why?", "and Spotify?") answer only what is new.',
+  'Calendar overlaps and merchant patterns are associations, not evidence of what caused spending. Do not infer attendance, a commute, work expenses or a causal effect from location or timing alone. A note kept in their words changes conversational context; it does not change numeric forecasts unless a structured action is confirmed.',
   'When the calendar lines say what a kind of event usually costs, you may say what the days ahead are likely to cost, always as "usually about", never as a promise.',
   'Never ask whether they would like a figure or a chart: when one would help, ask for it by kind and it is drawn under your words. When a figure would show the thing better than words, ask for it by kind. Kinds: months (spent per month), shares (where a month went; add month, and by: "merchant" for places), weekdays (spend by weekday), recurring (what comes back), band (this month so far and likely), history (one merchant over time; add merchant). Ask for at most two, and only when they add something.',
   'Actions are offers the person taps, never things you did: the text must not claim to have changed, marked or recorded anything. Say something like "If that is right, mark it below." and leave the doing to the card.',
@@ -991,21 +992,19 @@ export async function answerStream(userId, message, history = [], { now = new Da
 
   const asked = String(message || '').trim();
   const whole = (text) => { if (text) send({ phase: 'text', delta: text }); };
-  const closeWith = (reply) => {
+  const closeWith = async (reply) => {
     send({ phase: 'figures', figures: reply.figures || [] });
     send({ phase: 'actions', actions: reply.actions || [], receipts: reply.receipts || [], basis: reply.basis || [] });
-    send({ phase: 'done' });
-    /* Every answer that reaches the person is kept, whichever path made it. */
-    keep(reply);
+    try {
+      // The route must await both writes before ending a serverless invocation.
+      await saveChatTurn(userId, { role: 'user', text: asked });
+      await saveChatTurn(userId, { role: 'twin', text: reply.text, figures: reply.figures || null, actions: reply.actions || null, thinking: reply.thinking || null, basis: reply.basis || null, receipts: reply.receipts || null });
+      send({ phase: 'done' });
+    } catch (error) {
+      log.warn(`chat history could not be saved: ${error.message}`);
+      send({ phase: 'failed', detail: 'The answer could not be saved. Keep this page open and try again later.' });
+    }
     return reply;
-  };
-  let kept = false;
-  const keep = (reply) => {
-    if (kept || !reply || !reply.text) return;
-    kept = true;
-    saveChatTurn(userId, { role: 'user', text: asked })
-      .then(() => saveChatTurn(userId, { role: 'twin', text: reply.text, figures: reply.figures || null, actions: reply.actions || null, thinking: reply.thinking || null, basis: reply.basis || null, receipts: reply.receipts || null }))
-      .catch(() => null);
   };
 
   if (!asked) return closeWith({ text: (whole(NO_ANSWER), NO_ANSWER), figures: [], actions: [], receipts: [] });
@@ -1192,11 +1191,7 @@ export async function answerStream(userId, message, history = [], { now = new Da
   if (!shown.length) whole(guarded);
   const finalText = shown.length ? asShown(shown) : guarded;
   const basis = basisOf(finalText, ctx);
-  const closed = closeWith({ ...reply, text: finalText, basis, thinking: thinking || null });
-  /* The kept turns are written after the wire closes; on a serverless host the caller awaits
-     this function, so the write still lands. */
-  await new Promise((r) => setTimeout(r, 0));
-  return closed;
+  return closeWith({ ...reply, text: finalText, basis, thinking: thinking || null });
 }
 
 /* ------------------------------------------------------------------- grounding */

@@ -6,8 +6,7 @@
  * calendar can, and the read of it kept in money_facts (calendar.js) is the only source:
  * no request leaves this module.
  *
- * Two things are read from the events. Away windows: all-day events spanning two or more
- * days, or any event whose title says a trip. A silence clock stops inside one. The word
+ * Two things are read from the events. Away windows: events whose title explicitly says a trip; duration alone is not evidence. A silence clock stops inside one. The word
  * for the week: an event overlapping the last seven days whose title says exams or a trip,
  * so a delta can say which kind of week it was. Both are computed, neither is guessed.
  *
@@ -29,8 +28,6 @@ export const HOLIDAY_CALENDAR = /\b(regional holiday|public holiday|bank holiday
 export const EXAM_WORDS = /\b(examen|examenes|exam|exams|parcial|parciales|finals|final exam|final test|mock test|prueba|midterm|midterms|evaluacion)\b/;
 /** Titles that say something is due: what Canvas and Blackboard calendars are made of. */
 export const DEADLINE_WORDS = /\b(due|deadline|entrega|assignment|assigment|homework|quiz|practica|project|proyecto|submission|essay|ensayo|hand in|deliverable|presentation|report|pitch)\b/;
-/** An all-day event this long or longer is a window, whatever it is called. */
-export const AWAY_MIN_DAYS = 2;
 
 /**
  * The windows the person was, or will be, away: [{ from, to, title }] as ISO days, `to`
@@ -44,8 +41,7 @@ export function awayWindows(events = []) {
     const span = (end - start) / DAY;
     if (HOLIDAY_CALENDAR.test(norm(e.title))) continue;
     const away = AWAY_WORDS.test(norm(e.title));
-    if (e.all_day && span >= AWAY_MIN_DAYS) raw.push({ from: dayOf(start), to: dayOf(end), title: e.title });
-    else if (away && span >= 1) raw.push({ from: dayOf(start), to: dayOf(end + (e.all_day ? 0 : DAY)), title: e.title });
+    if (away && span >= 1) raw.push({ from: dayOf(start), to: dayOf(end + (e.all_day ? 0 : DAY)), title: e.title });
     else if (away && !e.all_day) raw.push({ from: dayOf(start), to: dayOf(start + DAY), title: e.title });
   }
   raw.sort((a, b) => (a.from < b.from ? -1 : 1));
@@ -91,7 +87,7 @@ export function weekWord(events = [], now = new Date()) {
     if (HOLIDAY_CALENDAR.test(t)) continue;
     if (EXAM_WORDS.test(t)) exam = true;
     else if (DEADLINE_WORDS.test(t)) due += 1;
-    if (AWAY_WORDS.test(t) || (e.all_day && (en - s) / DAY >= AWAY_MIN_DAYS)) away = true;
+    if (AWAY_WORDS.test(t)) away = true;
   }
   if (exam) return 'an exam week';
   if (away) return 'a week away';

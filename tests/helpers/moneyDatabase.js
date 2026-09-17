@@ -71,6 +71,11 @@ export function postgresSupabase(pool) {
         select(value = '*') { columns = value; return query; },
         insert(value) { action = 'insert'; input = value; return query; },
         upsert(value, options = {}) { action = 'upsert'; input = value; conflict = options.onConflict; return query; },
+        delete() { action = 'delete'; return query; },
+        not(k, op, v) {
+          if (op !== 'is' || v !== null) throw new Error('Unsupported test query');
+          filters.push([k, 'IS NOT NULL', null]); return query;
+        },
         update(value) { action = 'update'; input = value; return query; },
         single() { one = true; return query; },
         maybeSingle() { one = true; return query; },
@@ -86,9 +91,10 @@ export function postgresSupabase(pool) {
               const values = [];
               const param = (value) => { values.push(value && typeof value === 'object' && !Array.isArray(value) ? JSON.stringify(value) : value); return `$${values.length}`; };
               const projection = columns === '*' ? '*' : columns.split(',').map((s) => identifier(s.trim())).join(', ');
-              const where = () => filters.length ? ' WHERE ' + filters.map(([k, op, value]) => `${identifier(k)} ${op}${op === '= ANY' ? `(${param(value)})` : ` ${param(value)}`}`).join(' AND ') : '';
+              const where = () => filters.length ? ' WHERE ' + filters.map(([k, op, value]) => `${identifier(k)} ${op}${op === 'IS NOT NULL' ? '' : op === '= ANY' ? `(${param(value)})` : ` ${param(value)}`}`).join(' AND ') : '';
               let sql;
               if (action === 'select') sql = `SELECT ${projection} FROM public.${identifier(table)}${where()}${order}${limit}`;
+              if (action === 'delete') sql = `DELETE FROM public.${identifier(table)}${where()} RETURNING ${projection}`;
               if (action === 'update') sql = `UPDATE public.${identifier(table)} SET ${Object.entries(input).map(([k,v]) => `${identifier(k)}=${param(v)}`).join(', ')}${where()} RETURNING ${projection}`;
               if (action === 'insert' || action === 'upsert') {
                 const rows = Array.isArray(input) ? input : [input];

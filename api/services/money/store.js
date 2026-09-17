@@ -44,27 +44,37 @@ export async function sightingsFor(userId, transactionId) {
 /** Recompute recurring series from the last 400 days and flag the ledger rows. */
 export async function refreshRecurring(userId, now = new Date()) {
   const since = new Date(now.getTime() - 400 * 86400000).toISOString();
-  const rows = await listEuroTransactions(userId, { since, limit: 5000 });
+  const evidence = await listEuroTransactions(userId, { since, limit: 5000, includeRejected: true });
+  const rows = evidence.filter((row) => row.verdict !== 'not_me');
   const { data: merchants } = await supabaseAdmin.from('money_merchants').select('merchant_key, platform').not('platform', 'is', null);
   const platforms = Object.fromEntries((merchants || []).map((m) => [m.merchant_key, m.platform]));
   const series = detectRecurring(rows, { now, platforms });
   /* The key is machine spelling ("render com"). A card should carry the name the ledger shows. */
   const names = new Map();
   for (const t of rows) if (t.merchant_raw && !names.has(t.merchant_key)) names.set(t.merchant_key, t.merchant_raw);
+  const { data: previous, error: readError } = await supabaseAdmin.from('money_recurring').select('merchant_key').eq('user_id', userId);
+  if (readError) throw new Error('Could not read recurring charges');
   if (series.length) {
-    const { error } = await supabaseAdmin.from('money_recurring').upsert(series.map((s) => ({ user_id: userId, ...s, platform: undefined, transaction_ids: undefined, variants: undefined, variant_amounts: undefined, updated_at: now.toISOString() })).map(({ platform, transaction_ids, variants, variant_amounts, ...s }) => s), { onConflict: 'user_id,merchant_key' });
-    if (error) log.warn(`recurring upsert failed: ${error.message}`);
-    /* Only the rows in the series are recurring. The odd purchase at the same name stays a
-       purchase, in the day's spending and the baseline; a row flagged by the old rule that
-       marked the whole name is unflagged. */
-    const keys = series.map((s) => s.merchant_key);
-    const ids = series.flatMap((s) => s.transaction_ids || []);
-    if (ids.length) {
-      await supabaseAdmin.from('money_transactions').update({ is_recurring: true }).eq('user_id', userId).in('id', ids);
-      await supabaseAdmin.from('money_transactions').update({ is_recurring: false }).eq('user_id', userId).in('merchant_key', keys).not('id', 'in', `(${ids.join(',')})`);
-    } else {
-      await supabaseAdmin.from('money_transactions').update({ is_recurring: true }).eq('user_id', userId).in('merchant_key', keys);
-    }
+    const { error } = await supabaseAdmin.from('money_recurring').upsert(series.map(({ platform, transaction_ids, variants, variant_amounts, ...item }) => ({ user_id: userId, ...item, updated_at: now.toISOString() })), { onConflict: 'user_id,merchant_key' });
+    if (error) throw new Error('Could not save recurring charges');
+  }
+  // A rejected charge can dissolve a series. Remove the old commitment as well as its flags.
+  const active = new Set(series.map((item) => item.merchant_key));
+  const stale = (previous || []).map((item) => item.merchant_key).filter((key) => !active.has(key));
+  if (stale.length) {
+    const { error } = await supabaseAdmin.from('money_recurring').delete().eq('user_id', userId).in('merchant_key', stale);
+    if (error) throw new Error('Could not remove an outdated recurring charge');
+  }
+  const ids = series.flatMap((item) => item.transaction_ids || []);
+  const activeIds = new Set(ids);
+  const clearedIds = evidence.filter((row) => row.is_recurring && !activeIds.has(row.id)).map((row) => row.id);
+  if (clearedIds.length) {
+    const { error } = await supabaseAdmin.from('money_transactions').update({ is_recurring: false }).eq('user_id', userId).in('id', clearedIds);
+    if (error) throw new Error('Could not update recurring payment flags');
+  }
+  if (ids.length) {
+    const { error } = await supabaseAdmin.from('money_transactions').update({ is_recurring: true }).eq('user_id', userId).in('id', ids);
+    if (error) throw new Error('Could not update recurring payment flags');
   }
   /* A card says a charge comes back every month; the person then asks which payments those
      were, when the next one lands and what it has cost so far. The transactions are already
@@ -169,6 +179,7 @@ export async function setVerdict(userId, transactionId, verdict) {
     .update({ verdict, verdict_at: verdict ? new Date().toISOString() : null })
     .eq('user_id', userId).eq('id', transactionId).select().single();
   if (error) throw new Error(error.message);
+  await refreshRecurring(userId);
   return data;
 }
 
@@ -1030,10 +1041,11 @@ export async function predictionAccuracy(userId) {
 /** What the person has told the system about their own money. */
 /* Rows the calendar lens keeps for itself. They are working memory, not things the person
    said, and they never appear where facts are shown or phrased. */
-export const INTERNAL_FACT_KINDS = Object.freeze(['event_spend', 'event_spend_meta', 'calendar_feed', 'home_point', 'inbox_address']);
+export const INTERNAL_FACT_KINDS = Object.freeze(['event_spend', 'event_spend_meta', 'calendar_feed', 'home_point', 'inbox_address', 'card_type']);
 
 export async function listFacts(userId, { includeInternal = false } = {}) {
-  const { data } = await supabaseAdmin.from('money_facts').select('*').eq('user_id', userId).order('answered_at');
+  const { data, error } = await supabaseAdmin.from('money_facts').select('*').eq('user_id', userId).order('answered_at');
+  if (error) throw new Error('Could not read money facts');
   const rows = data || [];
   return includeInternal ? rows : rows.filter((f) => !INTERNAL_FACT_KINDS.includes(f.kind));
 }
@@ -1170,7 +1182,7 @@ export async function saveChatTurn(userId, { role, text, figures = null, actions
   const { data, error } = await supabaseAdmin.from('money_chat_turns')
     .insert({ user_id: userId, role, text: String(text).slice(0, 4000), figures: small(figures, 20000), actions: small(actions, 8000), thinking: thinking ? String(thinking).slice(0, 4000) : null, basis: small(basis, 8000) })
     .select('id, created_at').maybeSingle();
-  if (error) { log.warn(`chat turn not kept: ${error.message}`); return null; }
+  if (error) { log.warn(`chat turn not kept: ${error.message}`); throw new Error('Could not save the conversation'); }
   /* The twin remembers being asked. Ask kept its own transcript and the twin knew nothing of
      it, so a person could tell the ledger something on Monday and find the twin had never
      heard it (2026-09-16). Not awaited: a turn must reach the screen even if the stream is
@@ -1184,7 +1196,7 @@ export async function listChatTurns(userId, { limit = 30 } = {}) {
   const { data, error } = await supabaseAdmin.from('money_chat_turns')
     .select('id, role, text, figures, actions, thinking, basis, created_at')
     .eq('user_id', userId).order('created_at', { ascending: false }).order('id', { ascending: false }).limit(limit);
-  if (error) { log.warn(`chat turns not read: ${error.message}`); return []; }
+  if (error) { log.warn(`chat turns not read: ${error.message}`); throw new Error('Could not read the conversation'); }
   /* Receipts ride inside the figures column; they come back out here. */
   return (data || []).reverse().map((t) => {
     if (t.figures && !Array.isArray(t.figures) && Array.isArray(t.figures.figures)) return { ...t, figures: t.figures.figures, receipts: t.figures.receipts || [] };

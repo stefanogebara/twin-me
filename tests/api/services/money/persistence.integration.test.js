@@ -4,12 +4,13 @@ import { testPool, bootstrapMoney, postgresSupabase } from '../../../helpers/mon
 const state = vi.hoisted(() => ({ db: null }));
 vi.mock('../../../../api/services/database.js', () => ({ supabaseAdmin: new Proxy({}, { get: (_, key) => state.db[key] }), serverDb: {} }));
 vi.mock('../../../../api/services/money/twinBridge.js', () => ({ tellTwin: vi.fn(), tellTwinFacts: vi.fn(), tellTwinPatterns: vi.fn(), tellTwinTurn: vi.fn() }));
-import { ingestSighting, ingestSightings, saveBankAccounts } from '../../../../api/services/money/store.js';
+import { ingestSighting, ingestSightings, saveBankAccounts, setVerdict, refreshRecurring } from '../../../../api/services/money/store.js';
 
 const USER = '00000000-0000-4000-8000-000000000001';
 const OTHER = '00000000-0000-4000-8000-000000000002';
 const phone = { source: 'phone', source_ref: 'event-1', amount: 5, currency: 'EUR', direction: 'out', merchant_key: 'cafe', merchant_raw: 'Cafe', occurred_at: '2026-09-11T19:00:00Z' };
 const bank = (overrides = {}) => ({ ...phone, source: 'bankfeed', source_ref: 'bank-1', raw_json: { status: 'BOOK', entry_reference: 'bank-1' }, ...overrides });
+import { labelCard, accountsWithCards } from '../../../../api/services/money/instruments.js';
 import { transactionPage, listTransactions } from '../../../../api/services/money/transactionRepository.js';
 import { createStatementAccount, statementAccounts, ownedStatementAccount, checkStatementEvidence } from '../../../../api/services/money/statements/accounts.js';
 import { toSightings } from '../../../../api/services/money/statements/importer.js';
@@ -188,6 +189,32 @@ describe('Money cache access', () => {
 
 
 describe('complete ledger reads and bank coordination', () => {
+  it('keeps rejected evidence reviewable but removes it and dissolved series from calculations, with undo', async () => {
+    const now = new Date();
+    const dates = [3, 33, 63].map((days) => new Date(now.getTime() - days * 86400000).toISOString());
+    for (const at of dates) await pool.query("INSERT INTO money_transactions(user_id,occurred_at,amount,merchant_key,currency,channel) VALUES ($1,$2,-10,'music','EUR','card')", [USER, at]);
+    expect(await refreshRecurring(USER)).toHaveLength(1);
+    const id = (await rows())[0].id;
+    await setVerdict(USER, id, 'not_me');
+    expect(await listTransactions(USER)).toHaveLength(2);
+    expect((await transactionPage(USER)).data).toHaveLength(3);
+    expect(await listTransactions(USER, { includeRejected: true })).toHaveLength(3);
+    expect((await pool.query('SELECT * FROM money_recurring WHERE user_id=$1', [USER])).rows).toHaveLength(0);
+    expect((await rows()).every((row) => row.is_recurring === false)).toBe(true);
+    await setVerdict(USER, id, null);
+    expect(await listTransactions(USER)).toHaveLength(3);
+    expect((await pool.query('SELECT * FROM money_recurring WHERE user_id=$1', [USER])).rows).toHaveLength(1);
+  });
+  it('persists card labels only for an observed suffix on an owned account', async () => {
+    await pool.query("INSERT INTO money_transactions(user_id,account_id,occurred_at,amount,merchant_key,currency,channel,card_last4) VALUES ($1,$2,now(),-10,'cafe','EUR','card','1234')", [USER, ACCOUNT]);
+    await expect(labelCard(OTHER, ACCOUNT, '1234', 'credit')).rejects.toMatchObject({ status: 404 });
+    await expect(labelCard(USER, ACCOUNT, '9999', 'credit')).rejects.toMatchObject({ status: 404 });
+    await expect(labelCard(USER, ACCOUNT, '1234', 'prepaid')).rejects.toMatchObject({ status: 400 });
+    await labelCard(USER, ACCOUNT, '1234', 'debit');
+    const accounts = await accountsWithCards(USER, [{ id: ACCOUNT }]);
+    expect(accounts[0].cards).toEqual([{ last4: '1234', type: 'debit', source: 'user' }]);
+    expect((await pool.query("SELECT * FROM money_facts WHERE kind='card_type' AND user_id=$1", [OTHER])).rows).toHaveLength(0);
+  });
   it('reads more than 1,000 rows without truncation, skips no timestamp ties, and isolates users', async () => {
     await pool.query(`INSERT INTO money_transactions(user_id,occurred_at,amount,merchant_key,currency)
       SELECT $1,'2026-09-11T12:00:00Z',-1,'cafe','EUR' FROM generate_series(1,1005)`,[USER]);

@@ -1,28 +1,20 @@
-/* ==========================================================================
-   Money, in the register measured signed in on app.instinct.co (Workspace,
-   Vault, Preferences), with the headings kept in the Cosmos voice: a warm
-   page, 13px Geist with weight making the hierarchy, rows under a 1px ink
-   rule instead of cards, 32 tall buttons with a 4 corner. No panels, no
-   shadow, no gradient, no uppercase tracked labels. Colour appears only in
-   state, and only where it passes AA.
-
-   Every other money stylesheet, and the sign-in page, reads its tokens and
-   primitives from here. Spec: .claude/plans/2026-09-11-instinct-register/
-   ========================================================================== */
+/* Money's Instinct-inspired register. The current reference sign-in establishes
+   related-content rhythm; the owner's Money contract defines 40px sections,
+   20px phone gutters and a white canvas. See the 2026-09-18 product review.
+   Scoped to Money: Geist, weight <= 500, flat surfaces, no decorative shadows. */
 .mv {
-  /* Every value the register shares with money is read from register.css, the
-     app-wide source of truth since 2026-09-12; measured ratios live there.
-     Grounds. --canvas and --panel survive as the old names for the page and
+  /* Shared type and neutral tokens come from register.css. Money owns spacing
+     and its white canvas. Grounds. --canvas and --panel survive as the old names for the page and
      the warm field, so nothing that still reads them breaks. */
-  --page: var(--rg-page);
+  --page: #ffffff;
   --canvas: var(--page);
   --white: var(--rg-white);
-  --field: var(--rg-field);
+  --field: #faf9f7;
   --panel: var(--field);
   /* Ink at three strengths. --quiet is Instinct's own grey at 2.9:1, which fails
      AA as text: it marks disabled and decorative things only. */
-  --ink: var(--rg-ink);
-  --ink-2: var(--rg-ink-2);
+  --ink: #101113;
+  --ink-2: rgba(16, 17, 19, 0.65);
   --ink-3: var(--rg-ink-3);
   --quiet: var(--rg-quiet);
   /* The register's mark: never text, but a legible ground for a track or an off state. */
@@ -44,11 +36,11 @@
   --track: var(--rg-track);
   --col: var(--rg-col);
   --side: var(--rg-side);
-  --gutter: var(--rg-gutter);
-  --section: var(--rg-section);
+  --gutter: 20px;
+  --section: 40px;
 
   min-height: 100vh; background: var(--page); color: var(--ink); font-family: var(--sans);
-  font-size: 13px; line-height: 19.5px; font-weight: 400; letter-spacing: var(--track);
+  font-size: 15px; line-height: 24px; font-weight: 400; letter-spacing: var(--track);
   font-variant-numeric: tabular-nums; -webkit-font-smoothing: antialiased; overflow-x: clip;
 }
 /* index.css styles h1/h2/p/label by element and truncates every button span. :where()
@@ -63,13 +55,12 @@
 .mv :where(input, textarea) { font: inherit; letter-spacing: inherit; color: var(--ink); }
 .mv :focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
 
-/* Headings keep the Cosmos voice rather than Instinct's serif: Geist 300 for a page
-   title, 400 for a section, tight tracking, balanced. App screens take the small sizes. */
-.mv :where(h1) { font-size: clamp(32px, 2.8vw, 40px); font-weight: 300; line-height: 1; letter-spacing: -0.05em; text-wrap: balance; }
-.mv :where(h2) { font-size: clamp(28px, 3.2vw, 38px); font-weight: 400; line-height: 1.08; letter-spacing: -0.04em; text-wrap: balance; }
+/* One sans family, restrained weights and tight display tracking. */
+.mv :where(h1) { font-size: 32px; font-weight: 400; line-height: 1.15; letter-spacing: -0.022em; text-wrap: balance; }
+.mv :where(h2) { font-size: 22px; font-weight: 500; line-height: 1.3; letter-spacing: -0.011em; text-wrap: balance; }
 
 /* 13px throughout; weight makes the hierarchy, never size. */
-.mv .mv-sub { margin-top: 4px; color: var(--ink-2); font-weight: 350; }
+.mv .mv-sub { margin-top: 12px; color: var(--ink-2); font-weight: 350; }
 /* Instinct puts one grey line 4px under a heading. A second and a third line stacked at 4px
    read as a paragraph, which is what made Today feel crowded (Stefano, 2026-09-16); lines
    after the first stand 12px apart, and the object after the block stands 32px off. */
@@ -84,7 +75,7 @@
    own 48 tall, 12 corner, 15px 500. */
 .mv .mv-pill {
   display: inline-flex; align-items: center; justify-content: center; gap: 8px; box-sizing: border-box;
-  height: 32px; padding: 0 16px; border-radius: 4px; border: 1px solid var(--ink);
+  min-height: 40px; padding: 8px 16px; border-radius: 12px; border: 1px solid var(--ink);
   background: var(--ink); color: var(--page); font-size: 13px; line-height: 1; font-weight: 500;
   letter-spacing: var(--track); white-space: nowrap; cursor: pointer;
   transition: opacity 0.2s ease, background-color 0.2s ease, border-color 0.2s ease;
@@ -118,7 +109,7 @@
 
 /* The frame: a 200px sidebar of plain text links sits 80px to the left of an 820px
    column. The current link is underlined; nothing is filled. */
-.mv-shell { display: grid; grid-template-columns: var(--side) minmax(0, var(--col)); column-gap: 80px; justify-content: center; padding: 0 var(--gutter); }
+.mv-shell { display: grid; grid-template-columns: var(--side) minmax(0, var(--col)); column-gap: 64px; justify-content: center; padding: 0 var(--gutter); }
 .mv-col { min-width: 0; padding-top: 40px; }
 .mv-side { position: sticky; top: 0; align-self: start; display: grid; gap: 24px; padding-top: 40px; }
 .mv-side-bar { display: flex; align-items: center; justify-content: space-between; min-height: 32px; }
@@ -136,7 +127,7 @@
    rule 24px further down. Sections sit 72px apart. */
 .mv-section { margin-top: var(--section); }
 .mv-head { display: flex; align-items: center; justify-content: space-between; gap: 8px 16px; flex-wrap: wrap; }
-.mv-list { margin-top: 32px; border-top: 1px solid var(--ink); }
+.mv-list { margin-top: 24px; border-top: 1px solid var(--ink); }
 .mv-list > li { border-bottom: 1px solid var(--rule); }
 .mv-sublist > li { border-top: 1px solid var(--rule); }
 
@@ -144,7 +135,7 @@
    least. A sub-row sits under its parent, indented, about 57 tall. */
 .mv .mv-item {
   display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 16px; align-items: center;
-  box-sizing: border-box; width: 100%; min-height: 80px; padding: 20px 12px; text-align: left;
+  box-sizing: border-box; width: 100%; min-height: 72px; padding: 14px 12px; text-align: left;
 }
 .mv .mv-item--icon { grid-template-columns: 32px minmax(0, 1fr) auto; }
 .mv .mv-item--sub { min-height: 57px; padding: 12px 12px 12px 50px; }
@@ -265,7 +256,7 @@
 
 /* Phone: 24px gutters, the navigation behind a menu button, every other size unchanged. */
 @media (max-width: 767px) {
-  .mv { --section: var(--rg-section-phone); }
+  .mv { --section: 40px; }
   .mv-shell { grid-template-columns: minmax(0, 1fr); }
   .mv-side { position: static; gap: 0; padding-top: 12px; }
   .mv .mv-side-toggle { display: inline-flex; }
@@ -368,7 +359,7 @@
    .claude/plans/2026-09-15-money-again is the reference). The band, the strip and the
    lists still span the column and read left to right. */
 .mv .mv-hero--orb { justify-items: center; text-align: center; }
-.mv .mv-hero--orb > .mv-eyebrow { margin-bottom: 40px; }
+.mv .mv-hero--orb > .mv-eyebrow { margin-bottom: 24px; }
 .mv .mv-hero--orb > .mv-globe-slot { margin: 0 0 44px; }
 .mv .mv-hero--orb > .mv-sub { max-width: 52ch; text-wrap: balance; }
 .mv .mv-hero--orb > .mv-band, .mv .mv-hero--orb > .mv-day-rows, .mv .mv-hero--orb > .mv-list, .mv .mv-hero--orb > .mv-constellation, .mv .mv-hero--orb > .mv-orbits, .mv .mv-hero--orb > .mv-ahead-head, .mv .mv-hero--orb > .mv-ahead { justify-self: stretch; text-align: left; }
@@ -406,3 +397,24 @@
 .mv .la-hits { border-top: 1px solid var(--rule); }
 .mv .la-hit { width: 100%; text-align: left; cursor: pointer; min-height: 57px; padding: 10px 12px; }
 .mv .la-hit:hover { background: var(--hover); }
+
+/* Daily hierarchy: the figure is the control; its meaning stays in text. */
+.mv .mv-day-figure { display: grid; gap: 8px; justify-items: start; text-align: left; padding: 0; }
+.mv .mv-day-value { font-size: clamp(44px, 5vw, 64px); font-weight: 400; line-height: 1.1; letter-spacing: -0.035em; }
+.mv #month.mv-hero--orb { justify-items: start; text-align: left; }
+.mv #month > .mv-sub { text-wrap: pretty; }
+.mv-home-ask { display: flex; align-items: center; gap: 12px; width: 100%; margin-top: 32px; padding: 8px 12px 8px 20px; border: 1px solid var(--rule); border-radius: 28px; background: var(--field); }
+.mv-home-ask input { min-width: 0; flex: 1; background: transparent; border: 0; padding: 4px 0; }
+.mv-home-ask input:focus-visible { outline-offset: 4px; }
+.mv .mv-home-ask .mv-icon-btn { width: 40px; height: 40px; border-radius: 50%; background: var(--ink); color: var(--page); }
+.mv .mv-bank-account { padding: 16px 12px 16px 50px; display: grid; gap: 14px; }
+.mv .mv-bank-account > h3 { font-size: 15px; font-weight: 500; line-height: 24px; }
+.mv-account-cards { display: grid; gap: 14px; }
+.mv-card-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 12px; align-items: center; }
+.mv-card-row label { display: grid; gap: 4px; }
+.mv-card-row select { max-width: 150px; }
+@media (max-width: 767px) {
+  .mv .mv-pill { min-height: 44px; }
+  .mv .mv-bank-account { padding-left: 12px; }
+  .mv-card-row { grid-template-columns: minmax(0, 1fr); }
+}
