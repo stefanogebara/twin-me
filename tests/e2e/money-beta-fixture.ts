@@ -22,7 +22,7 @@ const data={
 };
 
 export async function moneyFixture(page: Page) {
-  const state = { failing: false, empty: false, paginated: false, statementFailed: false, imports: [] as string[], accountCreations: 0 };
+  const state = { failing: false, empty: false, paginated: false, advanced: true, statementFailed: false, imports: [] as string[], accountCreations: 0 };
   await page.addInitScript(({ user }) => {
     sessionStorage.setItem('oauth_bootstrap_token','audit.synthetic.token');
     sessionStorage.setItem('twinme_new_user_check_done_v1','1');
@@ -38,6 +38,7 @@ export async function moneyFixture(page: Page) {
     if(path==='/auth/verify') return json({success:true,user});
     if(path==='/auth/refresh') return json({success:true,token:'audit.synthetic.token',user});
     if(state.failing && path.startsWith('/money/')) return json({success:false,error:'Synthetic outage'},503);
+    if(path==='/money/capabilities') return json({success:true,data:{bank:state.advanced,capture:state.advanced}});
     if(path==='/money/statement/accounts') {
       if(route.request().method()==='POST') {
         state.accountCreations++;

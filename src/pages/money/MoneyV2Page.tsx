@@ -151,6 +151,12 @@ function MoneyForAccount({ view = 'today', userId }: { view?: MoneyView; userId:
   const [categories, setCategories] = useState<MoneyCategories | null>(SNAPSHOT?.categories ?? null);
   const [usage, setUsage] = useState<MoneyUsage | null>(SNAPSHOT?.usage ?? null);
   const [bankReady, setBankReady] = useState(true);
+  const [capabilities, setCapabilities] = useState({ bank: false, capture: false });
+  useEffect(() => {
+    let live = true;
+    moneyAPI.capabilities().then((value) => { if (live) setCapabilities(value); }).catch(() => {});
+    return () => { live = false; };
+  }, []);
   const [loaded, setLoaded] = useState(Boolean(SNAPSHOT));
   const [open, setOpen] = useState<string | null>(null);
   const [receipts, setReceipts] = useState<Record<string, MoneySighting[]>>({});
@@ -568,11 +574,10 @@ function MoneyForAccount({ view = 'today', userId }: { view?: MoneyView; userId:
             ) : empty ? (
               <>
                 <h1>{t('Nothing read yet.')}</h1>
-                <p className="mv-sub">{t('Connect Santander or Revolut, or let your phone send each purchase as it happens.')}</p>
+                <p className="mv-sub">{t('Start with a statement from your bank.')}</p>
                 <div className="mv-ctas">
-                  <button type="button" className="mv-pill" onClick={() => void connect(BANKS[0].name)} disabled={busy === 'connect' || !bankReady}>{t('Connect Santander')}</button>
-                  <button type="button" className="mv-pill mv-pill--ghost" onClick={() => void connect(BANKS[1].name)} disabled={busy === 'connect' || !bankReady}>{t('Or Revolut')}</button>
-                  <Link to="/money/you#sources" className="mv-pill mv-pill--ghost">{t('Set up the phone')}</Link>
+                  <Link to="/money/you#sources" className="mv-pill">{t('Add a statement')}</Link>
+                  {capabilities.bank && <button type="button" className="mv-pill mv-pill--ghost" onClick={() => void connect(BANKS[0].name)} disabled={busy === 'connect' || !bankReady}>{t('Connect Santander')}</button>}
                 </div>
               </>
             ) : (
@@ -1082,7 +1087,7 @@ function MoneyForAccount({ view = 'today', userId }: { view?: MoneyView; userId:
             </div>
             <p className="mv-sub">{t('Counts and amounts only. Remove a source and what it read goes too.')}</p>
             <ul className="mv-list">
-              {BANKS.map((bank, i) => {
+              {capabilities.bank && BANKS.map((bank, i) => {
                 /* Rows from before the second bank carry no name; they were all Santander. */
                 const mine = accounts.filter((a) => (a.bank_name || BANKS[0].name) === bank.name);
                 const first = i === 0;
@@ -1132,6 +1137,7 @@ function MoneyForAccount({ view = 'today', userId }: { view?: MoneyView; userId:
                   </li>
                 );
               })}
+              {!capabilities.bank && <li className="mv-item"><p className="mv-quiet">{t('Live bank connections are not available in this beta. Add a statement instead.')}</p></li>}
               <li>
                 <div className="mv-item mv-item--icon">
                   <span className="mv-icon" aria-hidden="true">{calendar?.google ? <Mark name="google_calendar" /> : <img className="mv-carved" src={`/images/money/carved/${markFor('diary')}.png`} alt="" width={26} height={26} />}</span>
@@ -1204,7 +1210,7 @@ function MoneyForAccount({ view = 'today', userId }: { view?: MoneyView; userId:
                   <div className="mv-body mv-body--icon"><code className="mv-code">{inbox.address}</code></div>
                 </li>
               ) : null}
-              <li>
+              {capabilities.capture && <li>
                 <div className="mv-item mv-item--icon">
                   <span className="mv-icon" aria-hidden="true"><Smartphone size={16} /></span>
                   <span className="mv-item-text">
@@ -1278,7 +1284,7 @@ function MoneyForAccount({ view = 'today', userId }: { view?: MoneyView; userId:
                           {t('Action: HTTP request, POST to {url}, header {header} with the key, body {body}.').split(/(\{url\}|\{header\}|\{body\})/).map((piece, i) => (
                             piece === '{url}' ? <code key={i}>{`${window.location.origin}/api/money/capture`}</code>
                             : piece === '{header}' ? <code key={i}>X-TwinMe-Key</code>
-                            : piece === '{body}' ? <code key={i}>{'{"text": "[notification]"}'}</code>
+                            : piece === '{body}' ? <code key={i}>{'{"text": "[notification]", "receivedAt": "[original ISO date]"}'}</code>
                             : piece
                           ))}
                         </li>
@@ -1287,7 +1293,7 @@ function MoneyForAccount({ view = 'today', userId }: { view?: MoneyView; userId:
                     ) : null}
                   </li>
                 </ul>
-              </li>
+              </li>}
             </ul>
           </section>
           ) : null}

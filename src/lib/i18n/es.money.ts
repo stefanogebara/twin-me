@@ -1,5 +1,7 @@
 /** Spanish for the money pages (MoneyV2Page, MoneySetupPage). Keys are the English source strings. */
 export const ES_MONEY: Record<string, string> = {
+  "Live bank connections are not available in this beta. Add a statement instead.": "Las conexiones bancarias no están disponibles en esta beta. Añade un extracto.",
+  "Start with a statement from your bank.": "Empieza con un extracto de tu banco.",
   "{read} read, {created} added, {skipped} skipped.": "Leídos: {read}. Añadidos: {created}. Omitidos: {skipped}.",
   "Import from Excel or CSV.": "Importa desde Excel o CSV.",
   "Loading accounts…": "Cargando cuentas…",

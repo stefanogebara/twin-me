@@ -1,6 +1,19 @@
 import { expect, test } from '@playwright/test';
 import { moneyFixture } from './money-beta-fixture';
 
+test('student beta offers statements without bank or phone setup', async ({page}) => {
+  const state=await moneyFixture(page); state.advanced=false; state.empty=true;
+  await page.goto('/money');
+  await expect(page.getByRole('link',{name:'Add a statement',exact:true})).toBeVisible();
+  await expect(page.getByRole('button',{name:'Connect Santander',exact:true})).toHaveCount(0);
+  await page.getByRole('link',{name:'Add a statement',exact:true}).click();
+  await expect(page.getByText('Live bank connections are not available in this beta. Add a statement instead.',{exact:true})).toBeVisible();
+  await expect(page.getByRole('button',{name:'Connect',exact:true})).toHaveCount(0);
+  await expect(page.getByRole('button',{name:'Make a key',exact:true})).toHaveCount(0);
+  await page.getByRole('button',{name:/Add a statement/}).click();
+  await expect(page.getByLabel('Statement account',{exact:true})).toBeVisible();
+});
+
 test('a statement requires an account and submits the chosen account with its file', async ({page}) => {
   const state = await moneyFixture(page);
   await page.goto('/money/you');

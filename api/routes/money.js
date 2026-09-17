@@ -48,6 +48,7 @@ import { complete as llmComplete, TIER_EXTRACTION } from '../services/llmGateway
 import { accuracy } from '../services/money/predictions.js';
 import { createLogger } from '../services/logger.js';
 import { captureFromBody } from '../services/money/captureParser.js';
+import { moneyCapabilities } from '../services/money/betaCapabilities.js';
 import { ingestSighting, ingestSightings, listTransactions, transactionPage, sightingsFor, refreshRecurring, forecast, setVerdict, userForCaptureKey, saveBankAccounts, listBankAccounts, pullBankFeed, refreshReadings, listReadings, setReadingVerdict, months, feedBudget, categorySpend, listPlaces, setPlaceCategory, enrichPlaces, subscriptionUsage, questionsFor, answerQuestion, skipQuestion, listFacts, deleteFact, recordCallbackFailure, listChatTurns, saveChatTurn, learn, userLanguage, patternsFor } from '../services/money/store.js';
 import { parseDelimited, parseWorkbook, toSightings } from '../services/money/statements/importer.js';
 import { statementAccounts, createStatementAccount, ownedStatementAccount, checkStatementEvidence, StatementInputError } from '../services/money/statements/accounts.js';
@@ -87,6 +88,7 @@ async function authenticateUserOrKey(req, res, next) {
 }
 
 router.post('/capture', authenticateUserOrKey, async (req, res) => {
+  if (!moneyCapabilities(req.user.id).capture) return res.status(403).json({ success: false, error: 'Phone capture is not available in this beta. Add a statement instead.' });
   if (req.body?.ownerId && req.body.ownerId !== req.user.id) return res.status(403).json({ success: false, error: 'Capture belongs to a different account' });
   /* The Android listener sends the notification's text; an iPhone Wallet automation sends the
      merchant and amount it was handed (captureFromBody says which wins and why). */
@@ -125,6 +127,7 @@ router.post('/inbox/resend', async (req, res) => {
 });
 
 router.use(authenticateUser);
+router.get('/capabilities', (req, res) => res.json({ success: true, data: moneyCapabilities(req.user.id) }));
 
 router.get('/notices', async (req, res) => {
   try { res.json({ success: true, data: await listReceiptNotices(req.user.id) }); }
@@ -204,12 +207,14 @@ router.get('/plan', async (req, res) => {
 });
 
 router.get('/banks', async (req, res) => {
+  if (!moneyCapabilities(req.user.id).bank) return res.status(403).json({ success: false, error: 'Live bank connections are not available in this beta. Add a statement instead.' });
   if (!isConfigured()) return res.status(503).json({ success: false, error: 'Bank feed not configured' });
   try { res.json({ success: true, data: await listBanks(typeof req.query.country === 'string' ? req.query.country : 'ES') }); }
   catch (error) { log.error('banks failed', { error: error.message }); res.status(502).json({ success: false, error: 'Bank feed unavailable' }); }
 });
 
 router.post('/bank/connect', async (req, res) => {
+  if (!moneyCapabilities(req.user.id).bank) return res.status(403).json({ success: false, error: 'Live bank connections are not available in this beta. Add a statement instead.' });
   if (!isConfigured()) return res.status(503).json({ success: false, error: 'Bank feed not configured' });
   try {
     const { bank = 'Banco Santander', country = 'ES', back = '' } = req.body || {};
@@ -892,6 +897,7 @@ bankCallback.get('/bank/callback', async (req, res) => {
   const back = read ? read.back : '/money/you';
   const code = typeof req.query.code === 'string' ? req.query.code : null;
   if (!userId) return res.status(400).send('This link is not valid.');
+  if (!moneyCapabilities(userId).bank) return res.redirect(302, `${back}?bank=failed&why=statement-only-beta`);
   if (!code) {
     /* The bank or the person said no: Enable Banking comes back with `error` and no code.
        This used to answer a bare "This link is not valid." and keep no record, so a refused

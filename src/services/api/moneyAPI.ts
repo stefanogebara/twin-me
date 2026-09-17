@@ -197,6 +197,7 @@ export const moneyAPI = {
    * Raw fetch: authFetch always sets a JSON content type, and multipart needs the
    * browser to write its own boundary.
    */
+  capabilities: () => authFetch('/money/capabilities').then((r) => json<{ bank: boolean; capture: boolean }>(r)),
   statementAccounts: () => authFetch('/money/statement/accounts').then((r) => json<MoneyStatementAccount[]>(r)),
   createStatementAccount: (name: string) => authFetch('/money/statement/accounts', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name }) }).then((r) => json<MoneyStatementAccount>(r)),
   importStatement: async (file: File, accountId: string) => {
