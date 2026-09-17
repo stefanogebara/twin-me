@@ -118,6 +118,9 @@ class CaptureStore private constructor(private val context: Context) : SQLiteOpe
   @Synchronized fun mark(owner: String, id: String, state: String) {
     writableDatabase.execSQL("UPDATE events SET state=? WHERE owner=? AND id=?", arrayOf(state,owner,id))
   }
+  @Synchronized fun pauseAuthorization(owner: String) {
+    writableDatabase.execSQL("UPDATE events SET state='auth' WHERE owner=? AND state='pending'", arrayOf(owner))
+  }
   @Synchronized fun count(failed: Boolean = false): Int {
     val owner = credentials()?.owner ?: return 0
     val where = if (failed) "state IN ('failed','auth')" else "state='pending'"

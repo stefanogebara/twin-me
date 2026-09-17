@@ -52,4 +52,12 @@ describe('capture account lifecycle', () => {
     expect(f.request).toHaveBeenCalledOnce();
     expect(f.setKey).not.toHaveBeenCalled();
   });
+  it('explicit renewal replaces a rejected stored key and resumes only that owner', async () => {
+    const m = await load();
+    f.request.mockResolvedValueOnce(response('twm_old')).mockResolvedValueOnce(response('twm_renewed'));
+    m.activateCaptureSession('A','jwt-A');
+    await m.ensureCaptureKey('A');
+    expect(await m.ensureCaptureKey('A',{refresh:true})).toBe('twm_renewed');
+    expect(f.setKey).toHaveBeenLastCalledWith('A','twm_renewed');
+  });
 });

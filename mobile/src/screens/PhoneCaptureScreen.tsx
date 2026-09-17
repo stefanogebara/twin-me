@@ -88,6 +88,11 @@ export default function PhoneCaptureScreen({ userId }: { userId: string }) {
   const askForAccess = () => {
     try { NotificationListenerModule?.requestNotificationPermission(); } catch { /* the screen still explains it */ }
   };
+  const renewCapture = async () => {
+    setMinting(true);
+    try { setKey(await ensureCaptureKey(userId, { refresh: true })); }
+    finally { setMinting(false); }
+  };
 
   return (
     <Page>
@@ -110,10 +115,11 @@ export default function PhoneCaptureScreen({ userId }: { userId: string }) {
                 <View style={s.state}>
                   <Body>Notification access is on.</Body>
                   <Small muted>
-                    {failed > 0 ? `${failed} payments need attention. Open the ledger and check your capture key.` : waiting > 0
+                    {failed > 0 ? `${failed} payments need attention. Renew capture access to retry authorization failures; check other rejected payments against your bank.` : waiting > 0
                       ? `${waiting} ${waiting === 1 ? 'payment is' : 'payments are'} waiting for a connection. They will retry automatically.`
                       : 'No payments are waiting to be sent.'}
                   </Small>
+                  {failed > 0 ? <Pill label="Renew capture access" disabled={minting} onPress={() => { void renewCapture(); }} /> : null}
                 </View>
               ) : (
                 <Pill label="Grant notification access" onPress={askForAccess} />

@@ -7,7 +7,7 @@ import { captureSession } from './captureSession';
 
 const inFlight = new Map<string, Promise<string | null>>();
 
-export function ensureCaptureKey(userId: string, { shortcut = false } = {}): Promise<string | null> {
+export function ensureCaptureKey(userId: string, { shortcut = false, refresh = false } = {}): Promise<string | null> {
   if (!userId || (!shortcut && !NotificationListenerModule.supportsCaptureSession())) return Promise.resolve(null);
   const session = captureSession();
   if (session.owner !== userId) return Promise.resolve(null);
@@ -24,7 +24,7 @@ export function ensureCaptureKey(userId: string, { shortcut = false } = {}): Pro
       // The old device-wide plaintext key has no provable owner. Never reuse it.
       await AsyncStorage.removeItem('twinme_money_capture_key');
       const storageKey = `money_capture_${purpose}_${userId}`;
-      let key = await SecureStore.getItemAsync(storageKey);
+      let key = refresh ? null : await SecureStore.getItemAsync(storageKey);
       if (!current()) return null;
       if (!key) {
         const res = await fetch(`${API_URL}/api-keys`, {

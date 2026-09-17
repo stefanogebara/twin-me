@@ -9,6 +9,8 @@ import android.content.Context
 import java.net.HttpURLConnection
 import java.net.URL
 import java.util.concurrent.Executors
+import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.atomic.AtomicBoolean
 
 /** OS-scheduled retries survive process death and do not need another purchase to arrive. */
 class CaptureRetryService : JobService() {
@@ -29,9 +31,10 @@ class CaptureRetryService : JobService() {
       scheduler.cancel(IMMEDIATE); scheduler.cancel(PERIODIC)
     }
   }
-  @Volatile private var stopped = false
+  private val cancelled = ConcurrentHashMap<Int, AtomicBoolean>()
   override fun onStartJob(params: JobParameters): Boolean {
-    stopped = false
+    val stopped = AtomicBoolean(false)
+    cancelled.put(params.jobId, stopped)?.set(true)
     executor.execute {
       var retry = false
       try {
@@ -39,22 +42,23 @@ class CaptureRetryService : JobService() {
         val auth = store.credentials()
         if (auth != null && auth.key.isNotBlank()) {
           for (event in store.pending(auth.owner)) {
-            if (stopped || store.credentials()?.owner != auth.owner) break
+            if (stopped.get() || store.credentials()?.owner != auth.owner) break
             val outcome = deliver(event.payload, auth.key)
             when (outcome) {
               "retry" -> { retry = true; break }
-              "auth" -> { store.mark(auth.owner,event.id,"auth"); break }
+              "auth" -> { store.pauseAuthorization(auth.owner); break }
               else -> store.mark(auth.owner,event.id,outcome)
             }
           }
           retry = retry || store.count() > 0
         }
       } catch (_: Exception) { retry = true }
-      if (!stopped) jobFinished(params, retry)
+      cancelled.remove(params.jobId, stopped)
+      if (!stopped.get()) jobFinished(params, retry)
     }
     return true
   }
-  override fun onStopJob(params: JobParameters): Boolean { stopped = true; return true }
+  override fun onStopJob(params: JobParameters): Boolean { cancelled.remove(params.jobId)?.set(true); return true }
 
   private fun deliver(payload: String, key: String): String {
     var connection: HttpURLConnection? = null

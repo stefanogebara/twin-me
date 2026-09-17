@@ -2,7 +2,7 @@
 
 Owner authorization: 2026-09-17, implement the audit milestones; owner is currently the only user and plans to invite about ten friends. Make ordinary technical decisions, use existing accounts and simulator, and request login when necessary.
 
-Branch: `codex/money-student-beta`, based on `d66f84a1`. Isolated from the older, modified shared checkout. Audit: `/Users/stefanogebara/code/twin-me/.Codex/plans/2026-09-17-money-product-audit/README.md`.
+Draft PR: https://github.com/stefanogebara/twin-me/pull/415. Branch: `codex/money-student-beta`, based on `d66f84a1`. Isolated from the older, modified shared checkout. Audit: `/Users/stefanogebara/code/twin-me/.Codex/plans/2026-09-17-money-product-audit/README.md`.
 
 ## Decisions
 
@@ -44,8 +44,8 @@ Branch: `codex/money-student-beta`, based on `d66f84a1`. Isolated from the older
 - Live inspection: 18 Money tables, daily completed backups (latest 2026-09-17 01:26 UTC), no PITR. Private inventory is outside git. A production restore has not been rehearsed.
 - Live security fix applied through the Supabase Management migration endpoint: `20260917_money_places_service_only`. Verified RLS enabled, anon INSERT/DELETE denied, authenticated UPDATE denied, service CRUD retained. No financial rows changed.
 - Real PostgreSQL baseline: five failing persistence regressions (identical purchases, weekend settlement, pending/booked, authority, rollback). New atomic path made all pass. Forced same-snapshot concurrent replay passes; 100 payments take two RPC calls.
-- Last completed check before pagination/sync edits: 1,120 tests passed in 108 files; mobile typecheck passed; three capture lifecycle tests passed. Baseline gate held at 73 lint/110 type/113 direct-route-DB findings.
-- Dependency patch pass: production audit now reports zero High/Critical and five Moderate package entries. Remaining breaking upgrades will be triaged separately; no force downgrade of Bull.
+- Local verification: 5,327 regular tests (18 existing skips), 18 real PostgreSQL tests, six mobile lifecycle tests and 16 Playwright checks passed. Mobile TypeScript and Vite build passed. Baseline gate held at 73 lint/110 type/113 direct-route-DB findings. The staged gitleaks scan found no secrets.
+- Dependency patch pass: production audit now reports zero High/Critical and four Moderate package entries. Remaining breaking upgrades will be triaged separately; no force downgrade of Bull.
 - Backend changes remain local until the complete release checks pass. Six Money routes passed browser checks at desktop and phone sizes, including receipt expansion, chat, outages, retry and pagination. The new iOS native build compiled in Xcode; interactive simulator checks await macOS control permission.
 - Enable Banking login requested in Playwright; the application’s ten-person eligibility is still unverified.
 
@@ -84,3 +84,5 @@ Historical review: `node scripts/money/repair-preview.mjs --user-id UUID --env-f
 - Backfill pagination stores a continuation cursor, but bank-specific cursor expiry/restart behavior needs a real provider exercise. The one-page unattended policy favors budget safety over fast large backfills.
 - Remaining production advisories: React Router's backslash navigation and SSR hydration advisories require a deliberate router upgrade and navigation review; the app is a Vite SPA, but that does not make the navigation issue irrelevant. Bull uses uuid.v4 without caller-provided buffers; the reported uuid issue concerns v3/v5/v6 with buffers. Do not force npm's suggested Bull downgrade. References: [Router navigation](https://github.com/advisories/GHSA-wrjc-x8rr-h8h6), [UUID buffer handling](https://github.com/advisories/GHSA-w5hq-g745-h8pq). The CSV parser was upgraded to address [the columns-path advisory](https://github.com/advisories/GHSA-8cw4-87c7-c6xx).
 - Keep the existing stack. No new queue service, microservices, broad UI redesign, full legacy rewrite, or unverified “Fable 5” model configuration is needed for ten students. A nightly streak is a reliability signal, not evidence that arbitrary autonomous financial changes are safe.
+
+Hosted verification: the first run passed Build & Test, Mobile typecheck, Money persistence, Money browser, smoke and gitleaks. Android setup failed before compilation because the setup action requested the retired `tools` SDK package; the workflow now explicitly requests platform-tools, Android 36 and build-tools 36.0.0. Native authorization failures now pause the owner’s queue until explicit capture-key renewal.
