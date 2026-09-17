@@ -27,30 +27,38 @@ const skip = (step: Step) => { try { localStorage.setItem(SKIP(step), '1'); } ca
 
 export default function MoneyOnboarding() {
   const { user } = useAuth();
+  const userId = user?.id;
   const [accounts, setAccounts] = useState<MoneyAccount[] | null>(null);
   const [facts, setFacts] = useState<MoneyFact[] | null>(null);
+  const [capabilities, setCapabilities] = useState<{ ownerId: string; bank: boolean; capture: boolean } | null>(null);
+  const loadRevision = useRef(0);
   const [rested, setRested] = useState<Record<string, boolean>>({});
   const [languageDone, setLanguageDone] = useState(false);
   const forced = useMemo(() => { const s = new URLSearchParams(window.location.search).get('start'); return s === 'banks' || s === 'places' || s === 'phone' ? (s as Step) : null; }, []);
 
   const load = useCallback(async () => {
-    const [a, f] = await Promise.allSettled([moneyAPI.accounts(), moneyAPI.facts()]);
+    if (!userId) return;
+    const revision = ++loadRevision.current;
+    const [a, f, c] = await Promise.allSettled([moneyAPI.accounts(), moneyAPI.facts(), moneyAPI.capabilities()]);
+    if (revision !== loadRevision.current) return;
     /* A read that failed is not an empty account. Mapped to [], one failed request told a
        person with a connected bank to connect one, in a dialog over the whole product
        (2026-09-16). Unknown stays null, and null shows nothing. */
     setAccounts(a.status === 'fulfilled' ? a.value : null);
     setFacts(f.status === 'fulfilled' ? f.value : null);
-  }, []);
-  useEffect(() => { if (user) void load(); }, [user, load]);
+    setCapabilities({ ownerId: userId, ...(c.status === 'fulfilled' ? c.value : { bank: false, capture: false }) });
+  }, [userId]);
+  useEffect(() => { void load(); return () => { ++loadRevision.current; }; }, [load]);
 
   const language = (user as { preferred_language?: string | null } | null)?.preferred_language;
   const hasPlace = (facts || []).some((f) => ['home_area', 'study_place', 'work_place'].includes(f.kind));
-  const step: Step | null = !user || accounts === null || facts === null ? null
-    : forced && !rested[forced] ? forced
+  const allowed = (s: Step) => s === 'banks' ? capabilities?.bank : s === 'phone' ? capabilities?.capture : true;
+  const step: Step | null = !user || accounts === null || facts === null || capabilities?.ownerId !== user.id ? null
+    : forced && allowed(forced) && !rested[forced] ? forced
       : language === null && !languageDone ? 'language'
-        : accounts.length === 0 && !skipped('banks') && !rested.banks ? 'banks'
+        : capabilities.bank && accounts.length === 0 && !skipped('banks') && !rested.banks ? 'banks'
           : !hasPlace && !skipped('places') && !rested.places ? 'places'
-            : !skipped('phone') && !rested.phone ? 'phone'
+            : capabilities.capture && !skipped('phone') && !rested.phone ? 'phone'
               : null;
 
   if (!step) return null;

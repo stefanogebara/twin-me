@@ -21,14 +21,14 @@ const data={
  '/money/transactions/tx1/sightings':[{id:'s1',source:'bankfeed',seen_at:now,raw_text:'Audit Cafe 12.50',amount:12.5,currency:'EUR',occurred_at:now,parse_confidence:1}]
 };
 
-export async function moneyFixture(page: Page) {
+export async function moneyFixture(page: Page, { firstVisit = false } = {}) {
   const state = { failing: false, empty: false, paginated: false, advanced: true, statementFailed: false, imports: [] as string[], accountCreations: 0 };
-  await page.addInitScript(({ user }) => {
+  await page.addInitScript(({ user, firstVisit }) => {
     sessionStorage.setItem('oauth_bootstrap_token','audit.synthetic.token');
     sessionStorage.setItem('twinme_new_user_check_done_v1','1');
     localStorage.setItem('auth_user',JSON.stringify(user));
-    for(const step of ['banks','places','phone']) localStorage.setItem(`mv-start-skip:${step}`,'1');
-  }, { user });
+    if (!firstVisit) for(const step of ['banks','places','phone']) localStorage.setItem(`mv-start-skip:${step}`,'1');
+  }, { user, firstVisit });
   await page.route('**/*', async route => {
     const url = new URL(route.request().url());
     if (!['127.0.0.1','localhost'].includes(url.hostname)) return route.abort();
@@ -39,6 +39,7 @@ export async function moneyFixture(page: Page) {
     if(path==='/auth/refresh') return json({success:true,token:'audit.synthetic.token',user});
     if(state.failing && path.startsWith('/money/')) return json({success:false,error:'Synthetic outage'},503);
     if(path==='/money/capabilities') return json({success:true,data:{bank:state.advanced,capture:state.advanced}});
+    if(path==='/money/bank/accounts' && state.empty) return json({success:true,data:[]});
     if(path==='/money/statement/accounts') {
       if(route.request().method()==='POST') {
         state.accountCreations++;
