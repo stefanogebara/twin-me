@@ -76,6 +76,59 @@ jobs:
       - name: Baseline freeze (eslint + tsc + direct-DB-in-routes)
         run: node scripts/ci/check-baselines.mjs
 
+  money-persistence:
+    name: Money persistence
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: twinme_money_test
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: money-test-only
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci --legacy-peer-deps
+      - name: Real database invariants (no production secrets)
+        env:
+          MONEY_TEST_DATABASE_URL: postgresql://postgres:money-test-only@127.0.0.1:5432/twinme_money_test
+          SUPABASE_URL: https://ci-stub.supabase.co
+          SUPABASE_ANON_KEY: ci-stub-anon
+          SUPABASE_SERVICE_ROLE_KEY: ci-stub-service
+        run: npx vitest run tests/api/services/money/persistence.integration.test.js
+
+  money-browser:
+    name: Money browser
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci --legacy-peer-deps
+      - run: npx playwright install --with-deps chromium
+      - run: npm run build
+      - run: npx playwright test --config playwright.money.config.ts
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: money-browser-failure
+          path: |
+            test-results/
+            playwright-report/
+          retention-days: 7
+
   # The phone app was outside every check in this file, which is how a screen calling
   # endpoints deleted months earlier survived in the repo. It is the product's other half
   # now, so it gets typechecked. Its dependency tree is separate from the web's.
@@ -88,7 +141,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version-file: .nvmrc
           cache: npm
           cache-dependency-path: mobile/package-lock.json
 
@@ -96,9 +149,39 @@ jobs:
         working-directory: mobile
         run: npm ci --no-audit --no-fund
 
+      - name: Install shared test runner
+        run: npm ci --legacy-peer-deps
+      - name: Capture account lifecycle
+        run: npx vitest run --config vitest.mobile.config.ts
       - name: Typecheck
         working-directory: mobile
         run: npx tsc --noEmit -p tsconfig.json
+
+  android-capture:
+    name: Android capture
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: mobile/package-lock.json
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: android-actions/setup-android@v3
+        with:
+          packages: 'platform-tools platforms;android-36 build-tools;36.0.0'
+          log-accepted-android-sdk-licenses: false
+      - uses: gradle/actions/setup-gradle@v4
+      - run: npm ci --no-audit --no-fund
+        working-directory: mobile
+      - name: Compile native capture and test delivery status handling
+        working-directory: mobile/android
+        run: bash gradlew :notification-listener:compileDebugKotlin :notification-listener:testDebugUnitTest --no-daemon
 
   smoke-e2e:
     name: Smoke E2E (non-blocking)

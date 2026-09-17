@@ -36,6 +36,7 @@
  * Spec: .claude/plans/2026-09-07-money-twin/README.md
  */
 
+import { listReceiptNotices } from '../services/money/notices.js';
 import { Router } from 'express';
 import crypto from 'node:crypto';
 import multer from 'multer';
@@ -47,12 +48,15 @@ import { complete as llmComplete, TIER_EXTRACTION } from '../services/llmGateway
 import { accuracy } from '../services/money/predictions.js';
 import { createLogger } from '../services/logger.js';
 import { captureFromBody } from '../services/money/captureParser.js';
-import { ingestSighting, ingestSightings, listTransactions, sightingsFor, refreshRecurring, forecast, setVerdict, userForCaptureKey, saveBankAccounts, listBankAccounts, pullBankFeed, refreshReadings, listReadings, setReadingVerdict, months, feedBudget, categorySpend, listPlaces, setPlaceCategory, enrichPlaces, subscriptionUsage, questionsFor, answerQuestion, skipQuestion, listFacts, deleteFact, recordCallbackFailure, listChatTurns, saveChatTurn, learn, userLanguage, patternsFor } from '../services/money/store.js';
+import { moneyCapabilities } from '../services/money/betaCapabilities.js';
+import { holdUndatedCapture } from '../services/money/legacyCapture.js';
+import { ingestSighting, ingestSightings, listTransactions, transactionPage, sightingsFor, refreshRecurring, forecast, setVerdict, userForCaptureKey, saveBankAccounts, listBankAccounts, pullBankFeed, refreshReadings, listReadings, setReadingVerdict, months, feedBudget, categorySpend, listPlaces, setPlaceCategory, enrichPlaces, subscriptionUsage, questionsFor, answerQuestion, skipQuestion, listFacts, deleteFact, recordCallbackFailure, listChatTurns, saveChatTurn, learn, userLanguage, patternsFor } from '../services/money/store.js';
 import { parseDelimited, parseWorkbook, toSightings } from '../services/money/statements/importer.js';
+import { statementAccounts, createStatementAccount, ownedStatementAccount, checkStatementEvidence, StatementInputError } from '../services/money/statements/accounts.js';
 import { isConfigured, listBanks, startAuthorisation, createSession, getSession, applicationInfo } from '../services/money/feeds/enableBanking.js';
 import { answer as chatAnswer, answerStream as chatAnswerStream, act as chatAct } from '../services/money/chat.js';
 import { ahead as calendarAhead, learnEventSpend, addFeed as addCalendarFeed, removeFeed as removeCalendarFeed } from '../services/money/calendar.js';
-import { todayAllowance } from '../services/money/allowance.js';
+import { todayAllowance } from '../services/money/allowanceService.js';
 import { monthPlan, planLine } from '../services/money/plan.js';
 import { spendingRule } from '../services/money/spending.js';
 import { reconnectByAccount } from '../services/money/store.js';
@@ -85,9 +89,19 @@ async function authenticateUserOrKey(req, res, next) {
 }
 
 router.post('/capture', authenticateUserOrKey, async (req, res) => {
+  if (!moneyCapabilities(req.user.id).capture) return res.status(403).json({ success: false, error: 'Phone capture is not available in this beta. Add a statement instead.' });
+  if (req.body?.ownerId && req.body.ownerId !== req.user.id) return res.status(403).json({ success: false, error: 'Capture belongs to a different account' });
   /* The Android listener sends the notification's text; an iPhone Wallet automation sends the
      merchant and amount it was handed (captureFromBody says which wins and why). */
   const read = captureFromBody(req.body);
+  if (read.code === 'CAPTURE_TIME_REQUIRED') {
+    try {
+      await holdUndatedCapture(req.user.id, req.body);
+      return res.status(202).json({ success: true, data: { outcome: 'needs_capture_update', message: 'Saved for review, not counted as a payment. Update the capture app to send the original payment time.' } });
+    } catch {
+      return res.status(503).set('Retry-After', '60').json({ success: false, error: 'Capture storage unavailable. Retry later.' });
+    }
+  }
   if (read.error) return res.status(read.status).json({ success: false, error: read.error });
   /* The setup check: the shortcut, run by hand, with nothing to send yet. */
   if (read.ready) return res.json({ success: true, data: { outcome: 'ready', message: 'The key works. Tap a card with your phone and the payment arrives here.' } });
@@ -104,8 +118,8 @@ router.post('/capture', authenticateUserOrKey, async (req, res) => {
 
 /**
  * Resend posts here when mail arrives for the money domain. No session: the caller is
- * Resend, proven by the Svix signature over the raw body. Always 200 once verified, so a
- * receipt that cannot be read is not retried for a week; the reason goes to the log.
+ * Resend, proven by the Svix signature over the raw body. Permanent non-receipts return
+ * 200; infrastructure failures return 503 so delivery is retried with the same source id.
  */
 router.post('/inbox/resend', async (req, res) => {
   if (!isInboxConfigured()) return res.status(503).json({ success: false, error: 'Inbox not configured' });
@@ -117,11 +131,17 @@ router.post('/inbox/resend', async (req, res) => {
     res.json({ success: true, data: result });
   } catch (error) {
     log.error('inbox failed', { error: error.message });
-    res.json({ success: true, data: { outcome: 'failed' } });
+    res.status(503).set('Retry-After', '60').json({ success: false, error: 'Receipt processing temporarily unavailable' });
   }
 });
 
 router.use(authenticateUser);
+router.get('/capabilities', (req, res) => res.json({ success: true, data: moneyCapabilities(req.user.id) }));
+
+router.get('/notices', async (req, res) => {
+  try { res.json({ success: true, data: await listReceiptNotices(req.user.id) }); }
+  catch { res.status(503).json({ success: false, error: 'Receipt notices temporarily unavailable' }); }
+});
 
 /** How well it has been reading this person: the scored record, summarised. Null until scored. */
 router.get('/accuracy', async (req, res) => {
@@ -142,9 +162,13 @@ router.get('/inbox', async (req, res) => {
 
 router.get('/ledger', async (req, res) => {
   try {
-    const data = await listTransactions(req.user.id, { since: typeof req.query.since === 'string' ? req.query.since : undefined });
-    res.json({ success: true, data });
+    const since = typeof req.query.since === 'string' ? req.query.since : undefined;
+    const cursor = typeof req.query.cursor === 'string' ? req.query.cursor : undefined;
+    if (cursor && cursor.length > 250) return res.status(400).json({ success: false, error: 'Invalid ledger cursor' });
+    const page = await transactionPage(req.user.id, { since, cursor });
+    res.json({ success: true, ...page });
   } catch (error) {
+    if (error.name === 'ZodError' || error instanceof SyntaxError) return res.status(400).json({ success: false, error: 'Invalid ledger date or cursor' });
     log.error('ledger failed', { error: error.message });
     res.status(500).json({ success: false, error: 'Internal server error' });
   }
@@ -185,19 +209,21 @@ router.get('/plan', async (req, res) => {
     const now = new Date();
     const month = /^\d{4}-\d{2}$/.test(String(req.query.month || '')) ? String(req.query.month) : null;
     const start = month ? `${month}-01T00:00:00Z` : new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1)).toISOString();
-    const [cast, rows, facts] = await Promise.all([forecast(req.user.id), listTransactions(req.user.id, { since: start, limit: 1000 }), listFacts(req.user.id)]);
+    const [cast, rows, facts] = await Promise.all([forecast(req.user.id), listTransactions(req.user.id, { since: start, limit: 5000, currency: 'EUR' }), listFacts(req.user.id)]);
     const plan = monthPlan({ forecast: cast, transactions: rows, facts, month, now, isSpending: spendingRule(facts) });
     res.json({ success: true, data: { ...plan, line: planLine(plan, { now }) } });
   } catch (error) { log.error('plan failed', { error: error.message }); res.status(500).json({ success: false, error: 'Internal server error' }); }
 });
 
 router.get('/banks', async (req, res) => {
+  if (!moneyCapabilities(req.user.id).bank) return res.status(403).json({ success: false, error: 'Live bank connections are not available in this beta. Add a statement instead.' });
   if (!isConfigured()) return res.status(503).json({ success: false, error: 'Bank feed not configured' });
   try { res.json({ success: true, data: await listBanks(typeof req.query.country === 'string' ? req.query.country : 'ES') }); }
   catch (error) { log.error('banks failed', { error: error.message }); res.status(502).json({ success: false, error: 'Bank feed unavailable' }); }
 });
 
 router.post('/bank/connect', async (req, res) => {
+  if (!moneyCapabilities(req.user.id).bank) return res.status(403).json({ success: false, error: 'Live bank connections are not available in this beta. Add a statement instead.' });
   if (!isConfigured()) return res.status(503).json({ success: false, error: 'Bank feed not configured' });
   try {
     const { bank = 'Banco Santander', country = 'ES', back = '' } = req.body || {};
@@ -304,14 +330,29 @@ const upload = multer({
   },
 });
 
+const statementFailure = (res, error) => {
+  if (error instanceof StatementInputError) return res.status(error.status).json({ success: false, error: error.message });
+  if (error.name === 'ZodError') return res.status(400).json({ success: false, error: 'Check the account name and statement details.' });
+  log.error('statement request failed', { error: error.message });
+  return res.status(503).json({ success: false, error: 'The statement service is unavailable. Try again.' });
+};
+router.get('/statement/accounts', async (req, res) => {
+  try { res.json({ success: true, data: await statementAccounts(req.user.id) }); }
+  catch (error) { statementFailure(res, error); }
+});
+router.post('/statement/accounts', async (req, res) => {
+  try { res.status(201).json({ success: true, data: await createStatementAccount(req.user.id, req.body) }); }
+  catch (error) { statementFailure(res, error); }
+});
 router.post('/statement', upload.single('file'), async (req, res) => {
   if (!req.file?.buffer?.length) return res.status(400).json({ success: false, error: 'No file received' });
   try {
+    const account = await ownedStatementAccount(req.user.id, req.body?.accountId);
     const name = req.file.originalname || '';
     const rows = /\.(xlsx|xls)$/i.test(name)
       ? parseWorkbook(req.file.buffer)
       : parseDelimited(req.file.buffer.toString('utf8'));
-    const { sightings, skipped, header } = toSightings(rows, {});
+    const { sightings, skipped, header } = toSightings(rows, { accountId: account.id, defaultCurrency: account.currency });
     if (!sightings.length) {
       return res.status(422).json({
         success: false,
@@ -319,14 +360,14 @@ router.post('/statement', upload.single('file'), async (req, res) => {
         data: { skipped: skipped.length },
       });
     }
+    await checkStatementEvidence(req.user.id, account, sightings);
     const result = await ingestSightings(req.user.id, sightings);
     await refreshRecurring(req.user.id).catch((e) => log.warn('recurring after statement failed', { error: e.message }));
     await refreshReadings(req.user.id).catch((e) => log.warn('readings after statement failed', { error: e.message }));
     log.info('statement imported', { userId: req.user.id, rows: sightings.length, created: result.created });
     res.json({ success: true, data: { read: sightings.length, created: result.created, attached: result.attached, skipped: skipped.length } });
   } catch (error) {
-    log.error('statement import failed', { error: error.message });
-    res.status(500).json({ success: false, error: 'That statement could not be read.' });
+    statementFailure(res, error);
   }
 });
 
@@ -865,6 +906,7 @@ bankCallback.get('/bank/callback', async (req, res) => {
   const back = read ? read.back : '/money/you';
   const code = typeof req.query.code === 'string' ? req.query.code : null;
   if (!userId) return res.status(400).send('This link is not valid.');
+  if (!moneyCapabilities(userId).bank) return res.redirect(302, `${back}?bank=failed&why=statement-only-beta`);
   if (!code) {
     /* The bank or the person said no: Enable Banking comes back with `error` and no code.
        This used to answer a bare "This link is not valid." and keep no record, so a refused

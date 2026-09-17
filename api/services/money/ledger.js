@@ -13,7 +13,7 @@
    costs little. A week is too far; the same coffee twice is two coffees. */
 export const MATCH_WINDOW_MS = 4 * 24 * 60 * 60 * 1000;
 export const AMOUNT_TOLERANCE = 0.01;
-const SOURCE_PRIORITY = { bankfeed: 3, statement: 2, phone: 1, bizum: 1, email: 1, gmail: 0 };
+const SOURCE_PRIORITY = { bankfeed: 3, statement: 2, phone: 1, bizum: 1, email: 1, upload: 1, gmail: 0 };
 
 /** Signed amount: out is negative, in is positive. */
 export function signedAmount(s) {
@@ -49,8 +49,12 @@ export function findMatch(sighting, transactions, opts = {}) {
   let best = null; let bestDt = Infinity;
   for (const t of transactions) {
     if (exclude && exclude.has(t.id)) continue;
+    if ((t.currency || 'EUR') !== (sighting.currency || 'EUR')) continue;
+    if (t.account_id && sighting.account_id && t.account_id !== sighting.account_id) continue;
+    if (t.card_last4 && sighting.card_last4 && t.card_last4 !== sighting.card_last4) continue;
     if (!closeEnough(Number(t.amount), signed) || Math.sign(Number(t.amount)) !== Math.sign(signed)) continue;
-    if (!sameMerchant(t.merchant_key, sighting.merchant_key) && sighting.merchant_key !== 'unknown' && t.merchant_key !== 'unknown') continue;
+    // An unknown shop is not evidence that two payments are the same.
+    if (t.merchant_key === 'unknown' || sighting.merchant_key === 'unknown' || !sameMerchant(t.merchant_key, sighting.merchant_key)) continue;
     const dt = Math.abs(new Date(t.occurred_at).getTime() - t0);
     if (dt <= MATCH_WINDOW_MS && dt < bestDt) { best = t; bestDt = dt; }
   }
@@ -63,14 +67,15 @@ export function findMatch(sighting, transactions, opts = {}) {
  *   create: transaction is a new row to insert; attach: transaction is the existing row with the fields to update.
  */
 /** A bank row the bank has actually booked. A pending one is seen, not yet settled. */
-function booked(sighting) {
+export function booked(sighting) {
   if (sighting.source === 'statement') return true;
   if (sighting.source !== 'bankfeed') return false;
   return String(sighting.raw_json?.status || 'BOOK').toUpperCase() !== 'PDNG';
 }
 
 export function reconcile(sighting, transactions, primarySightingSource = null, opts = {}) {
-  const match = findMatch(sighting, transactions, opts);
+  // A replay of a provider's stable reference may correct its amount/date.
+  const match = opts.existing || findMatch(sighting, transactions, opts);
   if (!match) {
     return {
       action: 'create',
@@ -88,10 +93,13 @@ export function reconcile(sighting, transactions, primarySightingSource = null, 
     };
   }
   // Attach: a higher-priority source corrects amount and posting date; the phone keeps the minute.
-  const incoming = SOURCE_PRIORITY[sighting.source] ?? 0;
-  const current = SOURCE_PRIORITY[primarySightingSource] ?? -1;
+  const incoming = sighting.source === 'bankfeed' && !booked(sighting) ? 1.5 : (SOURCE_PRIORITY[sighting.source] ?? 0);
+  const current = match.primary_source === 'bankfeed' && match.primary_status === 'PDNG' ? 1.5 : (SOURCE_PRIORITY[match.primary_source ?? primarySightingSource] ?? -1);
   const update = {};
-  if (incoming > current) {
+  const sameEvidence = match.primary_sighting_id === sighting.id;
+  const settlesBank = sighting.source === 'bankfeed' && booked(sighting) && !match.posted_at;
+  const downgradesSettlement = sighting.source === 'bankfeed' && !booked(sighting) && match.posted_at;
+  if (!downgradesSettlement && (incoming > current || sameEvidence || settlesBank)) {
     update.amount = signedAmount(sighting);
     if (booked(sighting)) update.posted_at = sighting.occurred_at;
     if (sighting.merchant_raw && (!match.merchant_raw || sighting.source === 'bankfeed')) update.merchant_raw = sighting.merchant_raw;
@@ -103,6 +111,7 @@ export function reconcile(sighting, transactions, primarySightingSource = null, 
   /* The booked row arriving after its pending twin settles the line, whoever saw it first. */
   if (booked(sighting) && !match.posted_at) update.posted_at = sighting.occurred_at;
   if (!match.card_last4 && sighting.card_last4) update.card_last4 = sighting.card_last4;
+  if (!match.account_id && sighting.account_id) update.account_id = sighting.account_id;
   return { action: 'attach', transaction: { id: match.id, ...update }, sighting };
 }
 

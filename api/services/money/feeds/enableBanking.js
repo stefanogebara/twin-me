@@ -40,7 +40,7 @@ export function makeJwt(now = Math.floor(Date.now() / 1000)) {
 }
 
 async function api(path, init = {}) {
-  const res = await fetch(`${BASE}${path}`, { ...init, headers: { 'Authorization': `Bearer ${makeJwt()}`, 'Content-Type': 'application/json', ...(init.headers || {}) } });
+  const res = await fetch(`${BASE}${path}`, { ...init, signal: init.signal || AbortSignal.timeout(8000), headers: { 'Authorization': `Bearer ${makeJwt()}`, 'Content-Type': 'application/json', ...(init.headers || {}) } });
   const text = await res.text();
   let json = null; try { json = text ? JSON.parse(text) : null; } catch { /* keep text */ }
   if (!res.ok) throw new Error(`enablebanking ${path} ${res.status}: ${(text || '').slice(0, 200)}`);
@@ -103,7 +103,7 @@ export function sessionShape(j) {
     sessionId: j.session_id,
     validUntil: j.access?.valid_until || null,
     bankName: j.aspsp?.name || null,
-    accounts: (j.accounts || []).map((a) => ({ uid: a.uid, iban: a.account_id?.iban || null, name: a.name || a.product || null, currency: a.currency || 'EUR' })),
+    accounts: (j.accounts || []).map((a) => ({ uid: a.uid, identificationHash: a.identification_hash || null, iban: a.account_id?.iban || null, name: a.name || a.product || null, currency: a.currency || 'EUR' })),
     /* What Enable Banking said, for the log when a bank shares nothing: its fields, the
        access it granted, the bank, the kind of user. No secret lives in a session object. */
     raw: {
@@ -198,7 +198,7 @@ export function psuHeaders(psu) {
  * the day it is made rather than the day the bank books it; a bank that refuses the
  * status filter gets asked again without it. `psu` marks the read as attended (see above).
  */
-export async function fetchTransactions(accountUid, dateFrom, continuationKey = null, { psu = null, status = 'BOTH' } = {}) {
+export async function fetchTransactions(accountUid, dateFrom, continuationKey = null, { psu = null, status = 'BOTH', signal = null } = {}) {
   const qs = new URLSearchParams({ date_from: dateFrom });
   if (continuationKey) qs.set('continuation_key', continuationKey);
   if (status) qs.set('transaction_status', status);
@@ -206,11 +206,11 @@ export async function fetchTransactions(accountUid, dateFrom, continuationKey = 
   try {
     let j;
     try {
-      j = await api(`/accounts/${encodeURIComponent(accountUid)}/transactions?${qs}`, { headers });
+      j = await api(`/accounts/${encodeURIComponent(accountUid)}/transactions?${qs}`, { headers, signal });
     } catch (error) {
       if (status && /\b422\b/.test(String(error.message)) && /transaction_status|TransactionStatus/i.test(String(error.message))) {
         qs.delete('transaction_status');
-        j = await api(`/accounts/${encodeURIComponent(accountUid)}/transactions?${qs}`, { headers });
+        j = await api(`/accounts/${encodeURIComponent(accountUid)}/transactions?${qs}`, { headers, signal });
       } else throw error;
     }
     return { rows: j.transactions || [], continuationKey: j.continuation_key || null };
@@ -245,13 +245,12 @@ export async function fetchTransactions(accountUid, dateFrom, continuationKey = 
  * when the bank hands out references. Booked rows already carry the bank's reference.
  * Pure.
  */
-export function distinctPending(sightings = []) {
-  const seen = new Map();
+export function distinctPending(sightings = [], seen = new Map()) {
   return (sightings || []).map((s) => {
-    if (!s || !String(s.source_ref || '').startsWith('pend:')) return s;
+    if (!s || !/^(pend:|bank:fallback:)/.test(String(s.source_ref || ''))) return s;
     const n = (seen.get(s.source_ref) || 0) + 1;
     seen.set(s.source_ref, n);
-    return n === 1 ? s : { ...s, source_ref: `${s.source_ref}#${n}` };
+    return n === 1 ? s : { ...s, source_ref: `${s.source_ref}#${n}`, legacy_refs: (s.legacy_refs || []).map((ref) => `${ref}#${n}`) };
   });
 }
 
@@ -272,16 +271,24 @@ export function toSighting(row, accountId) {
      own key keeps a pending row from being read twice, and the booked row that follows
      finds the same line by amount and day, then gives it its posting date. */
   const pending = String(row.status || 'BOOK').toUpperCase() === 'PDNG';
+  const currency = String(row.transaction_amount?.currency || row.currency || 'EUR').toUpperCase();
+  const fingerprint = crypto.createHash('sha256').update(JSON.stringify([accountId, date, amt, currency, isCredit, narrative])).digest('hex').slice(0, 32);
+  const stableEntry = !pending && row.entry_reference;
+  // transaction_id is explicitly non-unique and may change on every read (provider docs).
+  const sourceRef = stableEntry
+    ? `bank:${accountId}:${row.entry_reference}`
+    : `${pending ? 'pend:' : 'bank:fallback:'}${fingerprint}`;
+  const legacyRef = pending ? `pend:${date}|${amt}|${narrative}`
+    : (row.entry_reference || row.transaction_id || `${date}|${amt}|${narrative}`);
   return {
     source: 'bankfeed',
-    source_ref: pending
-      ? `pend:${date}|${amt}|${narrative}`
-      : (row.entry_reference || row.transaction_id || `${date}|${amt}|${narrative}`),
+    source_ref: sourceRef,
+    legacy_refs: legacyRef.length <= 512 ? [legacyRef] : [],
     account_id: accountId,
     raw_json: row,
     raw_text: remittance || counterparty || null,
     amount: amt,
-    currency: row.transaction_amount?.currency || row.currency || 'EUR',
+    currency,
     direction: isCredit ? 'in' : 'out',
     merchant_raw: name,
     merchant_key: merchantKey(name),

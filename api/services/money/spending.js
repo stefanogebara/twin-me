@@ -29,6 +29,7 @@ export function personRoles(facts = []) {
 export function spendingRule(facts = []) {
   const roles = personRoles(facts);
   return (t) => {
+    if (t?.currency && t.currency !== 'EUR') return false;
     if (!t || !PERSON_CHANNELS.has(t.channel)) return true;
     const role = roles.get(String(t.merchant_key || '').toLowerCase());
     return !(role && NOT_SPENDING.has(role));
@@ -46,5 +47,5 @@ export function markCounted(transactions = [], facts = []) {
 
 /** An outflow that counts: the test every sum of "spent" must use. */
 export function isOutflow(t) {
-  return Number(t?.amount) < 0 && t?.counts !== false;
+  return (!t?.currency || t.currency === 'EUR') && Number(t?.amount) < 0 && t?.counts !== false;
 }

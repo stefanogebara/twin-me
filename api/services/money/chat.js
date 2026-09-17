@@ -117,7 +117,7 @@ export function euroGlyphs(text) {
 export async function gather(userId, now = new Date()) {
   const settled = async (p, fallback) => { try { return await p; } catch (e) { log.warn(`chat gather: ${e.message}`); return fallback; } };
   const [transactions, segments, cast, recurring, readings, facts, questions, places] = await Promise.all([
-    settled(listTransactions(userId, { limit: 5000 }), []),
+    settled(listTransactions(userId, { currency: 'EUR', limit: 5000 }), []),
     settled(months(userId, now), []),
     settled(forecast(userId, now), null),
     settled(refreshRecurring(userId, now), []),
@@ -517,6 +517,7 @@ function plainProse(raw) {
    English is the source; a language with no line falls back to it. ASCII, \u for accents. */
 const PHRASES = {
   es: {
+    'Upload this statement in Sources and choose the account it belongs to.': 'Sube este extracto en Fuentes y elige la cuenta a la que pertenece.',
     '{what} on {day}, is marked as not yours and leaves the month.': '{what} el {day} queda marcado como no tuyo y sale del mes.',
     '{place} now counts as {kind}, here and from now on.': '{place} cuenta ahora como {kind}, aqu\u00ed y a partir de ahora.',
     '{what} counts as {share} of yours. Money back for {share} will count as the others paying, and it will say who still owes.': '{what} cuenta como {share} tuyos. El dinero que vuelva por {share} contar\u00e1 como que los dem\u00e1s pagan, y dir\u00e1 qui\u00e9n sigue debiendo.',
@@ -578,6 +579,7 @@ const PHRASES = {
     'There is nothing in the ledger yet. Connect a bank or add a statement and ask again.': 'Todav\u00eda no hay nada en el libro. Conecta un banco o a\u00f1ade un extracto y pregunta otra vez.',
   },
   'pt-BR': {
+    'Upload this statement in Sources and choose the account it belongs to.': 'Envie este extrato em Fontes e escolha a conta à qual ele pertence.',
     '{what} on {day}, is marked as not yours and leaves the month.': '{what} em {day} fica marcado como n\u00e3o seu e sai do m\u00eas.',
     '{place} now counts as {kind}, here and from now on.': '{place} agora conta como {kind}, aqui e daqui em diante.',
     '{what} counts as {share} of yours. Money back for {share} will count as the others paying, and it will say who still owes.': '{what} conta como {share} seus. O dinheiro que voltar de {share} vai contar como os outros pagando, e ele dir\u00e1 quem ainda deve.',

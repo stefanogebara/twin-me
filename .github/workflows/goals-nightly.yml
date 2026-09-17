@@ -21,6 +21,50 @@ permissions:
   actions: read
 
 jobs:
+  money-safety:
+    name: Money safety canaries
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: twinme_money_test
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: money-test-only
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci --legacy-peer-deps
+      - name: Payment, tenant and delivery invariants
+        env:
+          MONEY_TEST_DATABASE_URL: postgresql://postgres:money-test-only@127.0.0.1:5432/twinme_money_test
+          SUPABASE_URL: https://ci-stub.supabase.co
+          SUPABASE_ANON_KEY: ci-stub-anon
+          SUPABASE_SERVICE_ROLE_KEY: ci-stub-service
+        run: npx vitest run tests/api/services/money tests/api/routes/moneyInboxDelivery.test.js tests/api/routes/cronMoneyPull.test.js tests/frontend/moneyAccountCache.test.tsx
+      - run: npx playwright install --with-deps chromium
+      - run: npm run build
+      - run: npx playwright test --config playwright.money.config.ts
+      - name: Shadow report card (previous twenty completed nights)
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: node scripts/ci/money-report-card.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: money-safety-evidence
+          path: test-results/
+          retention-days: 30
+
   goals:
     name: Feature canaries
     runs-on: ubuntu-latest

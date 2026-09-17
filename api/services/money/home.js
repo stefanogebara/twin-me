@@ -371,7 +371,7 @@ async function placesForUser(userId, transactions) {
  * Where the person probably lives: the cluster, named. Null when the ledger cannot say.
  */
 export async function guessHome(userId, { now = new Date(), fetchImpl = fetch, key = process.env.GOOGLE_PLACES_API_KEY } = {}) {
-  const transactions = await listTransactions(userId, { since: new Date(now.getTime() - LOOKBACK_DAYS * 86400000).toISOString(), limit: 5000 });
+  const transactions = await listTransactions(userId, { currency: 'EUR', since: new Date(now.getTime() - LOOKBACK_DAYS * 86400000).toISOString(), limit: 5000 });
   const places = await placesForUser(userId, transactions);
   const cluster = clusterHome(weighPlaces(transactions, places, { now }));
   if (!cluster) return null;

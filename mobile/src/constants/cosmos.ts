@@ -106,10 +106,10 @@ export const cosmos = {
 } as const;
 
 /** Euros, in the Spanish way, always two decimals so a column of them lines up. */
-export function euro(n: number | string | null | undefined): string {
+export function euro(n: number | string | null | undefined, currency = 'EUR'): string {
   const v = Math.abs(Number(n) || 0);
   return new Intl.NumberFormat('es-ES', {
-    style: 'currency', currency: 'EUR', minimumFractionDigits: 2, maximumFractionDigits: 2,
+    style: 'currency', currency: /^[A-Z]{3}$/.test(currency) ? currency : 'EUR', minimumFractionDigits: 2, maximumFractionDigits: 2,
   }).format(v);
 }
 

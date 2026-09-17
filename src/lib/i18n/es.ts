@@ -1,5 +1,7 @@
 /** Spanish, as a student in Spain says it. Keys are the English source strings. */
 export const ES: Record<string, string> = {
+  'Bank snapshot from {day}.': 'Saldo comunicado por el banco el {day}.',
+  'Totals include euros only. Other currencies stay on their original receipts.': 'Los totales solo incluyen euros. Las demás monedas se conservan en sus recibos originales.',
   /* the nav and the pages */
   'Today': 'Hoy', 'Month': 'Mes', 'Plan': 'Plan', 'You': 'T\u00fa', 'Ask': 'Pregunta', 'Settings': 'Ajustes', 'Money': 'Dinero',
   'Your twin': 'Tu gemelo',

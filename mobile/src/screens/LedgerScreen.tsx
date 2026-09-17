@@ -136,6 +136,7 @@ export default function LedgerScreen() {
     return (
       <Page style={layout.content}>
         <Heading>Every euro, with its receipts.</Heading>
+          {ledger.some((row) => row.currency && row.currency !== 'EUR') ? <Small muted>Totals include euros only. Other currencies stay on their original receipts.</Small> : null}
         <Small style={layout.after}>Reading the ledger.</Small>
       </Page>
     );
@@ -155,6 +156,7 @@ export default function LedgerScreen() {
       >
         <Enter index={0}>
           <Heading>Every euro, with its receipts.</Heading>
+          {ledger.some((row) => row.currency && row.currency !== 'EUR') ? <Small muted>Totals include euros only. Other currencies stay on their original receipts.</Small> : null}
         </Enter>
 
         {unreachable ? (
@@ -194,7 +196,7 @@ export default function LedgerScreen() {
                       lead={dayMonth(t.occurred_at)}
                       label={merchantLabel(t)}
                       sub={tags || undefined}
-                      trail={`${inflow ? '+' : ''}${euro(t.amount)}`}
+                      trail={`${inflow ? '+' : ''}${euro(t.amount, t.currency)}`}
                       quiet={inflow}
                       onPress={inflow ? undefined : () => void toggle(t)}
                     />
@@ -209,7 +211,7 @@ export default function LedgerScreen() {
                             <View key={s.id} style={layout.receipt}>
                               <Micro>{SOURCE[s.source] || s.source}, read {dayMonth(s.seen_at)}</Micro>
                               <Small muted style={layout.afterSmall}>
-                                {s.raw_text || `${euro(s.amount)} ${s.currency || ''}`.trim()}
+                                {s.raw_text || `${euro(s.amount, s.currency || 'EUR')} ${s.currency || ''}`.trim()}
                               </Small>
                             </View>
                           ))

@@ -341,7 +341,7 @@ function cityFromAddress(address) {
 
 async function fetchJson(fetchImpl, url, init) {
   try {
-    const res = await fetchImpl(url, init);
+    const res = await fetchImpl(url, { ...init, signal: init?.signal || AbortSignal.timeout(5000) });
     if (!res || typeof res.json !== 'function') return null;
     if (res.ok === false) return null;
     if (typeof res.status === 'number' && (res.status < 200 || res.status >= 300)) return null;

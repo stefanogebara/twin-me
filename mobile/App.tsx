@@ -33,7 +33,7 @@ import { useAuth } from './src/hooks/useAuth';
 import { requestMagicLink } from './src/services/api';
 import { moneyApi } from './src/services/moneyApi';
 import { ensureCaptureKey } from './src/services/captureKey';
-import { NotificationListenerModule as NotifListenerBg } from './modules/notification-listener/src';
+import { activateCaptureSession, detachCaptureSession } from './src/services/captureSession';
 
 import FrontDoorScreen from './src/screens/FrontDoorScreen';
 import BankScreen from './src/screens/BankScreen';
@@ -200,11 +200,11 @@ function Shell() {
   }, []);
 
   useEffect(() => {
-    if (!token) { setSetup('checking'); return; }
-    NotifListenerBg.setAuthToken(token);
-    ensureCaptureKey().catch(() => {});
+    if (!token || !user?.id) { detachCaptureSession(); setSetup('checking'); return; }
+    activateCaptureSession(user.id, token);
+    ensureCaptureKey(user.id).catch(() => {});
     void decide();
-  }, [token, decide]);
+  }, [token, user?.id, decide]);
 
   const onRequestLink = useCallback((email: string) => requestMagicLink(email), []);
 
@@ -266,13 +266,13 @@ function Shell() {
   } else if (setup === 'phone') {
     surface = (
       <StepFrame onNext={async () => { await SecureStore.setItemAsync(PHONE_SEEN, '1'); void decide(); }}>
-        <PhoneCaptureScreen />
+        <PhoneCaptureScreen userId={user!.id} />
       </StepFrame>
     );
   } else if (setup === 'questions') {
     surface = <ChatScreen mode="onboarding" onDone={() => { void decide(); }} />;
   } else if (sheet === 'phone') {
-    surface = <StepFrame onNext={() => setSheet(null)} nextLabel="Done"><PhoneCaptureScreen /></StepFrame>;
+    surface = <StepFrame onNext={() => setSheet(null)} nextLabel="Done"><PhoneCaptureScreen userId={user!.id} /></StepFrame>;
   } else if (sheet === 'bank') {
     surface = <BankScreen onDone={() => { setSheet(null); void decide(); }} onSkip={() => setSheet(null)} />;
   } else {
@@ -315,7 +315,7 @@ function Shell() {
 
   return (
     <View style={[styles.fill, { paddingTop: insets.top, paddingBottom: Platform.OS === 'ios' ? 0 : insets.bottom }]}>
-      <Fade id={surfaceId}>{surface}</Fade>
+      <Fade key={user?.id || 'signed-out'} id={surfaceId}>{surface}</Fade>
     </View>
   );
 }

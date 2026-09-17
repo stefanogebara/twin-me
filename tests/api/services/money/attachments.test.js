@@ -53,6 +53,13 @@ describe('gateSummary', () => {
 });
 
 describe('readAttachment', () => {
+  it('does not import an unassigned statement through chat', async () => {
+    const d = deps({ parseStatement: vi.fn(() => ({ sightings: [{ source: 'statement', amount: 10 }], header: { index: 0 } })) });
+    const r = await readAttachment(USER, { buffer: Buffer.from('a;b'), filename: 'payments.csv' }, d);
+    expect(r.said).toMatch(/choose.*account/i);
+    expect(d.ingestSightings).not.toHaveBeenCalled();
+    expect(d.extractText).not.toHaveBeenCalled();
+  });
   it('refuses what it cannot take before reading a byte', async () => {
     const d = deps();
     expect((await readAttachment(USER, { buffer: Buffer.alloc(0), filename: 'a.jpg' }, d)).kind).toBe('unreadable');
@@ -62,7 +69,7 @@ describe('readAttachment', () => {
   });
 
   it('a bank export joins the ledger through the statement importer, and the readings refresh', async () => {
-    const d = deps({ parseStatement: vi.fn(() => ({ sightings: [{ source: 'statement', source_ref: 'r1', amount: 10 }, { source: 'statement', source_ref: 'r2', amount: 20 }], skipped: [], header: { index: 0 } })), ingestSightings: vi.fn(async () => ({ created: 1 })) });
+    const d = deps({ parseStatement: vi.fn(() => ({ sightings: [{ source: 'statement', source_ref: 'r1', account_id: 'account-1', amount: 10 }, { source: 'statement', source_ref: 'r2', account_id: 'account-1', amount: 20 }], skipped: [], header: { index: 0 } })), ingestSightings: vi.fn(async () => ({ created: 1 })) });
     const r = await readAttachment(USER, { buffer: Buffer.from('a;b'), filename: 'movimientos.xlsx' }, d);
     expect(r.kind).toBe('statement');
     expect(r.said).toBe('Read 2 payments from movimientos.xlsx; 1 was new to the ledger.');
@@ -74,7 +81,7 @@ describe('readAttachment', () => {
   it('says it back in the language the person chose', async () => {
     /* A chat turn is a transcript of a moment, so it keeps the language it was said in; the
        page cannot say it later (2026-09-16). */
-    const d = deps({ parseStatement: vi.fn(() => ({ sightings: [{ source: 'statement', source_ref: 'r1', amount: 10 }, { source: 'statement', source_ref: 'r2', amount: 20 }], skipped: [], header: { index: 0 } })), ingestSightings: vi.fn(async () => ({ created: 1 })) });
+    const d = deps({ parseStatement: vi.fn(() => ({ sightings: [{ source: 'statement', source_ref: 'r1', account_id: 'account-1', amount: 10 }, { source: 'statement', source_ref: 'r2', account_id: 'account-1', amount: 20 }], skipped: [], header: { index: 0 } })), ingestSightings: vi.fn(async () => ({ created: 1 })) });
     const r = await readAttachment(USER, { buffer: Buffer.from('a;b'), filename: 'movimientos.xlsx', language: 'es' }, d);
     expect(r.said).toBe('Le\u00eddos 2 pagos de movimientos.xlsx; 1 era nuevo en el libro.');
     const pt = await readAttachment(USER, { buffer: Buffer.from('a;b'), filename: 'movimientos.xlsx', language: 'pt-BR' }, d);
@@ -90,7 +97,7 @@ describe('readAttachment', () => {
   });
 
   it('a photo of a receipt becomes an upload sighting with the file as its reference', async () => {
-    const receipt = { kind: 'receipt', merchant: 'Mercadona', amount: 23.45, currency: 'EUR', date: '2026-09-12T00:00:00.000Z', items: [{ label: 'Pan', amount: 1.2 }, { label: 'Leche', amount: 2.1 }], order_ref: null, plan: null, previous_amount: null, next_charge_at: null, confidence: 0.8 };
+    const receipt = { kind: 'receipt', payment_status: 'paid', merchant: 'Mercadona', amount: 23.45, currency: 'EUR', date: '2026-09-12T00:00:00.000Z', items: [{ label: 'Pan', amount: 1.2 }, { label: 'Leche', amount: 2.1 }], order_ref: null, plan: null, previous_amount: null, next_charge_at: null, confidence: 0.8 };
     const d = deps({ extractReceipt: vi.fn(async () => receipt) });
     const r = await readAttachment(USER, { buffer: jpg, filename: 'ticket.jpg', mimeType: 'image/jpeg', note: 'groceries for the flat' }, d);
     expect(r.kind).toBe('receipt');
@@ -111,7 +118,7 @@ describe('readAttachment', () => {
   });
 
   it('the same receipt sent again is told so, not counted twice', async () => {
-    const receipt = { kind: 'receipt', merchant: 'Mercadona', amount: 23.45, currency: 'EUR', date: null, items: [], confidence: 0.8 };
+    const receipt = { kind: 'receipt', payment_status: 'paid', merchant: 'Mercadona', amount: 23.45, currency: 'EUR', date: null, items: [], confidence: 0.8 };
     const d = deps({ extractReceipt: vi.fn(async () => receipt), ingestSighting: vi.fn(async () => ({ action: 'existing', transaction: { id: 'tx1', merchant_raw: 'Mercadona', amount: -23.45, occurred_at: '2026-09-15T10:00:00Z' } })) });
     const r = await readAttachment(USER, { buffer: jpg, filename: 'ticket.jpg' }, d);
     expect(r.said).toBe('Mercadona, 23,45 EUR on today, kept as a payment. It was already in the ledger.');

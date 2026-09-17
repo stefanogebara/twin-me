@@ -24,7 +24,7 @@ import { View, ScrollView, StyleSheet, Platform, Linking, ActivityIndicator } fr
 import { cosmos } from '../constants/cosmos';
 import { Body, Enter, Label, Micro, Page, Pill, Section, Small, Title } from '../ui/primitives';
 import { NotificationListenerModule } from '../native/NotificationListenerModule';
-import { ensureCaptureKey, pendingCaptures } from '../services/captureKey';
+import { ensureCaptureKey, pendingCaptures, failedCaptures } from '../services/captureKey';
 import { API_URL } from '../constants';
 
 const CAPTURE_URL = `${API_URL}/money/capture`;
@@ -52,20 +52,22 @@ function Step({ n, text }: { n: number; text: string }) {
   );
 }
 
-export default function PhoneCaptureScreen() {
+export default function PhoneCaptureScreen({ userId }: { userId: string }) {
   const isAndroid = Platform.OS === 'android';
+  const supported = !isAndroid || NotificationListenerModule.supportsCaptureSession();
   const [key, setKey] = useState<string | null>(null);
   const [minting, setMinting] = useState(true);
   const [granted, setGranted] = useState<boolean | null>(null);
   const [waiting, setWaiting] = useState(0);
+  const [failed, setFailed] = useState(0);
 
   useEffect(() => {
     let alive = true;
-    ensureCaptureKey()
+    ensureCaptureKey(userId, { shortcut: !isAndroid })
       .then((k) => { if (alive) setKey(k); })
       .finally(() => { if (alive) setMinting(false); });
     return () => { alive = false; };
-  }, []);
+  }, [userId, isAndroid]);
 
   useEffect(() => {
     if (!isAndroid) return;
@@ -75,6 +77,7 @@ export default function PhoneCaptureScreen() {
       try {
         setGranted(module.hasNotificationPermission());
         setWaiting(pendingCaptures());
+        setFailed(failedCaptures());
       } catch { setGranted(null); }
     };
     check();
@@ -84,6 +87,11 @@ export default function PhoneCaptureScreen() {
 
   const askForAccess = () => {
     try { NotificationListenerModule?.requestNotificationPermission(); } catch { /* the screen still explains it */ }
+  };
+  const renewCapture = async () => {
+    setMinting(true);
+    try { setKey(await ensureCaptureKey(userId, { refresh: true })); }
+    finally { setMinting(false); }
   };
 
   return (
@@ -101,16 +109,17 @@ export default function PhoneCaptureScreen() {
         <Enter index={1}>
           {isAndroid ? (
             <Section title="One switch">
-              {ANDROID_STEPS.map((step, i) => <Step key={step} n={i + 1} text={step} />)}
+              {supported ? ANDROID_STEPS.map((step, i) => <Step key={step} n={i + 1} text={step} />) : <Body>Install the latest TwinMe app to enable secure payment capture.</Body>}
 
-              {granted === true ? (
+              {!supported ? null : granted === true ? (
                 <View style={s.state}>
                   <Body>Notification access is on.</Body>
                   <Small muted>
-                    {waiting > 0
-                      ? `${waiting} ${waiting === 1 ? 'payment is' : 'payments are'} waiting to be sent, and will go with the next one.`
-                      : 'Nothing is waiting. Every payment your bank has announced has been sent.'}
+                    {failed > 0 ? `${failed} payments need attention. Renew capture access to retry authorization failures; check other rejected payments against your bank.` : waiting > 0
+                      ? `${waiting} ${waiting === 1 ? 'payment is' : 'payments are'} waiting for a connection. They will retry automatically.`
+                      : 'No payments are waiting to be sent.'}
                   </Small>
+                  {failed > 0 ? <Pill label="Renew capture access" disabled={minting} onPress={() => { void renewCapture(); }} /> : null}
                 </View>
               ) : (
                 <Pill label="Grant notification access" onPress={askForAccess} />
@@ -157,8 +166,9 @@ export default function PhoneCaptureScreen() {
 
         <Enter index={3}>
           <Small style={s.close}>
-            Amounts and names of shops, never the contents of a message. Remove this and everything
-            read through it goes with it.
+            {isAndroid
+              ? 'Bank payment notifications are sent to read the amount and merchant. Signing out stops capture; queued payments stay on this device for the same account to retry.'
+              : 'This Shortcut works independently of signing in. To stop it, disable the automation or revoke its capture key.'}
           </Small>
         </Enter>
       </ScrollView>

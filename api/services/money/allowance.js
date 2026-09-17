@@ -20,7 +20,6 @@
  * months, this says nothing, and says what would let it speak.
  */
 
-import { forecast, months, listFacts, listBankAccounts } from './store.js';
 import { studentMonth } from './priors.js';
 import { keepAmount } from './intention.js';
 import { dayIn, weekdayIn, daysBetweenIn } from './zone.js';
@@ -91,21 +90,42 @@ export const BALANCE_FRESH_MS = 48 * 3600 * 1000;
  * What the bank says is in the account, when it said so recently enough to act on.
  * Returns { amount, banks, at } summed over the accounts that qualify, or null.
  */
-export function freshBalance(accounts = [], now = new Date(), facts = []) {
-  /* A savings account is money, but it is not today's money. Once a person has said which
-     accounts they spend from, only those count; before they have said, all of them do. */
-  const said = (facts || []).filter((f) => f && f.kind === 'spend_account');
-  const spends = new Set(said.filter((f) => String(f.value || '').toLowerCase() === 'yes').map((f) => String(f.subject)));
-  const kept = new Set(said.map((f) => String(f.subject)));
-  const fresh = (accounts || []).filter((a) => a && a.balance !== null && a.balance !== undefined && a.balance_at
-    && !String(a.balance_type || '').includes('/credit')
-    && (!kept.has(String(a.id)) || spends.has(String(a.id)))
-    && now.getTime() - new Date(a.balance_at).getTime() < BALANCE_FRESH_MS);
-  if (!fresh.length) return null;
-  const amount = r2(fresh.reduce((sum, a) => sum + (Number(a.balance) || 0), 0));
-  const banks = [...new Set(fresh.map((a) => a.bank_name || 'Santander'))];
-  const at = fresh.map((a) => a.balance_at).sort().pop();
-  return { amount, banks, at };
+export function freshBalance(accounts = [], now = new Date(), facts = [], transactions = []) {
+  const excluded = new Set(facts.filter((f) => f.kind === 'spend_account' && String(f.value).toLowerCase() === 'no').map((f) => String(f.subject)));
+  const selected = accounts.filter((a) => a && !excluded.has(String(a.id)));
+  if (!selected.length) return null;
+  const current = now.getTime();
+  const usable = (a) => {
+    const at = Date.parse(a.balance_at); const observed = Date.parse(a.balance_observed_at);
+    return a.currency === 'EUR' && a.balance != null && Number.isFinite(Number(a.balance))
+      && ['ITAV', 'XPCD', 'CLAV', 'ITBD', 'CLBD'].includes(a.balance_type)
+      && Number.isFinite(at) && at <= current && current - at < BALANCE_FRESH_MS
+      && Number.isFinite(observed) && observed >= at && observed <= current;
+  };
+  // A partial total silently excludes a stale/foreign account. Abstain instead.
+  if (!selected.every(usable)) return null;
+  let adjustment = 0;
+  const selectedIds = new Set(selected.map((a) => a.id));
+  for (const t of transactions) {
+    if (Number(t.amount) >= 0 || (t.currency || 'EUR') !== 'EUR') continue;
+    if (t.account_id && !selectedIds.has(t.account_id)) continue;
+    const account = t.account_id ? selected.find((a) => a.id === t.account_id) : null;
+    const candidates = account ? [account] : selected;
+    const at = Date.parse(t.occurred_at);
+    if (!Number.isFinite(at) || at > current) return null;
+    // An unassigned alert predating an available balance may already be included.
+    // Without a bank link there is no defensible cash figure to show.
+    if (!account && !t.posted_at && candidates.some((a) => at <= Date.parse(a.balance_at))) return null;
+    const uncovered = candidates.some((a) => at > Date.parse(a.balance_at)
+      || (!t.posted_at && ['ITBD', 'CLBD'].includes(a.balance_type)));
+    if (uncovered) adjustment += Math.abs(Number(t.amount));
+  }
+  const reported = r2(selected.reduce((sum, a) => sum + Number(a.balance), 0));
+  return {
+    amount: r2(reported - adjustment), reported, adjustment: r2(adjustment),
+    banks: [...new Set(selected.map((a) => a.bank_name || 'your bank'))],
+    at: selected.map((a) => a.balance_at).sort()[0], // the oldest contributing snapshot
+  };
 }
 
 /**
@@ -150,7 +170,7 @@ export function eventsToday(items = [], now = new Date()) {
  * The number and the words for it. Pure: everything it needs is passed in, so the rules can
  * be read in one place and tested without a database.
  */
-export function safeToSpend({ cast = null, segments = [], facts = [], accounts = [], now = new Date() } = {}) {
+export function safeToSpend({ cast = null, segments = [], facts = [], accounts = [], transactions = [], now = new Date() } = {}) {
   const none = (why) => ({
     amount: null, basis: null, base: null, income: statedIncome(facts), keep: null, budget: null, free: null, over: false,
     days_left: cast ? cast.days_left : null, horizon: null, balance: null, spent: null, committed: null, calendar_ahead: null, shape: null,
@@ -158,10 +178,11 @@ export function safeToSpend({ cast = null, segments = [], facts = [], accounts =
   });
 
   if (!cast) return none('There is no month to read yet.');
+  if (cast.unsupported_currency || accounts.some((a) => a.currency && a.currency !== 'EUR')) return none('Spending guidance is available for euro accounts only. Foreign currencies have not been converted.');
 
   const income = statedIncome(facts);
   const keep = keepAmount(facts);
-  const balance = freshBalance(accounts, now, facts);
+  const balance = freshBalance(accounts, now, facts, transactions);
   const todays = eventsToday(cast.calendar_items || [], now);
   const todaysCost = r2(todays.reduce((s, e) => s + e.amount, 0));
   const spent = Number(cast.spent) || 0;
@@ -230,6 +251,7 @@ export function safeToSpend({ cast = null, segments = [], facts = [], accounts =
   const basisWord = `From ${bareBasis}`;
   const spoken = [];
   if (basis !== 'balance') spoken.push(`${money(spent)} spent`);
+  if (balance?.adjustment > 0) spoken.push(`${money(balance.adjustment)} deducted for payments outside the bank snapshot`);
   if (committed > 0) spoken.push(`${money(committed)} still to be charged`);
   if (calendarAhead > 0) spoken.push(`${money(calendarAhead)} the diary expects`);
   /* "over until X arrives" is what happens when a phrase is dropped into a slot made for a
@@ -259,7 +281,7 @@ export function safeToSpend({ cast = null, segments = [], facts = [], accounts =
     days_left: Number(cast.days_left) || 0,
     /* The days the number is spread over, and what ends them: the next money in, or the month. */
     horizon: { day: horizon.day, days, source: horizon.source },
-    balance: balance ? { amount: balance.amount, banks: balance.banks, at: balance.at } : null,
+    balance: balance ? { amount: balance.amount, banks: balance.banks, at: balance.at, reported: balance.reported, adjustment: balance.adjustment } : null,
     /* What the screen needs to say this line itself: the numbers behind it, the word for a
        basis that is not theirs, and the shape of the week when it moved today's share. */
     basis_label: student ? student.label : null,
@@ -283,17 +305,6 @@ function money(n) {
 
 function daysText(days) {
   return days === 1 ? 'today' : `${days} days`;
-}
-
-/** The same, for a person: three reads, no model, no network beyond the ledger. */
-export async function todayAllowance(userId, now = new Date()) {
-  const [cast, segments, facts, accounts] = await Promise.all([
-    forecast(userId, now).catch(() => null),
-    months(userId, now).catch(() => []),
-    listFacts(userId).catch(() => []),
-    listBankAccounts(userId).catch(() => []),
-  ]);
-  return safeToSpend({ cast, segments, facts, accounts, now });
 }
 
 /** One line for a prompt, so the twin can answer "can I afford tonight?" the same way. */

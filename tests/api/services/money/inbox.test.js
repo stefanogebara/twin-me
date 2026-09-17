@@ -66,7 +66,7 @@ describe('the reading, held to the email', () => {
 
 describe('receiptToSighting', () => {
   it('is the ledger\'s own shape, keyed so the same email is never read twice', () => {
-    const r = gateReceipt({ kind: 'invoice', merchant: 'Fly.io', amount: 18.63, currency: 'USD', date: '2026-09-01', order_ref: 'INV-9' }, 'Fly.io invoice INV-9 total $18.63 on 2026-09-01');
+    const r = gateReceipt({ kind: 'invoice', merchant: 'Fly.io', amount: 18.63, currency: 'USD', date: '2026-09-01', order_ref: 'INV-9', payment_status: 'paid', paid_evidence: 'Paid $18.63' }, 'Fly.io invoice INV-9 total $18.63 on 2026-09-01 Paid $18.63');
     const s = receiptToSighting(r, { emailId: 'e-1', from: 'billing@fly.io', subject: 'Your Fly.io invoice', receivedAt: '2026-09-02T00:00:00Z' });
     expect(s.source).toBe('email');
     expect(s.source_ref).toMatch(/^email:[0-9a-f]{32}$/);
@@ -79,7 +79,7 @@ describe('receiptToSighting', () => {
     expect(again.source_ref).toBe(s.source_ref);
   });
   it('falls back to the sender domain when the reading names no shop', () => {
-    const r = gateReceipt({ kind: 'receipt', amount: 5, currency: 'EUR' }, 'total 5,00');
+    const r = gateReceipt({ kind: 'receipt', amount: 5, currency: 'EUR', payment_status: 'paid', paid_evidence: 'Paid 5,00' }, 'total 5,00 Paid 5,00');
     const s = receiptToSighting(r, { emailId: 'e-2', from: 'Cabify <receipts@cabify.com>', subject: 'Trip' });
     expect(s.merchant_raw).toBe('cabify');
   });
@@ -133,4 +133,14 @@ describe('Santander\'s own alert emails, as received on 2026-09-14', () => {
     const inflow = bankAlertSighting({ from: 'SantanderInforma@emailing.bancosantander-mail.es', subject: 'Ha habido un nuevo movimiento en tu cuenta', text: 'se ha realizado un movimiento de 100 EUR en tu cuenta acabada en 7516.' + footer }, at);
     expect(inflow).toMatchObject({ amount: 100, direction: 'in' });
   });
+});
+
+
+it('keeps future/unpaid/unsupported payment claims out of spending', () => {
+  for (const kind of ['renewal','price_change','invoice']) {
+    const receipt = gateReceipt({ kind, amount: 10, currency: 'EUR', payment_status: 'paid', paid_evidence: 'You will be charged 10 EUR' }, 'You will be charged 10 EUR');
+    expect(receiptToSighting(receipt, { emailId: 'future' })).toBeNull();
+  }
+  const forged = gateReceipt({ kind: 'receipt', amount: 10, payment_status: 'paid', paid_evidence: 'Paid 10 EUR' }, 'Invoice due 10 EUR');
+  expect(receiptToSighting(forged, { emailId: 'unconfirmed' })).toBeNull();
 });

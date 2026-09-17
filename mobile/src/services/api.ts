@@ -1,4 +1,6 @@
 import { DeviceEventEmitter } from 'react-native';
+import { detachCaptureSession } from './captureSession';
+import { currentSessionEpoch, invalidateSession, writeSession } from './sessionEpoch';
 import * as SecureStore from 'expo-secure-store';
 import { API_URL, OAUTH_API_URL, STORAGE_KEYS } from '../constants';
 import type { User, MemoryStats, TwinInsight, AndroidUsageData, SoulSignatureProfile, PersonalityScores, PlatformConnection, WikiPage, ProactiveInsight, Goal } from '../types';
@@ -35,28 +37,33 @@ async function fetchWithAuthToken(path: string, token: string | null, options: R
 export const SESSION_EXPIRED = 'auth:session-expired';
 
 export async function clearStoredSession(): Promise<void> {
-  await Promise.all([
+  const epoch = invalidateSession();
+  detachCaptureSession();
+  await writeSession(epoch, () => Promise.all([
     SecureStore.deleteItemAsync(STORAGE_KEYS.AUTH_TOKEN),
     SecureStore.deleteItemAsync(STORAGE_KEYS.AUTH_REFRESH_TOKEN),
     SecureStore.deleteItemAsync(STORAGE_KEYS.USER),
-  ]);
+  ]));
 }
 
 /* One refresh at a time. Refresh tokens rotate, so two screens refreshing together would race:
    the second call arrives with a token the first has already spent, the server refuses it, and
    a live session would be ended for nothing. Every caller during a refresh shares the one. */
 let refreshInFlight: Promise<{ token: string; user: User } | null> | null = null;
+let refreshEpoch = -1;
 
 export function refreshSession(): Promise<{ token: string; user: User } | null> {
-  if (!refreshInFlight) {
-    refreshInFlight = refreshOnce().finally(() => { refreshInFlight = null; });
+  const epoch = currentSessionEpoch();
+  if (!refreshInFlight || refreshEpoch !== epoch) {
+    refreshEpoch = epoch;
+    refreshInFlight = refreshOnce(epoch).finally(() => { if (refreshEpoch === epoch) refreshInFlight = null; });
   }
   return refreshInFlight;
 }
 
-async function refreshOnce(): Promise<{ token: string; user: User } | null> {
+async function refreshOnce(epoch: number): Promise<{ token: string; user: User } | null> {
   const refreshToken = await SecureStore.getItemAsync(STORAGE_KEYS.AUTH_REFRESH_TOKEN);
-  if (!refreshToken) {
+  if (!refreshToken || epoch !== currentSessionEpoch()) {
     return null;
   }
 
@@ -69,6 +76,8 @@ async function refreshOnce(): Promise<{ token: string; user: User } | null> {
     body: JSON.stringify({ refreshToken, client: 'mobile' }),
   });
 
+  if (epoch !== currentSessionEpoch()) return null;
+
   if (res.status === 401 || res.status === 403) {
     /* Refused. If the stored refresh token is no longer the one we sent, another refresh won
        in the meantime and the session is fine: hand back what it stored. Otherwise the session
@@ -79,11 +88,12 @@ async function refreshOnce(): Promise<{ token: string; user: User } | null> {
       SecureStore.getItemAsync(STORAGE_KEYS.AUTH_REFRESH_TOKEN),
       SecureStore.getItemAsync(STORAGE_KEYS.USER),
     ]);
+    if (epoch !== currentSessionEpoch()) return null;
     if (nowRefresh && nowRefresh !== refreshToken && nowToken && userJson) {
       return { token: nowToken, user: JSON.parse(userJson) as User };
     }
     await clearStoredSession();
-    DeviceEventEmitter.emit(SESSION_EXPIRED);
+    if (currentSessionEpoch() === epoch + 1) DeviceEventEmitter.emit(SESSION_EXPIRED);
     return null;
   }
 
@@ -92,18 +102,20 @@ async function refreshOnce(): Promise<{ token: string; user: User } | null> {
   }
 
   const data = await res.json();
+  if (epoch !== currentSessionEpoch()) return null;
   if (!data.accessToken || !data.user) {
     throw new Error('Invalid refresh response');
   }
 
   const user = normalizeUser(data.user);
-  await Promise.all([
+  const saved = await writeSession(epoch, () => Promise.all([
     SecureStore.setItemAsync(STORAGE_KEYS.AUTH_TOKEN, data.accessToken),
     SecureStore.setItemAsync(STORAGE_KEYS.USER, JSON.stringify(user)),
     data.refreshToken
       ? SecureStore.setItemAsync(STORAGE_KEYS.AUTH_REFRESH_TOKEN, data.refreshToken)
       : Promise.resolve(),
-  ]);
+  ]));
+  if (!saved) return null;
 
   return { token: data.accessToken, user };
 }
@@ -111,15 +123,18 @@ async function refreshOnce(): Promise<{ token: string; user: User } | null> {
 // ── Core fetch wrapper ────────────────────────────────────────────────────────
 
 export async function authFetch(path: string, options: RequestInit = {}): Promise<Response> {
+  const epoch = currentSessionEpoch();
   const token = await SecureStore.getItemAsync(STORAGE_KEYS.AUTH_TOKEN);
+  if (epoch !== currentSessionEpoch()) throw new Error('Session changed');
   let response = await fetchWithAuthToken(path, token, options);
 
   if (response.status !== 401 && response.status !== 403) {
     return response;
   }
 
+  if (epoch !== currentSessionEpoch()) return response;
   const refreshed = await refreshSession().catch(() => null);
-  if (!refreshed?.token) {
+  if (!refreshed?.token || epoch !== currentSessionEpoch()) {
     return response;
   }
 
@@ -181,13 +196,15 @@ export async function claimAuthCode(authCode: string): Promise<{ token: string; 
 }
 
 export async function verifyToken(): Promise<User | null> {
+  const epoch = currentSessionEpoch();
   const res = await authFetch('/auth/verify');
   if (res.status === 401 || res.status === 403) throw new Error('UNAUTHORIZED');
   if (!res.ok) return null;
   const data = await res.json();
+  if (epoch !== currentSessionEpoch()) return null;
   const user = data.user ? normalizeUser(data.user) : null;
   if (user) {
-    await SecureStore.setItemAsync(STORAGE_KEYS.USER, JSON.stringify(user));
+    if (!await writeSession(epoch, () => SecureStore.setItemAsync(STORAGE_KEYS.USER, JSON.stringify(user)))) return null;
   }
   return user;
 }

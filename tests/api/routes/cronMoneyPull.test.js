@@ -24,6 +24,7 @@ vi.mock('../../../api/services/money/store.js', () => ({
   refreshRecurring: (...a) => recurring(...a),
   learn: (...a) => learnLedger(...a),
   bankFeedUserIds: async () => ['u1', 'u2'],
+  finishBankFeedJob: async () => {},
 }));
 vi.mock('../../../api/services/money/feeds/enableBanking.js', () => ({ isConfigured: () => true }));
 vi.mock('../../../api/services/money/predictions.js', () => ({ learnFromLedger: (...a) => learn(...a) }));
@@ -79,7 +80,7 @@ describe('cron-money-pull', () => {
     expect(res.body).toMatchObject({ read: 1, skipped: 1, created: 0, refreshed: 2, daily: true });
     expect(refresh.mock.calls.map((c) => c[0])).toEqual(['u1', 'u2']);
     /* No new rows, but the day's first run still looks up what no provider has placed. */
-    expect(places.mock.calls.map((c) => [c[0], c[1].limit])).toEqual([['u1', 20], ['u2', 20]]);
+    expect(places.mock.calls.map((c) => [c[0], c[1].limit])).toEqual([['u1', 1], ['u2', 1]]);
     expect(learn).toHaveBeenCalledTimes(2);
     expect(calendar.mock.calls.map((c) => c[0])).toEqual(['u1', 'u2']);
     /* What comes back and what it expects next move on the clock, not on somebody opening a
@@ -95,6 +96,21 @@ describe('cron-money-pull', () => {
     await request(app()).get('/api/cron/money-pull').set(AUTH);
     expect(recurring).not.toHaveBeenCalled();
     expect(learnLedger).not.toHaveBeenCalled();
+  });
+
+  it('does not mark provider failures as a successful run', async () => {
+    vi.useFakeTimers({ now: new Date('2026-09-14T16:00:30Z'), toFake: ['Date'] });
+    pull.mockRejectedValue(new Error('provider unavailable'));
+    const res = await request(app()).get('/api/cron/money-pull').set(AUTH);
+    expect(res.status).toBe(503);
+    expect(res.body).toMatchObject({ success:false, failed:2, read:0 });
+  });
+  it('also fails when the bank adapter returns per-account errors instead of throwing', async () => {
+    vi.useFakeTimers({ now: new Date('2026-09-14T16:00:30Z'), toFake: ['Date'] });
+    pull.mockResolvedValue([{ complete:false, error:'read_failed', created:0, seen:0 }]);
+    const res = await request(app()).get('/api/cron/money-pull').set(AUTH);
+    expect(res.status).toBe(503);
+    expect(res.body).toMatchObject({ success:false,failed:2,deferred:0,read:2 });
   });
 
   it('a refresh that fails is counted as not refreshed and does not stop the run', async () => {

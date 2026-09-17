@@ -120,6 +120,7 @@ export type MoneyAccount = {
   /** The bank's own figure for what is in the account, read with the person present; the type says what it counts. */
   balance?: number | string | null; balance_type?: string | null; balance_at?: string | null;
 };
+export type MoneyStatementAccount = Pick<MoneyAccount, 'id' | 'provider' | 'name' | 'iban_mask' | 'currency'>;
 /** A pasted calendar link: Canvas, Blackboard, or any .ics. Only ever a label and a link. */
 export type MoneyCalendarFeed = { id: string; kind: string; label: string; added_at: string | null };
 export type MoneyCalendar = { connected: boolean; google?: boolean; feeds?: MoneyCalendarFeed[]; needsReconnect?: boolean; routine?: string | null; total_expected?: number | null; ahead?: unknown[]; learned?: { key?: string; label?: string; median?: number; occurrences?: number; paid?: number }[]; events_seen?: number; learned_at?: string | null };
@@ -141,9 +142,29 @@ async function json<T>(res: Response): Promise<T> {
   return body.data as T;
 }
 
+/** Load every page before presenting the ledger, never silently the first 200 rows. */
+async function completeLedger(since?: string): Promise<MoneyTransaction[]> {
+  const rows: MoneyTransaction[] = [];
+  let cursor: string | null = null;
+  for (let page = 0; page < 100; page++) {
+    const params = new URLSearchParams();
+    if (since) params.set('since', since);
+    if (cursor) params.set('cursor', cursor);
+    const res = await authFetch(`/money/ledger?${params}`);
+    if (!res.ok) throw new Error('The complete ledger could not be loaded. Please retry.');
+    const body = await res.json();
+    if (!body.success || !Array.isArray(body.data)) throw new Error('Invalid ledger response');
+    rows.push(...body.data);
+    if (!body.next_cursor) return rows;
+    if (body.next_cursor === cursor) throw new Error('The ledger could not advance. Please retry.');
+    cursor = body.next_cursor;
+  }
+  throw new Error('Choose a shorter ledger date range.');
+}
+
 export const moneyAPI = {
   forecast: () => authFetch('/money/forecast').then((r) => json<MoneyForecast>(r)),
-  ledger: (since?: string) => authFetch(`/money/ledger${since ? `?since=${encodeURIComponent(since)}` : ''}`).then((r) => json<MoneyTransaction[]>(r)),
+  ledger: completeLedger,
   sightings: (id: string) => authFetch(`/money/transactions/${id}/sightings`).then((r) => json<MoneySighting[]>(r)),
   verdict: (id: string, verdict: 'worth_it' | 'not_me' | null) =>
     authFetch(`/money/transactions/${id}/verdict`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ verdict }) }).then((r) => json<MoneyTransaction>(r)),
@@ -176,9 +197,13 @@ export const moneyAPI = {
    * Raw fetch: authFetch always sets a JSON content type, and multipart needs the
    * browser to write its own boundary.
    */
-  importStatement: async (file: File) => {
+  capabilities: () => authFetch('/money/capabilities').then((r) => json<{ bank: boolean; capture: boolean }>(r)),
+  statementAccounts: () => authFetch('/money/statement/accounts').then((r) => json<MoneyStatementAccount[]>(r)),
+  createStatementAccount: (name: string) => authFetch('/money/statement/accounts', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name }) }).then((r) => json<MoneyStatementAccount>(r)),
+  importStatement: async (file: File, accountId: string) => {
     const body = new FormData();
     body.append('file', file);
+    body.append('accountId', accountId);
     const auth = getAuthHeaders() as unknown as Record<string, string>;
     const headers: Record<string, string> = {};
     if (auth.Authorization) headers.Authorization = auth.Authorization;
@@ -230,9 +255,9 @@ export const moneyAPI = {
  * "100,00 €" in a column of receipts, and a column that does not line up reads as a
  * mistake in the number rather than in the formatting.
  */
-export function euro(n: number | string | null | undefined): string {
+export function euro(n: number | string | null | undefined, currency = 'EUR'): string {
   const v = Math.abs(Number(n) || 0);
-  return new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(v);
+  return new Intl.NumberFormat('es-ES', { style: 'currency', currency: /^[A-Z]{3}$/.test(currency) ? currency : 'EUR', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(v);
 }
 export function shortDay(iso: string | null | undefined, locale?: string): string {
   if (!iso) return '';

@@ -35,6 +35,12 @@ const BLANK_ROW = ['', '', '', '', ''];
 
 const SANTANDER_SHEET = [...PREAMBLE, HEADER, CARD_ROW, BIZUM_ROW, TRANSFER_ROW, BLANK_ROW];
 
+it('does not label an unrecognised explicit currency as euros', () => {
+  const { sightings } = toSightings([['Fecha', 'Concepto', 'Importe', 'Divisa'], ['17/09/2026', 'Cafe', '-5,00', 'Unknown currency']]);
+  expect(sightings).toHaveLength(1);
+  expect(sightings[0].currency).toBeNull();
+});
+
 describe('parseSpanishAmount', () => {
   it('reads Spanish, English and accounting spellings of the same money', () => {
     expect(parseSpanishAmount('1.234,56')).toBe(1234.56);
@@ -150,7 +156,8 @@ describe('toSightings', () => {
     const header = { index: 5, columns: { date: 0, valueDate: 1, concept: 2, amount: 3, balance: 4 } };
     expect(sightings[0]).toEqual({
       source: 'statement',
-      source_ref: 'st:124055d0871eaa18f48e1d59930f047b',
+      source_ref: 'st:005bb65b70e812090f35d79fb341388e',
+      legacy_refs: expect.arrayContaining(['st:124055d0871eaa18f48e1d59930f047b']),
       account_id: 'acc-1',
       raw_json: { row: CARD_ROW, header },
       raw_text: 'PAGO MOVIL EN EL CORTE INGLES, MADRID ES, TARJ. :*741245',
@@ -170,7 +177,7 @@ describe('toSightings', () => {
     const { sightings } = toSightings(SANTANDER_SHEET);
     expect(Object.keys(sightings[0]).sort()).toEqual([
       'account_id', 'amount', 'card_last4', 'channel', 'currency', 'direction',
-      'merchant_key', 'merchant_raw', 'occurred_at', 'parse_confidence',
+      'legacy_refs', 'merchant_key', 'merchant_raw', 'occurred_at', 'parse_confidence',
       'raw_json', 'raw_text', 'source', 'source_ref',
     ]);
   });
@@ -268,7 +275,7 @@ describe('toSightings', () => {
     expect(a.sightings.every((s) => /^st:[0-9a-f]{32}$/.test(s.source_ref))).toBe(true);
     /* The ref is content-addressed, so the account it was filed under does not change it,
        but a different day, amount or concept does. */
-    expect(toSightings(SANTANDER_SHEET, { accountId: 'acc-2' }).sightings[0].source_ref).toBe(a.sightings[0].source_ref);
+    expect(toSightings(SANTANDER_SHEET, { accountId: 'acc-2' }).sightings[0].source_ref).not.toBe(a.sightings[0].source_ref);
     const moved = [HEADER, [...CARD_ROW.slice(0, 3), '-116,77', '']];
     expect(toSightings(moved).sightings[0].source_ref).not.toBe(a.sightings[0].source_ref);
   });
@@ -295,4 +302,12 @@ describe('toSightings', () => {
     expect(toSightings([])).toEqual({ sightings: [], skipped: [], header: null });
     expect(toSightings(null)).toEqual({ sightings: [], skipped: [], header: null });
   });
+});
+
+
+it('keeps identical statement lines distinct and stable on reimport', () => {
+  const rows = [['Fecha','Concepto','Importe'],['11/09/2026','Cafe','-5,00'],['11/09/2026','Cafe','-5,00']];
+  const refs = toSightings(rows).sightings.map((s) => s.source_ref);
+  expect(new Set(refs).size).toBe(2);
+  expect(toSightings(rows).sightings.map((s) => s.source_ref)).toEqual(refs);
 });
