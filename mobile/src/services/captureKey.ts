@@ -1,65 +1,54 @@
-/**
- * The credential the phone's notification listener uses to send a payment.
- * =======================================================================
- * The listener runs in the background for months without the app being opened. A session
- * token would expire in that time, quietly, and every payment after that would vanish with
- * no error anybody would ever see: the ledger would simply stop growing on the days the
- * person most wanted it to. So the listener uses a capture key, which does not expire, and
- * which can be revoked on its own without touching a password.
- *
- * The key is minted once and kept on the device. The server shows it once and never again,
- * exactly like the web, so if this file loses it a new one has to be made.
- */
-
+/** Per-account, encrypted capture keys. The native listener receives only the active one. */
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as SecureStore from 'expo-secure-store';
 import { NotificationListenerModule } from '../native/NotificationListenerModule';
-import { authFetch } from './api';
+import { API_URL } from '../constants';
+import { captureSession } from './captureSession';
 
-const STORAGE_KEY = 'twinme_money_capture_key';
+const inFlight = new Map<string, Promise<string | null>>();
 
-/**
- * Hand the listener a capture key, minting one the first time. Safe to call on every login:
- * it mints at most once per device and does nothing at all when the native module is
- * missing, which is every iOS build, since Apple provides no way to read notifications.
- */
-export async function ensureCaptureKey(): Promise<string | null> {
-  const module = NotificationListenerModule;
-  if (!module || typeof module.setCaptureKey !== 'function') return null;
-
-  try {
-    const stored = await AsyncStorage.getItem(STORAGE_KEY);
-    if (stored) {
-      module.setCaptureKey(stored);
-      return stored;
-    }
-
-    const res = await authFetch('/api-keys', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name: 'Phone capture (Android)' }),
-    });
-    if (!res.ok) return null;
-    const body = await res.json().catch(() => null);
-    const key: string | undefined = body?.key;
-    if (!key) return null;
-
-    await AsyncStorage.setItem(STORAGE_KEY, key);
-    module.setCaptureKey(key);
-    return key;
-  } catch {
-    /* A phone with no network on the morning it is installed should not fail to open. The
-       next login tries again, and until then the listener simply has nothing to send with. */
-    return null;
-  }
+export function ensureCaptureKey(userId: string, { shortcut = false } = {}): Promise<string | null> {
+  if (!userId || (!shortcut && !NotificationListenerModule.supportsCaptureSession())) return Promise.resolve(null);
+  const session = captureSession();
+  if (session.owner !== userId) return Promise.resolve(null);
+  const purpose = shortcut ? 'shortcut' : 'android';
+  const flightKey = `${userId}:${purpose}:${session.generation}`;
+  const existing = inFlight.get(flightKey);
+  if (existing) return existing;
+  const current = () => {
+    const now = captureSession();
+    return now.owner === userId && now.generation === session.generation;
+  };
+  const promise = (async () => {
+    try {
+      // The old device-wide plaintext key has no provable owner. Never reuse it.
+      await AsyncStorage.removeItem('twinme_money_capture_key');
+      const storageKey = `money_capture_${purpose}_${userId}`;
+      let key = await SecureStore.getItemAsync(storageKey);
+      if (!current()) return null;
+      if (!key) {
+        const res = await fetch(`${API_URL}/api-keys`, {
+          method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.accessToken}` },
+          body: JSON.stringify({ name: shortcut ? 'Phone capture (iOS Shortcut)' : 'Phone capture (Android)' }),
+        });
+        if (!res.ok || !current()) return null;
+        const body = await res.json();
+        if (typeof body?.key !== 'string' || !body.key.startsWith('twm_') || !current()) return null;
+        key = String(body.key);
+        await SecureStore.setItemAsync(storageKey, key, { keychainAccessible: SecureStore.WHEN_UNLOCKED_THIS_DEVICE_ONLY });
+      }
+      if (!current() || !key) return null;
+      if (!shortcut) NotificationListenerModule.setCaptureKey(userId, key);
+      return key;
+    } catch { return null; }
+  })().finally(() => { inFlight.delete(flightKey); });
+  inFlight.set(flightKey, promise);
+  return promise;
 }
 
-/** How many payments the phone is holding because it could not reach the server. */
 export function pendingCaptures(): number {
-  const module = NotificationListenerModule;
-  if (!module || typeof module.pendingCaptureCount !== 'function') return 0;
-  try {
-    return module.pendingCaptureCount();
-  } catch {
-    return 0;
-  }
+  try { return NotificationListenerModule.pendingCaptureCount(); } catch { return 0; }
+}
+export function failedCaptures(): number {
+  try { return NotificationListenerModule.failedCaptureCount(); } catch { return 0; }
 }

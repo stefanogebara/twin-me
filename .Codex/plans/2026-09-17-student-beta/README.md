@@ -1,0 +1,86 @@
+# Money: ten-person student beta
+
+Owner authorization: 2026-09-17, implement the audit milestones; owner is currently the only user and plans to invite about ten friends. Make ordinary technical decisions, use existing accounts and simulator, and request login when necessary.
+
+Branch: `codex/money-student-beta`, based on `d66f84a1`. Isolated from the older, modified shared checkout. Audit: `/Users/stefanogebara/code/twin-me/.Codex/plans/2026-09-17-money-product-audit/README.md`.
+
+## Decisions
+
+- Retain Express, Supabase, the existing UI, and existing scheduling infrastructure.
+- EUR-only eligibility for spending advice; preserve but never silently convert foreign-currency evidence.
+- Phone capture belongs to an account and detaches on logout, including expired-session cleanup.
+- Preserve raw evidence and manual corrections. Any historical repair starts as a dry-run report.
+- Keep the sixty-second deployment ceiling and existing bank-access limits.
+- Use real disposable PostgreSQL for persistence/tenant/rollback tests; no production credentials in tests.
+- Delay inviting friends until financial correctness/account isolation checks pass and Enable Banking application eligibility is verified.
+
+## Milestone status
+
+| Task | Milestone | Status / remaining verification |
+|---|---|---|
+| T00 Recovery baseline | 0 | Live schema/grants and completed backups inventoried. Restore rehearsal remains open. |
+| T01 Persistence regressions | 0 | Implemented: real PostgreSQL, concurrent replay, rollback, isolation, pending settlement and financial authority. |
+| T02 CI gates | 0 | Money database/browser/native jobs added. Required-check settings follow successful hosted runs. |
+| T03 Upload and table access | 1 | Multer/ZIP patched. Places RLS/grants fixed and verified live. |
+| T04 Capture account lifecycle | 1 | Account-scoped credentials, immediate detach, delayed-refresh guards and per-owner screen reset implemented. |
+| T05 Event/account identity | 1 | Stable capture/provider identity and reconnect fingerprint implemented. Multi-account statement selection remains open; do not invite statement-only multi-account users yet. |
+| T06 Reconciliation | 1 | One policy for batch/single; same-source purchases preserved; pending/booked and currency/card/account guards tested. |
+| T07 Atomic writes and repair | 1 | Two-RPC atomic path and private read-only historical repair report implemented. No historical financial rows rewritten. |
+| T08 Balance guidance | 1 | Provider timestamps, unresolved outflows, supported balance types and EUR-only aggregates implemented. |
+| T09 Future receipts | 1 | Unpaid/future notices stored separately from paid spending. A dedicated notice inbox UI remains polish work. |
+| T10 Native retry | 1 | Encrypted account-owned SQLite queue and OS-scheduled retry implemented. Hosted Android compile and physical-device lifecycle test remain release gates. |
+| T11 Receipt delivery | 1 | Verified processing failures return retryable 503; HTTP failure/replay tests pass. |
+| T12 Bank work bounds | 2 | Due-owner claims, shared-consent access reservations, deadlines and durable page cursor implemented. Test real bank continuation expiry before larger backfills. |
+| T13 Complete ledger | 2 | Cursor pagination implemented; database test reads 1,005 rows and browser test reaches row 201. |
+| T14 Reproducible schema | 2 | Disposable Money schema bootstraps from the existing archived base plus canonical, uniquely versioned forward migrations. This is not a bootstrap of the entire Soul platform. |
+| T15 Domain boundary | 2 | Pure allowance policy separated from storage orchestration; common ingestion and transaction repository extracted. Broader legacy cycles deferred. |
+| T16 Validation | 2 | Money ingestion UUID/date/source/currency/amount/account boundary validated. Whole-repo JS-to-TS conversion deferred. |
+| T17 Operations docs | 3 | Setup, migration ordering, recovery, beta limitations and checks below. |
+| T18 Dependency follow-up | 3 | Production High/Critical advisories patched; CSV parser upgraded. Router/Bull moderate advisories triaged below. |
+| T19 Nightly report card | 3 | Existing nightly workflow gains Money canaries and previous-20-run shadow grades. No automatic merge, data repair or email agent. |
+
+## Verification and release record
+
+- Live inspection: 18 Money tables, daily completed backups (latest 2026-09-17 01:26 UTC), no PITR. Private inventory is outside git. A production restore has not been rehearsed.
+- Live security fix applied through the Supabase Management migration endpoint: `20260917_money_places_service_only`. Verified RLS enabled, anon INSERT/DELETE denied, authenticated UPDATE denied, service CRUD retained. No financial rows changed.
+- Real PostgreSQL baseline: five failing persistence regressions (identical purchases, weekend settlement, pending/booked, authority, rollback). New atomic path made all pass. Forced same-snapshot concurrent replay passes; 100 payments take two RPC calls.
+- Last completed check before pagination/sync edits: 1,120 tests passed in 108 files; mobile typecheck passed; three capture lifecycle tests passed. Baseline gate held at 73 lint/110 type/113 direct-route-DB findings.
+- Dependency patch pass: production audit now reports zero High/Critical and five Moderate package entries. Remaining breaking upgrades will be triaged separately; no force downgrade of Bull.
+- Backend changes remain local until the complete release checks pass. Six Money routes passed browser checks at desktop and phone sizes, including receipt expansion, chat, outages, retry and pagination. The new iOS native build compiled in Xcode; interactive simulator checks await macOS control permission.
+- Enable Banking login requested in Playwright; the application’s ten-person eligibility is still unverified.
+
+Implementation decisions: two bounded RPCs with optimistic per-owner revisions; one JS matching policy; 250 rows per atomic chunk; stable bank entry reference scoped to account, unstable transaction_id excluded; pending multiplicity tracked across pages; future/unconfirmed receipt notices held outside spending; EUR-only aggregates; explicit ledger pagination; encrypted per-owner capture credentials and durable native retry queue.
+
+Cost decision: change the existing Money cron to hourly, claiming at most three due owners per run and scheduling successful owners eight hours later. This spreads ten beta owners across requests rather than overflowing a 60-second function. No new cron and no new LLM call; no-work runs return after the database claim. No historical financial repair without inspecting its proposed diff.
+
+## Context used
+
+SecondBrain: project page, data-honesty lesson, silent-data-failures lesson. These are historical reference material; live repo/schema/provider facts are verified separately. TwinMe development skill governs backend conventions and the canonical `database/migrations/` path.
+
+## Local verification / setup
+
+Use Node 22 (`.nvmrc`). Root: `npm ci --legacy-peer-deps`; mobile: `npm ci` inside `mobile/`. Web uses `npm run dev` on 8086 and the API uses `npm run server:dev` on 3004. The frontend API URL includes `/api`. The phone uses `EXPO_PUBLIC_API_URL`; OAuth uses `EXPO_PUBLIC_OAUTH_API_URL`. Test accounts are synthetic and never production credentials.
+
+For persistence tests, start PostgreSQL 16 locally and create **twinme_money_test**. Set `MONEY_TEST_DATABASE_URL` to that loopback database and run `npx vitest run tests/api/services/money/persistence.integration.test.js`. The helper deliberately drops its public schema and refuses non-loopback or non-test database names. Do not point ordinary integration tests at production. Set the three Supabase variables to the CI stubs in `.github/workflows/ci.yml` for module import only.
+
+Other gates: `npx vitest run --exclude '**/*.integration.test.js'`; `npx vitest run --config vitest.mobile.config.ts`; mobile `npx tsc --noEmit`; `node scripts/ci/check-baselines.mjs`; `npm run build`; `npx playwright test --config playwright.money.config.ts`. Local Playwright uses installed Chrome; CI installs Chromium. Browser fixtures abort non-local requests. Android's hosted job compiles the notification module and runs its JVM tests; it does not prove actual background behavior on a handset.
+
+## Release order and recovery
+
+1. Keep friends out until provider production eligibility and the native capture release gates are confirmed. Start with one friend, then three, then ten after checking one full booking cycle. Support EUR accounts first. Do not advertise automatic iOS notification access: iOS uses a user-created Shortcut, and that Shortcut survives app logout until disabled or its key revoked.
+2. Verify a recent completed backup and preserve a private pre-release inventory. Apply only this branch's six `database/migrations/20260917*_money_*.sql` files in filename order, once each, recording versions in Supabase migration history. Do not replay the archived Money migrations on production. The access-only places migration was already applied under the Management API name `20260917_money_places_service_only`; it is idempotent if run again for version alignment.
+3. Deploy the server after the additive migrations; deploy the web with it. Old servers do not use revision locking, so allow in-flight requests to drain before running imports against the new server. The schema is backward compatible for a code rollback. Do not drop the new evidence tables during rollback.
+4. Release the rebuilt phone application. Existing native binaries cannot gain the encrypted queue from a JavaScript-only update; unsupported Android builds now say to install the update. Confirm offline capture, airplane-mode recovery, process termination, reboot, logout during delivery, and account A/B separation on a real Android device. On iOS verify the Shortcut sends the original transaction date, merchant and amount.
+5. Check `/money/today`, the final ledger page, verified email retry, and cron outcomes. Balance guidance intentionally stays unavailable until a provider read supplies both provider time and observation time. Budget-based estimates name their basis. A bank continuation failure is partial, never a claim of complete history.
+6. Roll back application code if a financial invariant fails, pause Money cron reads if necessary, preserve incoming evidence and inspect the failed owner's rows. Reconcile differences before any restore: a whole-project restore can discard newer valid activity. No automatic historical deletion or destructive down migration is provided.
+
+Historical review: `node scripts/money/repair-preview.mjs --user-id UUID --env-file /private/path/.env --output /private/path/report.json`. It enforces a read-only Management API query, writes with owner-only permissions, refuses output inside the checkout, and has no apply mode. The inspected owner had zero repeated stable bank references, nine ambiguous same-day groups, and one incorrect primary-evidence link. That link's sole correctly attached bank sighting matches owner, amount, currency, direction, merchant and time; its proposed pointer correction is preserved privately. Review an exact before/after patch before applying any repair. Similar prices/dates alone never justify deleting purchases.
+
+## Remaining limits and deliberate trade-offs
+
+- Provider eligibility for ten unrelated friends is unverified until Enable Banking login completes. Own-account access is not evidence of general production approval.
+- Multi-account statement attribution needs a selected account or reliable account identifier from the statement. Until that flow is implemented, keep that beta case excluded; do not merge anonymous statement identities across accounts.
+- Unnamed bank-alert emails cannot be safely matched by amount alone. They remain distinct evidence; resolving ambiguity needs a review flow. Future notices are accessible via the authenticated notices API and attachment acknowledgment; a dedicated inbox view is pending.
+- Backfill pagination stores a continuation cursor, but bank-specific cursor expiry/restart behavior needs a real provider exercise. The one-page unattended policy favors budget safety over fast large backfills.
+- Remaining production advisories: React Router's backslash navigation and SSR hydration advisories require a deliberate router upgrade and navigation review; the app is a Vite SPA, but that does not make the navigation issue irrelevant. Bull uses uuid.v4 without caller-provided buffers; the reported uuid issue concerns v3/v5/v6 with buffers. Do not force npm's suggested Bull downgrade. References: [Router navigation](https://github.com/advisories/GHSA-wrjc-x8rr-h8h6), [UUID buffer handling](https://github.com/advisories/GHSA-w5hq-g745-h8pq). The CSV parser was upgraded to address [the columns-path advisory](https://github.com/advisories/GHSA-8cw4-87c7-c6xx).
+- Keep the existing stack. No new queue service, microservices, broad UI redesign, full legacy rewrite, or unverified “Fable 5” model configuration is needed for ten students. A nightly streak is a reliability signal, not evidence that arbitrary autonomous financial changes are safe.

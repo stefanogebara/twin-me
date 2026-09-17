@@ -168,7 +168,11 @@ export function parseStructured(p = {}) {
  * twice is one payment, and two identical coffees a minute apart are two.
  */
 export function captureFromBody(body = {}) {
-  const { text, receivedAt, merchant, amount, card, date, direction } = body || {};
+  const { text, receivedAt, merchant, amount, card, date, direction, eventId } = body || {};
+  if (eventId !== undefined && (typeof eventId !== 'string' || !/^[a-zA-Z0-9_.:-]{8,200}$/.test(eventId))) return { status: 400, error: 'Invalid eventId' };
+  for (const value of [receivedAt, date]) {
+    if (value !== undefined && value !== '' && (typeof value !== 'string' || !Number.isFinite(Date.parse(value)))) return { status: 400, error: 'Invalid capture date' };
+  }
   const hasText = typeof text === 'string' && text.trim().length >= 4;
   const hasAmount = amount !== undefined && amount !== null && String(amount).trim() !== '';
   if (hasText && text.length > 2000) return { status: 400, error: 'text must be under 2000 chars' };
@@ -180,13 +184,18 @@ export function captureFromBody(body = {}) {
     if (String(body.source || '') === 'shortcut') return { ready: true };
     return { status: 400, error: 'Send text (the notification) or { merchant, amount, card, date }' };
   }
+  // A text hash cannot distinguish two identical purchases. Send the original event time
+  // or a durable event id, and reuse it on every retry (never generate it during delivery).
+  const originalTime = date || receivedAt;
+  if (!originalTime) return { status: 400, error: 'Send the original date/receivedAt with this payment; reuse eventId on retries' };
+  const identity = eventId ? `event:${eventId}` : `${merchant || ''}|${amount || ''}|${card || ''}|${originalTime}|${direction || 'out'}|${text || ''}`;
   if (hasAmount) {
-    const parsed = parseStructured({ merchant, amount, card, date, direction });
-    if (parsed) return { parsed, refPrefix: 'phone', refSeed: `${merchant}|${amount}|${card}|${date}` };
+    const parsed = parseStructured({ merchant, amount, card, date: date || receivedAt, direction });
+    if (parsed) return { parsed, refPrefix: 'phone', refSeed: identity };
   }
   if (hasText) {
-    const parsed = parseCapture(text, { receivedAt });
-    if (parsed) return { parsed, refPrefix: parsed.source || 'phone', refSeed: text };
+    const parsed = parseCapture(text, { receivedAt: receivedAt || date });
+    if (parsed) return { parsed, refPrefix: parsed.source || 'phone', refSeed: identity };
   }
   return { status: 422, error: 'No amount found' };
 }

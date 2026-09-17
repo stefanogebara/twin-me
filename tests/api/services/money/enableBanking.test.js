@@ -7,7 +7,7 @@ import { toSighting, isConfigured, startAuthorisation, fetchTransactions, resetA
 describe('toSighting', () => {
   it('maps a debit with a creditor name', () => {
     const s = toSighting({ entry_reference: 'E1', transaction_amount: { amount: '12.50', currency: 'EUR' }, credit_debit_indicator: 'DBIT', booking_date: '2026-09-08', value_date: '2026-09-07', creditor: { name: 'MERCADONA MADRID' }, remittance_information: ['COMPRA TARJETA 1234'] }, 'acc-1');
-    expect(s).toMatchObject({ source: 'bankfeed', source_ref: 'E1', account_id: 'acc-1', amount: 12.5, currency: 'EUR', direction: 'out', merchant_key: 'mercadona madrid', channel: 'card', parse_confidence: 1 });
+    expect(s).toMatchObject({ source: 'bankfeed', source_ref: 'bank:acc-1:E1', account_id: 'acc-1', amount: 12.5, currency: 'EUR', direction: 'out', merchant_key: 'mercadona madrid', channel: 'card', parse_confidence: 1 });
     expect(s.occurred_at.slice(0, 10)).toBe('2026-09-07');
   });
   it('maps a credit with a debtor name as an inflow on transfer, and Bizum by remittance', () => {
@@ -15,7 +15,7 @@ describe('toSighting', () => {
     expect(a).toMatchObject({ direction: 'in', amount: 850, channel: 'transfer', merchant_key: 'universidad' });
     const b = toSighting({ transaction_amount: { amount: '20', currency: 'EUR' }, credit_debit_indicator: 'DBIT', booking_date: '2026-09-02', remittance_information: ['BIZUM A JUAN'] }, null);
     expect(b.channel).toBe('bizum');
-    expect(b.source_ref).toContain('2026-09-02|20|BIZUM A JUAN');
+    expect(b.source_ref).toMatch(/^bank:fallback:[a-f0-9]{32}$/);
   });
   it('reads a Santander row, which names nobody and writes a sentence instead', () => {
     const s = toSighting({
@@ -186,7 +186,7 @@ describe('two identical pending rows in one read', () => {
     expect(refs[0].startsWith('pend:')).toBe(true);
     expect(refs[2]).toBe(`${refs[0]}#2`);
     expect(refs[3]).toBe(`${refs[0]}#3`);
-    expect(refs[1]).toBe('ref-1');
+    expect(refs[1]).toBe('bank:a1:ref-1');
     expect(distinctPending([])).toEqual([]);
   });
 });
@@ -224,7 +224,7 @@ describe('getSession', () => {
       const s = await getSession('s9');
       expect(url).toMatch(/\/sessions\/s9$/);
       expect(s.bankName).toBe('Revolut');
-      expect(s.accounts).toEqual([{ uid: 'u-2', iban: 'LT12', name: 'Main', currency: 'EUR' }]);
+      expect(s.accounts).toEqual([{ uid: 'u-2', identificationHash: null, iban: 'LT12', name: 'Main', currency: 'EUR' }]);
       expect(s.raw.status).toBe('AUTHORIZED');
     } finally {
       global.fetch = saved.fetch;
@@ -295,5 +295,20 @@ describe('an empty session, as the feed log keeps it', () => {
       if (saved.id) process.env.ENABLE_BANKING_APP_ID = saved.id; else delete process.env.ENABLE_BANKING_APP_ID;
       if (saved.key) process.env.ENABLE_BANKING_PRIVATE_KEY = saved.key; else delete process.env.ENABLE_BANKING_PRIVATE_KEY;
     }
+  });
+});
+
+
+describe('bank reference identity', () => {
+  const row = { transaction_amount: { amount: '5', currency: 'EUR' }, value_date: '2026-09-11', creditor: { name: 'Cafe' }, status: 'BOOK' };
+  it('ignores unstable transaction_id and scopes stable entry references to an account', () => {
+    expect(toSighting({ ...row, transaction_id: 'read-1' }, 'a').source_ref).toBe(toSighting({ ...row, transaction_id: 'read-2' }, 'a').source_ref);
+    expect(toSighting({ ...row, entry_reference: '1' }, 'a').source_ref).not.toBe(toSighting({ ...row, entry_reference: '1' }, 'b').source_ref);
+  });
+  it('retains repeated fallback rows even across page boundaries', () => {
+    const occurrences = new Map();
+    const first = distinctPending([toSighting(row, 'a')], occurrences);
+    const second = distinctPending([toSighting(row, 'a')], occurrences);
+    expect(second[0].source_ref).toBe(first[0].source_ref + '#2');
   });
 });

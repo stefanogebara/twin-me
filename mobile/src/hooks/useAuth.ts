@@ -1,12 +1,13 @@
+import { detachCaptureSession } from '../services/captureSession';
+import { currentSessionEpoch, invalidateSession, writeSession } from '../services/sessionEpoch';
 import { useState, useEffect, useCallback } from 'react';
 import { DeviceEventEmitter } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
 import * as WebBrowser from 'expo-web-browser';
 import * as Linking from 'expo-linking';
-import { STORAGE_KEYS, OAUTH_API_URL } from '../constants';
+import { STORAGE_KEYS, API_URL, OAUTH_API_URL } from '../constants';
 import {
   SESSION_EXPIRED,
-  authFetch,
   claimAuthCode,
   clearStoredSession,
   login as apiLogin,
@@ -18,19 +19,21 @@ import type { User, AuthState } from '../types';
 
 WebBrowser.maybeCompleteAuthSession();
 
-async function saveSession(token: string, user: User, refreshToken?: string | null) {
-  const writes: Promise<void>[] = [
-    SecureStore.setItemAsync(STORAGE_KEYS.AUTH_TOKEN, token),
-    SecureStore.setItemAsync(STORAGE_KEYS.USER, JSON.stringify(user)),
-  ];
+async function saveSession(epoch: number, token: string, user: User, refreshToken?: string | null) {
+  return writeSession(epoch, async () => {
+    const writes: Promise<void>[] = [
+      SecureStore.setItemAsync(STORAGE_KEYS.AUTH_TOKEN, token),
+      SecureStore.setItemAsync(STORAGE_KEYS.USER, JSON.stringify(user)),
+    ];
 
-  if (typeof refreshToken === 'string' && refreshToken.length > 0) {
-    writes.push(SecureStore.setItemAsync(STORAGE_KEYS.AUTH_REFRESH_TOKEN, refreshToken));
-  } else if (refreshToken === null) {
-    writes.push(SecureStore.deleteItemAsync(STORAGE_KEYS.AUTH_REFRESH_TOKEN));
-  }
+    if (typeof refreshToken === 'string' && refreshToken.length > 0) {
+      writes.push(SecureStore.setItemAsync(STORAGE_KEYS.AUTH_REFRESH_TOKEN, refreshToken));
+    } else if (refreshToken === null) {
+      writes.push(SecureStore.deleteItemAsync(STORAGE_KEYS.AUTH_REFRESH_TOKEN));
+    }
 
-  await Promise.all(writes);
+    await Promise.all(writes);
+  });
 }
 
 export function useAuth() {
@@ -50,6 +53,9 @@ export function useAuth() {
 
   // On mount: load cached session immediately, then verify in background
   useEffect(() => {
+    let active = true;
+    const epoch = currentSessionEpoch();
+    const current = () => active && epoch === currentSessionEpoch();
     (async () => {
       /* A keychain that cannot be read (a rebuilt binary with different entitlements, a
          locked device) must not leave the app on blank paper forever: it means signed out. */
@@ -61,10 +67,12 @@ export function useAuth() {
           SecureStore.getItemAsync(STORAGE_KEYS.USER),
         ]);
       } catch (err) {
+        if (!current()) return;
         if (__DEV__) console.warn('[Auth] stored session unreadable', String(err));
         setState({ token: null, user: null, isLoading: false });
         return;
       }
+      if (!current()) return;
       const [token, refreshToken, cachedUserJson] = stored;
 
       if (!token && !refreshToken) {
@@ -80,14 +88,16 @@ export function useAuth() {
 
       // Verify in background — auto-refresh on expired access tokens, clear session only on auth failure
       verifyToken().then(async user => {
+        if (!current()) return;
         if (user) {
           const latestToken = await SecureStore.getItemAsync(STORAGE_KEYS.AUTH_TOKEN);
-          setState({ token: latestToken, user, isLoading: false });
+          if (current()) setState({ token: latestToken, user, isLoading: false });
           return;
         }
 
         if (refreshToken) {
           const refreshed = await refreshSession();
+          if (!current()) return;
           if (refreshed) {
             setState({ token: refreshed.token, user: refreshed.user, isLoading: false });
             return;
@@ -95,29 +105,33 @@ export function useAuth() {
         }
 
         if (!cachedUser) {
-          await clearStoredSession();
           setState({ token: null, user: null, isLoading: false });
+          await clearStoredSession();
         }
       }).catch(async (err: Error) => {
+        if (!current()) return;
         if (err?.message === 'UNAUTHORIZED') {
           // Only clear session if we have no cached user to fall back to.
           // With a cached user, stay logged in — the token will be refreshed
           // on the next API call. This prevents logging out users just because
           // the background verify raced with token expiry.
           if (!cachedUser) {
-            await clearStoredSession();
             setState({ token: null, user: null, isLoading: false });
+            await clearStoredSession();
           }
         } else if (!cachedUser) {
           setState({ token: null, user: null, isLoading: false });
         }
       });
     })();
+    return () => { active = false; };
   }, []);
 
   const login = useCallback(async (email: string, password: string) => {
+    const epoch = invalidateSession();
+    detachCaptureSession();
     const { token, user, refreshToken } = await apiLogin(email, password);
-    await saveSession(token, user, refreshToken ?? null);
+    if (!await saveSession(epoch, token, user, refreshToken ?? null)) return;
     setState({ token, user, isLoading: false });
   }, []);
 
@@ -127,8 +141,10 @@ export function useAuth() {
     firstName: string,
     lastName: string,
   ) => {
+    const epoch = invalidateSession();
+    detachCaptureSession();
     const { token, user, refreshToken } = await apiRegister(email, password, firstName, lastName);
-    await saveSession(token, user, refreshToken ?? null);
+    if (!await saveSession(epoch, token, user, refreshToken ?? null)) return;
     setState({ token, user, isLoading: false });
   }, []);
 
@@ -139,16 +155,21 @@ export function useAuth() {
    * in rather than two that drift apart.
    */
   const finishWithAuthCode = useCallback(async (authCode: string) => {
+    const epoch = invalidateSession();
+    detachCaptureSession();
     const { token, refreshToken } = await claimAuthCode(authCode);
+    if (!await writeSession(epoch, async () => {
     await SecureStore.setItemAsync(STORAGE_KEYS.AUTH_TOKEN, token);
     if (typeof refreshToken === 'string' && refreshToken.length > 0) {
       await SecureStore.setItemAsync(STORAGE_KEYS.AUTH_REFRESH_TOKEN, refreshToken);
     }
+    })) return;
     const user = await verifyToken();
+    if (epoch !== currentSessionEpoch()) return;
     if (!user) throw new Error('Failed to verify session after sign-in.');
-    await saveSession(token, user, refreshToken ?? null);
+    if (!await saveSession(epoch, token, user, refreshToken ?? null)) return;
     const latestToken = await SecureStore.getItemAsync(STORAGE_KEYS.AUTH_TOKEN);
-    setState({ token: latestToken, user, isLoading: false });
+    if (epoch === currentSessionEpoch()) setState({ token: latestToken, user, isLoading: false });
   }, []);
 
   /* A sign-in link tapped on the phone. Until this existed the app had no way to take one,
@@ -196,14 +217,16 @@ export function useAuth() {
   }, [finishWithAuthCode]);
 
   const logout = useCallback(async () => {
-    try {
-      await authFetch('/auth/logout', { method: 'POST' });
-    } catch {
-      // Best-effort server logout; local session is still cleared below.
-    }
-    await clearStoredSession();
+    // End local access immediately. The server request uses the captured old token and
+    // cannot refresh or borrow a new account's session while it is in flight.
+    const oldToken = state.token;
+    const clearing = clearStoredSession();
     setState({ token: null, user: null, isLoading: false });
-  }, []);
+    await clearing;
+    if (oldToken) void fetch(`${API_URL}/auth/logout`, {
+      method: 'POST', headers: { Authorization: `Bearer ${oldToken}` },
+    }).catch(() => {});
+  }, [state.token]);
 
   return { ...state, login, signup, loginWithGoogle, logout };
 }

@@ -4,6 +4,7 @@
  */
 
 import { supabaseAdmin } from '../database.js';
+import crypto from 'node:crypto';
 import { splitShareOf, reimbursementIds, splitFindings, SPLIT_OPEN } from './bizum.js';
 import { accuracy, ownScoreFinding } from './predictions.js';
 import { deltaFindings } from './deltas.js';
@@ -11,7 +12,8 @@ import { intentionFindings } from './intention.js';
 import { statedIncome } from './allowance.js';
 import { incomeEvents, incomeFindings } from './income.js';
 import { createLogger } from '../logger.js';
-import { reconcile } from './ledger.js';
+import { ingestSightings } from './ingestion.js';
+export { ingestSighting, ingestSightings } from './ingestion.js';
 import { detectRecurring } from './recurring.js';
 import { projectMonth } from './projection.js';
 import { fetchTransactions, toSighting, distinctPending, fetchBalances } from './feeds/enableBanking.js';
@@ -29,146 +31,10 @@ import { openingQuestions, followUpQuestions, ledgerQuestions, checkCommitment, 
 import { calendarForecast, calendarFromFacts } from './calendar.js';
 import { dayIn, dayOfMonthIn } from './zone.js';
 
+import { listEuroTransactions } from './transactionRepository.js';
+export { listTransactions, transactionPage } from './transactionRepository.js';
+
 const log = createLogger('money-store');
-
-/** Insert a sighting, reconcile it into the ledger, link it. Returns { sighting, transaction, action }. */
-export async function ingestSighting(userId, sighting) {
-  const { data: saved, error } = await supabaseAdmin
-    .from('money_sightings')
-    .upsert({ user_id: userId, ...sighting }, { onConflict: 'user_id,source,source_ref', ignoreDuplicates: false })
-    .select()
-    .single();
-  if (error) throw new Error(`sighting insert failed: ${error.message}`);
-  if (saved.transaction_id) {
-    const { data: existing } = await supabaseAdmin.from('money_transactions').select('*').eq('id', saved.transaction_id).single();
-    return { sighting: saved, transaction: existing, action: 'existing' };
-  }
-
-  const at = new Date(sighting.occurred_at || Date.now());
-  const { data: candidates } = await supabaseAdmin
-    .from('money_transactions')
-    .select('id, amount, merchant_key, merchant_raw, occurred_at, posted_at, card_last4, primary_sighting_id')
-    .eq('user_id', userId)
-    .gte('occurred_at', new Date(at.getTime() - 48 * 3600000).toISOString())
-    .lte('occurred_at', new Date(at.getTime() + 48 * 3600000).toISOString());
-
-  let primarySource = null;
-  const match = candidates?.length ? candidates : [];
-  const decision = reconcile({ ...sighting, id: saved.id }, match, primarySource);
-
-  let transaction;
-  if (decision.action === 'create') {
-    const { data: created, error: e2 } = await supabaseAdmin
-      .from('money_transactions')
-      .insert({ user_id: userId, account_id: sighting.account_id || null, primary_sighting_id: saved.id, ...decision.transaction })
-      .select().single();
-    if (e2) throw new Error(`transaction insert failed: ${e2.message}`);
-    transaction = created;
-  } else {
-    if (decision.transaction.primary_sighting_id) {
-      const { data: prim } = await supabaseAdmin.from('money_sightings').select('source').eq('id', match.find((m) => m.id === decision.transaction.id)?.primary_sighting_id || '').maybeSingle();
-      primarySource = prim?.source || null;
-    }
-    const { id, ...update } = decision.transaction;
-    const { data: updated, error: e3 } = await supabaseAdmin.from('money_transactions').update({ ...update, updated_at: new Date().toISOString() }).eq('id', id).select().single();
-    if (e3) throw new Error(`transaction update failed: ${e3.message}`);
-    transaction = updated;
-  }
-  await supabaseAdmin.from('money_sightings').update({ transaction_id: transaction.id }).eq('id', saved.id);
-  return { sighting: saved, transaction, action: decision.action };
-}
-
-/**
- * Many sightings at once, in a handful of round trips instead of four per row.
- * One pull of ninety days is hundreds of rows, and one-at-a-time reconciliation
- * spent longer than a serverless request is allowed to live: the first real pull
- * wrote its rows and then reported a timeout to the person who asked for it.
- *
- * The batch reconciles against the transactions that existed when it started,
- * plus the ones it creates as it goes, so a purchase seen twice inside the same
- * batch still folds into one line.
- */
-export async function ingestSightings(userId, sightings) {
-  if (!sightings?.length) return { seen: 0, created: 0, attached: 0 };
-  const { data: saved, error } = await supabaseAdmin
-    .from('money_sightings')
-    .upsert(sightings.map((s) => ({ user_id: userId, ...s })), { onConflict: 'user_id,source,source_ref', ignoreDuplicates: false })
-    .select();
-  if (error) throw new Error(`sightings insert failed: ${error.message}`);
-
-  const times = saved.map((s) => new Date(s.occurred_at).getTime()).filter(Number.isFinite);
-  if (!times.length) return { seen: saved.length, created: 0, attached: 0 };
-  const { data: existing } = await supabaseAdmin
-    .from('money_transactions')
-    .select('id, amount, merchant_key, merchant_raw, occurred_at, posted_at, card_last4, primary_sighting_id')
-    .eq('user_id', userId)
-    .gte('occurred_at', new Date(Math.min(...times) - 48 * 3600000).toISOString())
-    .lte('occurred_at', new Date(Math.max(...times) + 48 * 3600000).toISOString());
-
-  const pool = [...(existing || [])];
-  /* Which lines each source already backs: one bank row is one payment, so a second bank
-     sighting never folds onto a line the bank already saw, however alike. Seeded from the
-     rows in the window, then kept current as this batch creates and attaches. */
-  const taken = new Map();
-  const take = (source, id) => { if (!taken.has(source)) taken.set(source, new Set()); taken.get(source).add(id); };
-  const poolIds = pool.map((t) => t.id);
-  if (poolIds.length) {
-    const { data: backing } = await supabaseAdmin.from('money_sightings').select('source, transaction_id').eq('user_id', userId).in('transaction_id', poolIds);
-    for (const b of backing || []) if (b.transaction_id) take(b.source, b.transaction_id);
-  }
-  const creates = [];                     // { tmp, row, sightingIds: [] }
-  const attaches = [];                    // { id, update, sightingId }
-  for (const s of saved) {
-    if (s.transaction_id) continue;
-    const decision = reconcile(s, pool, null, { exclude: taken.get(s.source) });
-    if (decision.action === 'create') {
-      const tmp = `tmp:${creates.length}`;
-      creates.push({ tmp, row: { user_id: userId, account_id: s.account_id || null, primary_sighting_id: s.id, ...decision.transaction }, sightingIds: [s.id] });
-      pool.push({ id: tmp, ...decision.transaction });
-      take(s.source, tmp);
-      continue;
-    }
-    const { id, ...update } = decision.transaction;
-    take(s.source, id);
-    const pending = creates.find((c) => c.tmp === id);
-    if (pending) { pending.sightingIds.push(s.id); continue; }   // folds into a line this batch just made
-    attaches.push({ id, update, sightingId: s.id });
-  }
-
-  const links = [];                       // { sightingId, transactionId }
-  if (creates.length) {
-    const { data: inserted, error: e2 } = await supabaseAdmin.from('money_transactions').insert(creates.map((c) => c.row)).select('id, primary_sighting_id');
-    if (e2) throw new Error(`transactions insert failed: ${e2.message}`);
-    for (const c of creates) {
-      const row = (inserted || []).find((r) => r.primary_sighting_id === c.sightingIds[0]);
-      if (row) for (const sid of c.sightingIds) links.push({ sightingId: sid, transactionId: row.id });
-    }
-  }
-  for (const a of attaches) {
-    if (Object.keys(a.update).length) {
-      await supabaseAdmin.from('money_transactions').update({ ...a.update, updated_at: new Date().toISOString() }).eq('id', a.id);
-    }
-    links.push({ sightingId: a.sightingId, transactionId: a.id });
-  }
-  /* One statement per transaction id, so the links cost a few calls, not one per row. */
-  const byTransaction = new Map();
-  for (const l of links) {
-    if (!byTransaction.has(l.transactionId)) byTransaction.set(l.transactionId, []);
-    byTransaction.get(l.transactionId).push(l.sightingId);
-  }
-  for (const [transactionId, ids] of byTransaction) {
-    await supabaseAdmin.from('money_sightings').update({ transaction_id: transactionId }).in('id', ids);
-  }
-  return { seen: saved.length, created: creates.length, attached: attaches.length };
-}
-
-export async function listTransactions(userId, { since, limit = 200 } = {}) {
-  let q = supabaseAdmin.from('money_transactions').select('*').eq('user_id', userId).order('occurred_at', { ascending: false }).limit(limit);
-  if (since) q = q.gte('occurred_at', since);
-  const { data, error } = await q;
-  if (error) throw new Error(error.message);
-  return data || [];
-}
 
 export async function sightingsFor(userId, transactionId) {
   const { data } = await supabaseAdmin.from('money_sightings').select('id, source, seen_at, raw_text, amount, currency, occurred_at, parse_confidence').eq('user_id', userId).eq('transaction_id', transactionId).order('seen_at');
@@ -178,7 +44,7 @@ export async function sightingsFor(userId, transactionId) {
 /** Recompute recurring series from the last 400 days and flag the ledger rows. */
 export async function refreshRecurring(userId, now = new Date()) {
   const since = new Date(now.getTime() - 400 * 86400000).toISOString();
-  const rows = await listTransactions(userId, { since, limit: 5000 });
+  const rows = await listEuroTransactions(userId, { since, limit: 5000 });
   const { data: merchants } = await supabaseAdmin.from('money_merchants').select('merchant_key, platform').not('platform', 'is', null);
   const platforms = Object.fromEntries((merchants || []).map((m) => [m.merchant_key, m.platform]));
   const series = detectRecurring(rows, { now, platforms });
@@ -224,8 +90,11 @@ export async function refreshRecurring(userId, now = new Date()) {
 export async function forecast(userId, now = new Date()) {
   const since = new Date(now.getTime() - 100 * 86400000).toISOString();
   const [rows, rec, facts] = await Promise.all([
-    listTransactions(userId, { since, limit: 5000 }),
-    supabaseAdmin.from('money_recurring').select('*').eq('user_id', userId).then((r) => r.data || []),
+    listEuroTransactions(userId, { since, limit: 5000 }),
+    supabaseAdmin.from('money_recurring').select('*').eq('user_id', userId).then((r) => {
+      if (r.error) throw new Error(`Cannot read recurring commitments: ${r.error.message}`);
+      return r.data || [];
+    }),
     /* With the internal rows: the calendar's snapshot lives in one, and without it the
        forecast never saw what the diary said was coming. */
     listFacts(userId, { includeInternal: true }),
@@ -313,14 +182,21 @@ export async function userForCaptureKey(keyHash) {
 
 /** Persist the accounts a bank authorisation returned. */
 export async function saveBankAccounts(userId, { sessionId, validUntil, accounts, bankName = null }) {
-  const rows = accounts.map((a) => ({
-    user_id: userId, provider: 'enablebanking', provider_account_id: a.uid, name: a.name, currency: a.currency || 'EUR',
-    iban_mask: a.iban ? `${a.iban.slice(0, 4)} **** ${a.iban.slice(-4)}` : null, consent_expires_at: validUntil, session_id: sessionId,
-    bank_name: bankName,
-  }));
-  const { data, error } = await supabaseAdmin.from('money_accounts').upsert(rows, { onConflict: 'user_id,provider,provider_account_id' }).select();
-  if (error) throw new Error(`accounts upsert failed: ${error.message}`);
-  return data || [];
+  if (!userId) throw new Error('userId required');
+  const saved = [];
+  for (const a of accounts) {
+    const currency = String(a.currency || 'EUR').toUpperCase();
+    const identity = a.identificationHash || (a.iban ? crypto.createHash('sha256').update(a.iban.replace(/\s/g,'').toUpperCase()).digest('hex') : null);
+    const row = {
+      provider_account_id:a.uid, account_fingerprint:identity ? `${identity}:${currency}` : null,
+      name:a.name || null,currency,iban_mask:a.iban ? `${a.iban.slice(0,4)} **** ${a.iban.slice(-4)}` : null,
+      consent_expires_at:validUntil,session_id:sessionId,bank_name:bankName,
+    };
+    const { data,error } = await supabaseAdmin.rpc('save_money_bank_account',{p_user_id:userId,p_account:row});
+    if(error) throw new Error(`Cannot save bank account: ${error.message}`);
+    saved.push(data);
+  }
+  return saved;
 }
 
 /**
@@ -329,12 +205,13 @@ export async function saveBankAccounts(userId, { sessionId, validUntil, accounts
  * drift from the rules the store keeps around these rows.
  */
 export async function bankFeedUserIds() {
-  const { data, error } = await supabaseAdmin
-    .from('money_accounts')
-    .select('user_id')
-    .eq('provider', 'enablebanking');
-  if (error) throw new Error(`bank accounts read failed: ${error.message}`);
-  return [...new Set((data || []).map((a) => a.user_id))];
+  const { data, error } = await supabaseAdmin.rpc('claim_money_sync_jobs', { p_limit: 3 });
+  if (error) throw new Error(`Cannot claim bank jobs: ${error.message}`);
+  return data || [];
+}
+export async function finishBankFeedJob(userId, outcome) {
+  const { error } = await supabaseAdmin.rpc('finish_money_sync_job', { p_user_id: userId, p_outcome: outcome });
+  if (error) throw new Error(`Cannot finish bank job: ${error.message}`);
 }
 
 /** Whether the last read of this person's bank failed because the connection had ended. */
@@ -353,7 +230,7 @@ export async function bankNeedsReconnect(userId) {
 export function newestConsent(rows) {
   const byIban = new Map();
   for (const row of rows || []) {
-    const key = row.iban_mask || row.provider_account_id || row.id;
+    const key = row.account_fingerprint || (row.iban_mask ? `${row.bank_name || ''}:${row.currency || 'EUR'}:${row.iban_mask}` : row.provider_account_id || row.id);
     const seen = byIban.get(key);
     const later = (a, b) => String(a.consent_expires_at || '') > String(b.consent_expires_at || '')
       || (String(a.consent_expires_at || '') === String(b.consent_expires_at || '') && String(a.created_at || '') > String(b.created_at || ''));
@@ -363,7 +240,7 @@ export function newestConsent(rows) {
 }
 
 export async function listBankAccounts(userId) {
-  const { data, error } = await supabaseAdmin.from('money_accounts').select('id, provider, provider_account_id, name, iban_mask, currency, consent_expires_at, last_pulled_at, bank_name, session_id, created_at, balance, balance_type, balance_at').eq('user_id', userId).eq('provider', 'enablebanking');
+  const { data, error } = await supabaseAdmin.from('money_accounts').select('id, provider, provider_account_id, name, iban_mask, currency, consent_expires_at, last_pulled_at, bank_name, session_id, created_at, balance, balance_type, balance_at, balance_observed_at, sync_checkpoint, account_fingerprint').eq('user_id', userId).eq('provider', 'enablebanking');
   /* An empty list because the read failed would show every screen "no bank connected" and
      stop the cron in silence, the worst failure this product has. It is said out loud. */
   if (error) { log.error(`bank accounts read failed: ${error.message}`); throw new Error(`bank accounts read failed: ${error.message}`); }
@@ -473,63 +350,75 @@ async function recordAccess(userId, accountId, { attended = false, rowsSeen = nu
   if (error) log.warn(`feed access log failed: ${error.message}`);
 }
 
-export async function pullBankFeed(userId, { since, attended = false, psu = null } = {}) {
-  let accounts = await listBankAccounts(userId);
+export async function pullBankFeed(userId, { since, attended = false, psu = null, deadline = Date.now() + 40000 } = {}) {
+  const accounts = await listBankAccounts(userId);
   if (!accounts.length) return [];
-  if (!attended) {
-    /* Each consent has its four a day, shared by its accounts (planReads). The accounts with
-       a read left are read; when no consent has one, the day is spent and the caller hears so. */
-    const { pull, budgets } = planReads(accounts, await recentAccesses(userId));
-    if (!pull.length) {
-      const err = new Error('The bank allows four reads a day and today\'s are used.');
-      err.code = 'feed_budget_spent';
-      err.budget = [...budgets.values()].reduce((worst, b) => (b.left < worst.left ? b : worst));
-      throw err;
-    }
-    accounts = pull;
-  }
+  // Presence must be backed by PSU headers, never merely by an internal boolean.
+  attended = Boolean(attended && psu?.ip);
   const summary = [];
-  /* A consent that has ended must not stop the other bank's read: each account's failure is
-     kept on its own line, and the error is thrown only when every account failed. */
-  const failures = [];
   for (const acc of accounts) {
-    const from = since || (acc.last_pulled_at ? acc.last_pulled_at.slice(0, 10) : new Date(Date.now() - 90 * 86400000).toISOString().slice(0, 10));
-    let key = null; let seen = 0; let created = 0;
-    try {
-      do {
-        const page = await fetchTransactions(acc.provider_account_id, from, key, { psu: attended ? psu : null });
-        const batch = distinctPending(page.rows.map((row) => toSighting(row, acc.id)).filter((s) => s.occurred_at && s.amount));
-        const r = await ingestSightings(userId, batch);
-        seen += r.seen; created += r.created;
-        key = page.continuationKey;
-      } while (key);
-    } catch (error) {
-      /* A dead session is recorded so the product can say what is wrong, and the read is not
-         counted as a successful one. A session this application cannot see is not recorded:
-         it is not evidence about the connection, and a row here would both spend the
-         person's read budget and tell them to reconnect a bank that is fine. */
-      if (error.code === 'bank_session_expired') {
-        await recordAccess(userId, acc.id, { attended, rowsSeen: 0, outcome: 'session_expired' });
-      }
-      failures.push(error);
-      summary.push({ account: acc.name || acc.iban_mask, bank: acc.bank_name || null, seen: 0, created: 0, error: error.code || 'read_failed' });
+    if (Date.now() + 2000 >= deadline) {
+      summary.push({ account: acc.name, seen: 0, created: 0, complete: false, error: 'time_budget_exhausted' });
       continue;
     }
-    const stamp = { last_pulled_at: new Date().toISOString() };
-    /* The bank's own figure for what is in the account, read only with the person present so
-       it never spends one of the four unattended reads. A failure here is not a failed pull. */
-    let balance = null;
-    if (attended && psu && psu.ip) {
-      try {
-        balance = await fetchBalances(acc.provider_account_id, { psu, currency: acc.currency || 'EUR' });
-        if (balance) Object.assign(stamp, { balance: balance.amount, balance_type: balance.type + (balance.credit_included ? '/credit' : ''), balance_at: new Date().toISOString() });
-      } catch (error) { log.warn(`balance not read: ${/\b(\d{3})\b/.exec(error.message)?.[1] || 'error'}`); }
+    const { data: reservation, error: reserveError } = await supabaseAdmin.rpc('reserve_money_feed_read', {
+      p_user_id: userId, p_account_id: acc.id, p_attended: attended,
+    });
+    if (reserveError) throw new Error(`Cannot reserve bank access: ${reserveError.message}`);
+    if (!reservation.allowed) {
+      summary.push({ account: acc.name, seen: 0, created: 0, complete: false, error: reservation.reason });
+      continue;
     }
-    await supabaseAdmin.from('money_accounts').update(stamp).eq('id', acc.id);
-    await recordAccess(userId, acc.id, { attended, rowsSeen: seen });
-    summary.push({ account: acc.name || acc.iban_mask, bank: acc.bank_name || null, seen, created, balance: balance ? balance.amount : null });
+    const resume = !since && acc.sync_checkpoint;
+    const from = since || resume?.from || (acc.last_pulled_at
+      ? new Date(Date.parse(acc.last_pulled_at)-4*86400000).toISOString().slice(0,10)
+      : new Date(Date.now()-90*86400000).toISOString().slice(0,10));
+    let key = resume?.key || null; let seen = 0; let created = 0; let pages = 0;
+    const occurrences = new Map(resume?.occurrences || []);
+    let outcome = 'ok'; let failure = null;
+    try {
+      do {
+        const page = await fetchTransactions(acc.provider_account_id, from, key, {
+          psu: attended ? psu : null, signal: AbortSignal.timeout(Math.max(1,Math.min(8000,deadline-Date.now()-1000))),
+        });
+        const batch = distinctPending(page.rows.map((row) => toSighting(row, acc.id)).filter((s) => s.occurred_at && s.amount), occurrences);
+        const result = await ingestSightings(userId,batch);
+        seen += result.seen; created += result.created; pages++;
+        key = page.continuationKey;
+        if (key) {
+          const { error } = await supabaseAdmin.from('money_accounts').update({ sync_checkpoint: { from, key, occurrences: [...occurrences] } }).eq('user_id',userId).eq('id',acc.id);
+          if (error) throw new Error('Cannot checkpoint bank pagination');
+        }
+        // One unattended page spends one reserved read. Larger backfills resume durably.
+        if (key && (!attended || pages >= 10 || Date.now()+9000>=deadline)) { outcome = 'partial'; break; }
+      } while (key);
+      const stamp = { sync_checkpoint: key ? { from, key, occurrences: [...occurrences] } : null };
+      if (!key) stamp.last_pulled_at = new Date().toISOString();
+      if (attended && Date.now()+9000<deadline) {
+        try {
+          const balance = await fetchBalances(acc.provider_account_id,{psu,currency:acc.currency});
+          if (balance) Object.assign(stamp,{ balance: balance.amount, balance_type: balance.type+(balance.credit_included?'/credit':''), balance_at:balance.at, balance_observed_at:new Date().toISOString() });
+        } catch { /* Keep the old timestamp; advice will refuse a stale observation. */ }
+      }
+      const { error } = await supabaseAdmin.from('money_accounts').update(stamp).eq('user_id',userId).eq('id',acc.id);
+      if (error) throw new Error('Cannot save bank sync state');
+    } catch (error) {
+      failure = error;
+      outcome = error.code === 'bank_session_expired' ? 'session_expired' : 'error';
+    }
+    {
+      const results = await Promise.all([
+        supabaseAdmin.from('money_feed_accesses').update({ rows_seen:seen,outcome }).eq('user_id',userId).eq('id',reservation.access_id),
+        supabaseAdmin.from('money_feed_leases').update({ lease_until:null }).eq('account_id',acc.id),
+      ]);
+      if (results.some((r) => r.error)) throw new Error('Cannot record bank sync outcome');
+    }
+    summary.push({ account:acc.name || acc.iban_mask, bank:acc.bank_name || null, seen,created,complete:outcome==='ok',
+      ...(failure ? { error:failure.code || 'read_failed' } : outcome==='partial' ? { error:'continuation_pending' } : {}) });
   }
-  if (failures.length && failures.length === accounts.length) throw failures[0];
+  if (summary.length && summary.every((s) => s.error === 'feed_budget_spent')) {
+    throw Object.assign(new Error('The bank allows four unattended reads per day.'),{code:'feed_budget_spent'});
+  }
   return summary;
 }
 
@@ -541,8 +430,11 @@ export async function pullBankFeed(userId, { since, attended = false, psu = null
  */
 export async function refreshReadings(userId, now = new Date()) {
   const [transactions, recurring, facts] = await Promise.all([
-    listTransactions(userId, { limit: 5000 }),
-    supabaseAdmin.from('money_recurring').select('*').eq('user_id', userId).then((r) => r.data || []),
+    listEuroTransactions(userId, { limit: 5000 }),
+    supabaseAdmin.from('money_recurring').select('*').eq('user_id', userId).then((r) => {
+      if (r.error) throw new Error(`Cannot read recurring commitments: ${r.error.message}`);
+      return r.data || [];
+    }),
     listFacts(userId, { includeInternal: true }).catch(() => []),
   ]);
   const names = new Map();
@@ -643,7 +535,7 @@ export async function setReadingVerdict(userId, readingId, verdict) {
 
 /** Money in and out per calendar month, for the page that asks for it per month. */
 export async function months(userId, now = new Date()) {
-  const [transactions, facts] = await Promise.all([listTransactions(userId, { limit: 5000 }), listFacts(userId).catch(() => [])]);
+  const [transactions, facts] = await Promise.all([listEuroTransactions(userId, { limit: 5000 }), listFacts(userId).catch(() => [])]);
   return monthSegments(transactions, now, spendingRule(facts));
 }
 
@@ -655,7 +547,7 @@ export async function months(userId, now = new Date()) {
  */
 export async function moneyContext(userId, now = new Date()) {
   const [transactions, readings] = await Promise.all([
-    listTransactions(userId, { limit: 2000 }),
+    listEuroTransactions(userId, { limit: 2000 }),
     supabaseAdmin.from('money_readings').select('kind, sentence, detail, computed_at').eq('user_id', userId)
       .order('computed_at', { ascending: false }).limit(4).then((r) => r.data || []),
   ]);
@@ -958,8 +850,11 @@ export async function enrichPlaces(userId, { limit = 12 } = {}) {
  */
 export async function subscriptionUsage(userId, now = new Date()) {
   const [series, transactions] = await Promise.all([
-    supabaseAdmin.from('money_recurring').select('*').eq('user_id', userId).then((r) => r.data || []),
-    listTransactions(userId, { limit: 5000 }),
+    supabaseAdmin.from('money_recurring').select('*').eq('user_id', userId).then((r) => {
+      if (r.error) throw new Error(`Cannot read recurring commitments: ${r.error.message}`);
+      return r.data || [];
+    }),
+    listEuroTransactions(userId, { limit: 5000 }),
   ]);
   if (!series.length) return { findings: [], unmeasurable: [], measured: [] };
 
@@ -1032,7 +927,7 @@ export async function subscriptionUsage(userId, now = new Date()) {
  * (Stefano, 2026-09-16).
  */
 export async function patternsFor(userId, now = new Date()) {
-  const transactions = await listTransactions(userId, { limit: 5000 });
+  const transactions = await listEuroTransactions(userId, { limit: 5000 });
   if (!transactions.length) return [];
   const keys = [...new Set(transactions.map((t) => t.merchant_key))];
   const categories = await categoriesFor(userId, keys);
@@ -1042,7 +937,7 @@ export async function patternsFor(userId, now = new Date()) {
 }
 
 export async function learn(userId, now = new Date()) {
-  const transactions = await listTransactions(userId, { limit: 5000 });
+  const transactions = await listEuroTransactions(userId, { limit: 5000 });
   if (!transactions.length) return { profiles: [], patterns: [], predictions: [], summary: null };
 
   const keys = [...new Set(transactions.map((t) => t.merchant_key))];
@@ -1105,7 +1000,7 @@ export async function scorePredictions(userId, now = new Date()) {
     .eq('user_id', userId).is('happened', null).lt('expected_on', now.toISOString().slice(0, 10));
   if (!open?.length) return { scored: 0, hit: 0 };
 
-  const transactions = await listTransactions(userId, { limit: 5000 });
+  const transactions = await listEuroTransactions(userId, { limit: 5000 });
   let hit = 0;
   for (const p of open) {
     const target = new Date(`${p.expected_on}T12:00:00Z`).getTime();
@@ -1151,7 +1046,7 @@ export async function listFacts(userId, { includeInternal = false } = {}) {
 export async function questionsFor(userId, now = new Date()) {
   const [facts, transactions, asked, accounts] = await Promise.all([
     listFacts(userId),
-    listTransactions(userId, { limit: 5000 }),
+    listEuroTransactions(userId, { limit: 5000 }),
     supabaseAdmin.from('money_questions_asked').select('question_id, skipped').eq('user_id', userId).then((r) => r.data || []),
     listBankAccounts(userId).catch(() => []),
   ]);
@@ -1208,7 +1103,7 @@ export async function answerQuestion(userId, { questionId, kind, subject, subjec
   if (kind === 'commitment' && String(questionId || '').startsWith('rent:')) {
     if (String(value || '').toLowerCase() === 'not fixed') return skipQuestion(userId, questionId);
     if (!amount && subject) {
-      const rows = (await listTransactions(userId, { limit: 5000 }))
+      const rows = (await listEuroTransactions(userId, { limit: 5000 }))
         .filter((t) => t.merchant_key === subject && Number(t.amount) < 0 && Math.abs(Number(t.amount)) >= 200);
       if (rows.length) {
         const amounts = rows.map((t) => Math.abs(Number(t.amount))).sort((a, b) => a - b);
@@ -1227,7 +1122,7 @@ export async function answerQuestion(userId, { questionId, kind, subject, subjec
     source: 'asked', question_id: questionId || null, answered_at: new Date().toISOString(),
   };
   if (kind === 'commitment' && amount) {
-    const transactions = await listTransactions(userId, { limit: 5000 });
+    const transactions = await listEuroTransactions(userId, { limit: 5000 });
     const check = checkCommitment(row, transactions);
     row.check_status = check.status;
     row.check_note = check.note;

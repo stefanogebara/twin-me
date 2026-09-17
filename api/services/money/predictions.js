@@ -258,10 +258,10 @@ export async function learnFromLedger(userId, now = new Date()) {
   const charges = await scoreCharges(userId, now).catch((e) => { log.warn('charge scoring failed', { error: e.message }); return { scored: 0, hit: 0 }; });
   if (tableGone()) return { recorded: 0, scored: 0, charges };
   const [cast, transactions, facts, segments] = await Promise.all([
-    forecast(userId, now).catch(() => null),
-    listTransactions(userId, { limit: 5000 }).catch(() => []),
-    listFacts(userId).catch(() => []),
-    months(userId, now).catch(() => []),
+    forecast(userId, now),
+    listTransactions(userId, { currency: 'EUR', limit: 5000 }),
+    listFacts(userId),
+    months(userId, now),
   ]);
   const allowance = cast ? safeToSpend({ cast, segments, facts, now }) : null;
   const tomorrow = new Date(now.getTime() + 86400000);

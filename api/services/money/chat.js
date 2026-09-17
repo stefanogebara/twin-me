@@ -117,7 +117,7 @@ export function euroGlyphs(text) {
 export async function gather(userId, now = new Date()) {
   const settled = async (p, fallback) => { try { return await p; } catch (e) { log.warn(`chat gather: ${e.message}`); return fallback; } };
   const [transactions, segments, cast, recurring, readings, facts, questions, places] = await Promise.all([
-    settled(listTransactions(userId, { limit: 5000 }), []),
+    settled(listTransactions(userId, { currency: 'EUR', limit: 5000 }), []),
     settled(months(userId, now), []),
     settled(forecast(userId, now), null),
     settled(refreshRecurring(userId, now), []),

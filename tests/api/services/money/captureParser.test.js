@@ -116,24 +116,24 @@ describe('parseCapture reads an Android notification', () => {
    amount and card; the Android path sends the notification text. */
 describe('captureFromBody', () => {
   it('reads a Wallet automation by its fields, amount in either decimal style, card by its last four', () => {
-    const a = captureFromBody({ merchant: 'Mercadona', amount: '12,50 \u20ac', card: 'Santander Visa \u2022\u20221234', date: '2026-09-16T10:02:00+02:00', text: 'Mercadona' });
+    const a = captureFromBody({ receivedAt: '2026-09-16T10:00:00Z', merchant: 'Mercadona', amount: '12,50 \u20ac', card: 'Santander Visa \u2022\u20221234', date: '2026-09-16T10:02:00+02:00', text: 'Mercadona' });
     expect(a.parsed).toMatchObject({ amount: 12.5, merchant_key: 'mercadona', card_last4: '1234', direction: 'out' });
     expect(a.refSeed).toContain('2026-09-16T10:02');
-    expect(captureFromBody({ merchant: 'Cafe', amount: '\u20ac3.20' }).parsed.amount).toBe(3.2);
+    expect(captureFromBody({ receivedAt: '2026-09-16T10:00:00Z', merchant: 'Cafe', amount: '\u20ac3.20' }).parsed.amount).toBe(3.2);
   });
   it('falls back to the text when the fields came through empty', () => {
-    const a = captureFromBody({ merchant: '', amount: '', text: 'Pago de 3,20 \u20ac con Apple Pay en METRO MADRID' });
+    const a = captureFromBody({ receivedAt: '2026-09-16T10:00:00Z', merchant: '', amount: '', text: 'Pago de 3,20 \u20ac con Apple Pay en METRO MADRID' });
     expect(a.parsed).toMatchObject({ amount: 3.2 });
-    expect(a.refSeed).toBe('Pago de 3,20 \u20ac con Apple Pay en METRO MADRID');
+    expect(a.refSeed).toContain('2026-09-16T10:00:00Z');
   });
   it('reads the Android listener by its text, as before', () => {
-    const a = captureFromBody({ text: 'Compra realizada con tu tarjeta terminada en 1234 por 12,50\u20ac en MERCADONA el 07/09/2026' });
+    const a = captureFromBody({ receivedAt: '2026-09-16T10:00:00Z', text: 'Compra realizada con tu tarjeta terminada en 1234 por 12,50\u20ac en MERCADONA el 07/09/2026' });
     expect(a.parsed).toMatchObject({ amount: 12.5, card_last4: '1234' });
   });
   it('says what is wrong otherwise', () => {
-    expect(captureFromBody({})).toMatchObject({ status: 400 });
-    expect(captureFromBody({ text: 'Tu tarjeta ha sido activada' })).toMatchObject({ status: 422 });
-    expect(captureFromBody({ text: 'x'.repeat(2001) })).toMatchObject({ status: 400 });
+    expect(captureFromBody({ receivedAt: '2026-09-16T10:00:00Z',})).toMatchObject({ status: 400 });
+    expect(captureFromBody({ receivedAt: '2026-09-16T10:00:00Z', text: 'Tu tarjeta ha sido activada' })).toMatchObject({ status: 422 });
+    expect(captureFromBody({ receivedAt: '2026-09-16T10:00:00Z', text: 'x'.repeat(2001) })).toMatchObject({ status: 400 });
   });
 });
 
@@ -141,13 +141,28 @@ describe('captureFromBody', () => {
    complaint about what it had not sent. An empty run from the shortcut is a setup check. */
 describe('a shortcut run by hand, with nothing to send', () => {
   it('is a setup check, not an error', () => {
-    expect(captureFromBody({ source: 'shortcut', merchant: '', amount: '', card: '', text: '' })).toEqual({ ready: true });
+    expect(captureFromBody({ receivedAt: '2026-09-16T10:00:00Z', source: 'shortcut', merchant: '', amount: '', card: '', text: '' })).toEqual({ ready: true });
   });
   it('still complains when the sender is not the shortcut', () => {
-    expect(captureFromBody({ merchant: '', amount: '' })).toMatchObject({ status: 400 });
-    expect(captureFromBody({})).toMatchObject({ status: 400 });
+    expect(captureFromBody({ receivedAt: '2026-09-16T10:00:00Z', merchant: '', amount: '' })).toMatchObject({ status: 400 });
+    expect(captureFromBody({ receivedAt: '2026-09-16T10:00:00Z',})).toMatchObject({ status: 400 });
   });
   it('reads a real payment from the shortcut as before', () => {
-    expect(captureFromBody({ source: 'shortcut', merchant: 'Mercadona', amount: '12,50 €' }).parsed).toMatchObject({ amount: 12.5 });
+    expect(captureFromBody({ receivedAt: '2026-09-16T10:00:00Z', source: 'shortcut', merchant: 'Mercadona', amount: '12,50 €' }).parsed).toMatchObject({ amount: 12.5 });
+  });
+});
+
+
+describe('capture identity', () => {
+  const text = 'Pago de 3,20 EUR con Apple Pay en METRO MADRID';
+  it('keeps retries stable and identical payments at different times distinct', () => {
+    const event = { text, receivedAt: '2026-09-16T10:00:00Z', eventId: 'notification-1' };
+    expect(captureFromBody(event).refSeed).toBe(captureFromBody(event).refSeed);
+    expect(captureFromBody({ ...event, eventId: 'notification-2' }).refSeed).not.toBe(captureFromBody(event).refSeed);
+    expect(captureFromBody({ text, receivedAt: '2026-09-16T11:00:00Z' }).refSeed).not.toBe(captureFromBody({ text, receivedAt: event.receivedAt }).refSeed);
+  });
+  it('refuses ambiguous identity and invalid timestamps instead of collapsing payments', () => {
+    expect(captureFromBody({ text }).status).toBe(400);
+    expect(captureFromBody({ text, receivedAt: 'bad-date' }).status).toBe(400);
   });
 });

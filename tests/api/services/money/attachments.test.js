@@ -90,7 +90,7 @@ describe('readAttachment', () => {
   });
 
   it('a photo of a receipt becomes an upload sighting with the file as its reference', async () => {
-    const receipt = { kind: 'receipt', merchant: 'Mercadona', amount: 23.45, currency: 'EUR', date: '2026-09-12T00:00:00.000Z', items: [{ label: 'Pan', amount: 1.2 }, { label: 'Leche', amount: 2.1 }], order_ref: null, plan: null, previous_amount: null, next_charge_at: null, confidence: 0.8 };
+    const receipt = { kind: 'receipt', payment_status: 'paid', merchant: 'Mercadona', amount: 23.45, currency: 'EUR', date: '2026-09-12T00:00:00.000Z', items: [{ label: 'Pan', amount: 1.2 }, { label: 'Leche', amount: 2.1 }], order_ref: null, plan: null, previous_amount: null, next_charge_at: null, confidence: 0.8 };
     const d = deps({ extractReceipt: vi.fn(async () => receipt) });
     const r = await readAttachment(USER, { buffer: jpg, filename: 'ticket.jpg', mimeType: 'image/jpeg', note: 'groceries for the flat' }, d);
     expect(r.kind).toBe('receipt');
@@ -111,7 +111,7 @@ describe('readAttachment', () => {
   });
 
   it('the same receipt sent again is told so, not counted twice', async () => {
-    const receipt = { kind: 'receipt', merchant: 'Mercadona', amount: 23.45, currency: 'EUR', date: null, items: [], confidence: 0.8 };
+    const receipt = { kind: 'receipt', payment_status: 'paid', merchant: 'Mercadona', amount: 23.45, currency: 'EUR', date: null, items: [], confidence: 0.8 };
     const d = deps({ extractReceipt: vi.fn(async () => receipt), ingestSighting: vi.fn(async () => ({ action: 'existing', transaction: { id: 'tx1', merchant_raw: 'Mercadona', amount: -23.45, occurred_at: '2026-09-15T10:00:00Z' } })) });
     const r = await readAttachment(USER, { buffer: jpg, filename: 'ticket.jpg' }, d);
     expect(r.said).toBe('Mercadona, 23,45 EUR on today, kept as a payment. It was already in the ledger.');

@@ -16,9 +16,11 @@ export interface NotificationStatsModuleType extends NativeModule {
   requestNotificationPermission(): void;
   getNotificationStats(): Promise<NotificationEntry[]>;
   clearStats(): void;
-  setAuthToken(token: string): void;
+  setCaptureSession(userId: string, token: string): void;
+  clearCaptureSession(): void;
+  failedCaptureCount(): number;
   /** The money capture key. Survives token expiry; see the Kotlin for why that matters. */
-  setCaptureKey(key: string): void;
+  setCaptureKey(userId: string, key: string): void;
   /** Captures held back because the phone could not reach the server. */
   pendingCaptureCount(): number;
   addListener(eventName: string, listener: (event: PurchaseEvent) => void): EventSubscription;
@@ -53,19 +55,30 @@ export const NotificationListenerModule = {
     getModule()?.clearStats();
   },
 
-  setAuthToken(token: string): void {
-    getModule()?.setAuthToken(token);
+  supportsCaptureSession(): boolean {
+    return typeof getModule()?.setCaptureSession === 'function';
   },
 
-  /**
-   * The money capture key. Kept apart from the session token because this service runs for
-   * months without the app being opened: a JWT would expire there quietly and take every
-   * payment with it. Older native builds do not have it, hence the guard.
-   */
-  setCaptureKey(key: string): void {
-    const module = getModule();
-    if (module && typeof module.setCaptureKey === 'function') module.setCaptureKey(key);
+  setCaptureSession(userId: string, token: string): void {
+    getModule()?.setCaptureSession?.(userId, token);
   },
+
+  clearCaptureSession(): void {
+    const module = getModule();
+    if (module?.clearCaptureSession) module.clearCaptureSession();
+    else {
+      // Detach older installed native builds until the owner installs this release.
+      const legacy = module as unknown as { setAuthToken?: (s: string) => void; setCaptureKey?: (s: string) => void } | null;
+      legacy?.setAuthToken?.('');
+      legacy?.setCaptureKey?.('');
+    }
+  },
+
+  setCaptureKey(userId: string, key: string): void {
+    if (this.supportsCaptureSession()) getModule()?.setCaptureKey(userId, key);
+  },
+
+  failedCaptureCount(): number { return getModule()?.failedCaptureCount?.() ?? 0; },
 
   /** Payments the phone is holding because it could not reach the server. */
   pendingCaptureCount(): number {

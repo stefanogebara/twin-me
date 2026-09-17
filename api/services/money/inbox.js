@@ -26,7 +26,8 @@ import crypto from 'node:crypto';
 import { supabaseAdmin } from '../database.js';
 import { createLogger } from '../logger.js';
 import { complete, TIER_EXTRACTION } from '../llmGateway.js';
-import { ingestSighting } from './store.js';
+import { ingestSighting } from './ingestion.js';
+import { isPaidReceipt, saveReceiptNotice, receiptReference } from './notices.js';
 import { merchantKey, parseCapture, parseEuroAmount } from './captureParser.js';
 
 const log = createLogger('MoneyInbox');
@@ -69,11 +70,12 @@ export async function inboxAddress(userId) {
 export async function userForAddress(address) {
   const clean = String(address || '').trim().toLowerCase().replace(/^.*<([^>]+)>.*$/, '$1');
   if (!clean.endsWith(`@${inboxDomain().toLowerCase()}`)) return null;
-  const { data } = await supabaseAdmin
+  const { data, error } = await supabaseAdmin
     .from('money_facts')
     .select('user_id')
     .eq('kind', INBOX_FACT_KIND).eq('value', clean)
     .limit(1);
+  if (error) throw new Error(`Cannot resolve receipts inbox: ${error.message}`);
   return data?.[0]?.user_id || null;
 }
 
@@ -107,6 +109,7 @@ export function verifySvix({ rawBody, headers, secret, now = Math.floor(Date.now
 export async function fetchReceivedEmail(id) {
   const res = await fetch(`https://api.resend.com/emails/receiving/${encodeURIComponent(id)}`, {
     headers: { Authorization: `Bearer ${process.env.RESEND_API_KEY}` },
+    signal: AbortSignal.timeout(10000),
   });
   if (!res.ok) throw new Error(`resend receiving ${res.status}`);
   return res.json();
@@ -132,7 +135,9 @@ const EXTRACTION_SYSTEM = [
   'amount (the total actually charged or to be charged, as a number), currency (ISO code),',
   'date (ISO 8601 date of the charge or invoice, or null), items (array of {label, amount}, at most 12),',
   'order_ref (string or null), plan (string or null), previous_amount (number or null, for a price change),',
-  'next_charge_at (ISO date or null, for a renewal), confidence (0 to 1).',
+  'next_charge_at (ISO date or null, for a renewal), confidence (0 to 1),',
+  'payment_status (paid, unpaid, future, unknown), paid_evidence (exact short quote confirming completed payment, or null).',
+  'An invoice is not proof of payment. Renewal and price-change notices describe future obligations, not payments.',
   'Rules: never invent a number; every amount must appear in the email. If the email is not about a',
   'payment, kind is none. Marketing, newsletters and shipping updates without a charge are none.',
 ].join(' ');
@@ -166,8 +171,15 @@ export function gateReceipt(raw, text) {
     : [];
   const date = raw.date && !Number.isNaN(new Date(raw.date).getTime()) ? new Date(raw.date).toISOString() : null;
   const previous = Number(raw.previous_amount);
+  const quote = String(raw.paid_evidence || '').trim();
+  const completed = /\b(paid|charged|payment (?:received|successful|confirmed)|pagado|cobrado|has pagado|pago (?:realizado|confirmado)|pagamento confirmado|pagou)\b/i;
+  const uncertain = /\b(unpaid|not paid|not charged|will|would|to be|due|pending|pendiente|pendente|ser[aá]|se cobrar[aá]|por pagar)\b/i;
+  const paid = raw.payment_status === 'paid' && quote.length >= 4 && quote.length <= 300
+    && String(text).includes(quote) && completed.test(quote) && !uncertain.test(quote);
   return {
     kind,
+    payment_status: paid && ['receipt', 'invoice'].includes(kind) ? 'paid' : ['renewal', 'price_change'].includes(kind) ? 'future' : 'unconfirmed',
+    paid_evidence: paid ? quote : null,
     merchant: String(raw.merchant || '').trim().slice(0, 80) || null,
     amount,
     currency: /^[A-Z]{3}$/.test(String(raw.currency || '')) ? raw.currency : 'EUR',
@@ -198,7 +210,7 @@ export async function extractReceipt({ subject, from, text, html, userId }) {
   try {
     const s = typeof raw === 'string' ? raw : JSON.stringify(raw);
     parsed = JSON.parse(s.slice(s.indexOf('{'), s.lastIndexOf('}') + 1));
-  } catch { parsed = null; }
+  } catch { throw new Error('Receipt extraction returned invalid JSON'); }
   return gateReceipt(parsed, body);
 }
 
@@ -266,11 +278,12 @@ export function bankAlertSighting({ subject, from, text, html }, { emailId, rece
 
 /** A gated receipt as the ledger's own row. Pure. */
 export function receiptToSighting(receipt, { emailId, from, subject, receivedAt }) {
+  if (!isPaidReceipt(receipt)) return null;
   const merchant = receipt.merchant || String(from || '').replace(/^.*<([^>]+)>.*$/, '$1').split('@')[1]?.split('.')[0] || 'Email receipt';
   const occurred = receipt.date || receivedAt || new Date().toISOString();
   return {
     source: 'email',
-    source_ref: `email:${crypto.createHash('sha256').update(String(emailId)).digest('hex').slice(0, 32)}`,
+    source_ref: receiptReference(emailId),
     raw_text: `${subject || ''}`.slice(0, 500),
     raw_json: {
       kind: receipt.kind, items: receipt.items, order_ref: receipt.order_ref, plan: receipt.plan,
@@ -308,7 +321,12 @@ export async function ingestReceivedEmail(event) {
   }
   const receipt = await extractReceipt({ subject: message.subject, from: message.from, text: message.text, html: message.html, userId });
   if (!receipt) return { outcome: 'not_a_receipt', userId };
-  const sighting = receiptToSighting(receipt, { emailId: id, from: message.from, subject: message.subject, receivedAt: message.created_at });
+  const origin = { emailId: id, from: message.from, subject: message.subject, receivedAt: message.created_at };
+  if (!isPaidReceipt(receipt)) {
+    const notice = await saveReceiptNotice(userId, receipt, origin);
+    return { outcome: 'notice_saved', kind: receipt.kind, notice_id: notice.id };
+  }
+  const sighting = receiptToSighting(receipt, origin);
   const result = await ingestSighting(userId, sighting);
   log.info('receipt read', { userId, kind: receipt.kind, action: result.action });
   return { outcome: 'read', userId, kind: receipt.kind, action: result.action, transaction_id: result.transaction?.id || null };

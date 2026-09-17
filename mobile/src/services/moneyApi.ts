@@ -416,6 +416,26 @@ export type MoneyPlan = {
   peak: { day: string; amount: number } | null; line: string;
 };
 
+/** Load every page before presenting the ledger, never silently the first 200 rows. */
+async function completeLedger(since?: string): Promise<MoneyTransaction[]> {
+  const rows: MoneyTransaction[] = [];
+  let cursor: string | null = null;
+  for (let page = 0; page < 100; page++) {
+    const params = new URLSearchParams();
+    if (since) params.set('since', since);
+    if (cursor) params.set('cursor', cursor);
+    const res = await authFetch(`/money/ledger?${params}`);
+    if (!res.ok) throw new Error('The complete ledger could not be loaded. Please retry.');
+    const body = await res.json();
+    if (!body.success || !Array.isArray(body.data)) throw new Error('Invalid ledger response');
+    rows.push(...body.data);
+    if (!body.next_cursor) return rows;
+    if (body.next_cursor === cursor) throw new Error('The ledger could not advance. Please retry.');
+    cursor = body.next_cursor;
+  }
+  throw new Error('Choose a shorter ledger date range.');
+}
+
 export const moneyApi = {
   forecast: () => authFetch('/money/forecast').then((r) => json<MoneyForecast>(r)),
   /** The month as a calendar; no month means the current one. */
@@ -424,8 +444,7 @@ export const moneyApi = {
   /** A note on a day, in the person's words: a fact the ledger reads with everything else. */
   noteDay: (day: string, text: string) =>
     post('/money/questions/answer', { questionId: null, kind: 'note', subject: `day-${day.slice(0, 10)}`, value: text }).then((r) => json<{ id?: string }>(r)),
-  ledger: (since?: string) =>
-    authFetch(`/money/ledger${since ? `?since=${encodeURIComponent(since)}` : ''}`).then((r) => json<MoneyTransaction[]>(r)),
+  ledger: completeLedger,
   readings: () => authFetch('/money/readings').then((r) => json<MoneyReading[]>(r)),
   readingVerdict: (id: string, verdict: ReadingVerdict) =>
     post(`/money/readings/${encodeURIComponent(id)}/verdict`, { verdict }).then((r) => json<MoneyReading>(r)),

@@ -28,34 +28,27 @@ class NotificationStatsModule : Module() {
       }
     }
 
-    // Called from JS on login so native service can trigger backend even when app is killed
-    Function("setAuthToken") { token: String ->
+    Function("setCaptureSession") { userId: String, token: String ->
       appContext.reactContext?.let { ctx ->
-        TwinNotificationListenerService.getBgPrefs(ctx)
-          .edit().putString("auth_token", token).apply()
+        CaptureStore.get(ctx).activate(userId,token)
+        CaptureRetryService.schedule(ctx)
       }
     }
-
-    /**
-     * The credential the money capture uses. Deliberately not the session token: this
-     * service runs for months without the app being opened, a JWT would expire quietly, and
-     * every payment after that would vanish with no error anybody would see. A capture key
-     * does not expire and can be revoked on its own.
-     */
-    Function("setCaptureKey") { key: String ->
+    Function("setCaptureKey") { userId: String, key: String ->
       appContext.reactContext?.let { ctx ->
-        TwinNotificationListenerService.getBgPrefs(ctx)
-          .edit().putString("capture_key", key).apply()
+        CaptureStore.get(ctx).setKey(userId,key)
+        CaptureRetryService.schedule(ctx)
       }
     }
-
-    /** How many captures are waiting because the phone could not reach the server. */
-    Function("pendingCaptureCount") {
+    Function("clearCaptureSession") {
       appContext.reactContext?.let { ctx ->
-        TwinNotificationListenerService.getBgPrefs(ctx)
-          .getStringSet("pending_captures", emptySet())?.size ?: 0
-      } ?: 0
+        CaptureStore.get(ctx).detach()
+        CaptureRetryService.cancel(ctx)
+        TwinNotificationListenerService.getPrefs(ctx).edit().clear().apply()
+      }
     }
+    Function("pendingCaptureCount") { appContext.reactContext?.let { CaptureStore.get(it).count() } ?: 0 }
+    Function("failedCaptureCount") { appContext.reactContext?.let { CaptureStore.get(it).count(true) } ?: 0 }
 
     OnDestroy {
       TwinNotificationListenerService.purchaseListener = null

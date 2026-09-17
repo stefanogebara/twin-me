@@ -36,6 +36,7 @@
  * Spec: .claude/plans/2026-09-07-money-twin/README.md
  */
 
+import { listReceiptNotices } from '../services/money/notices.js';
 import { Router } from 'express';
 import crypto from 'node:crypto';
 import multer from 'multer';
@@ -47,12 +48,12 @@ import { complete as llmComplete, TIER_EXTRACTION } from '../services/llmGateway
 import { accuracy } from '../services/money/predictions.js';
 import { createLogger } from '../services/logger.js';
 import { captureFromBody } from '../services/money/captureParser.js';
-import { ingestSighting, ingestSightings, listTransactions, sightingsFor, refreshRecurring, forecast, setVerdict, userForCaptureKey, saveBankAccounts, listBankAccounts, pullBankFeed, refreshReadings, listReadings, setReadingVerdict, months, feedBudget, categorySpend, listPlaces, setPlaceCategory, enrichPlaces, subscriptionUsage, questionsFor, answerQuestion, skipQuestion, listFacts, deleteFact, recordCallbackFailure, listChatTurns, saveChatTurn, learn, userLanguage, patternsFor } from '../services/money/store.js';
+import { ingestSighting, ingestSightings, listTransactions, transactionPage, sightingsFor, refreshRecurring, forecast, setVerdict, userForCaptureKey, saveBankAccounts, listBankAccounts, pullBankFeed, refreshReadings, listReadings, setReadingVerdict, months, feedBudget, categorySpend, listPlaces, setPlaceCategory, enrichPlaces, subscriptionUsage, questionsFor, answerQuestion, skipQuestion, listFacts, deleteFact, recordCallbackFailure, listChatTurns, saveChatTurn, learn, userLanguage, patternsFor } from '../services/money/store.js';
 import { parseDelimited, parseWorkbook, toSightings } from '../services/money/statements/importer.js';
 import { isConfigured, listBanks, startAuthorisation, createSession, getSession, applicationInfo } from '../services/money/feeds/enableBanking.js';
 import { answer as chatAnswer, answerStream as chatAnswerStream, act as chatAct } from '../services/money/chat.js';
 import { ahead as calendarAhead, learnEventSpend, addFeed as addCalendarFeed, removeFeed as removeCalendarFeed } from '../services/money/calendar.js';
-import { todayAllowance } from '../services/money/allowance.js';
+import { todayAllowance } from '../services/money/allowanceService.js';
 import { monthPlan, planLine } from '../services/money/plan.js';
 import { spendingRule } from '../services/money/spending.js';
 import { reconnectByAccount } from '../services/money/store.js';
@@ -85,6 +86,7 @@ async function authenticateUserOrKey(req, res, next) {
 }
 
 router.post('/capture', authenticateUserOrKey, async (req, res) => {
+  if (req.body?.ownerId && req.body.ownerId !== req.user.id) return res.status(403).json({ success: false, error: 'Capture belongs to a different account' });
   /* The Android listener sends the notification's text; an iPhone Wallet automation sends the
      merchant and amount it was handed (captureFromBody says which wins and why). */
   const read = captureFromBody(req.body);
@@ -104,8 +106,8 @@ router.post('/capture', authenticateUserOrKey, async (req, res) => {
 
 /**
  * Resend posts here when mail arrives for the money domain. No session: the caller is
- * Resend, proven by the Svix signature over the raw body. Always 200 once verified, so a
- * receipt that cannot be read is not retried for a week; the reason goes to the log.
+ * Resend, proven by the Svix signature over the raw body. Permanent non-receipts return
+ * 200; infrastructure failures return 503 so delivery is retried with the same source id.
  */
 router.post('/inbox/resend', async (req, res) => {
   if (!isInboxConfigured()) return res.status(503).json({ success: false, error: 'Inbox not configured' });
@@ -117,11 +119,16 @@ router.post('/inbox/resend', async (req, res) => {
     res.json({ success: true, data: result });
   } catch (error) {
     log.error('inbox failed', { error: error.message });
-    res.json({ success: true, data: { outcome: 'failed' } });
+    res.status(503).set('Retry-After', '60').json({ success: false, error: 'Receipt processing temporarily unavailable' });
   }
 });
 
 router.use(authenticateUser);
+
+router.get('/notices', async (req, res) => {
+  try { res.json({ success: true, data: await listReceiptNotices(req.user.id) }); }
+  catch { res.status(503).json({ success: false, error: 'Receipt notices temporarily unavailable' }); }
+});
 
 /** How well it has been reading this person: the scored record, summarised. Null until scored. */
 router.get('/accuracy', async (req, res) => {
@@ -142,9 +149,13 @@ router.get('/inbox', async (req, res) => {
 
 router.get('/ledger', async (req, res) => {
   try {
-    const data = await listTransactions(req.user.id, { since: typeof req.query.since === 'string' ? req.query.since : undefined });
-    res.json({ success: true, data });
+    const since = typeof req.query.since === 'string' ? req.query.since : undefined;
+    const cursor = typeof req.query.cursor === 'string' ? req.query.cursor : undefined;
+    if (cursor && cursor.length > 250) return res.status(400).json({ success: false, error: 'Invalid ledger cursor' });
+    const page = await transactionPage(req.user.id, { since, cursor });
+    res.json({ success: true, ...page });
   } catch (error) {
+    if (error.name === 'ZodError' || error instanceof SyntaxError) return res.status(400).json({ success: false, error: 'Invalid ledger date or cursor' });
     log.error('ledger failed', { error: error.message });
     res.status(500).json({ success: false, error: 'Internal server error' });
   }
@@ -185,7 +196,7 @@ router.get('/plan', async (req, res) => {
     const now = new Date();
     const month = /^\d{4}-\d{2}$/.test(String(req.query.month || '')) ? String(req.query.month) : null;
     const start = month ? `${month}-01T00:00:00Z` : new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1)).toISOString();
-    const [cast, rows, facts] = await Promise.all([forecast(req.user.id), listTransactions(req.user.id, { since: start, limit: 1000 }), listFacts(req.user.id)]);
+    const [cast, rows, facts] = await Promise.all([forecast(req.user.id), listTransactions(req.user.id, { since: start, limit: 5000, currency: 'EUR' }), listFacts(req.user.id)]);
     const plan = monthPlan({ forecast: cast, transactions: rows, facts, month, now, isSpending: spendingRule(facts) });
     res.json({ success: true, data: { ...plan, line: planLine(plan, { now }) } });
   } catch (error) { log.error('plan failed', { error: error.message }); res.status(500).json({ success: false, error: 'Internal server error' }); }

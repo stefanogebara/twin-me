@@ -141,9 +141,29 @@ async function json<T>(res: Response): Promise<T> {
   return body.data as T;
 }
 
+/** Load every page before presenting the ledger, never silently the first 200 rows. */
+async function completeLedger(since?: string): Promise<MoneyTransaction[]> {
+  const rows: MoneyTransaction[] = [];
+  let cursor: string | null = null;
+  for (let page = 0; page < 100; page++) {
+    const params = new URLSearchParams();
+    if (since) params.set('since', since);
+    if (cursor) params.set('cursor', cursor);
+    const res = await authFetch(`/money/ledger?${params}`);
+    if (!res.ok) throw new Error('The complete ledger could not be loaded. Please retry.');
+    const body = await res.json();
+    if (!body.success || !Array.isArray(body.data)) throw new Error('Invalid ledger response');
+    rows.push(...body.data);
+    if (!body.next_cursor) return rows;
+    if (body.next_cursor === cursor) throw new Error('The ledger could not advance. Please retry.');
+    cursor = body.next_cursor;
+  }
+  throw new Error('Choose a shorter ledger date range.');
+}
+
 export const moneyAPI = {
   forecast: () => authFetch('/money/forecast').then((r) => json<MoneyForecast>(r)),
-  ledger: (since?: string) => authFetch(`/money/ledger${since ? `?since=${encodeURIComponent(since)}` : ''}`).then((r) => json<MoneyTransaction[]>(r)),
+  ledger: completeLedger,
   sightings: (id: string) => authFetch(`/money/transactions/${id}/sightings`).then((r) => json<MoneySighting[]>(r)),
   verdict: (id: string, verdict: 'worth_it' | 'not_me' | null) =>
     authFetch(`/money/transactions/${id}/verdict`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ verdict }) }).then((r) => json<MoneyTransaction>(r)),
@@ -230,9 +250,9 @@ export const moneyAPI = {
  * "100,00 €" in a column of receipts, and a column that does not line up reads as a
  * mistake in the number rather than in the formatting.
  */
-export function euro(n: number | string | null | undefined): string {
+export function euro(n: number | string | null | undefined, currency = 'EUR'): string {
   const v = Math.abs(Number(n) || 0);
-  return new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(v);
+  return new Intl.NumberFormat('es-ES', { style: 'currency', currency: /^[A-Z]{3}$/.test(currency) ? currency : 'EUR', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(v);
 }
 export function shortDay(iso: string | null | undefined, locale?: string): string {
   if (!iso) return '';

@@ -306,6 +306,7 @@ export function toSightings(rows, { accountId = null, defaultCurrency = 'EUR' } 
   const header = findHeader(all);
   const sightings = [];
   const skipped = [];
+  const occurrences = new Map();
 
   if (!header) {
     all.forEach((row, index) => {
@@ -345,14 +346,20 @@ export function toSightings(rows, { accountId = null, defaultCurrency = 'EUR' } 
        itself is the best name there is, the way the feed adapter keeps it. */
     const name = read.merchant || concept || null;
 
+    const currency = currencyFrom(cell(row, columns.currency), defaultCurrency);
+    const legacyRef = sourceRef(when, signed, concept);
+    const identity = sourceRef(when, signed, `${accountId || 'unassigned'}|${currency}|${concept}`);
+    const occurrence = (occurrences.get(identity) || 0) + 1;
+    occurrences.set(identity, occurrence);
     sightings.push({
       source: 'statement',
-      source_ref: sourceRef(when, signed, concept),
+      source_ref: occurrence === 1 ? identity : `${identity}#${occurrence}`,
+      legacy_refs: occurrence === 1 ? [legacyRef] : [],
       account_id: accountId,
       raw_json: { row, header },
       raw_text: concept || null,
       amount: Math.abs(signed),
-      currency: currencyFrom(cell(row, columns.currency), defaultCurrency),
+      currency,
       direction: signed > 0 ? 'in' : 'out',
       merchant_raw: name,
       merchant_key: merchantKey(name),

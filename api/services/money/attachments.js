@@ -26,6 +26,7 @@
  * model, a database or a bank.
  */
 
+import { isPaidReceipt, saveReceiptNotice } from './notices.js';
 import crypto from 'node:crypto';
 import { say } from './chat.js';
 import { LEDGER_TZ } from './zone.js';
@@ -139,6 +140,10 @@ export async function readAttachment(userId, { buffer, filename = '', mimeType =
   /* 3. A receipt, by the inbox's own reading and gate. */
   const receipt = await extractReceipt({ subject: name, from: null, text, userId });
   if (receipt) {
+    if (!isPaidReceipt(receipt)) {
+      await (deps.saveReceiptNotice || saveReceiptNotice)(userId, receipt, { emailId: attachmentRef(buffer), subject: name });
+      return said('notice', w('Kept as a notice. It does not confirm a payment, so it has not been added to spending.'));
+    }
     const sighting = {
       ...receiptToSighting(receipt, { emailId: attachmentRef(buffer), from: null, subject: name, receivedAt: new Date().toISOString() }),
       source: 'upload',

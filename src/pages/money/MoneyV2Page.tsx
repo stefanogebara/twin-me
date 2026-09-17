@@ -104,13 +104,19 @@ function Chevron() { return <ChevronRight className="mv-chev" size={16} strokeWi
    read paints from it at once and reads again quietly only when it is older than half a
    minute (Stefano, 2026-09-16: "it loads all over again"). */
 type Snapshot = {
-  at: number; forecast: MoneyForecast | null; today: MoneyToday | null; ledger: MoneyTransaction[]; recurring: MoneyRecurring[];
+  userId: string | null; at: number; forecast: MoneyForecast | null; today: MoneyToday | null; ledger: MoneyTransaction[]; recurring: MoneyRecurring[];
   accounts: MoneyAccount[]; months: MoneyMonth[]; readings: MoneyReading[]; categories: MoneyCategories | null; usage: MoneyUsage | null; unread: boolean;
 };
 let SNAPSHOT: Snapshot | null = null;
 const SNAPSHOT_FRESH_MS = 30000;
 
-export default function MoneyV2Page({ view = 'today' }: { view?: MoneyView } = {}) {
+export default function MoneyV2Page(props: { view?: MoneyView } = {}) {
+  const { user } = useAuth();
+  return <MoneyForAccount key={user?.id || 'signed-out'} {...props} userId={user?.id || null} />;
+}
+
+function MoneyForAccount({ view = 'today', userId }: { view?: MoneyView; userId: string | null }) {
+  if (SNAPSHOT?.userId !== userId) SNAPSHOT = null;
   /* The tab said "Discover Your Soul Signature" over a page of euros, which is the front
      door's old promise showing through the new product. */
   const t = useT();
@@ -170,11 +176,10 @@ export default function MoneyV2Page({ view = 'today' }: { view?: MoneyView } = {
   /* How far the bank has booked, and what the phone or the inbox saw after that. The bank
      posts card payments on working days, so a weekend's spending is here before it is there. */
   const bookedTo = ledger.reduce<string | null>((m, t) => (t.posted_at && (!m || t.occurred_at > m) ? t.occurred_at : m), null);
-  const sinceRows = bookedTo ? ledger.filter((t) => !t.posted_at && t.occurred_at > bookedTo) : [];
+  const sinceRows = bookedTo ? ledger.filter((t) => (!t.currency || t.currency === 'EUR') && !t.posted_at && t.occurred_at > bookedTo) : [];
   const since = sinceRows.length;
   /* What the pending alerts add up to, signed: the bank's booked figure minus these is about
      what is really left, and the bank does not say it. */
-  const pendingNet = sinceRows.reduce((sum, t) => sum + Number(t.amount || 0), 0);
   /* "Booked to yesterday" on a working day is the bank's normal lag, not a stale read: today's
      card payments are here from the alerts and book tomorrow. Said as that. */
   const bookedDay = bookedTo ? shortDay(bookedTo, locale) : null;
@@ -198,6 +203,7 @@ export default function MoneyV2Page({ view = 'today' }: { view?: MoneyView } = {
      view change with nothing to cancel them, so a slow answer from the page before could
      land on top of a newer one, and Today to Month and back was twenty seven requests. */
   const seq = useRef(0);
+  useEffect(() => () => { seq.current++; }, []);
   const lastLoad = useRef(SNAPSHOT?.at ?? 0);
   const load = useCallback(async () => {
     const mine = ++seq.current;
@@ -226,7 +232,7 @@ export default function MoneyV2Page({ view = 'today' }: { view?: MoneyView } = {
        try again rather than paint a failure it has not seen. */
     if (!unreadNow) {
       SNAPSHOT = {
-        at: Date.now(),
+        userId, at: Date.now(),
         forecast: f.status === 'fulfilled' ? f.value : SNAPSHOT?.forecast ?? null,
         today: td.status === 'fulfilled' ? td.value : SNAPSHOT?.today ?? null,
         ledger: l.status === 'fulfilled' ? l.value : SNAPSHOT?.ledger ?? [],
@@ -239,7 +245,7 @@ export default function MoneyV2Page({ view = 'today' }: { view?: MoneyView } = {
         unread: false,
       };
     }
-  }, []);
+  }, [userId]);
   /* Read again on every page (the three views share one mounted component, so a switch
      alone reloaded nothing) and when the tab comes back after a minute away: a bank read
      from the phone or another tab was showing on one page and not the next. */
@@ -333,37 +339,17 @@ export default function MoneyV2Page({ view = 'today' }: { view?: MoneyView } = {
      every render, so any unrelated state change tore down the orbits and replayed their
      entrance; for the second and a half that took, nothing on the figure could be clicked. */
   const monthKey = (forecast?.month || new Date().toISOString()).slice(0, 7);
-  const monthRows = useMemo(() => ledger.filter((tx) => localDay(tx.occurred_at).slice(0, 7) === monthKey), [ledger, monthKey]);
+  const monthRows = useMemo(() => ledger.filter((tx) => (!tx.currency || tx.currency === 'EUR') && localDay(tx.occurred_at).slice(0, 7) === monthKey), [ledger, monthKey]);
   /* What they said comes in each month is the band's right edge; the month is drawn against
      it, not against its own worst case. Without a stated income the band keeps its old edge. */
   /* The month is framed by what they said comes in even when the day rests on the balance. */
   const incomeEdge = today && (today.income ?? (today.basis === 'income' ? today.base : null)) ? Number(today.income ?? today.base) : null;
   const edge = incomeEdge ? Math.max(incomeEdge, forecast ? forecast.projected_p90 : 0) : null;
-  /* What the bank says is in each account, freshest read named. XPCD and ITAV include pending
-     charges; a figure with a credit line in it is not shown as the person's. */
-  const balanceLine = useMemo(() => {
-    /* A balance older than two days is not "available": it is not shown at all. */
-    const fresh = accounts.filter((a) => a.balance !== null && a.balance !== undefined && !(a.balance_type || '').includes('/credit') && a.balance_at && Date.now() - new Date(a.balance_at).getTime() < 48 * 3600000);
-    if (!fresh.length) return null;
-    /* A signed figure: an account in its overdraft is said as overdrawn, never as money in it. */
-    const signed = (n: number) => (n < 0 ? t('{amount} overdrawn', { amount: euro(Math.abs(n)) }) : euro(n));
-    const parts = fresh.map((a) => t('{amount} in {bank}', { amount: signed(Number(a.balance)), bank: `${bankLabel(a.bank_name)}${fresh.filter((b) => (b.bank_name || null) === (a.bank_name || null)).length > 1 && a.iban_mask ? ` ${a.iban_mask.slice(-4)}` : ''}` }));
-    const newest = fresh.map((a) => a.balance_at as string).sort().pop() as string;
-    const d = new Date(newest);
-    const today = d.toDateString() === new Date().toDateString();
-    const when = today ? t('read at {time}', { time: d.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' }) }) : t('read {day}', { day: shortDay(newest, locale) });
-    const pendingIn = fresh.some((a) => /^(XPCD|ITAV)/.test(a.balance_type || ''));
-    const anyNegative = fresh.some((a) => Number(a.balance) < 0);
-    /* A booked figure with pending alerts behind it: say about what is left once they land.
-       Only when there is one account, since the alerts do not say which account they hit. */
-    if (!pendingIn && since > 0 && fresh.length === 1) {
-      const after = Number(fresh[0].balance) + pendingNet;
-      return t("{amount} booked in {bank}, about {after} after today's {n} pending, {when}.", { amount: signed(Number(fresh[0].balance)), bank: bankLabel(fresh[0].bank_name), after: signed(after), n: since, when });
-    }
-    const holes = { parts: parts.join(', '), when };
-    if (anyNegative) return pendingIn ? t('{parts}, {when}, pending charges included.', holes) : t('{parts}, {when}, pending charges not yet counted.', holes);
-    return pendingIn ? t('{parts} available, {when}, pending charges included.', holes) : t('{parts} available, {when}, pending charges not yet counted.', holes);
-  }, [accounts, since, pendingNet, t, locale]);
+  /* The server owns balance eligibility and pending adjustments. Never derive a second
+     cash figure from whichever rows happen to be visible on this screen. */
+  const balanceLine = today?.balance
+    ? t('Bank snapshot from {day}.', { day: shortDay(today.balance.at, locale) })
+    : null;
   /* The same days of every month, for the pair bars on the month rows. */
   const todayDay = new Date().getUTCDate();
   const pairMax = Math.max(0, ...months.map((m) => Number(m.spent_to_day) || 0));
@@ -639,7 +625,7 @@ export default function MoneyV2Page({ view = 'today' }: { view?: MoneyView } = {
                     ) : null}
                     {dayOpen ? (() => {
                       const todayKey = todayHere();
-                      const rows = ledger.filter((t) => localDay(t.occurred_at) === todayKey && Number(t.amount) < 0);
+                      const rows = ledger.filter((t) => (!t.currency || t.currency === 'EUR') && localDay(t.occurred_at) === todayKey && Number(t.amount) < 0);
                       return rows.length ? (
                         <ul className="mv-list mv-day-rows" aria-label={t("Today's payments")}>
                           {rows.map((row) => (
@@ -754,6 +740,7 @@ export default function MoneyV2Page({ view = 'today' }: { view?: MoneyView } = {
               const amount = forecast ? euro(forecast.spent) : (months[0] ? euro(months[0].spent) : '\u2026');
               return incomeEdge ? t('{month}, {amount} of {income}.', { month: monthLabel, amount, income: euro(incomeEdge) }) : t('{month}, {amount}.', { month: monthLabel, amount });
             })()}</h1> : null}
+            {ledger.some((row) => row.currency && row.currency !== 'EUR') ? <p className="mv-sub">{t('Totals include euros only. Other currencies stay on their original receipts.')}</p> : null}
             {incomeEdge ? <p className="mv-sub">{today?.keep
               ? t('{income} is what you said comes in, {keep} of it to keep.', { income: euro(incomeEdge), keep: euro(today.keep) })
               : t('{income} is what you said comes in.', { income: euro(incomeEdge) })}</p> : null}
@@ -887,7 +874,7 @@ export default function MoneyV2Page({ view = 'today' }: { view?: MoneyView } = {
                                       {[shortDay(row.occurred_at, locale), row.posted_at ? '' : t('pending'), row.is_recurring ? t('recurring') : '', row.verdict ? t(row.verdict === 'worth_it' ? 'worth it' : 'not me') : ''].filter(Boolean).join(', ')}
                                     </span>
                                   </span>
-                                  <span className="mv-item-end mv-amount">{Number(row.amount) > 0 ? '+' : ''}{euro(row.amount)}</span>
+                                  <span className="mv-item-end mv-amount">{Number(row.amount) > 0 ? '+' : ''}{euro(row.amount, row.currency)}</span>
                                 </button>
                                 {open === row.id ? (
                                   <div className="mv-body mv-body--sub">
@@ -895,7 +882,7 @@ export default function MoneyV2Page({ view = 'today' }: { view?: MoneyView } = {
                                       {(receipts[row.id] || []).map((s) => (
                                         <li key={s.id}>
                                           <span className="mv-quiet">{t('{source}, read {day}', { source: SOURCE[s.source] ? t(SOURCE[s.source]) : s.source, day: shortDay(s.seen_at, locale) })}</span>
-                                          <p>{s.raw_text || `${euro(s.amount)} ${s.currency || ''}`}</p>
+                                          <p>{s.raw_text || `${euro(s.amount, s.currency || 'EUR')} ${s.currency || ''}`}</p>
                                         </li>
                                       ))}
                                       {receipts[row.id] && receipts[row.id].length === 0 ? <li><p>{t('No receipt kept for this one.')}</p></li> : null}

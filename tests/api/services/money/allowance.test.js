@@ -88,7 +88,7 @@ describe('the day gets its share of the week', () => {
 });
 
 describe('the day rests on the balance when the bank has said one', () => {
-  const account = (balance, over = {}) => ({ balance, balance_at: '2026-09-09T10:00:00Z', balance_type: 'CLBD', bank_name: 'Santander', ...over });
+  const account = (balance, over = {}) => ({ balance, currency: 'EUR', balance_observed_at: '2026-09-09T10:00:00Z', balance_at: '2026-09-09T10:00:00Z', balance_type: 'CLBD', bank_name: 'Santander', ...over });
 
   it('reads a fresh balance and ignores a stale one or a credit line', () => {
     expect(freshBalance([account(447.98)], NOW)).toMatchObject({ amount: 447.98, banks: ['Santander'] });
@@ -296,7 +296,7 @@ describe('the base the budget rests on', () => {
 
 describe('which account today is read from', () => {
   const at = '2026-09-09T10:00:00Z';
-  const acc = (id, balance, over = {}) => ({ id, balance, balance_at: at, balance_type: 'CLBD', bank_name: 'Santander', ...over });
+  const acc = (id, balance, over = {}) => ({ id, balance, currency: 'EUR', balance_observed_at: at, balance_at: at, balance_type: 'CLBD', bank_name: 'Santander', ...over });
 
   it('counts every account until the person says which ones they spend from', () => {
     const accounts = [acc('a1', 400), acc('a2', 2000, { bank_name: 'Revolut' })];
@@ -312,5 +312,26 @@ describe('which account today is read from', () => {
   it('says nothing when every account is ruled out', () => {
     const accounts = [acc('a1', 400)];
     expect(freshBalance(accounts, NOW, [{ kind: 'spend_account', subject: 'a1', value: 'no' }])).toBeNull();
+  });
+});
+
+
+describe('balance evidence', () => {
+  const now = new Date('2026-09-17T16:00:00Z');
+  const account = { id: 'a', currency: 'EUR', balance: 100, balance_type: 'ITAV', balance_at: '2026-09-17T10:00:00Z', balance_observed_at: '2026-09-17T10:00:00Z' };
+  it('deducts post-snapshot spending, never adds an unconfirmed inflow', () => {
+    const rows = [{ amount: -30, currency: 'EUR', occurred_at: '2026-09-17T12:00:00Z' }, { amount: 500, occurred_at: '2026-09-17T13:00:00Z' }];
+    expect(freshBalance([account], now, [], rows)).toMatchObject({ amount: 70, reported: 100, adjustment: 30 });
+  });
+  it('deducts pending payments from booked balances and abstains from unknown overlap', () => {
+    const rows = [{ account_id: 'a', amount: -20, occurred_at: '2026-09-17T09:00:00Z', posted_at: null }];
+    expect(freshBalance([{ ...account, balance_type: 'CLBD' }], now, [], rows).amount).toBe(80);
+    expect(freshBalance([account], now, [], [{ ...rows[0], account_id: null }])).toBeNull();
+  });
+  it('rejects foreign, future, partially stale and legacy observations', () => {
+    expect(freshBalance([{ ...account, currency: 'USD' }], now)).toBeNull();
+    expect(freshBalance([{ ...account, balance_at: '2026-09-18T00:00:00Z' }], now)).toBeNull();
+    expect(freshBalance([account, { ...account, id: 'b', balance_at: '2026-09-01T00:00:00Z' }], now)).toBeNull();
+    expect(freshBalance([{ ...account, balance_observed_at: null }], now)).toBeNull();
   });
 });
