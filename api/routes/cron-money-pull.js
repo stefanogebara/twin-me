@@ -56,13 +56,17 @@ router.all('/', async (req, res) => {
     let refreshed = 0;
     let failed = 0;
     let partial = 0;
+    let processed = 0;
     for (const userId of userIds) {
       if (Date.now()-startedAt > 35000) break; // unstarted leases expire for the next hourly run
+      processed++;
       let fresh = 0;
       let outcome = 'ok';
       try {
         const pulled = await pullBankFeed(userId, { deadline: Math.min(startedAt+45000,Date.now()+15000) });
-        if (pulled.some((p) => p.error || p.complete === false)) { outcome = 'partial'; partial++; }
+        const expectedPause = new Set(['continuation_pending', 'time_budget_exhausted', 'already_reading', 'feed_budget_spent']);
+        if (pulled.some((p) => p.error && !expectedPause.has(p.error))) { outcome = 'error'; failed++; }
+        else if (pulled.some((p) => p.error || p.complete === false)) { outcome = 'partial'; partial++; }
         read += 1;
         fresh = pulled.reduce((n, p) => n + (p.created || 0), 0);
         created += fresh;
@@ -117,7 +121,7 @@ router.all('/', async (req, res) => {
     const elapsed = Date.now() - startedAt;
     log.info('money pull complete', { users: userIds.length, read, created, skipped, refreshed, daily, elapsedMs: elapsed });
     const success = failed === 0;
-    const summary = { users: userIds.length, read, created, skipped, refreshed, failed, partial, daily, deferred: userIds.length - read - skipped - failed };
+    const summary = { users: userIds.length, read, created, skipped, refreshed, failed, partial, daily, deferred: userIds.length - processed };
     await logCronExecution('money-pull', success ? 'success' : 'error', elapsed, summary);
     return res.status(success ? 200 : 503).json({ success, ...summary, elapsedMs: elapsed });
   } catch (err) {

@@ -18,10 +18,10 @@ export default defineConfig(({ mode }) => ({
     "import.meta.env.VITE_API_URL": JSON.stringify(viteApiUrl),
   },
   server: {
-    host: "::",
+    host: "127.0.0.1",
     port: 8086,
     strictPort: true, // Force this exact port, don't auto-increment
-    allowedHosts: true, // Allow all hosts for development
+    allowedHosts: ["localhost", "127.0.0.1"],
     proxy: {
       '/api': {
         // A worktree runs its own API on its own port; point the dev proxy at it with
@@ -45,6 +45,8 @@ export default defineConfig(({ mode }) => ({
     include: ['react', 'react-dom'],
   },
   build: {
+    // Preserve the previous browser baseline while updating the development server.
+    target: ['es2020', 'edge88', 'firefox78', 'chrome87', 'safari14'],
     // audit-2026-05-29 load-perf: isolate the heavy, optional @elevenlabs voice
     // SDK into its own async chunk so it loads only when a voice route mounts
     // (was bundled into the 504kB DeepInterview route chunk; now ~33kB route +

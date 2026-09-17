@@ -105,6 +105,13 @@ describe('cron-money-pull', () => {
     expect(res.status).toBe(503);
     expect(res.body).toMatchObject({ success:false, failed:2, read:0 });
   });
+  it('also fails when the bank adapter returns per-account errors instead of throwing', async () => {
+    vi.useFakeTimers({ now: new Date('2026-09-14T16:00:30Z'), toFake: ['Date'] });
+    pull.mockResolvedValue([{ complete:false, error:'read_failed', created:0, seen:0 }]);
+    const res = await request(app()).get('/api/cron/money-pull').set(AUTH);
+    expect(res.status).toBe(503);
+    expect(res.body).toMatchObject({ success:false,failed:2,deferred:0,read:2 });
+  });
 
   it('a refresh that fails is counted as not refreshed and does not stop the run', async () => {
     vi.useFakeTimers({ now: new Date('2026-09-14T00:00:30Z'), toFake: ['Date'] });
