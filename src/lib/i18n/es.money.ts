@@ -537,6 +537,7 @@ export const ES_MONEY: Record<string, string> = {
   "the {amount} you said comes in": "los {amount} que dijiste que entran",
   "your usual month of {amount}": "tu mes normal de {amount}",
   "a typical student month in Madrid on top of your rent": "un mes de estudiante t\u00edpico en Madrid adem\u00e1s de tu alquiler",
+  "your bank": "tu banco",
   "past the {amount} in {bank}": "por encima de los {amount} que hay en {bank}",
   "past the {amount} you said comes in": "por encima de los {amount} que dijiste que entran",
   "past your usual month of {amount}": "por encima de tu mes normal de {amount}",

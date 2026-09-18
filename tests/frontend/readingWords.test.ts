@@ -199,6 +199,18 @@ describe("the day's own line", () => {
     expect(words(allowanceWords(over, en, 'en-GB'))).toBe('That is # past the # you said comes in, keeping #, with # days to go.');
   });
 
+  /* A bank that did not give its name is "your bank" in the ledger, which is words, not a
+     name, and words belong in the reader's language: the day read "no your bank". */
+  it('says an unnamed bank in the reader own language', () => {
+    const onBalance = { ...base, basis: 'balance' as const, base: 240.88, keep: null, balance: { banks: ['your bank'] } };
+    expect(allowanceWords(onBalance, pt, 'pt-BR')).toContain('no seu banco');
+    expect(allowanceWords(onBalance, pt, 'pt-BR')).not.toContain('your bank');
+    expect(allowanceWords(onBalance, es, 'es-ES')).toContain('en tu banco');
+    /* A bank that did give its name keeps it. */
+    expect(allowanceWords({ ...onBalance, balance: { banks: ['Santander'] } }, pt, 'pt-BR')).toContain('Santander');
+    expect(allowanceWords(onBalance, en, 'en-GB')).toContain('in your bank');
+  });
+
   it('keeps the ledger sentence when it cannot say the line', () => {
     expect(allowanceWords({ ...base, amount: null }, es, 'es-ES')).toBe('STORED');
     expect(allowanceWords({ ...base, basis: null, base: null }, es, 'es-ES')).toBe('STORED');

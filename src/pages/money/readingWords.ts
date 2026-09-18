@@ -153,8 +153,15 @@ export type Allowance = {
  * same numbers.
  */
 /* A bank is a name, not a phrase; the fallback stays outside the translator's reach. */
-const FIRST_BANK = 'Santander';
-const bankNames = (a: Allowance, t: T) => (a.balance?.banks || []).join(t(' and ')) || FIRST_BANK;
+/* The ledger writes "your bank" where the bank did not give its name, and the page said it
+   in the middle of a Portuguese sentence: "Dos 240,88 EUR que ha no your bank". A name is
+   kept as it is; a placeholder is words, and words are said in the reader's language. The
+   old fallback here named Santander, which is a fact about somebody's bank that nobody had
+   established (2026-09-18). */
+const UNNAMED_BANK = 'your bank';
+const bankNames = (a: Allowance, t: T) => (a.balance?.banks || [])
+  .map((bank) => (bank === UNNAMED_BANK ? t('your bank') : bank))
+  .join(t(' and ')) || t('your bank');
 
 export function allowanceWords(a: Allowance, t: T, locale: string): string | null {
   if (!a || a.amount === null || a.days_left === null) return a?.sentence ?? null;
