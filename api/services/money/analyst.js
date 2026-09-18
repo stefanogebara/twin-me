@@ -19,12 +19,12 @@
  * `now` passed in.
  */
 import { dayOfMonthIn, weekdayIn, dayIn } from './zone.js';
+import { money } from './currency.js';
 
 const DAY = 86400000;
-const EUR = new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR', maximumFractionDigits: 2 });
 const WEEKDAY = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
-function euro(n) { return EUR.format(Math.abs(Number(n) || 0)); }
+function euro(n) { return money(Math.abs(Number(n) || 0)); }
 function monthKey(iso) { return String(iso).slice(0, 7); }
 function firstOfMonth(iso) { return `${monthKey(iso)}-01`; }
 function out(t) { return Number(t.amount) < 0; }

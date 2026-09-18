@@ -19,11 +19,11 @@
  * the cells; the one sentence this offers (planLine) is computed.
  */
 import { dayIn, partsIn } from './zone.js';
+import { money } from './currency.js';
 
 const r2 = (n) => Math.round(Number(n) * 100) / 100;
 const iso = (d) => dayIn(d);
-const EUR = new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR' });
-const euro = (n) => EUR.format(Math.abs(Number(n) || 0)).replace(/\u20ac/g, 'EUR').replace(/[\u00a0\u202f]/g, ' ');
+const euro = (n) => money(Math.abs(Number(n) || 0)).replace(/\u20ac/g, 'EUR').replace(/[\u00a0\u202f]/g, ' ');
 
 /** The subject a note on a day is kept under: `day-2026-09-22`. Pure. */
 export const NOTE_SUBJECT = (day) => `day-${String(day).slice(0, 10)}`;

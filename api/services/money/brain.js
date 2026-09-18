@@ -35,10 +35,10 @@ import { median, cadenceOf } from './recurring.js';
 import { awayDaysBetween } from './covariates.js';
 import { applyPriors } from './priors.js';
 import { dayIn, dayOfMonthIn, weekdayIn } from './zone.js';
+import { money } from './currency.js';
 
 const DAY = 86400000;
 const HOUR = 3600000;
-const EUR = new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR', maximumFractionDigits: 2 });
 /* The twin block is prompt text, so it spells EUR instead of carrying a currency
    glyph and a non-breaking space through a tokenizer. */
 const DECIMAL = new Intl.NumberFormat('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -134,7 +134,7 @@ const PATTERN_RANK = {
 
 /* ---------------------------------------------------------------------- basics */
 
-function euro(n) { return EUR.format(Math.abs(Number(n) || 0)); }
+function euro(n) { return money(Math.abs(Number(n) || 0)); }
 function round2(n) { return Math.round(n * 100) / 100; }
 function out(t) { return Number(t.amount) < 0; }
 function abs(t) { return Math.abs(Number(t.amount) || 0); }

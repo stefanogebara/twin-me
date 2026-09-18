@@ -30,6 +30,7 @@ import { isPaidReceipt, saveReceiptNotice } from './notices.js';
 import crypto from 'node:crypto';
 import { say } from './chat.js';
 import { LEDGER_TZ } from './zone.js';
+import { money } from './currency.js';
 
 /** Vercel caps a request body at 4.5 MB; a photo shrinks on the client before it comes. */
 export const MAX_ATTACHMENT_BYTES = 4 * 1024 * 1024;
@@ -39,8 +40,7 @@ const STATEMENT_EXTENSIONS = Object.freeze(['xlsx', 'xls', 'csv', 'tsv']);
 const MAX_NOTES = 30;
 const SUMMARY_MAX = 200;
 
-const EUR = new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR' });
-const euro = (n) => EUR.format(Math.abs(Number(n) || 0)).replace(/\u20ac/g, 'EUR').replace(/[\u00a0\u202f]/g, ' ');
+const euro = (n) => money(Math.abs(Number(n) || 0)).replace(/\u20ac/g, 'EUR').replace(/[\u00a0\u202f]/g, ' ');
 const extOf = (name = '') => { const m = /\.([a-z0-9]+)$/i.exec(String(name).trim()); return m ? m[1].toLowerCase() : ''; };
 
 /** Whether the composer should take this file at all. Pure. */
