@@ -323,10 +323,29 @@ describe('balance evidence', () => {
     const rows = [{ amount: -30, currency: 'EUR', occurred_at: '2026-09-17T12:00:00Z' }, { amount: 500, occurred_at: '2026-09-17T13:00:00Z' }];
     expect(freshBalance([account], now, [], rows)).toMatchObject({ amount: 70, reported: 100, adjustment: 30 });
   });
-  it('deducts pending payments from booked balances and abstains from unknown overlap', () => {
+  it('deducts pending payments from booked balances', () => {
     const rows = [{ account_id: 'a', amount: -20, occurred_at: '2026-09-17T09:00:00Z', posted_at: null }];
     expect(freshBalance([{ ...account, balance_type: 'CLBD' }], now, [], rows).amount).toBe(80);
-    expect(freshBalance([account], now, [], [{ ...rows[0], account_id: null }])).toBeNull();
+  });
+  /* A payment the phone saw carries no account. Older than the snapshot it is already in it;
+     newer, it is taken off. Abstaining for the first case threw away a real 401,63 EUR and
+     sent the day back to the income the person had typed (Stefano, 2026-09-18). */
+  it('keeps the balance when an unassigned alert is older than the snapshot', () => {
+    const before = [{ amount: -20, occurred_at: '2026-09-17T09:00:00Z', posted_at: null, account_id: null }];
+    expect(freshBalance([account], now, [], before)).toMatchObject({ amount: 100, adjustment: 0 });
+    const after = [{ amount: -20, occurred_at: '2026-09-17T12:00:00Z', posted_at: null, account_id: null }];
+    expect(freshBalance([account], now, [], after)).toMatchObject({ amount: 80, adjustment: 20 });
+  });
+  /* Two accounts read at different times, and an alert between them: one of the two balances
+     may already hold it, so it is left where it is and only an alert later than both is taken
+     off. The ledger keeps the booked twin of an alert as its own line, so taking the alert off
+     as well charges the person twice. */
+  it('leaves an unassigned alert alone while any snapshot may already hold it', () => {
+    const older = { ...account, id: 'b', balance: 50, balance_at: '2026-09-17T08:00:00Z', balance_observed_at: '2026-09-17T08:00:00Z' };
+    const between = [{ amount: -20, occurred_at: '2026-09-17T09:00:00Z', posted_at: null, account_id: null }];
+    expect(freshBalance([account, older], now, [], between)).toMatchObject({ amount: 150, reported: 150, adjustment: 0 });
+    const later = [{ amount: -20, occurred_at: '2026-09-17T12:00:00Z', posted_at: null, account_id: null }];
+    expect(freshBalance([account, older], now, [], later)).toMatchObject({ amount: 130, adjustment: 20 });
   });
   it('rejects foreign, future, partially stale and legacy observations', () => {
     expect(freshBalance([{ ...account, currency: 'USD' }], now)).toBeNull();

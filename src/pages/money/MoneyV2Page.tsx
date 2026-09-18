@@ -212,16 +212,27 @@ function MoneyForAccount({ view = 'today', userId }: { view?: MoneyView; userId:
      view change with nothing to cancel them, so a slow answer from the page before could
      land on top of a newer one, and Today to Month and back was twenty seven requests. */
   const seq = useRef(0);
-  useEffect(() => () => { seq.current++; }, []);
+  /* A read in the air, so a view change during one does not send nine requests after it. It
+     is cleared by the unmount that cancels the read, because a cancelled read leaves nothing
+     behind and the mount that follows has to ask again. */
+  const reading = useRef(false);
+  useEffect(() => () => { seq.current++; reading.current = false; }, []);
   const lastLoad = useRef(SNAPSHOT?.at ?? 0);
   const load = useCallback(async () => {
     const mine = ++seq.current;
-    lastLoad.current = Date.now();
+    reading.current = true;
     const [f, l, r, a, m, rd, c, u, td] = await Promise.allSettled([
       moneyAPI.forecast(), moneyAPI.ledger(), moneyAPI.recurring(), moneyAPI.accounts(), moneyAPI.months(), moneyAPI.readings(),
       moneyAPI.categories(`${todayHere().slice(0, 7)}-01`), moneyAPI.usage(), moneyAPI.today(),
     ]);
     if (mine !== seq.current) return;
+    /* Marked when the read lands, not when it leaves. Stamped on departure, a read cancelled
+       by an unmount still counted as "just loaded", so the mount that replaced it read
+       nothing and waited on an answer nobody was going to give. Every StrictMode mount does
+       exactly this, which is why Today never left "Reading your month" in development
+       (2026-09-18). */
+    reading.current = false;
+    lastLoad.current = Date.now();
     if (f.status === 'fulfilled') setForecast(f.value);
     if (td.status === 'fulfilled') setToday(td.value);
     if (l.status === 'fulfilled') setLedger(l.value);
@@ -261,7 +272,7 @@ function MoneyForAccount({ view = 'today', userId }: { view?: MoneyView; userId:
   /* A page the person has just been on is not read again: the switch is theirs, the data is
      seconds old, and the bank has not moved. Anything older than half a minute is read. */
   useEffect(() => {
-    if (Date.now() - lastLoad.current < SNAPSHOT_FRESH_MS) return;
+    if (reading.current || Date.now() - lastLoad.current < SNAPSHOT_FRESH_MS) return;
     void load();
   }, [load, view]);
   useEffect(() => {

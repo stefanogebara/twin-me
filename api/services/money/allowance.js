@@ -113,11 +113,16 @@ export function freshBalance(accounts = [], now = new Date(), facts = [], transa
     const candidates = account ? [account] : selected;
     const at = Date.parse(t.occurred_at);
     if (!Number.isFinite(at) || at > current) return null;
-    // An unassigned alert predating an available balance may already be included.
-    // Without a bank link there is no defensible cash figure to show.
-    if (!account && !t.posted_at && candidates.some((a) => at <= Date.parse(a.balance_at))) return null;
-    const uncovered = candidates.some((a) => at > Date.parse(a.balance_at)
-      || (!t.posted_at && ['ITBD', 'CLBD'].includes(a.balance_type)));
+    /* A payment the phone saw carries no account, so it can only be placed in time. After
+       every snapshot it is inside none of them and is taken off. Before one, the bank has
+       almost always booked it already -- the ledger holds that booked twin as its own line --
+       and taking it off again charges the person twice: subtracting them all turned a
+       399,93 EUR balance into minus 209,99 EUR. Abstaining, which is what this did until
+       today, was worse still: it threw the balance away and sent the day back to the income
+       he had typed, which is the reading the balance was built to replace (2026-09-18). */
+    const uncovered = account
+      ? (at > Date.parse(account.balance_at) || (!t.posted_at && ['ITBD', 'CLBD'].includes(account.balance_type)))
+      : candidates.every((a) => at > Date.parse(a.balance_at));
     if (uncovered) adjustment += Math.abs(Number(t.amount));
   }
   const reported = r2(selected.reduce((sum, a) => sum + Number(a.balance), 0));
