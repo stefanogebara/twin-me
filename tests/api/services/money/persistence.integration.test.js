@@ -94,6 +94,26 @@ describe('Money persisted invariants', () => {
     expect(saved).toHaveLength(1);
     expect(saved[0].posted_at).not.toBeNull();
   });
+  /* The key is what matching, the repeating charges and the categories read, and it was the
+     one ingestion-owned field the commit never applied: a line took the bank's better name
+     and kept the key it was created with, so "Internet En Mpass" sat beside the phone's
+     "MPASS" for ever and the month counted one payment twice (2026-09-18). */
+  it('takes the key with the name when the bank names a payment better', async () => {
+    await ingestSighting(USER, phone);
+    await ingestSightings(USER, [bank({ merchant_key: 'cafe centrale', merchant_raw: 'Cafe Centrale' })]);
+    const saved = await rows();
+    expect(saved).toHaveLength(1);
+    expect(saved[0].merchant_raw).toBe('Cafe Centrale');
+    expect(saved[0].merchant_key).toBe('cafe centrale');
+  });
+  it('never lets a later phone alert take the key from the bank name', async () => {
+    await ingestSightings(USER, [bank({ merchant_key: 'cafe centrale', merchant_raw: 'Cafe Centrale' })]);
+    await ingestSighting(USER, { ...phone, source_ref: 'event-2' });
+    const saved = await rows();
+    expect(saved).toHaveLength(1);
+    expect(saved[0].merchant_key).toBe('cafe centrale');
+  });
+
   it('keeps the bank amount when a later phone alert is rounded differently', async () => {
     await ingestSightings(USER, [bank({ amount: 100 })]);
     await ingestSighting(USER, { ...phone, amount: 100.5 });

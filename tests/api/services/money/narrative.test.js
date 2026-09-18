@@ -93,6 +93,27 @@ describe('prettyMerchant', () => {
   });
 });
 
+/* Santander writes the shop into the creditor field with the way it was paid still attached:
+   "Internet En Mpass" for a card payment online. The ledger then held that sentence as the
+   shop's name, where the phone had simply said MPASS, so one payment sat on two lines and
+   the month counted it twice. The same words are stripped from a narrative already; a name
+   is a name wherever the bank puts it (2026-09-18). */
+describe('a name with the way it was paid still attached', () => {
+  it('keeps only the shop', () => {
+    expect(prettyMerchant('Internet En Mpass')).toBe('Mpass');
+    expect(prettyMerchant('INTERNET EN MPASS')).toBe('Mpass');
+    expect(prettyMerchant('Pago Movil En El Corte Ingles')).toBe('El Corte Ingles');
+    expect(prettyMerchant('Compra En Zara')).toBe('Zara');
+  });
+  it('leaves a shop whose own name begins that way', () => {
+    expect(prettyMerchant('Internet Society')).toBe('Internet Society');
+    expect(prettyMerchant('Compra Oro Madrid')).toBe('Compra Oro Madrid');
+    expect(prettyMerchant('En Route')).toBe('En Route');
+    /* Nothing is left if the words are all there is. */
+    expect(prettyMerchant('Internet En')).toBe('Internet En');
+  });
+});
+
 describe('cityFrom', () => {
   it('reads the town out of a card purchase, country code and all', () => {
     expect(cityFrom('PAGO MOVIL EN EL CORTE INGLES, MADRID ES, TARJ. :*741245')).toBe('Madrid');
