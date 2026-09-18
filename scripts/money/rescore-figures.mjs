@@ -28,6 +28,13 @@ const APPLY = process.argv.includes('--apply');
 if (!USER) { console.error('Need --user <uuid>.'); process.exit(1); }
 
 const now = new Date();
+if (APPLY) {
+  const { currentFigureScores } = await import('../../api/services/money/figureScoreStore.js');
+  const result = await currentFigureScores(USER);
+  console.log(`${result.changed} outcomes reconciled at evidence revision ${result.revision}.`);
+  process.exit(0);
+}
+
 const [transactions, facts] = await Promise.all([
   listTransactions(USER, { currency: 'EUR', limit: 5000 }),
   listFacts(USER),
@@ -58,12 +65,4 @@ const after = band((rows || []).map((r) => {
 }));
 console.log(`\nThe day's band: widening ${euros(before.widen)} -> ${euros(after.widen)}, coverage ${before.coverage} -> ${after.coverage}, over ${after.days} scored days.`);
 
-if (!changed.length || !APPLY) { console.log(changed.length ? '\nRead only. Add --apply to write.' : '\nNothing to correct.'); process.exit(0); }
-for (const { row, said } of changed) {
-  const { error: e } = await supabaseAdmin.from('money_figure_scores')
-    .update({ actual: said.actual, error: said.error, hit: said.hit, scored_at: now.toISOString() })
-    .eq('id', row.id).eq('user_id', USER);
-  if (e) { console.error(`${row.predicted_for}: ${e.message}`); process.exit(1); }
-  console.log(`  ${row.predicted_for} scored again: ${euros(said.actual)}`);
-}
-console.log('\nDone. The band now learns from what the days actually cost.');
+console.log('\nRead-only arithmetic comparison. --apply uses the production settling/source gates and atomic audit, so its eligible rows may differ.');

@@ -24,8 +24,9 @@ import { spendingRule } from './spending.js';
 import { forecast, listTransactions, listFacts, months, scorePredictions as scoreCharges } from './store.js';
 import { safeToSpend } from './allowance.js';
 import { TWIN_PREDICTION_CONFIDENCE } from './brain.js';
-import { dayForecast, dayActual, calibrate } from './calibration.js';
+import { dayForecast, calibrate } from './calibration.js';
 import { dayIn } from './zone.js';
+import { currentFigureScores } from './figureScoreStore.js';
 
 const log = createLogger('MoneyPredictions');
 /** A charge counts as on the day if it lands within this many days of when it was expected. */
@@ -79,29 +80,7 @@ export function predictionsFrom({ cast = null, allowance = null, day: dayCast = 
  * @param {(t: object) => boolean} counts  the spending rule
  * @param {Date} now
  */
-export function scoreOne(prediction, transactions, counts, now = new Date()) {
-  const today = day(now);
-  const out = (t) => Number(t.amount) < 0 && counts(t);
-  if (prediction.kind === 'month_total') {
-    if (today <= prediction.predicted_for) return null;
-    const month = prediction.predicted_for.slice(0, 7);
-    const actual = r2(transactions.filter((t) => out(t) && String(t.occurred_at).startsWith(month)).reduce((s, t) => s + Math.abs(Number(t.amount)), 0));
-    return { actual, error: r2(actual - prediction.value), hit: actual >= prediction.low && actual <= prediction.high };
-  }
-  if (prediction.kind === 'safe_today') {
-    if (today <= prediction.predicted_for) return null;
-    const actual = r2(transactions.filter((t) => out(t) && day(t.occurred_at) === prediction.predicted_for).reduce((s, t) => s + Math.abs(Number(t.amount)), 0));
-    return { actual, error: r2(actual - prediction.value), hit: actual <= prediction.value };
-  }
-  if (prediction.kind === 'day_total') {
-    if (today <= prediction.predicted_for) return null;
-    /* The same definition the forecast used: discretionary, recurring charges left out. */
-    const actual = r2(dayActual(transactions, prediction.predicted_for, { isSpending: counts }));
-    const low = Number(prediction.low ?? prediction.value); const high = Number(prediction.high ?? prediction.value);
-    return { actual, error: r2(actual - prediction.value), hit: actual >= low && actual <= high };
-  }
-  return null;
-}
+export { scoreOne } from './figureScoring.js';
 
 /**
  * What the scored rows say, in numbers a sentence can carry.
@@ -198,35 +177,24 @@ export async function recordPredictions(userId, { cast, allowance, day = null, n
   if (tableGone()) return { recorded: 0 };
   const rows = predictionsFrom({ cast, allowance, day, now });
   if (!rows.length) return { recorded: 0 };
+  const widen = cast?.band_calibration?.widen || 0;
+  const recorded = rows.map((r) => ({
+    user_id: userId, ...r, predicted_at: now.toISOString(),
+    ...(r.kind === 'day_total' ? {
+      issued_low: Math.max(0, r.low - widen), issued_high: r.high + widen,
+    } : {}),
+  }));
   const { error } = await supabaseAdmin
     .from('money_figure_scores')
-    .upsert(rows.map((r) => ({ user_id: userId, ...r, predicted_at: now.toISOString() })), { onConflict: 'user_id,kind,predicted_for,predicted_on', ignoreDuplicates: true });
+    .upsert(recorded, { onConflict: 'user_id,kind,predicted_for,predicted_on', ignoreDuplicates: true });
   if (error) { if (missing(error)) return { recorded: 0 }; throw new Error(`figure scores upsert failed: ${error.message}`); }
   return { recorded: rows.length };
 }
 
-/** Score every figure whose day has passed, against the ledger as it stands now. */
-export async function scoreFigures(userId, { transactions, facts = [], now = new Date() }) {
-  if (tableGone()) return { scored: 0 };
-  const { data: open, error } = await supabaseAdmin
-    .from('money_figure_scores')
-    .select('*')
-    .eq('user_id', userId).is('scored_at', null)
-    .lte('predicted_for', day(now));
-  if (error) { if (missing(error)) return { scored: 0 }; throw new Error(`figure scores read failed: ${error.message}`); }
-  const counts = spendingRule(facts);
-  let scored = 0;
-  for (const p of open || []) {
-    const s = scoreOne(p, transactions, counts, now);
-    if (!s) continue;
-    const { error: e2 } = await supabaseAdmin
-      .from('money_figure_scores')
-      .update({ actual: s.actual, error: s.error, hit: s.hit, scored_at: now.toISOString() })
-      .eq('id', p.id);
-    if (e2) throw new Error(`figure score failed: ${e2.message}`);
-    scored += 1;
-  }
-  return { scored };
+/** Reconcile mature outcomes, including ones scored before their evidence changed. */
+export async function scoreFigures(userId, { now = new Date() } = {}) {
+  const result = await currentFigureScores(userId, { now });
+  return { scored: result.changed };
 }
 
 /** The scored record, summarised, for a sentence on the page. Null until something is scored. */
@@ -236,22 +204,14 @@ export async function accuracy(userId) {
     .select('expected_on, typical_amount, confidence, happened, happened_on, happened_amount')
     .eq('user_id', userId).not('happened', 'is', null)
     .order('expected_on', { ascending: false }).limit(200);
-  let figures = [];
-  if (!tableGone()) {
-    const { data, error } = await supabaseAdmin
-      .from('money_figure_scores')
-      .select('kind, predicted_for, value, low, high, actual, hit, scored_at')
-      .eq('user_id', userId).not('scored_at', 'is', null)
-      .order('predicted_for', { ascending: false }).limit(200);
-    if (error) { if (!missing(error)) throw new Error(`figure scores read failed: ${error.message}`); } else figures = data || [];
-  }
+  const { figures } = await currentFigureScores(userId);
   if (!(charges || []).length && !figures.length) return null;
   return summarise(figures, charges || []);
 }
 
 /**
  * One person, once a run: score the charges the store predicted, write today's figures,
- * score yesterday's. Called after the scheduled read whether or not it brought rows,
+ * reconcile mature outcomes. Called after the scheduled read whether or not it brought rows,
  * because a day passing is itself news.
  */
 export async function learnFromLedger(userId, now = new Date()) {
@@ -267,6 +227,6 @@ export async function learnFromLedger(userId, now = new Date()) {
   const tomorrow = new Date(now.getTime() + 86400000);
   const dayCast = dayForecast(transactions, tomorrow, { isSpending: spendingRule(facts) });
   const recorded = await recordPredictions(userId, { cast, allowance, day: dayCast, now });
-  const scored = await scoreFigures(userId, { transactions, facts, now });
+  const scored = await scoreFigures(userId, { now });
   return { recorded: recorded.recorded, scored: scored.scored, charges };
 }

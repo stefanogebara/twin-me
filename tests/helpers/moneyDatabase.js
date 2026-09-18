@@ -65,12 +65,12 @@ export function postgresSupabase(pool) {
       } catch (error) { return { data: null, error }; }
     },
     from(table) {
-      let action = 'select'; let input; let conflict; let one = false; let columns = '*';
+      let action = 'select'; let input; let conflict; let ignoreDuplicates=false; let one = false; let columns = '*';
       const filters = []; let order = ''; let limit = ''; let executed;
       const query = {
         select(value = '*') { columns = value; return query; },
         insert(value) { action = 'insert'; input = value; return query; },
-        upsert(value, options = {}) { action = 'upsert'; input = value; conflict = options.onConflict; return query; },
+        upsert(value, options = {}) { action = 'upsert'; input = value; conflict = options.onConflict; ignoreDuplicates=Boolean(options.ignoreDuplicates); return query; },
         delete() { action = 'delete'; return query; },
         not(k, op, v) {
           if (op !== 'is' || v !== null) throw new Error('Unsupported test query');
@@ -100,7 +100,7 @@ export function postgresSupabase(pool) {
                 const rows = Array.isArray(input) ? input : [input];
                 const keys = [...new Set(rows.flatMap((row) => Object.keys(row)))];
                 sql = `INSERT INTO public.${identifier(table)} (${keys.map(identifier).join(', ')}) VALUES ${rows.map((r) => '(' + keys.map((k) => param(r[k] ?? null)).join(', ') + ')').join(', ')}`;
-                if (action === 'upsert') sql += ` ON CONFLICT (${conflict.split(',').map(identifier).join(', ')}) DO UPDATE SET ${keys.map((k) => `${identifier(k)}=EXCLUDED.${identifier(k)}`).join(', ')}`;
+                if (action === 'upsert') sql += ` ON CONFLICT (${conflict.split(',').map(identifier).join(', ')}) ` + (ignoreDuplicates ? 'DO NOTHING' : `DO UPDATE SET ${keys.map((k) => `${identifier(k)}=EXCLUDED.${identifier(k)}`).join(', ')}`);
                 sql += ` RETURNING ${projection}`;
               }
               const result = await pool.query(sql, values);

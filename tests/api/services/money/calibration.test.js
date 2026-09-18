@@ -119,3 +119,14 @@ describe('dayStrip', () => {
     expect(strip).toMatchObject({ said_days: 1, held: 0, total: 0, days_with_spend: 0 });
   });
 });
+
+
+it('keeps an issued interval unchanged when an earlier corrected day changes training',()=>{
+  const rows=[{predicted_for:'2026-09-11',value:20,low:10,high:30,issued_low:10,issued_high:30,actual:100},
+    {predicted_for:'2026-09-12',value:20,low:10,high:30,issued_low:5,issued_high:35,actual:20}];
+  const before=calibrate(rows);
+  const after=calibrate([{...rows[0],actual:200},rows[1]]);
+  expect(after.widen).toBeGreaterThan(before.widen);
+  expect(after.record[1]).toMatchObject({low:5,high:35,actual:20,hit:true});
+  expect(after.coverage).toBe(0.5);
+});

@@ -116,10 +116,15 @@ export function calibrate(scoredDays = [], opts = {}) {
     const high = Number(r.high ?? r.value) + widen;
     const y = Number(r.actual);
     const miss = y < low || y > high ? 1 : 0;
-    if (!miss) hits += 1;
+    // Training replays against corrected outcomes; displayed history keeps the band
+    // actually issued. Older rows have no such snapshot and remain reconstructed.
+    const issuedLow = Number(r.issued_low ?? low);
+    const issuedHigh = Number(r.issued_high ?? high);
+    const held = y >= issuedLow && y <= issuedHigh;
+    if (held) hits += 1;
     /* The day as it was judged: the band it was given plus the widening it had earned by then. */
-    record.push({ predicted_for: r.predicted_for, value: r2(Number(r.value)), low: r2(Math.max(0, low)), high: r2(high), actual: r2(y), hit: !miss });
-    scoreSum += intervalScore(low, high, y, alpha);
+    record.push({ predicted_for: r.predicted_for, value: r2(Number(r.value)), low: r2(Math.max(0, issuedLow)), high: r2(issuedHigh), actual: r2(y), hit: held });
+    scoreSum += intervalScore(issuedLow, issuedHigh, y, alpha);
     residuals.push({ t, abs: Math.abs(y - Number(r.value)) });
     const recent = residuals.filter((x) => t - x.t <= ETA_WINDOW_DAYS * DAY).map((x) => x.abs);
     const eta = ETA_SHARE * Math.max(...recent, 0);
