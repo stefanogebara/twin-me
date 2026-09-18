@@ -23,7 +23,7 @@ function snapshotFor(inputs, store) {
   }
   return {
     revision: 1,
-    sightings: store.sightings.filter((s) => wanted.has(`${s.source}:${s.source_ref}`)),
+    sightings: store.sightings.filter((s) => wanted.has(`${s.source}:${s.source_ref}`) || wanted.has(`${s.source}:${s.source_ref.replace(/#\d+$/, '')}`)),
     transactions: store.transactions.map((t) => ({
       ...t,
       backings: store.sightings.filter((s) => s.transaction_id === t.id)
@@ -107,4 +107,13 @@ describe('a payment the bank renames', () => {
     expect(s.legacy_refs.length).toBeLessThanOrEqual(5);
     expect(s.legacy_refs.every((r) => r.length <= 512)).toBe(true);
   });
+});
+
+
+it('keeps both equal-price booked fallback payments when stable references arrive', () => {
+  const store = { sightings: [], transactions: [] };
+  read(store, [{ ...CARD }, { ...CARD }]);
+  expect(store.transactions).toHaveLength(2);
+  read(store, [{ ...CARD, entry_reference: 'one' }, { ...CARD, entry_reference: 'two' }]);
+  expect(store.transactions).toHaveLength(2);
 });

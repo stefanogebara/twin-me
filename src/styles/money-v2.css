@@ -426,7 +426,10 @@
 .mv-home-ask { display: flex; align-items: center; gap: 12px; width: 100%; margin-top: 32px; min-height: 44px; box-sizing: border-box; padding: 6px 6px 6px 14px; border: 0; border-radius: 4px; background: var(--field); }
 .mv-home-ask input { min-width: 0; flex: 1; background: transparent; border: 0; padding: 4px 0; font: inherit; color: var(--ink); }
 .mv-home-ask input::placeholder { color: var(--ink-3); }
-.mv-home-ask input:focus-visible { outline-offset: 4px; }
+/* Text inputs also match :focus-visible on pointer focus. The compound field owns
+   the indicator, avoiding a second square frame around just the text. */
+.mv .mv-home-ask input:focus-visible { outline: none; }
+.mv-home-ask:has(input:focus-visible) { outline: 2px solid var(--ink); outline-offset: 2px; }
 .mv .mv-home-ask .mv-icon-btn { width: 32px; height: 32px; border-radius: 4px; background: var(--ink); color: var(--page); }
 
 /* A bank's account, with the cards the ledger has seen under it: a sub-row, indented 50. */

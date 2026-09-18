@@ -13,6 +13,7 @@ const bank = (overrides = {}) => ({ ...phone, source: 'bankfeed', source_ref: 'b
 import { labelCard, accountsWithCards } from '../../../../api/services/money/instruments.js';
 import { transactionPage, listTransactions } from '../../../../api/services/money/transactionRepository.js';
 import { createStatementAccount, statementAccounts, ownedStatementAccount, checkStatementEvidence } from '../../../../api/services/money/statements/accounts.js';
+import { toSighting, distinctPending } from '../../../../api/services/money/feeds/enableBanking.js';
 import { toSightings } from '../../../../api/services/money/statements/importer.js';
 import { holdUndatedCapture } from '../../../../api/services/money/legacyCapture.js';
 let pool;
@@ -246,5 +247,32 @@ describe('complete ledger reads and bank coordination', () => {
     const owners = batches.flatMap((r)=>r.data);
     expect(new Set(owners).size).toBe(owners.length);
     expect(owners).toContain(USER);
+  });
+});
+
+
+describe('provider identity lifecycle through real persistence', () => {
+  const row = { transaction_amount: {amount:'5',currency:'EUR'}, credit_debit_indicator:'DBIT', value_date:'2026-09-11', remittance_information:['Cafe'] };
+  const read = (rows) => ingestSightings(USER, distinctPending(rows.map((r) => toSighting(r, ACCOUNT))));
+  it('keeps two purchases through pending, fallback and stable references, including separate pages', async () => {
+    await read([{...row,status:'PDNG'},{...row,status:'PDNG'}]);
+    await read([row,row]);
+    expect(await rows()).toHaveLength(2);
+    await read([{...row,entry_reference:'one'}]);
+    await read([{...row,entry_reference:'two'}]);
+    expect(await rows()).toHaveLength(2);
+    await read([{...row,entry_reference:'two'},{...row,entry_reference:'one'}]);
+    expect(await rows()).toHaveLength(2);
+    expect((await rows()).reduce((sum,t)=>sum+Number(t.amount),0)).toBe(-10);
+  });
+  it('preserves one renamed payment and its user correction on repeated sync', async () => {
+    await read([{...row,status:'PDNG'}]);
+    const id=(await rows())[0].id;
+    await pool.query("UPDATE money_transactions SET verdict='worth_it' WHERE id=$1",[id]);
+    await read([row]);
+    await read([{...row,entry_reference:'settled'}]);
+    await read([{...row,entry_reference:'settled'}]);
+    expect(await rows()).toHaveLength(1);
+    expect((await rows())[0]).toMatchObject({id,verdict:'worth_it',amount:'-5.00'});
   });
 });

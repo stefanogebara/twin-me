@@ -37,7 +37,7 @@ export async function bootstrapMoney(pool, { forward = true } = {}) {
   for (const name of archived) await pool.query(await fs.readFile(path.join(archive, name), 'utf8'));
   if (forward) {
     const canonical = 'database/migrations';
-    for (const name of (await fs.readdir(canonical)).filter((n) => /^20260917[0-9]*_money.*\.sql$/.test(n)).sort()) {
+    for (const name of (await fs.readdir(canonical)).filter((n) => /^202609(?:17|18)[0-9]*_money.*\.sql$/.test(n)).sort()) {
       await pool.query(await fs.readFile(path.join(canonical, name), 'utf8'));
     }
   }
