@@ -27,7 +27,19 @@ describe('reconcile', () => {
     expect(d.transaction.id).toBe('t1');
     expect(d.transaction.posted_at).toBe(feed.occurred_at);
     expect(d.transaction.merchant_raw).toBe('MERCADONA MADRID');
+    /* The key is what matching, the repeating charges and the categories read. Taking the
+       bank's name without its key left the two saying different things for ever, so a name
+       corrected at the source never reached the line already stored (2026-09-18). */
+    expect(d.transaction.merchant_key).toBe('mercadona madrid');
     expect(d.transaction.occurred_at).toBeUndefined(); // the phone's minute stands
+  });
+
+  it('never lets a worse name take the key from a line that has one', () => {
+    const tx = { id: 't1', amount: -12.5, merchant_key: 'mercadona madrid', merchant_raw: 'MERCADONA MADRID', occurred_at: feed.occurred_at, posted_at: feed.occurred_at, primary_sighting_id: 's2' };
+    const d = reconcile({ ...phone, id: 's3' }, [tx], 'bankfeed');
+    expect(d.action).toBe('attach');
+    expect(d.transaction.merchant_key).toBeUndefined();
+    expect(d.transaction.merchant_raw).toBeUndefined();
   });
   it('a phone sighting arriving after the bank row moves occurred_at to the swipe', () => {
     const tx = { id: 't1', amount: -12.5, merchant_key: 'mercadona madrid', occurred_at: feed.occurred_at, posted_at: feed.occurred_at, primary_sighting_id: 's2' };

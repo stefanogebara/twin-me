@@ -102,7 +102,15 @@ export function reconcile(sighting, transactions, primarySightingSource = null, 
   if (!downgradesSettlement && (incoming > current || sameEvidence || settlesBank)) {
     update.amount = signedAmount(sighting);
     if (booked(sighting)) update.posted_at = sighting.occurred_at;
-    if (sighting.merchant_raw && (!match.merchant_raw || sighting.source === 'bankfeed')) update.merchant_raw = sighting.merchant_raw;
+    /* The key travels with the name. Matching, the repeating charges and the categories all
+       read the key, so a line that took the bank's name and kept its old key said two
+       different things for ever, and a name corrected at the source never reached the lines
+       already stored: "Internet En Mpass" stayed the shop's name beside the phone's "MPASS"
+       and the month counted the payment twice (2026-09-18). */
+    if (sighting.merchant_raw && (!match.merchant_raw || sighting.source === 'bankfeed')) {
+      update.merchant_raw = sighting.merchant_raw;
+      if (sighting.merchant_key && sighting.merchant_key !== 'unknown') update.merchant_key = sighting.merchant_key;
+    }
     update.primary_sighting_id = sighting.id ?? null;
   }
   if ((sighting.source === 'phone' || sighting.source === 'bizum') && match.posted_at && !match.occurred_from_phone) {

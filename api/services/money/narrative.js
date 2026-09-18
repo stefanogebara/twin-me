@@ -83,8 +83,16 @@ function throughAggregator(name) {
 }
 
 /** Title case, leaving a domain and a read-as-letters name as they came. */
+/* The way a payment was made, where the shop's name should be. Santander fills the creditor
+   field with "Internet En Mpass" for a card payment online and "Pago Movil En X" for one in
+   a shop, so the ledger held the sentence as the name while the phone had said MPASS: one
+   payment on two lines, counted twice in the month. A narrative is already read this way
+   (parseNarrative); a name is a name wherever the bank puts it. Only these words, only in
+   front, and only when a shop is left after them, so "Internet Society" keeps its name. */
+const PAID_WITH = /^(?:internet|pago\s+m[oó]vil|compra|venta)\s+(?:en|de)\s+(?=\S)/i;
+
 export function prettyMerchant(name) {
-  const raw = String(name || '').trim().replace(/\s{2,}/g, ' ');
+  const raw = String(name || '').trim().replace(/\s{2,}/g, ' ').replace(PAID_WITH, '');
   if (!raw) return null;
   return raw
     .split(' ')
