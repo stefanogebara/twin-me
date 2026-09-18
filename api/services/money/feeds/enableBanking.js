@@ -278,12 +278,25 @@ export function toSighting(row, accountId) {
   const sourceRef = stableEntry
     ? `bank:${accountId}:${row.entry_reference}`
     : `${pending ? 'pend:' : 'bank:fallback:'}${fingerprint}`;
-  const legacyRef = pending ? `pend:${date}|${amt}|${narrative}`
-    : (row.entry_reference || row.transaction_id || `${date}|${amt}|${narrative}`);
+  /* Every name this payment has already been known by. The bank spells one payment three
+     ways over its life -- pending, booked with no reference of its own, booked with the
+     reference it finally hands out -- and a spelling the ledger does not recognise opens a
+     second line: one El Corte Ingles payment of 134,62 EUR became three lines, and the pull
+     at 02:00 on 2026-09-18 added five more copies of payments already held. All three
+     spellings are built from the same fingerprint, so a later reading can find the earlier
+     one. Oldest-first names last, because the planner takes the first alias that fits and
+     the ledger keeps five. */
+  const aliases = pending ? [`pend:${date}|${amt}|${narrative}`] : [
+    ...(stableEntry ? [`bank:fallback:${fingerprint}`] : []),
+    `pend:${fingerprint}`,
+    ...(row.entry_reference ? [String(row.entry_reference)] : []),
+    ...(row.transaction_id ? [String(row.transaction_id)] : []),
+    `${date}|${amt}|${narrative}`,
+  ];
   return {
     source: 'bankfeed',
     source_ref: sourceRef,
-    legacy_refs: legacyRef.length <= 512 ? [legacyRef] : [],
+    legacy_refs: [...new Set(aliases)].filter((ref) => ref && ref.length <= 512 && ref !== sourceRef).slice(0, 5),
     account_id: accountId,
     raw_json: row,
     raw_text: remittance || counterparty || null,
