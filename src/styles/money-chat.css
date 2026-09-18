@@ -59,11 +59,11 @@
 .mc .mc-drop { grid-column: 1 / -1; justify-self: end; }
 
 /* ------------------------------------------------------------------ composer
-   A warm pill with the attachment and send controls on a shared baseline. */
+   A field like every other: the warm box, a 4 corner, the send as a 32 ink button. */
 .mc-composer { position: sticky; bottom: 0; padding: 12px 0 max(20px, env(safe-area-inset-bottom)); background: var(--page); }
 .mc-composer-inner {
   display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: end; gap: 4px;
-  min-height: 44px; box-sizing: border-box; padding: 10px; border-radius: 28px; background: var(--field);
+  min-height: 44px; box-sizing: border-box; padding: 6px; border-radius: 4px; background: var(--field);
 }
 /* The one way a file gets in: a quiet clip, ink on hover, the same 32 as the send. */
 .mc .mc-attach {
