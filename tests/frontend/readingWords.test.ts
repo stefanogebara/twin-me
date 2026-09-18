@@ -187,6 +187,18 @@ describe("the day's own line", () => {
     expect(shaped).not.toContain('Friday');
   });
 
+  /* Portuguese fuses the preposition into the article: de + os is dos, never "de os". The
+     over-spent line glued a bare phrase after a bare preposition and read "acima de os
+     1750,00 EUR" (2026-09-18), so each basis carries its own "past" wording. */
+  it('says the over-spent line without a preposition glued to an article', () => {
+    const over = { ...base, over: true, free: -234.8 };
+    expect(allowanceWords(over, pt, 'pt-BR')).toContain('acima dos');
+    expect(allowanceWords(over, pt, 'pt-BR')).not.toContain('de os');
+    expect(allowanceWords({ ...over, basis: 'balance' as const, base: 401.63, banks: ['Santander'] }, pt, 'pt-BR')).not.toContain('de os');
+    expect(allowanceWords({ ...over, basis: 'typical' as const }, pt, 'pt-BR')).not.toContain('de o ');
+    expect(words(allowanceWords(over, en, 'en-GB'))).toBe('That is # past the # you said comes in, keeping #, with # days to go.');
+  });
+
   it('keeps the ledger sentence when it cannot say the line', () => {
     expect(allowanceWords({ ...base, amount: null }, es, 'es-ES')).toBe('STORED');
     expect(allowanceWords({ ...base, basis: null, base: null }, es, 'es-ES')).toBe('STORED');
