@@ -52,6 +52,35 @@ describe('Money persisted invariants', () => {
     await expect(ownedStatementAccount(USER, other.id)).rejects.toMatchObject({ status: 404 });
     await expect(ownedStatementAccount(USER, null)).rejects.toMatchObject({ status: 400 });
   });
+  /* Every bank session mints a new provider id for the same account. A fingerprint (the IBAN,
+     hashed) holds it together, but rows opened before that column existed have none, so a
+     reconnect opened a second row for one account: Stefano's ES53 **** 7516 was held twice,
+     one row with the balance and the payments since the 6th, the other with the 88 before it
+     and no balance. The mask and the currency identify a row that has nothing stronger, and
+     the save gives it a fingerprint so it is never needed twice (2026-09-18). */
+  it('reopens one account under a new provider id when only the mask identifies it', async () => {
+    await pool.query('DELETE FROM money_accounts WHERE user_id=$1 AND iban_mask=$2', [USER, 'ES53 **** 7516']);
+    const shape = { sessionId: 's1', validUntil: '2027-03-07T00:00:00Z', bankName: 'Santander' };
+    await saveBankAccounts(USER, { ...shape, accounts: [{ uid: 'p-1', name: 'CHAP-CHAP', currency: 'EUR', iban: 'ES5300000000000000007516' }] });
+    /* The column did not exist when this row was opened. */
+    await pool.query('UPDATE money_accounts SET account_fingerprint=NULL WHERE user_id=$1 AND provider_account_id=$2', [USER, 'p-1']);
+    await saveBankAccounts(USER, { ...shape, sessionId: 's2', accounts: [{ uid: 'p-2', name: 'CHAP-CHAP', currency: 'EUR', iban: 'ES5300000000000000007516' }] });
+    const held = (await pool.query('SELECT * FROM money_accounts WHERE user_id=$1 AND iban_mask=$2', [USER, 'ES53 **** 7516'])).rows;
+    expect(held).toHaveLength(1);
+    expect(held[0].provider_account_id).toBe('p-2');
+    expect(held[0].account_fingerprint).not.toBeNull();
+  });
+  it('never joins two accounts that only look alike', async () => {
+    await pool.query('DELETE FROM money_accounts WHERE user_id=$1 AND iban_mask=$2', [USER, 'ES53 **** 7516']);
+    const shape = { sessionId: 's1', validUntil: '2027-03-07T00:00:00Z', bankName: 'Santander' };
+    await saveBankAccounts(USER, { ...shape, accounts: [
+      { uid: 'p-1', name: 'One', currency: 'EUR', iban: 'ES5300000000000000007516' },
+      { uid: 'p-2', name: 'Two', currency: 'USD', iban: 'ES5300000000000000007516' },
+    ] });
+    const held = (await pool.query('SELECT id FROM money_accounts WHERE user_id=$1 AND iban_mask=$2', [USER, 'ES53 **** 7516'])).rows;
+    expect(held).toHaveLength(2);
+  });
+
   it('imports identical statements for two accounts independently and replays each once', async () => {
     const a = await createStatementAccount(USER, { name: 'Statement A' });
     const b = await createStatementAccount(USER, { name: 'Statement B' });

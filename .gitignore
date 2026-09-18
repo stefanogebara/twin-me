@@ -243,3 +243,5 @@ audit-screenshots/
 
 # A merge backup holds real payments; it never belongs in the repository.
 money-merge-backup*.json
+# An account merge backup holds real payments; it never belongs in the repository.
+money-account-merge-backup*.json
