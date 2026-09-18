@@ -7,6 +7,7 @@ import { predictionsFrom, scoreOne, summarise, ownScoreFinding } from '../../../
 
 const NOW = new Date('2026-09-13T12:00:00Z');
 const counts = () => true;
+const MATURE = new Date('2026-09-16T22:00:00Z');
 const t = (id, occurred_at, amount, merchant_key) => ({ id, occurred_at, amount, merchant_key, channel: 'card' });
 
 describe('predictionsFrom', () => {
@@ -31,7 +32,7 @@ describe('scoreOne', () => {
     const p = { kind: 'month_total', predicted_for: '2026-08-31', value: 600, low: 500, high: 700 };
     const rows = [t('a', '2026-08-03T10:00:00Z', -250, 'x'), t('b', '2026-08-20T10:00:00Z', -332.87, 'y'), t('c', '2026-09-02T10:00:00Z', -99, 'z')];
     expect(scoreOne({ ...p, predicted_for: '2026-09-30' }, rows, counts, NOW)).toBe(null);
-    const s = scoreOne(p, rows, counts, NOW);
+    const s = scoreOne(p, rows, counts, MATURE);
     expect(s.actual).toBe(582.87);
     expect(s.error).toBe(-17.13);
     expect(s.hit).toBe(true);
@@ -40,7 +41,7 @@ describe('scoreOne', () => {
   it('scores a day as kept when the day stayed under what was safe', () => {
     const p = { kind: 'safe_today', predicted_for: '2026-09-12', value: 50 };
     const rows = [t('a', '2026-09-12T10:00:00Z', -19.99, 'cabify'), t('b', '2026-09-12T18:00:00Z', -9.5, 'oakberry'), t('c', '2026-09-13T10:00:00Z', -80, 'x')];
-    const s = scoreOne(p, rows, counts, NOW);
+    const s = scoreOne(p, rows, counts, MATURE);
     expect(s.actual).toBe(29.49);
     expect(s.hit).toBe(true);
     expect(scoreOne({ ...p, predicted_for: '2026-09-13' }, rows, counts, NOW)).toBe(null);
@@ -48,7 +49,7 @@ describe('scoreOne', () => {
   it('applies the spending rule, so a friend paid back is not a day\'s spending', () => {
     const p = { kind: 'safe_today', predicted_for: '2026-09-12', value: 50 };
     const rows = [t('a', '2026-09-12T10:00:00Z', -200, 'rafaella')];
-    expect(scoreOne(p, rows, (x) => x.merchant_key !== 'rafaella', NOW).actual).toBe(0);
+    expect(scoreOne(p, rows, (x) => x.merchant_key !== 'rafaella', MATURE).actual).toBe(0);
   });
   it('says nothing about a kind it does not score', () => {
     expect(scoreOne({ kind: 'next_charge', predicted_for: '2026-09-01' }, [], counts, NOW)).toBe(null);
@@ -89,8 +90,8 @@ describe('the day, written down and scored', () => {
   it('scores the day on discretionary spending, recurring charges left out', () => {
     const p = { kind: 'day_total', predicted_for: '2026-09-12', value: 18, low: 4, high: 40 };
     const rows = [t('a', '2026-09-12T10:00:00Z', -12.5, 'cafe'), t('b', '2026-09-12T18:00:00Z', -20, 'shop'), { ...t('c', '2026-09-12T09:00:00Z', -9.99, 'spotify'), is_recurring: true }];
-    expect(scoreOne(p, rows, counts, NOW)).toEqual({ actual: 32.5, error: 14.5, hit: true });
-    expect(scoreOne(p, rows.concat([t('d', '2026-09-12T20:00:00Z', -30, 'bar')]), counts, NOW)).toMatchObject({ actual: 62.5, hit: false });
+    expect(scoreOne(p, rows, counts, MATURE)).toEqual({ actual: 32.5, error: 14.5, hit: true });
+    expect(scoreOne(p, rows.concat([t('d', '2026-09-12T20:00:00Z', -30, 'bar')]), counts, MATURE)).toMatchObject({ actual: 62.5, hit: false });
     expect(scoreOne({ ...p, predicted_for: '2026-09-13' }, rows, counts, NOW)).toBeNull();
   });
   it('summarises the band from the scored days', () => {
@@ -118,5 +119,20 @@ describe('what it got wrong, said out loud', () => {
     expect(f.sentence).toBe('Of 6 charges it expected, 2 came, 1 on the day.');
     expect(f.month).toBeNull();
     expect(ownScoreFinding(null)).toBeNull();
+  });
+});
+
+describe('settlement maturity', () => {
+  it('waits four elapsed days after local day close, including late Friday settlement', () => {
+    const p={kind:'day_total',predicted_for:'2026-09-11',value:20,low:10,high:30};
+    const payments=[t('friday','2026-09-11T18:00:00Z',-25,'shop')];
+    expect(scoreOne(p,payments,counts,new Date('2026-09-12T08:00:00Z'))).toBeNull();
+    expect(scoreOne(p,payments,counts,new Date('2026-09-15T21:59:59Z'))).toBeNull();
+    expect(scoreOne(p,payments,counts,new Date('2026-09-15T22:00:00Z'))).toMatchObject({actual:25});
+  });
+  it('uses elapsed settling time across the autumn clock change', () => {
+    const p={kind:'day_total',predicted_for:'2026-10-24',value:20,low:10,high:30};
+    expect(scoreOne(p,[],counts,new Date('2026-10-28T21:59:59Z'))).toBeNull();
+    expect(scoreOne(p,[],counts,new Date('2026-10-28T22:00:00Z'))).toMatchObject({actual:0});
   });
 });

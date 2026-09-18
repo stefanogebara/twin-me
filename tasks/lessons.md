@@ -559,3 +559,13 @@ not a data gap.
   shadows jsdom's storage. Fixed for the whole suite in
   `tests/setup/browserStorage.ts`. A test that always fails trains everyone to
   ignore the one that starts failing.
+
+## 2026-09-18 — verify economic identity, mutable outcomes and design acceptance
+
+The Money roadmap missed duplicates caused by changing bank references. Checking that existing rows retain their amount/date does not prove that each row represents a different payment. Release fixtures must exercise pending/fallback/stable references across repeated persisted syncs and preserve two legitimate equal-price purchases. Stop recurrence before accepting a repaired live ledger as a baseline.
+
+A financial day's actual is revisable: settlement, imports and corrections can change it after the first score. A settling delay reduces immature labels but never replaces invalidation/rescoring. Preserve the forecast as originally issued; revise outcomes with provenance and replay calibration without presenting recomputed history as the original live performance.
+
+The 40px spacing was verified as rendered, not as matching Instinct's authenticated workspace or the user's preference. A sign-in reference is insufficient evidence for dashboard spacing. Surface conflicts with newer design contracts explicitly, and distinguish technical checks from design acceptance before extending a redesign.
+
+A text input may match `:focus-visible` after a mouse click. In a compound composer, put its visible focus on the container and suppress only the redundant inner outline; preserve separate keyboard indicators on attachment/send controls. Verify both pointer and keyboard entry in the rendered page.
