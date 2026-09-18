@@ -67,3 +67,17 @@ it('reloads a fresh snapshot immediately after a confirmed chat edit', async () 
   await act(async () => root.render(<MoneyV2Page />));
   expect(f.forecast).toHaveBeenCalledTimes(2);
 });
+
+
+/* A mount that is interrupted and remounted on the same fiber is what StrictMode does on
+   every mount, and what the app does whenever auth resolves mid-mount. The read the first
+   mount started is cancelled by the unmount; the page has to read again rather than wait for
+   an answer nobody will deliver (2026-09-18: /money sat on "Reading your month" for ever). */
+it('paints after a mount that was interrupted and remounted', async () => {
+  f.owner = 'interrupted-owner';
+  f.forecast.mockClear().mockResolvedValue({ month:'2026-09-01',spent:5,days_left:13,committed:0,projected_p90:5 });
+  f.today.mockClear().mockResolvedValue({ amount:42.5,basis:'income',base:1000,income:1000,keep:0,free:100,budget:1000,days_left:13,today_events:[],sentence:'Forty two and a half',why:null });
+  root = createRoot(host);
+  await act(async () => { root.render(<React.StrictMode><MoneyV2Page /></React.StrictMode>); });
+  expect(host.textContent).toContain('42');
+});

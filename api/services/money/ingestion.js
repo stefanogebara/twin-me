@@ -32,13 +32,27 @@ export function planIngestion(inputs, snapshot) {
   const pool = snapshot.transactions.map((t) => ({ ...t, backings: [...(t.backings || [])] }));
   const prior = new Map(snapshot.sightings.map((s) => [key(s), s]));
   const saved = []; const creates = new Map(); const updates = new Map(); const links = []; const results = [];
+  /* An old name belongs to one payment. Two coffees at one price on one day are read as two
+     rows that carry the same earlier names, and if both claimed the same evidence row they
+     would be written to one id and Postgres would keep the last: one payment gone. */
+  const claimed = new Set();
+  // Exact identities win even when they occur later in this page. An alias must not
+  // steal another row's evidence, or the commit would write the same id twice.
+  const reserved = new Set(inputs.map((input) => prior.get(key(input))?.id).filter(Boolean));
+  const aliasRows = (input) => snapshot.sightings.filter((s) => s.source === input.source
+    && (input.legacy_refs || []).some((ref) => s.source_ref === ref
+      || (/^(pend:|bank:fallback:)/.test(ref) && s.source_ref.startsWith(`${ref}#`)
+        && /^\d+$/.test(s.source_ref.slice(ref.length + 1)))));
   for (const input of inputs) {
     // Legacy aliases are accepted only when the stored row belongs to this account.
-    const old = prior.get(key(input)) || (input.legacy_refs || []).map((ref) => prior.get(key({ ...input, source_ref: ref })))
-      .find((s) => s && (!input.account_id || s.account_id === input.account_id)
+    const old = prior.get(key(input)) || aliasRows(input)
+      .find((s) => s && !claimed.has(s.id) && !reserved.has(s.id) && (!input.account_id || s.account_id === input.account_id)
+        && !(input.raw_json?.entry_reference && s.raw_json?.entry_reference
+          && input.raw_json.entry_reference !== s.raw_json.entry_reference && booked(s))
         && (input.raw_json?.entry_reference && input.raw_json.entry_reference === s.raw_json?.entry_reference
           || ((s.currency || 'EUR') === input.currency && Number(s.amount) === input.amount
             && s.direction === input.direction && Date.parse(s.occurred_at) === Date.parse(input.occurred_at))));
+    if (old) claimed.add(old.id);
     const s = { ...input, id: old?.id || randomUUID() };
     const existing = old?.transaction_id ? pool.find((t) => t.id === old.transaction_id) : null;
     const excluded = new Set(pool.filter((t) => {

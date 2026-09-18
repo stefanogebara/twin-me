@@ -20,6 +20,7 @@ import { complete, TIER_ANALYSIS } from '../services/llmGateway.js';
 import { supabaseAdmin } from '../services/database.js';
 import { createLogger } from '../services/logger.js';
 import { getProfile } from '../services/personalityProfileService.js';
+import { LEDGER_TZ } from '../services/money/zone.js';
 import { filterBriefingInsights, BRIEFING_CATEGORY_WHITELIST } from '../services/briefingInsightFilter.js';
 
 // First-party sources that contain authentic user voice (same list used by twin chat).
@@ -70,8 +71,8 @@ router.get('/generate', authenticateUser, async (req, res) => {
     ]);
 
     const firstName = userProfile?.first_name || 'there';
-    const hour = getUserLocalHour(userProfile?.timezone);
-    const greeting = hour < 12 ? 'Good Morning' : hour < 17 ? 'Good Afternoon' : 'Good Evening';
+    const hour = localHourIn(userProfile?.timezone);
+    const greeting = greetingFor(hour);
 
     // 3. If no data at all, return a lightweight briefing (no LLM call = free)
     const hasAnyData = calendarEvents.length > 0 ||
@@ -294,19 +295,32 @@ async function fetchUserProfile(userId) {
 }
 
 /**
- * Get the current hour in the user's stored timezone.
- * Falls back to America/Sao_Paulo (primary market) if no timezone stored.
+ * The hour where the person is. Without a stored timezone the ledger's own zone is used
+ * (services/money/zone.js): the people here are students in Spain, and reading them in
+ * Sao Paulo put the greeting four hours out (2026-09-18).
  */
-function getUserLocalHour(timezone) {
-  const tz = timezone || 'America/Sao_Paulo';
-  try {
-    const hourStr = new Intl.DateTimeFormat('en-US', { timeZone: tz, hour: 'numeric', hour12: false }).format(new Date());
-    return parseInt(hourStr, 10);
-  } catch {
-    // Invalid timezone string — fall back to São Paulo (UTC-3)
-    const nowUtc = new Date();
-    return (nowUtc.getUTCHours() - 3 + 24) % 24;
+export function localHourIn(timezone, now = new Date()) {
+  for (const tz of [timezone, LEDGER_TZ]) {
+    if (!tz) continue;
+    try {
+      const hour = new Intl.DateTimeFormat('en-US', { timeZone: tz, hour: 'numeric', hour12: false }).format(now);
+      /* Midnight comes back as 24 in some runtimes. */
+      return parseInt(hour, 10) % 24;
+    } catch { /* not a zone: try the one below it */ }
   }
+  return now.getUTCHours();
+}
+
+/**
+ * What a person calls the hour. Everything before noon was morning, so the twin wished
+ * somebody good morning at twenty to one in the night (2026-09-18). Same rule as the page
+ * (src/components/chat/ChatEmptyState.tsx).
+ */
+export function greetingFor(hour) {
+  if (hour >= 5 && hour < 12) return 'Good Morning';
+  if (hour >= 12 && hour < 18) return 'Good Afternoon';
+  if (hour >= 18 && hour < 22) return 'Good Evening';
+  return 'Good Night';
 }
 
 async function fetchConnectedPlatforms(userId) {

@@ -240,3 +240,6 @@ audit-screenshots/
 
 # Simulator frame audits (mobile/scripts/frame-audit.sh)
 .frames/
+
+# A merge backup holds real payments; it never belongs in the repository.
+money-merge-backup*.json

@@ -113,8 +113,8 @@ export function freshBalance(accounts = [], now = new Date(), facts = [], transa
     const candidates = account ? [account] : selected;
     const at = Date.parse(t.occurred_at);
     if (!Number.isFinite(at) || at > current) return null;
-    // An unassigned alert predating an available balance may already be included.
-    // Without a bank link there is no defensible cash figure to show.
+    // An older unassigned payment may be in a snapshot, or still pending outside it.
+    // Its age cannot establish which. Reconciliation must resolve the evidence first.
     if (!account && !t.posted_at && candidates.some((a) => at <= Date.parse(a.balance_at))) return null;
     const uncovered = candidates.some((a) => at > Date.parse(a.balance_at)
       || (!t.posted_at && ['ITBD', 'CLBD'].includes(a.balance_type)));

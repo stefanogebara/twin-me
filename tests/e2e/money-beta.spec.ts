@@ -175,6 +175,28 @@ test('Today exposes its figure and conversation without a decorative globe', asy
   await moneyFixture(page); await page.goto('/money');
   await expect(page.locator('.mv-day-value')).toBeVisible();
   await expect(page.getByRole('button',{name:'Open conversation'})).toBeInViewport();
-  expect(await page.locator('main.mv').evaluate(e=>getComputedStyle(e).getPropertyValue('--section').trim())).toBe('40px');
+  expect(await page.locator('main.mv').evaluate(e=>getComputedStyle(e).getPropertyValue('--section').trim())).toBe((page.viewportSize()?.width || 1440) < 768 ? '96px' : '128px');
   await page.screenshot({path:test.info().outputPath('today.png'),fullPage:true});
 });
+
+
+for (const path of ['/money', '/money/chat']) {
+  test(`composer focus stays on its container on ${path}`, async ({page}) => {
+    await moneyFixture(page);
+    await page.goto(path);
+    const input = page.getByRole('textbox', {name:'Ask about your money'});
+    await input.click();
+    await expect(input).toBeFocused();
+    await expect(input).toHaveCSS('outline-style','none');
+    const frame = path === '/money' ? page.locator('.mv-home-ask') : page.locator('.mc-composer-inner');
+    await expect(frame).toHaveCSS('outline-style','solid');
+    await expect(frame).toHaveCSS('outline-width','2px');
+    await input.press('Tab');
+    await page.keyboard.press('Shift+Tab');
+    await expect(input).toBeFocused();
+    await expect(frame).toHaveCSS('outline-style','solid');
+    await input.fill('An editable question');
+    await expect(input).toHaveValue('An editable question');
+    await frame.screenshot({path:test.info().outputPath('composer-focus.png')});
+  });
+}

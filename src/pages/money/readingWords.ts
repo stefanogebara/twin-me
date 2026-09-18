@@ -153,26 +153,34 @@ export type Allowance = {
  * same numbers.
  */
 /* A bank is a name, not a phrase; the fallback stays outside the translator's reach. */
-const FIRST_BANK = 'Santander';
-const bankNames = (a: Allowance, t: T) => (a.balance?.banks || []).join(t(' and ')) || FIRST_BANK;
+/* The ledger writes "your bank" where the bank did not give its name, and the page said it
+   in the middle of a Portuguese sentence: "Dos 240,88 EUR que ha no your bank". A name is
+   kept as it is; a placeholder is words, and words are said in the reader's language. The
+   old fallback here named Santander, which is a fact about somebody's bank that nobody had
+   established (2026-09-18). */
+const UNNAMED_BANK = 'your bank';
+const bankNames = (a: Allowance, t: T) => (a.balance?.banks || [])
+  .map((bank) => (bank === UNNAMED_BANK ? t('your bank') : bank))
+  .join(t(' and ')) || t('your bank');
 
 export function allowanceWords(a: Allowance, t: T, locale: string): string | null {
   if (!a || a.amount === null || a.days_left === null) return a?.sentence ?? null;
   const days = Math.max(1, a.horizon?.days ?? ((a.days_left || 0) + 1));
   const keep = a.keep ? t(', keeping {amount}', { amount: euro(a.keep) }) : '';
   const base = a.base ?? null;
-  /* Two forms of the same phrase: one that starts a sentence and carries its preposition,
-     one bare for the middle of the over-spent line. Glued to a bare "From", Portuguese read
-     "De os 447,98 EUR" where it says "Dos" (2026-09-16), and no amount of string surgery on
-     a translated sentence fixes that honestly. */
-  const bare = a.basis === 'balance' && base !== null
-    ? t('the {amount} in {bank}', { amount: euro(base), bank: bankNames(a, t) }) + keep
+  /* Two forms of the same phrase, each carrying its own preposition: one that opens the
+     sentence ("Dos 447,98 EUR") and one that follows "that is" ("acima dos 447,98 EUR").
+     Portuguese fuses the preposition into the article, so a phrase built bare and glued
+     after one read "De os 447,98 EUR" (2026-09-16) and then "acima de os" in the over-spent
+     line (2026-09-18). No string surgery on a translated sentence fixes that honestly. */
+  const past = a.basis === 'balance' && base !== null
+    ? t('past the {amount} in {bank}', { amount: euro(base), bank: bankNames(a, t) }) + keep
     : a.basis === 'income' && base !== null
-      ? t('the {amount} you said comes in', { amount: euro(base) }) + keep
+      ? t('past the {amount} you said comes in', { amount: euro(base) }) + keep
       : a.basis === 'typical' && base !== null
-        ? t('your usual month of {amount}', { amount: euro(base) }) + keep
+        ? t('past your usual month of {amount}', { amount: euro(base) }) + keep
         : a.basis === 'student_prior' && base !== null
-          ? `${t(a.basis_label || 'a typical student month in Madrid on top of your rent')}, ${euro(base)}${keep}`
+          ? t('past {label}, {amount}', { label: t(a.basis_label || 'a typical student month in Madrid on top of your rent'), amount: euro(base) }) + keep
           : null;
   const basis = a.basis === 'balance' && base !== null
     ? t('From the {amount} in {bank}', { amount: euro(base), bank: bankNames(a, t) }) + keep
@@ -183,11 +191,11 @@ export function allowanceWords(a: Allowance, t: T, locale: string): string | nul
         : a.basis === 'student_prior' && base !== null
           ? t('From {label}, {amount}', { label: t(a.basis_label || 'a typical student month in Madrid on top of your rent'), amount: euro(base) }) + keep
           : null;
-  if (!basis || !bare) return a.sentence ?? null;
+  if (!basis || !past) return a.sentence ?? null;
 
   const daysWord = days === 1 ? t('{n} day', { n: 1 }) : t('{n} days', { n: days });
   if (a.over) {
-    return t('That is {amount} past {basis}, with {days} to go.', { amount: euro(Math.abs(a.free || 0)), basis: bare, days: daysWord });
+    return t('That is {amount} {past}, with {days} to go.', { amount: euro(Math.abs(a.free || 0)), past, days: daysWord });
   }
   const spoken: string[] = [];
   /* With the balance, what has been spent is already gone from it and is not said again. */
