@@ -113,10 +113,25 @@ export function freshBalance(accounts = [], now = new Date(), facts = [], transa
     const candidates = account ? [account] : selected;
     const at = Date.parse(t.occurred_at);
     if (!Number.isFinite(at) || at > current) return null;
-    // An older unassigned payment may be in a snapshot, or still pending outside it.
-    // Its age cannot establish which. Reconciliation must resolve the evidence first.
-    if (!account && !t.posted_at && candidates.some((a) => at <= Date.parse(a.balance_at))) return null;
-    const uncovered = candidates.some((a) => at > Date.parse(a.balance_at)
+    /* A payment the phone or a receipt saw carries no account and no posting of its own, so
+       whether the snapshot already holds it cannot be settled by its age -- a payment made
+       before a snapshot may sit inside it or still be pending outside it. The bank's own
+       reading settles it: read after the payment happened and still not reporting it, the
+       bank does not hold it, so it comes off. That is the evidence reconciliation itself
+       uses, and taking it off never overstates the money. Until the bank has been read
+       again nothing honest can be said, and the figure is withheld rather than guessed.
+       A payment later than every snapshot is settled by its date alone: it cannot be inside
+       one. Age alone had been the test, in both directions: assuming an older payment was
+       already booked let a real 260,16 EUR of unsettled payments stand inside the figure,
+       and abstaining for it threw away a 398,93 EUR balance and sent the day back to the
+       income the person had typed, which is the reading the balance replaced (2026-09-18). */
+    const afterEvery = candidates.every((a) => at > Date.parse(a.balance_at));
+    const readSince = candidates.every((a) => {
+      const pulled = Date.parse(a.last_pulled_at);
+      return Number.isFinite(pulled) && pulled > at;
+    });
+    if (!account && !t.posted_at && !afterEvery && !readSince) return null;
+    const uncovered = !account || candidates.some((a) => at > Date.parse(a.balance_at)
       || (!t.posted_at && ['ITBD', 'CLBD'].includes(a.balance_type)));
     if (uncovered) adjustment += Math.abs(Number(t.amount));
   }

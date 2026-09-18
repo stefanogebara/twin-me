@@ -327,18 +327,33 @@ describe('balance evidence', () => {
     const rows = [{ account_id: 'a', amount: -20, occurred_at: '2026-09-17T09:00:00Z', posted_at: null }];
     expect(freshBalance([{ ...account, balance_type: 'CLBD' }], now, [], rows).amount).toBe(80);
   });
-  it('withholds a balance estimate when an older alert has unknown overlap', () => {
+  /* A payment the phone or a receipt saw carries no account and no posting, so whether the
+     snapshot already holds it cannot be settled by its age -- but it can be settled by the
+     bank's own reading. Read after the payment happened and still not reporting it, the bank
+     does not hold it: it is taken off. That is the same evidence reconciliation uses, and it
+     never overstates the money. */
+  const read = (at) => ({ last_pulled_at: at });
+  it('takes off an older alert the bank has had its chance to book', () => {
+    const pulled = { ...account, ...read('2026-09-17T15:00:00Z') };
     const before = [{ amount: -20, occurred_at: '2026-09-17T09:00:00Z', posted_at: null, account_id: null }];
-    expect(freshBalance([account], now, [], before)).toBeNull();
+    expect(freshBalance([pulled], now, [], before)).toMatchObject({ amount: 80, adjustment: 20 });
     const after = [{ amount: -20, occurred_at: '2026-09-17T12:00:00Z', posted_at: null, account_id: null }];
-    expect(freshBalance([account], now, [], after)).toMatchObject({ amount: 80, adjustment: 20 });
+    expect(freshBalance([pulled], now, [], after)).toMatchObject({ amount: 80, adjustment: 20 });
   });
-  it('withholds the estimate when different account snapshots leave an alert ambiguous', () => {
+  /* Until the bank has been read again, the payment may be inside the snapshot or outside
+     it, and nothing about it can be said honestly. */
+  it('withholds the figure while the bank has not been read since the alert', () => {
+    const stale = { ...account, ...read('2026-09-17T08:00:00Z') };
+    const since = [{ amount: -20, occurred_at: '2026-09-17T09:00:00Z', posted_at: null, account_id: null }];
+    expect(freshBalance([stale], now, [], since)).toBeNull();
+    expect(freshBalance([{ ...account }], now, [], since)).toBeNull();
+  });
+  it('needs every account to have been read since, not merely one of them', () => {
     const older = { ...account, id: 'b', balance: 50, balance_at: '2026-09-17T08:00:00Z', balance_observed_at: '2026-09-17T08:00:00Z' };
-    const between = [{ amount: -20, occurred_at: '2026-09-17T09:00:00Z', posted_at: null, account_id: null }];
-    expect(freshBalance([account, older], now, [], between)).toBeNull();
-    const later = [{ amount: -20, occurred_at: '2026-09-17T12:00:00Z', posted_at: null, account_id: null }];
-    expect(freshBalance([account, older], now, [], later)).toMatchObject({ amount: 130, adjustment: 20 });
+    const rows = [{ amount: -20, occurred_at: '2026-09-17T09:00:00Z', posted_at: null, account_id: null }];
+    expect(freshBalance([{ ...account, ...read('2026-09-17T15:00:00Z') }, older], now, [], rows)).toBeNull();
+    const both = [{ ...account, ...read('2026-09-17T15:00:00Z') }, { ...older, ...read('2026-09-17T15:00:00Z') }];
+    expect(freshBalance(both, now, [], rows)).toMatchObject({ amount: 130, reported: 150, adjustment: 20 });
   });
   it('rejects foreign, future, partially stale and legacy observations', () => {
     expect(freshBalance([{ ...account, currency: 'USD' }], now)).toBeNull();
