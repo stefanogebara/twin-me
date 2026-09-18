@@ -359,6 +359,9 @@ async function recordAccess(userId, accountId, { attended = false, rowsSeen = nu
   if (error) log.warn(`feed access log failed: ${error.message}`);
 }
 
+/** How far back the first attended read reaches. Two years is the most a PSD2 bank offers. */
+export const FIRST_READ_DAYS = 730;
+
 export async function pullBankFeed(userId, { since, attended = false, psu = null, deadline = Date.now() + 40000 } = {}) {
   const accounts = await listBankAccounts(userId);
   if (!accounts.length) return [];
@@ -379,9 +382,16 @@ export async function pullBankFeed(userId, { since, attended = false, psu = null
       continue;
     }
     const resume = !since && acc.sync_checkpoint;
+    /* The first read of an account asks for everything the bank will give. PSD2 lets a bank
+       answer generously while the person is standing there having just authorised it, and
+       meanly afterwards, so the one attended read is the only chance at the months before
+       today: ninety days was all this ever asked for, and a person who joins in September
+       cannot be told what August cost. A bank that will not reach that far says so, and
+       fetchTransactions asks again for ninety days. Later reads only want what is new. */
+    const first = !acc.last_pulled_at && !resume;
     const from = since || resume?.from || (acc.last_pulled_at
       ? new Date(Date.parse(acc.last_pulled_at)-4*86400000).toISOString().slice(0,10)
-      : new Date(Date.now()-90*86400000).toISOString().slice(0,10));
+      : new Date(Date.now()-(first && attended ? FIRST_READ_DAYS : 90)*86400000).toISOString().slice(0,10));
     let key = resume?.key || null; let seen = 0; let created = 0; let pages = 0;
     const occurrences = new Map(resume?.occurrences || []);
     let outcome = 'ok'; let failure = null;

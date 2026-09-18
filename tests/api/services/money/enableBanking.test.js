@@ -312,3 +312,39 @@ describe('bank reference identity', () => {
     expect(second[0].source_ref).toBe(first[0].source_ref + '#2');
   });
 });
+
+
+/* Ninety days was all the first read ever asked for, so a person who joined in September
+   could not be told what August cost. The one attended read after authorising is the only
+   chance at the months behind, because a bank answers generously while the person is standing
+   there and meanly afterwards (2026-09-18). */
+describe('how far back the first read reaches', () => {
+  it('settles for ninety days when the bank will not reach further', async () => {
+    const saved = { fetch: global.fetch, id: process.env.ENABLE_BANKING_APP_ID, key: process.env.ENABLE_BANKING_PRIVATE_KEY };
+    const { generateKeyPairSync } = await import('node:crypto');
+    const { privateKey } = generateKeyPairSync('rsa', { modulusLength: 2048, privateKeyEncoding: { type: 'pkcs8', format: 'pem' }, publicKeyEncoding: { type: 'spki', format: 'pem' } });
+    process.env.ENABLE_BANKING_APP_ID = 'test-app';
+    process.env.ENABLE_BANKING_PRIVATE_KEY = privateKey;
+    resetApplicationEnvironment();
+    const asked = [];
+    global.fetch = async (url) => {
+      const u = String(url);
+      if (u.endsWith('/application')) return { ok: true, status: 200, text: async () => JSON.stringify({ name: 'TwinMe', environment: 'PRODUCTION' }) };
+      asked.push(new URL(u).searchParams.get('date_from'));
+      if (asked.length === 1) return { ok: false, status: 422, text: async () => JSON.stringify({ code: 422, message: 'date_from is too far in the past' }) };
+      return { ok: true, status: 200, text: async () => JSON.stringify({ transactions: [{ entry_reference: 'E1' }], continuation_key: null }) };
+    };
+    try {
+      const twoYears = new Date(Date.now() - 730 * 86400000).toISOString().slice(0, 10);
+      const page = await fetchTransactions('acc-1', twoYears);
+      expect(asked[0]).toBe(twoYears);
+      expect(asked[1]).toBe(new Date(Date.now() - 90 * 86400000).toISOString().slice(0, 10));
+      expect(page.rows).toHaveLength(1);
+    } finally {
+      global.fetch = saved.fetch;
+      resetApplicationEnvironment();
+      if (saved.id) process.env.ENABLE_BANKING_APP_ID = saved.id; else delete process.env.ENABLE_BANKING_APP_ID;
+      if (saved.key) process.env.ENABLE_BANKING_PRIVATE_KEY = saved.key; else delete process.env.ENABLE_BANKING_PRIVATE_KEY;
+    }
+  });
+});
