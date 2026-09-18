@@ -95,6 +95,38 @@ for (const [print, ids] of groups) {
   merges.push({ print, survivor, losers: lines.filter((t) => t.id !== survivor.id), evidence });
 }
 
+/* The same payment, settled. A bank re-words its own narrative between the pending reading
+   and the booked one -- "CONCEPTO Sin concepto" becomes "CONCEPTO: Sin concepto" -- and the
+   narrative is inside every name the feed computes, so the two readings share no identity at
+   all and the fingerprints above cannot see they are one payment. What they do share is the
+   account, the shop, the amount and the day the money left. A line still waiting on the bank
+   and a line the bank has settled are the two halves of one payment, never two payments: two
+   payments of one amount on one day are both settled, or both waiting.
+
+   Only a pair. Where more than one of each is waiting -- five Renfe journeys at 1,70 EUR in a
+   week -- nothing here can say which settled which, and they are left alone. */
+const settledPairs = [];
+const paired = new Set(merges.flatMap((m) => [m.survivor.id, ...m.losers.map((t) => t.id)]));
+const byPayment = new Map();
+for (const t of transactions) {
+  if (Number(t.amount) >= 0 || paired.has(t.id)) continue;
+  const evidence = sightingsOf.get(t.id) || [];
+  if (!evidence.some((s) => s.source === 'bankfeed')) continue;
+  const key = `${t.account_id || ''}|${t.merchant_key}|${Math.abs(Number(t.amount))}|${String(t.occurred_at).slice(0, 10)}`;
+  if (!byPayment.has(key)) byPayment.set(key, []);
+  byPayment.get(key).push(t);
+}
+for (const [key, lines] of byPayment) {
+  const waiting = lines.filter((t) => !t.posted_at);
+  const settled = lines.filter((t) => t.posted_at);
+  if (waiting.length !== 1 || settled.length !== 1) {
+    if (lines.length > 1) ambiguous.push({ print: key, lines, references: [`${waiting.length} waiting on the bank, ${settled.length} settled`] });
+    continue;
+  }
+  settledPairs.push({ print: key, survivor: settled[0], losers: waiting, evidence: lines.flatMap((t) => sightingsOf.get(t.id) || []) });
+}
+merges = merges.concat(settledPairs);
+
 /* A line that turns up in two groups would be merged twice, and the second pass could delete
    the line the first pass had just kept. Those groups are left for a person to read. */
 const seen = new Map();
