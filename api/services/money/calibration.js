@@ -24,7 +24,7 @@
  */
 
 import { dailyTotals } from './projection.js';
-import { dayIn, weekdayIn } from './zone.js';
+import { dayIn } from './zone.js';
 
 /** The miscoverage a p10..p90 band is meant to have. */
 export const ALPHA = 0.2;
@@ -34,8 +34,16 @@ export const ETA_SHARE = 0.1;
 export const ETA_WINDOW_DAYS = 60;
 /** Below this many scored days the widening is applied but the coverage is not quoted. */
 export const MIN_DAYS_TO_TRUST = 60;
-/** Weeks of history a day's forecast rests on. */
+/** Weeks of history a day's band rests on. */
 export const HISTORY_WEEKS = 12;
+/**
+ * How far back the day's own figure looks. Measured by rolling origin over 66 days of a real
+ * ledger (scripts/money/evaluate-day-forecast.mjs): two, three and four weeks miss by 23,98,
+ * 23,64 and 24,32 EUR, so anywhere in that range is the same answer and three weeks is the
+ * middle of it. Twelve weeks misses by 26,04, and the further back it looks the worse it
+ * reads, because a month ago is not this month.
+ */
+export const RECENT_DAYS = 21;
 
 const DAY = 86400000;
 const r2 = (n) => Math.round(Number(n) * 100) / 100;
@@ -45,12 +53,27 @@ function quantile(sorted, q) {
   const pos = (sorted.length - 1) * q; const lo = Math.floor(pos); const hi = Math.ceil(pos);
   return sorted[lo] + (sorted[hi] - sorted[lo]) * (pos - lo);
 }
-function median(xs) { const s = [...xs].sort((a, b) => a - b); return quantile(s, 0.5); }
 
 /**
- * What one day's discretionary spending is expected to be, from that weekday's history.
- * The point is the weekday median, the band the weekday's p10 and p90; a weekday with no
- * history borrows every day's. Null before there is a fortnight to read.
+ * What one day's discretionary spending is expected to be: what a day of theirs has cost
+ * lately, with a band from the spread of the last twelve weeks. Null before there is a
+ * fortnight to read.
+ *
+ * It read that weekday's median until 2026-09-18, which sounds right and is not. Most days
+ * cost nothing -- 35 of 66 on the ledger this was measured against -- so the median day costs
+ * nothing, and the figure was nothing nearly every day. Measured by rolling origin, it missed
+ * by 28,41 EUR where saying "you will spend nothing today" missed by 28,67: nine cents of
+ * skill. Its error equalled its bias exactly, which is what an estimate that is always zero
+ * looks like. The mean of a recent window missed by 23,64 EUR.
+ *
+ * The band is drawn from every day rather than that weekday alone, because twelve readings
+ * make a noisy edge and eighty-four make a steadier one: it held 61 days in 100 by weekday
+ * and 79 by all days, against the 80 it is meant to hold, and scored better doing it.
+ *
+ * Which weekdays are heavier is not lost, it is simply not this function's business:
+ * weekdayShare (allowance.js) shapes the day's allowance and has its own guards for a week
+ * that is mostly zeros.
+ *
  * @param {object[]} transactions  ledger rows { amount, occurred_at, is_recurring }
  * @param {Date|string} forDay     the day being forecast
  * @param {object} [opts]          { weeks = 12, isSpending }
@@ -65,12 +88,13 @@ export function dayForecast(transactions, forDay, opts = {}) {
   /* Zero-filled days are not history. A fortnight of days that had a payment is the least. */
   const seen = new Set(rows.filter((t) => { const d = new Date(t.occurred_at); return d >= from && d <= new Date(to.getTime() + DAY - 1); }).map((t) => dayOf(t.occurred_at)));
   if (seen.size < 14) return null;
-  const same = history.filter((d) => d.weekday === weekdayIn(target)).map((d) => d.total);
-  const pool = (same.length >= 4 ? same : history.map((d) => d.total)).sort((a, b) => a - b);
+  const pool = history.map((d) => d.total).sort((a, b) => a - b);
+  const recent = history.filter((d) => d.date > dayOf(new Date(to.getTime() - RECENT_DAYS * DAY))).map((d) => d.total);
+  const lately = recent.length ? recent : pool;
   return {
     kind: 'day_total',
     predicted_for: dayOf(target),
-    value: r2(median(pool)),
+    value: r2(lately.reduce((a, b) => a + b, 0) / lately.length),
     low: r2(quantile(pool, ALPHA / 2)),
     high: r2(quantile(pool, 1 - ALPHA / 2)),
   };

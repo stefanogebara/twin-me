@@ -86,15 +86,47 @@ function weekdayAverage(rows, target, weeks = 12) {
   return [...perDay.values()].reduce((a, b) => a + b, 0) / seen;
 }
 
+/* Every day in the window as a total, zeros included: the shape the day is drawn from. */
+function dailyPool(rows, target, weeks = 12) {
+  const from = target.getTime() - weeks * 7 * DAY;
+  const perDay = new Map();
+  for (let at = from; at < target.getTime(); at += DAY) perDay.set(dayIn(new Date(at)), 0);
+  for (const t of rows) {
+    const at = Date.parse(t.occurred_at);
+    if (at < from || at >= target.getTime()) continue;
+    if (Number(t.amount) >= 0 || !counts(t)) continue;
+    const key = dayIn(t.occurred_at);
+    if (perDay.has(key)) perDay.set(key, perDay.get(key) + Math.abs(Number(t.amount)));
+  }
+  return [...perDay.values()];
+}
+const mean = (xs) => (xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : null);
+
+/* A weekday of one's own has about twelve readings, which is not many; pulled part of the way
+   toward every day's average it keeps what is real about a Friday and drops what is noise. */
+function shrunkWeekday(rows, target, k = 6) {
+  const week = weekdayAverage(rows, target);
+  const whole = mean(dailyPool(rows, target));
+  if (week === null || whole === null) return whole;
+  const n = 12;
+  return (n * week + k * whole) / (n + k);
+}
+
 const methods = {
   'the model (weekday median)': (rows, target) => dayForecast(rows, target, opts)?.value ?? null,
+  'what two weeks cost, per day': (rows, target) => recentAverage(rows, target, 14),
+  'what three weeks cost, per day': (rows, target) => recentAverage(rows, target, 21),
   'what four weeks cost, per day': (rows, target) => recentAverage(rows, target),
+  'what six weeks cost, per day': (rows, target) => recentAverage(rows, target, 42),
+  'what eight weeks cost, per day': (rows, target) => recentAverage(rows, target, 56),
+  'what twelve weeks cost, per day': (rows, target) => mean(dailyPool(rows, target)),
   'this weekday, averaged': (rows, target) => weekdayAverage(rows, target),
+  'this weekday, pulled toward the whole': (rows, target) => shrunkWeekday(rows, target),
   'nothing at all': () => 0,
 };
 
 const scored = Object.fromEntries(Object.keys(methods).map((k) => [k, []]));
-const band = [];
+const band = []; const wide = [];
 for (const target of days) {
   const rows = before(target);
   const actual = dayActual(transactions, target, opts);
@@ -106,6 +138,11 @@ for (const target of days) {
     scored[name].push({ said, actual, error: said - actual });
   }
   band.push({ day: dayIn(target), low: cast.low, high: cast.high, actual, held: actual >= cast.low && actual <= cast.high, score: intervalScore(cast.low, cast.high, actual) });
+  /* The same band taken over every day rather than that weekday alone: twelve readings make a
+     noisy edge, eighty-four make a steadier one. */
+  const pool = dailyPool(rows, target).sort((a, b) => a - b);
+  const at = (q) => (pool.length ? pool[Math.min(pool.length - 1, Math.floor((pool.length - 1) * q))] : 0);
+  wide.push({ low: 0, high: at(0.9), actual, held: actual >= 0 && actual <= at(0.9), score: intervalScore(0, at(0.9), actual) });
 }
 
 const euros = (n) => `${Number(n).toFixed(2).replace('.', ',')} EUR`;
@@ -128,6 +165,8 @@ const width = band.reduce((s, b) => s + (b.high - b.low), 0) / band.length;
    the model proposes, before any widening. */
 console.log(`\nThe band the model proposes held on ${held} of ${band.length} days (${Math.round((held / band.length) * 100)}%), and it is meant to hold on 80%.`);
 console.log(`It is ${euros(width)} wide on an average day, and its interval score is ${euros(band.reduce((s, b) => s + b.score, 0) / band.length)} (lower is better).`);
+const wideHeld = wide.filter((b) => b.held).length;
+console.log(`Taken over every day instead of that weekday alone: held ${wideHeld} of ${wide.length} (${Math.round((wideHeld / wide.length) * 100)}%), ${euros(wide.reduce((s, b) => s + (b.high - b.low), 0) / wide.length)} wide, score ${euros(wide.reduce((s, b) => s + b.score, 0) / wide.length)}.`);
 
 const spentDays = scored['nothing at all'].filter((r) => r.actual > 0).length;
 console.log(`\n${spentDays} of ${band.length} days cost anything at all; the rest cost nothing.`);
