@@ -477,6 +477,7 @@ import importsRoutes from './routes/imports.js';
 import cronMemoryArchiveRoutes from './routes/cron-memory-archive.js';
 import cronMemoryForgettingRoutes from './routes/cron-memory-forgetting.js';
 import cronMoneyPullRoutes from './routes/cron-money-pull.js';
+import cronMoneyLearnRoutes from './routes/cron-money-learn.js';
 import cronSoulSignatureRegenRoutes from './routes/cron-soul-signature-regen.js';
 import cronPresenceCallsRoutes from './routes/cron-presence-calls.js';
 import webhooksElevenlabsRoutes from './routes/webhooks-elevenlabs.js';
@@ -731,6 +732,7 @@ app.use('/api/cron/claude-sync', cronClaudeSyncRoutes); // Claude Desktop cron s
 app.use('/api/cron/memory-archive', cronMemoryArchiveRoutes);    // Daily memory archival for large users
 app.use('/api/cron/memory-forgetting', cronMemoryForgettingRoutes); // Weekly multi-tier quality maintenance
 app.use('/api/cron/money-pull', cronMoneyPullRoutes); // Three bank reads a day, leaving one of the four for the person
+app.use('/api/cron/money-learn', cronMoneyLearnRoutes); // Once a day: the day written down and scored, for everyone with a ledger
 app.use('/api/cron/soul-signature-regen', cronSoulSignatureRegenRoutes); // Daily auto-regen of stale soul signatures (audit D-H2)
 app.use('/api/cron/presence-calls', cronPresenceCallsRoutes); // Hourly: dial the Presence elders whose local hour it is
 app.use('/api/webhooks/elevenlabs', webhooksElevenlabsRoutes); // Presence: post-call transcript (signed) and inbound-call initiation
