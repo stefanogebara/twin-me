@@ -39,7 +39,7 @@ loading surface. Test-first, one commit per task, explicit paths.
       sees Recados and Precisa de você only).
 
 ## Onboarding (README 6.1 step 3)
-- [ ] T7 "Três perguntas": after the voice note, a bounded three-turn chat that
+- [x] T7 "Três perguntas": after the voice note, a bounded three-turn chat that
       asks only what the extraction left open (who has died, never mention,
       what she loves telling). Server: `POST /:id/about/questions` returns the
       open questions from the readiness sources; answers land as facts through
