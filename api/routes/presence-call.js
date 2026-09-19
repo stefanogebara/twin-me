@@ -30,7 +30,7 @@ import {
 } from '../services/presenceStore.js';
 import { compileCallBrief } from '../services/presenceCallBrief.js';
 import { summarizeConversation } from '../services/presenceSummarizer.js';
-import { voiceService } from '../services/voiceService.js';
+import { voiceProvider } from '../services/voiceProvider.js';
 import { createLogger } from '../services/logger.js';
 
 const log = createLogger('PresenceCall');
@@ -89,8 +89,9 @@ router.get('/:token', async (req, res) => {
     // A private agent refuses a bare agent id; the browser starts the session with
     // this token instead. Without a key there is no token and the id is public.
     let conversationToken = null;
-    if (voiceService.isEnabled()) {
-      const issued = await voiceService.getConversationToken(agentId);
+    const voice = voiceProvider();
+    if (voice.isEnabled()) {
+      const issued = await voice.getConversationToken(agentId);
       if (!issued.success) {
         log.error('Conversation token not issued', { presenceId: presence.id, error: issued.error });
         return res.status(502).json({ success: false, error: 'The voice channel did not answer' });
@@ -190,11 +191,11 @@ router.post('/:token/complete', async (req, res) => {
 
     // With a key, the record ElevenLabs holds is the transcript: the browser's copy is
     // only kept while the call is still being processed there.
-    if (voiceService.isEnabled()) {
+    if (voiceProvider().isEnabled()) {
       if (!conversationId) {
         return res.status(400).json({ success: false, error: 'conversation_id is required' });
       }
-      const held = await voiceService.getConversation(conversationId);
+      const held = await voiceProvider().getConversation(conversationId);
       if (!held.success || held.conversation?.agent_id !== process.env.ELEVENLABS_PRESENCE_AGENT_ID) {
         log.warn('Completion refused: conversation unknown or not ours', { presenceId: presence.id, conversationId, error: held.error });
         return res.status(409).json({ success: false, error: 'Conversation not recognized' });

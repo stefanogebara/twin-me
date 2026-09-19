@@ -52,6 +52,6 @@ loading surface. Test-first, one commit per task, explicit paths.
       "no answer twice" already relays — add the second-day escalation.
 
 ## Provider adapter (README 5.3)
-- [ ] T9 `api/services/voiceProvider.js`: `startOutboundCall`, `getConversation`,
+- [x] T9 `api/services/voiceProvider.js`: `startOutboundCall`, `getConversation`,
       `verifyWebhook` behind one interface; ElevenLabs is the only implementation;
       the cron and the webhook route import the adapter.

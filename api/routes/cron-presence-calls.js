@@ -4,8 +4,8 @@
  * Every hour, dial the presences whose local clock says it is their hour
  * (presenceCallScheduling decides: her hour on her days, one dial a day, a
  * second attempt the hour after a no-answer). The brief is compiled at dial
- * time and travels as overrides; ElevenLabs places the call through its
- * Twilio integration and reports back on the post-call webhook.
+ * time and travels as overrides; the voice provider (voiceProvider.js:
+ * ElevenLabs today) places the call and reports back on the post-call webhook.
  *
  * Schedule: 0 * * * * (vercel.json). Security: CRON_SECRET.
  * Cost: one query when nothing is due; no LLM call here. PRESENCE_CALLS_ENABLED
@@ -21,7 +21,7 @@ import { logCronExecution } from '../services/cronLogger.js';
 import { listCallablePresences, listCallsSince, createCall } from '../services/presenceStore.js';
 import { isDue } from '../services/presenceCallScheduling.js';
 import { compileCallBrief } from '../services/presenceCallBrief.js';
-import { voiceService } from '../services/voiceService.js';
+import { voiceProvider } from '../services/voiceProvider.js';
 import { createLogger } from '../services/logger.js';
 
 const log = createLogger('CronPresenceCalls');
@@ -42,7 +42,8 @@ export function overridesFor(brief) {
 export async function dialDuePresences(now = new Date()) {
   const agentId = process.env.ELEVENLABS_PRESENCE_AGENT_ID;
   const phoneNumberId = process.env.ELEVENLABS_PRESENCE_PHONE_NUMBER_ID;
-  if (!agentId || !phoneNumberId || !voiceService.isEnabled()) {
+  const voice = voiceProvider();
+  if (!agentId || !phoneNumberId || !voice.isEnabled()) {
     return { skipped: 'not_configured', dialed: 0, failed: 0 };
   }
 
@@ -69,7 +70,7 @@ export async function dialDuePresences(now = new Date()) {
   for (const { presence, verdict } of due) {
     const firstCall = !presence.elder_assent_at;
     const brief = await compileCallBrief(presence, { firstCall });
-    const placed = await voiceService.startOutboundCall({
+    const placed = await voice.startOutboundCall({
       agentId,
       phoneNumberId,
       toNumber: presence.elder_phone,
