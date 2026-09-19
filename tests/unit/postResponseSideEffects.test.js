@@ -241,3 +241,58 @@ describe('the /verify profile cache is actually written', () => {
     expect(authSource).toMatch(/await\s+redisClient\.del\(`verify:/);
   });
 });
+
+// ---------------------------------------------------------------------------
+// Step granularity.
+//
+// Inngest runs each step in its OWN request with its own time budget. The
+// enrichment and the DB upsert used to share one step, so the save rode on
+// whatever time enrichment left over, and a failed save re-ran the entire paid
+// pipeline (Brave, PDL, two LLM calls) just to redo a write.
+// ---------------------------------------------------------------------------
+
+describe('profile enrichment is split into paid and free steps', () => {
+  beforeEach(() => {
+    enrichMock.mockReset();
+    saveMock.mockClear();
+  });
+
+  it('exposes the paid half and the free half separately', async () => {
+    const mod = await import('../../api/inngest/functions/profileEnrichment.js');
+    expect(typeof mod.runEnrichment).toBe('function');
+    expect(typeof mod.persistEnrichment).toBe('function');
+  });
+
+  it('runEnrichment unwraps the envelope and never writes', async () => {
+    enrichMock.mockResolvedValue({ success: true, data: { discovered_name: 'Ada', source: 'brave' } });
+    const { runEnrichment } = await import('../../api/inngest/functions/profileEnrichment.js');
+
+    const data = await runEnrichment({ userId: 'u1', email: 'ada@example.com' });
+
+    expect(data.discovered_name).toBe('Ada');
+    expect(data).not.toHaveProperty('success');
+    expect(saveMock).not.toHaveBeenCalled(); // the write belongs to the other step
+  });
+
+  it('runEnrichment returns null rather than a junk row when there is no data', async () => {
+    enrichMock.mockResolvedValue({ success: false, data: null });
+    const { runEnrichment } = await import('../../api/inngest/functions/profileEnrichment.js');
+    await expect(runEnrichment({ userId: 'u1', email: 'ada@example.com' })).resolves.toBeNull();
+  });
+
+  it('persistEnrichment writes without re-running the paid pipeline', async () => {
+    const { persistEnrichment } = await import('../../api/inngest/functions/profileEnrichment.js');
+
+    await persistEnrichment({ userId: 'u1', email: 'ada@example.com', data: { source: 'brave' } });
+
+    expect(saveMock).toHaveBeenCalledOnce();
+    expect(enrichMock).not.toHaveBeenCalled(); // this is what makes a save-retry free
+  });
+
+  it('the Inngest handler uses two named steps, not one combined step', async () => {
+    const src = readFileSync(path.join(API_DIR, 'inngest/functions/profileEnrichment.js'), 'utf8');
+    expect(src).toMatch(/step\.run\(\s*'enrich'/);
+    expect(src).toMatch(/step\.run\(\s*'save'/);
+    expect(src).not.toMatch(/step\.run\(\s*'enrich-and-save'/);
+  });
+});
