@@ -47,7 +47,7 @@ Status words: `todo` · `doing (who, date)` · `done (#PR, date)` · `blocked (w
 | ID | Task | Acceptance | Status |
 |---|---|---|---|
 | M0-1 | Coverage as a number for `api/services/money` and `src/pages/money`, threshold at today's value | CI fails below baseline | done (claude/loop-and-coverage) — `vitest.money.config.ts`: lines 65.19%, functions 58.78%, branches 52.41%, statements 61.52% over 67 files / 815 tests; floor 65/58/52/61 in CI |
-| M0-2 | Find the order-dependent flake behind `--retry=2`; remove the retry | ten green nightlies at `--retry=0` | todo |
+| M0-2 | Find the order-dependent flake behind `--retry=2`; remove the retry | ten green nightlies at `--retry=0` | doing (Claude, 2026-09-19): the full suite passed locally at `--retry=0` (457 files, 5 565 tests); the nightly now runs it without retries as a graded job ('Unit suite, no retries'), and the report card counts the nights. Drop `--retry=2` in ci.yml after ten greens |
 | M0-3 | Import-time canary: every `api/services/money/*.js` imports in < 2 s | fails today on `store.js` | done (claude/loadable-core, #432) — `tests/goals/money-imports.goal.test.js`, exception list empty |
 | M0-4 | Backup rehearsal before ledger-touching migrations | restore proven once | todo |
 

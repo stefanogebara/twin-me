@@ -166,9 +166,27 @@ jobs:
           SUPABASE_ANON_KEY: ci-stub-anon-key
           SUPABASE_SERVICE_ROLE_KEY: ci-stub-service-role-key
         run: npx vitest run tests/frontend/moneyAccountCache.test.tsx tests/api/services/money/bankIdentity.test.js tests/api/routes/cronMoneyLearn.test.js tests/api/routes/cronMoneyPull.test.js tests/api/services/money/allowance.test.js
+  # M0-2 (2026-09-19): the whole unit suite without the retry that hides its order flake. Ten
+  # green nights here, graded by the report card, are the evidence for dropping --retry=2 in CI.
+  unit-no-retry:
+    name: Unit suite, no retries
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci --legacy-peer-deps
+      - env:
+          SUPABASE_URL: https://ci-stub.supabase.co
+          SUPABASE_ANON_KEY: ci-stub-anon-key
+          SUPABASE_SERVICE_ROLE_KEY: ci-stub-service-role-key
+        run: npx vitest run --retry=0 --exclude '**/*.integration.test.js'
   report-card:
     name: Report card
-    needs: [money-safety, goals, money-imports, money-first, money-canaries]
+    needs: [money-safety, goals, money-imports, money-first, money-canaries, unit-no-retry]
     if: always()
     runs-on: ubuntu-latest
     timeout-minutes: 5
