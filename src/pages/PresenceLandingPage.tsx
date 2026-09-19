@@ -205,7 +205,7 @@ export default function PresenceLandingPage() {
 
         <div className="pc-nav-right">
           <Link className="pc-nav-login" to="/presence/login">Log in</Link>
-          <Link className="pc-btn pc-btn--secondary" to="/presence/onboarding">Sign up</Link>
+          <Link className="pc-btn pc-btn--secondary" to="/presence/signup">Sign up</Link>
         </div>
       </header>
 
@@ -226,7 +226,7 @@ export default function PresenceLandingPage() {
           <p className="pc-kicker">Presence</p>
           <h1 id="pc-hero-title">More time to talk. Less distance between you.</h1>
           <div className="pc-hero-actions">
-            <Link className="pc-btn pc-btn--cta" to="/presence/onboarding">Create a Presence</Link>
+            <Link className="pc-btn pc-btn--cta" to="/presence/signup">Create a Presence</Link>
             <a className="pc-textlink" href="#how">How it works <ChevronRight className="pc-chevron" aria-hidden="true" /></a>
           </div>
         </div>
@@ -366,7 +366,7 @@ export default function PresenceLandingPage() {
       <section className="pc-section pc-cta" aria-labelledby="pc-cta-title">
         <h2 className="pc-h2 pc-reveal" id="pc-cta-title">Start tonight.</h2>
         <div className="pc-cta-actions pc-reveal" style={{ '--d': '0.08s' } as React.CSSProperties}>
-          <Link className="pc-btn pc-btn--cta" to="/presence/onboarding">Create a Presence</Link>
+          <Link className="pc-btn pc-btn--cta" to="/presence/signup">Create a Presence</Link>
           <Link className="pc-textlink" to="/presence/login">Log in <ChevronRight className="pc-chevron" aria-hidden="true" /></Link>
         </div>
       </section>
