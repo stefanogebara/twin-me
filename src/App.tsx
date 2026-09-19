@@ -262,6 +262,7 @@ const App = () => {
             } />
             <Route path="/presence" element={<PresenceLandingPage />} />
             <Route path="/presence/login" element={<PresenceLoginPage />} />
+            <Route path="/presence/signup" element={<PresenceLoginPage mode="signup" />} />
             {/* Elder channel: public, token-authed. She has no account. */}
             <Route path="/call/:token" element={<PresenceCallPage />} />
             <Route path="/presence/home" element={

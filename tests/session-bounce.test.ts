@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { isPublicRoute, shouldBounceToExpiredAuth } from '../src/lib/sessionBounce';
+import { expiredAuthPath, isPublicRoute, shouldBounceToExpiredAuth } from '../src/lib/sessionBounce';
 
 // Repro for the anonymous-bounce bug (found 2026-07-19, present on prod):
 // a first-time visitor with no refresh cookie hit /waitlist and was hard-
@@ -64,5 +64,18 @@ describe('her call link is public (Presence, 2026-09-19)', () => {
   it('never bounces a stale family session off /call/:token — she has no account', () => {
     expect(isPublicRoute('/call/te2hCHJDIZDFEoo20fQ1njBBs2zSgHzF')).toBe(true);
     expect(shouldBounceToExpiredAuth(true, '/call/te2hCHJDIZDFEoo20fQ1njBBs2zSgHzF')).toBe(false);
+  });
+});
+
+describe('a Presence family member expires into Presence (2026-09-19)', () => {
+  it('sends a stale Presence session to the Presence sign-in, never the money one', () => {
+    expect(expiredAuthPath('/presence/home')).toBe('/presence/login?error=session_expired');
+    expect(expiredAuthPath('/presence/calls')).toBe('/presence/login?error=session_expired');
+    expect(expiredAuthPath('/presence/onboarding')).toBe('/presence/login?error=session_expired');
+  });
+
+  it('leaves every other product on the general sign-in', () => {
+    expect(expiredAuthPath('/money')).toBe('/auth?error=session_expired');
+    expect(expiredAuthPath('/dashboard')).toBe('/auth?error=session_expired');
   });
 });

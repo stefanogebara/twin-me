@@ -559,20 +559,9 @@ export function PresenceOnboardingExperience({ persistDraft = false, onExit }: P
   const toggleDay = (day: number) =>
     patch({ callDays: callDays.includes(day) ? callDays.filter((d) => d !== day) : [...callDays, day].sort((a, b) => a - b) });
 
-  const [menuOpen, setMenuOpen] = useState(false);
-
-  const namedPeople = people.filter((p) => p.name.trim()).length;
-  const keptStories = ANCHORS.filter((a) => anchors[a.key]?.trim()).length;
-  const relationshipSide = RELATIONSHIPS.find((r) => r.value === relationship)?.side ?? 'Alguém que você ama';
-
-  // The accreting record, in the sidebar. Order is the order it fills in, so
-  // it reads as a thing being written rather than a form mirror.
-  const plateFacts: Array<{ k: string; v: string; empty: string }> = [
-    { k: 'Chama você de', v: callerName.trim(), empty: 'ainda não' },
-    { k: 'Juntos', v: toneLabel(tone), empty: 'não escolhido' },
-    { k: 'As pessoas dela', v: namedPeople ? plural(namedPeople, 'nomeada', 'nomeadas') : '', empty: 'nenhuma ainda' },
-    { k: 'As histórias dela', v: keptStories ? plural(keptStories, 'guardada', 'guardadas') : '', empty: 'nenhuma ainda' },
-  ];
+  // 2026-09-19: the sidebar's record of what is still empty is gone. A first
+  // run shows one question and nothing else; what we understood is shown at the
+  // review step, where there is finally something to show.
 
   const aboutLine =
     aboutRec === 'recording' ? formatTime(aboutSeconds)
@@ -589,63 +578,20 @@ export function PresenceOnboardingExperience({ persistDraft = false, onExit }: P
 
   return (
     <main className="presence-cosmos pc-app obx" id="main-content">
-      <div className="pc-shell">
-        <div className="pc-topbar">
+      <div className="obx-shell">
+        {/* The only chrome a first run gets: the mark, how far along she is, and
+            the way out. No step list, no record of what is still empty. */}
+        <div className="obx-bar">
           <Link className="pc-side-brand" to="/presence" aria-label="Início da Presença"><Mark /></Link>
-          <button
-            className="pc-btn pc-btn--ghost"
-            onClick={() => setMenuOpen((open) => !open)}
-            aria-expanded={menuOpen}
-            aria-controls="obx-side"
-          >
-            Passo {stepIndex + 1} de {STEPS.length}
-          </button>
-        </div>
-
-        {/* ------------------------------------------------ the sidebar -- */}
-        <aside className={`pc-side${menuOpen ? ' is-open' : ''}`} id="obx-side" aria-label="Seu progresso">
-          <Link className="pc-side-brand" to="/presence" aria-label="Início da Presença"><Mark /></Link>
-
-          {/* The steps as plain links: the done ones go back, the rest wait. */}
-          <nav className="pc-side-nav" aria-label="Passos da configuração">
+          <p className="obx-progress" aria-label={`Passo ${stepIndex + 1} de ${STEPS.length}`}>
             {STEPS.map((s, index) => (
-              <button
-                key={s.id}
-                className="pc-side-link"
-                onClick={() => {
-                  if (index < stepIndex) {
-                    goTo(index);
-                    setMenuOpen(false);
-                  }
-                }}
-                disabled={index > stepIndex}
-                aria-current={index === stepIndex ? 'step' : undefined}
-              >
-                {s.short}
-              </button>
+              <span key={s.id} className={`obx-tick${index < stepIndex ? ' is-done' : index === stepIndex ? ' is-here' : ''}`} aria-hidden="true" />
             ))}
-          </nav>
-
-          {/* The thing being made: it starts nearly empty and fills in as the
-              answers arrive. */}
-          <div className="obx-record">
-            <p className={`obx-record-name${caredForName.trim() ? '' : ' is-empty'}`}>{caredForName.trim() || 'O nome dela'}</p>
-            <p className="pc-side-note">{relationshipSide}</p>
-            <dl className="obx-facts">
-              {plateFacts.map((f) => (
-                <div className="obx-fact" key={f.k}>
-                  <dt>{f.k}</dt>
-                  <dd className={f.v ? '' : 'is-empty'}>{f.v || f.empty}</dd>
-                </div>
-              ))}
-            </dl>
-            <p className="pc-side-note">Salvo conforme você avança</p>
-          </div>
-
-          <button className="pc-side-link" onClick={onExit ?? (() => window.history.back())}>
+          </p>
+          <button className="obx-leave" onClick={onExit ?? (() => window.history.back())}>
             {persistDraft ? 'Salvar e sair' : 'Sair da prévia'}
           </button>
-        </aside>
+        </div>
 
         {/* ------------------------------------------------- the column -- */}
         <section className="pc-col" aria-live="polite">
