@@ -588,7 +588,7 @@ router.get('/:id/overview', authenticateUser, async (req, res) => {
 // ====================================================================
 router.get('/:id/readiness', authenticateUser, async (req, res) => {
   try {
-    const owned = await loadOwned(req, res);
+    const owned = await loadMember(req, res, 'family');
     if (!owned) return;
     const readiness = await computeReadiness(owned);
     res.json({ success: true, ...readiness });

@@ -23,6 +23,7 @@ import {
   Trash2,
   User,
   UserCheck,
+  Users,
 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAnalytics } from '@/contexts/AnalyticsContext';
@@ -37,8 +38,11 @@ import {
   type PresenceConversationDetail,
   type PresenceOverview,
   type PresenceReadiness,
+  type CompanionOverview,
+  type PresenceMember,
 } from '@/services/api/presenceAPI';
 import LedgerOrb from '@/components/LedgerOrb';
+import PresenceCompanionHome from './PresenceCompanionHome';
 import '@/styles/presence-cosmos.css';
 import '@/styles/presence-home.css';
 
@@ -185,6 +189,10 @@ const NAV = [
   { href: '#settings', label: 'Configurações' },
 ];
 
+const ROLE_LABEL: Record<PresenceMember['role'], string> = { owner: 'Você', family: 'Familiar', companion: 'Cuidadora' };
+/** What the sidebar and the page hide from a family member: the owner's controls. */
+const OWNER_ONLY = new Set(['#voice', '#settings']);
+
 export default function PresenceHome() {
   const navigate = useNavigate();
   const { trackEvent } = useAnalytics();
@@ -198,6 +206,13 @@ export default function PresenceHome() {
   const [askDrafts, setAskDrafts] = useState<Record<string, { relation: string; calledBy: string }>>({});
   const [askBusy, setAskBusy] = useState<string | null>(null);
   const [voiceBusy, setVoiceBusy] = useState(false);
+  /** A companion's reduced page; the full overview stays null then. */
+  const [companion, setCompanion] = useState<CompanionOverview | null>(null);
+  const [members, setMembers] = useState<PresenceMember[]>([]);
+  const [inviteBusy, setInviteBusy] = useState<'family' | 'companion' | null>(null);
+  const [inviteLink, setInviteLink] = useState<{ url: string; role: 'family' | 'companion' } | null>(null);
+  const [inviteCopied, setInviteCopied] = useState(false);
+  const isOwner = (overview?.role ?? 'owner') === 'owner';
   const [statusBusy, setStatusBusy] = useState(false);
   const [deleteBusy, setDeleteBusy] = useState(false);
   const [openConv, setOpenConv] = useState<string | null>(null);
@@ -233,11 +248,22 @@ export default function PresenceHome() {
         setState('none');
         return;
       }
+      if (mine.role === 'companion') {
+        // The companion's page: no readiness mirror, no conversations.
+        const data = await presenceAPI.overview(mine.presence.id);
+        if (data.role === 'companion') {
+          setCompanion(data);
+          setState('ready');
+        } else {
+          setState('none');
+        }
+        return;
+      }
       const [data, ready] = await Promise.all([
         presenceAPI.overview(mine.presence.id),
         presenceAPI.readiness(mine.presence.id),
       ]);
-      if (data?.presence) {
+      if (data.role !== 'companion' && data?.presence) {
         setOverview(data);
         setReadiness(ready);
         setState('ready');
@@ -252,6 +278,52 @@ export default function PresenceHome() {
   useEffect(() => {
     void load();
   }, [load]);
+
+  const presenceId = overview?.presence.id ?? null;
+  useEffect(() => {
+    if (!presenceId || !isOwner) return;
+    let cancelled = false;
+    void presenceAPI.members(presenceId)
+      .then((res) => { if (!cancelled) setMembers(res.members || []); })
+      .catch((err) => { if (!cancelled) setError('members', err instanceof PresenceApiError ? 'Não consegui carregar quem acompanha.' : 'Sem conexão.'); });
+    return () => { cancelled = true; };
+  }, [presenceId, isOwner, setError]);
+
+  const makeInvite = useCallback(async (role: 'family' | 'companion') => {
+    if (!presenceId) return;
+    setInviteBusy(role);
+    setError('members', null);
+    setInviteCopied(false);
+    try {
+      const res = await presenceAPI.invite(presenceId, role);
+      setInviteLink({ url: `${window.location.origin}${res.join_path}`, role });
+    } catch (err) {
+      setError('members', err instanceof PresenceApiError ? 'Não consegui fazer o convite. Tente de novo.' : 'Sem conexão. Tente de novo.');
+    } finally {
+      setInviteBusy(null);
+    }
+  }, [presenceId, setError]);
+
+  const copyInvite = useCallback(async () => {
+    if (!inviteLink) return;
+    try {
+      await navigator.clipboard.writeText(inviteLink.url);
+      setInviteCopied(true);
+    } catch {
+      setError('members', 'Não consegui copiar. Selecione o link e copie.');
+    }
+  }, [inviteLink, setError]);
+
+  const dropMember = useCallback(async (userId: string) => {
+    if (!presenceId) return;
+    setError('members', null);
+    try {
+      await presenceAPI.removeMember(presenceId, userId);
+      setMembers((current) => current.filter((m) => m.user_id !== userId));
+    } catch (err) {
+      setError('members', err instanceof PresenceApiError ? 'Não consegui remover. Tente de novo.' : 'Sem conexão. Tente de novo.');
+    }
+  }, [presenceId, setError]);
 
   useEffect(() => {
     if (state === 'none') navigate('/presence/onboarding', { replace: true });
@@ -268,10 +340,10 @@ export default function PresenceHome() {
       <Link className="pc-side-brand" to="/presence" aria-label="Presença"><Mark /></Link>
       <nav className="pc-side-nav" aria-label="A Presença dela">
         <Link className="pc-side-link" to="/presence/home" aria-current="page">Início</Link>
-        {NAV.map((item) => (
+        {NAV.filter((item) => isOwner || !OWNER_ONLY.has(item.href)).map((item) => (
           <a className="pc-side-link" href={item.href} key={item.href} onClick={() => setMenuOpen(false)}>{item.label}</a>
         ))}
-        <Link className="pc-side-link" to="/presence/onboarding">Sobre ela</Link>
+        {isOwner ? <Link className="pc-side-link" to="/presence/onboarding">Sobre ela</Link> : null}
       </nav>
     </aside>
   );
@@ -289,6 +361,10 @@ export default function PresenceHome() {
       </button>
     </div>
   );
+
+  if (state === 'ready' && companion) {
+    return <PresenceCompanionHome overview={companion} reload={load} />;
+  }
 
   if (state !== 'ready' || !overview) {
     return (
@@ -627,6 +703,8 @@ export default function PresenceHome() {
             <p className="pc-apphead-line">{ledger}</p>
           </header>
 
+          {isOwner && (
+          <>
           <section className="pc-appsection" id="link">
             <div className="pc-sechead">
               <h2 className="pc-sechead-title">O link dela</h2>
@@ -711,6 +789,9 @@ export default function PresenceHome() {
             </ul>
           </section>
 
+                    </>
+          )}
+
           <section className="pc-appsection" id="calls">
             <div className="pc-sechead">
               <h2 className="pc-sechead-title">Ligações</h2>
@@ -723,11 +804,13 @@ export default function PresenceHome() {
                   <p className="pc-row-title">Celular dela</p>
                   <p className="pc-row-line">{elderPhone || 'Não cadastrado'}</p>
                 </div>
-                <div className="pc-row-action">
-                  <button className="pc-btn pc-btn--ghost" onClick={openPhoneEditor} aria-expanded={phoneOpen} aria-controls="dsh-phone-form">
-                    {elderPhone ? 'Alterar' : 'Cadastrar'}
-                  </button>
-                </div>
+                {isOwner ? (
+                  <div className="pc-row-action">
+                    <button className="pc-btn pc-btn--ghost" onClick={openPhoneEditor} aria-expanded={phoneOpen} aria-controls="dsh-phone-form">
+                      {elderPhone ? 'Alterar' : 'Cadastrar'}
+                    </button>
+                  </div>
+                ) : <span />}
               </li>
               {phoneOpen && (
                 <li className="pc-subrow dsh-form" id="dsh-phone-form">
@@ -763,11 +846,13 @@ export default function PresenceHome() {
                   <p className="pc-row-title">Horário</p>
                   <p className="pc-row-line">{hourLabel(callHour)}, {formatDays(callDays)}</p>
                 </div>
-                <div className="pc-row-action">
-                  <button className="pc-btn pc-btn--ghost" onClick={openScheduleEditor} aria-expanded={scheduleOpen} aria-controls="dsh-schedule-form">
-                    Alterar
-                  </button>
-                </div>
+                {isOwner ? (
+                  <div className="pc-row-action">
+                    <button className="pc-btn pc-btn--ghost" onClick={openScheduleEditor} aria-expanded={scheduleOpen} aria-controls="dsh-schedule-form">
+                      Alterar
+                    </button>
+                  </div>
+                ) : <span />}
               </li>
               {scheduleOpen && (
                 <li className="pc-subrow dsh-form" id="dsh-schedule-form">
@@ -1148,6 +1233,8 @@ export default function PresenceHome() {
             )}
           </section>
 
+          {isOwner && (
+          <>
           <section className="pc-appsection" id="voice">
             <div className="pc-sechead">
               <h2 className="pc-sechead-title">A sua voz</h2>
@@ -1176,6 +1263,11 @@ export default function PresenceHome() {
             )}
           </section>
 
+                    </>
+          )}
+
+          {isOwner && (
+          <>
           <section className="pc-appsection" id="settings">
             <div className="pc-sechead">
               <h2 className="pc-sechead-title">Configurações</h2>
@@ -1210,7 +1302,63 @@ export default function PresenceHome() {
               {errorRow('delete')}
             </ul>
           </section>
-        </div>
+
+          <section className="pc-appsection" id="members">
+            <div className="pc-sechead">
+              <h2 className="pc-sechead-title">Quem acompanha</h2>
+              <p className="pc-sechead-line">A família vê as conversas. A cuidadora vê só o que ela precisa.</p>
+            </div>
+            <ul className="pc-list">
+              {members.map((m) => (
+                <li className="pc-row" key={m.id}>
+                  <span className="pc-row-icon" aria-hidden="true"><Users /></span>
+                  <div className="pc-row-text">
+                    <p className="pc-row-title">{ROLE_LABEL[m.role]}</p>
+                    <p className="pc-row-line">{m.role === 'owner' ? 'Quem criou a Presença.' : `Entrou em ${new Date(m.created_at).toLocaleDateString('pt-BR', { day: 'numeric', month: 'long' })}.`}</p>
+                  </div>
+                  {m.role === 'owner' ? <span /> : (
+                    <div className="pc-row-action">
+                      <button className="pc-btn pc-btn--ghost" onClick={() => dropMember(m.user_id)}>Remover</button>
+                    </div>
+                  )}
+                </li>
+              ))}
+              <li className="pc-row pc-row--plain dsh-form">
+                <div className="dsh-form-actions">
+                  <button className="pc-btn pc-btn--ghost" onClick={() => makeInvite('family')} disabled={inviteBusy !== null}>
+                    {inviteBusy === 'family' ? <Loader2 className="pc-spin" size={14} /> : null} Convidar familiar
+                  </button>
+                  <button className="pc-btn pc-btn--ghost" onClick={() => makeInvite('companion')} disabled={inviteBusy !== null}>
+                    {inviteBusy === 'companion' ? <Loader2 className="pc-spin" size={14} /> : null} Convidar cuidadora
+                  </button>
+                </div>
+                {inviteLink ? (
+                  <>
+                    <p className="pc-row-title">{inviteLink.url}</p>
+                    <p className="pc-row-line">{inviteLink.role === 'family' ? 'Convite de familiar.' : 'Convite de cuidadora.'} Vale sete dias, para uma pessoa.</p>
+                    <div className="dsh-form-actions">
+                      <a
+                        className="pc-btn pc-btn--primary"
+                        href={`https://wa.me/?text=${encodeURIComponent(`Quer acompanhar a ${name} comigo na Presença? Entre por este link: ${inviteLink.url}`)}`}
+                        target="_blank"
+                        rel="noreferrer"
+                      >
+                        Mandar no WhatsApp
+                      </a>
+                      <button className="pc-btn pc-btn--ghost" onClick={copyInvite}>
+                        {inviteCopied ? <Check size={14} /> : <Copy size={14} />} {inviteCopied ? 'Copiado' : 'Copiar'}
+                      </button>
+                    </div>
+                  </>
+                ) : null}
+                {errors.members ? <p className="dsh-detail" role="alert">{errors.members}</p> : null}
+              </li>
+            </ul>
+          </section>
+          </>
+          )}
+
+                  </div>
       </div>
     </main>
   );

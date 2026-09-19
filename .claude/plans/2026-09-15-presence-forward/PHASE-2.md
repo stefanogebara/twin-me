@@ -12,13 +12,13 @@ loading surface. Test-first, one commit per task, explicit paths.
       (`fetchCallConfig` → `{ call } | { error: 'gone' | 'unavailable' }`; b1261468).
 
 ## Members and the companion role (README 7.3)
-- [ ] T3 `20260919_presence_members.sql`: `presence_members(presence_id, user_id,
+- [x] T3 `20260919_presence_members.sql`: `presence_members(presence_id, user_id,
       role owner|family|companion, invited_by)` unique per pair, owners backfilled;
       `presence_invites(presence_id, role, token, created_by, expires_at,
       accepted_by, accepted_at)`. Store: `listMembers`, `findMembership`,
       `addMember`, `removeMember`, `createInvite`, `findInviteByToken`,
       `acceptInvite`, `listPresencesForMember`. Tests pin the query shapes.
-- [ ] T4 `loadMember(req, res, { atLeast })` replaces `loadOwned` where a role
+- [x] T4 `loadMember(req, res, { atLeast })` replaces `loadOwned` where a role
       may read: owner everything; family: overview (all but settings), notes,
       asks, conversations; companion: overview reduced to `presence` (name,
       schedule), `notes`, and `needs` (per conversation: id, called_at,
@@ -29,10 +29,10 @@ loading surface. Test-first, one commit per task, explicit paths.
       (any signed-in user; owner cannot join own; idempotent), `DELETE
       /:id/members/:userId` (owner, not self). `GET /mine` answers the owner's
       presence first, else the first membership, with `role`.
-- [ ] T5 Relay to members: the digest goes to every owner/family member with
+- [x] T5 Relay to members: the digest goes to every owner/family member with
       WhatsApp linked; a companion gets only the needs line when there is one,
       and the urgent message. `getMemberWhatsApp(presenceId)` in the store.
-- [ ] T6 Family page: section "Quem acompanha" under Configurações (owner):
+- [x] T6 Family page: section "Quem acompanha" under Configurações (owner):
       members with role, remove, "Convidar familiar" / "Convidar cuidadora" →
       link + WhatsApp share. `/presence/join/:token` page: sign in if needed,
       accept, land on `/presence/home`. The home renders by role (a companion

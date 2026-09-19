@@ -216,3 +216,12 @@ describe('POST / (a new presence)', () => {
     expect(store.addMember).toHaveBeenCalledWith({ presence_id: PRESENCE_ID, user_id: OWNER, role: 'owner', invited_by: null });
   });
 });
+
+describe('GET /:id/readiness', () => {
+  it('a family member may read what she knows; a companion may not', async () => {
+    store.getReadinessSources = store.getReadinessSources || vi.fn();
+    store.findMembership.mockResolvedValue(ok({ role: 'companion' }));
+    const denied = await request(app()).get(`/api/presence/${PRESENCE_ID}/readiness`).set('Authorization', as(CUIDADORA));
+    expect(denied.status).toBe(404);
+  });
+});
