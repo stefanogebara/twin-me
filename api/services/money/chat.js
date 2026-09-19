@@ -40,6 +40,7 @@ import { markCounted, personRoles } from './spending.js';
 import { calendarLines } from './calendar.js';
 import { safeToSpend, allowanceLine } from './allowance.js';
 import { partsIn, weekdayIn } from './zone.js';
+import { quietly } from './quietly.js';
 
 const log = createLogger('money-chat');
 
@@ -803,8 +804,8 @@ export async function answer(userId, message, history = [], { now = new Date() }
   if (!text) return { text: NO_ANSWER, figures: [], actions: [], receipts: [] };
   const ctx = await gather(userId, now);
   const keep = async (reply) => {
-    await saveChatTurn(userId, { role: 'user', text }).catch(() => null);
-    await saveChatTurn(userId, { role: 'twin', text: reply.text, figures: reply.figures || null, actions: reply.actions || null, basis: reply.basis || null, receipts: reply.receipts || null }).catch(() => null);
+    await saveChatTurn(userId, { role: 'user', text }).catch(quietly('chat/save-user-turn', null));
+    await saveChatTurn(userId, { role: 'twin', text: reply.text, figures: reply.figures || null, actions: reply.actions || null, basis: reply.basis || null, receipts: reply.receipts || null }).catch(quietly('chat/save-twin-turn', null));
     return reply;
   };
   if (!ctx.transactions.length) return keep({ text: say(ctx.language, EMPTY_LEDGER), figures: [], actions: [], receipts: [] });

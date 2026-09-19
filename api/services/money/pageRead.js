@@ -17,6 +17,7 @@ import { accountsWithCards } from './instruments.js';
 import { moneyCapabilities } from './betaCapabilities.js';
 import { inboxAddress, inboxDomain, isInboxConfigured } from './inbox.js';
 import { firstOfMonthIn } from './zone.js';
+import { quietly } from './quietly.js';
 
 export const PAGE_VIEWS = new Set(['today', 'month', 'you']);
 /** The whole ledger, as the page shows it: the client used to page through it 200 at a time. */
@@ -24,7 +25,7 @@ const LEDGER_LIMIT = 20000;
 
 /** The bank accounts as the page shows them: each with its cards and its own connection state. */
 export async function accountsView(userId) {
-  const [accounts, gone] = await Promise.all([listBankAccounts(userId), reconnectByAccount(userId).catch(() => new Set())]);
+  const [accounts, gone] = await Promise.all([listBankAccounts(userId), reconnectByAccount(userId).catch(quietly('page/reconnect-check', () => new Set()))]);
   /* The connection's state travels with the accounts, each with its own: a month that
      stopped moving because one bank ended its session must say which bank, and not send
      the person to reconnect the other. */

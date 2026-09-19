@@ -57,7 +57,7 @@ Status words: `todo` · `doing (who, date)` · `done (#PR, date)` · `blocked (w
 |---|---|---|---|
 | M1-1 | QW1 + QW2 + QW3 | as above | see Now |
 | M1-2 | `validate(schema)` middleware; every money route, then top-20 legacy | 400 with a named field on a bad body | todo |
-| M1-3 | Name every swallowed error in money (`.catch(() => null)` → counted outcome) | grep count 0 in money | todo |
+| M1-3 | Name every swallowed error in money (`.catch(() => null)` → counted outcome) | grep count 0 in money | done (#434, 2026-09-19): `quietly(name, fallback)` in `api/services/money/quietly.js` logs and counts each; the 26 anonymous catches are named (readings/facts, bank-callback/record-refused, ...); `tests/goals/money-quiet-failures.goal.test.js` holds the count at 0 and the names unique |
 | M1-4 | Revocation on serverless: fail closed when Redis is down (recommended) | documented + tested | blocked (Stefano to confirm fail-closed) |
 
 ### Milestone 2 — high-leverage

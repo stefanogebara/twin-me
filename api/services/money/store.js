@@ -38,6 +38,7 @@ export { listTransactions, transactionPage } from './transactionRepository.js';
 import { INTERNAL_FACT_KINDS, listFacts, categoriesFor } from './factsRepository.js';
 export { INTERNAL_FACT_KINDS, listFacts, categoriesFor } from './factsRepository.js';
 import { forecast, months, scorePredictions } from './forecastService.js';
+import { quietly } from './quietly.js';
 export { forecast, months, scorePredictions } from './forecastService.js';
 
 const log = createLogger('money-store');
@@ -385,7 +386,7 @@ export async function refreshReadings(userId, now = new Date()) {
       if (r.error) throw new Error(`Cannot read recurring commitments: ${r.error.message}`);
       return r.data || [];
     }),
-    listFacts(userId, { includeInternal: true }).catch(() => []),
+    listFacts(userId, { includeInternal: true }).catch(quietly('readings/facts', () => [])),
   ]);
   const names = new Map();
   for (const t of transactions) if (t.merchant_raw && !names.has(t.merchant_key)) names.set(t.merchant_key, t.merchant_raw);
@@ -400,12 +401,12 @@ export async function refreshReadings(userId, now = new Date()) {
   /* The two lines with a trial behind them (nudges.js): a week's charges the month cannot
      carry, and the largest named charge due within three days. Both need the forecast and
      the allowance; neither is spoken without a basis. */
-  const cast = await forecast(userId, now).catch(() => null);
+  const cast = await forecast(userId, now).catch(quietly('readings/forecast', null));
   const allowance = cast ? safeToSpend({ cast, segments, facts, now }) : null;
   /* Who still owes what for a shared payment (bizum.js): said while it is open, quiet once settled. */
   /* What it got wrong, in its own numbers (predictions.js): one line, only once there is a
      scored month or enough scored charges to be worth saying. */
-  const own = ownScoreFinding(await accuracy(userId).catch(() => null));
+  const own = ownScoreFinding(await accuracy(userId).catch(quietly('readings/accuracy', null)));
   /* What changed against the person's own past (deltas.js): a kind of place up or down
      against its usual week, a habit gone quiet, a weekday out of line, the week's pace. */
   const profiles = learnMerchants(transactions, { now, categoryOf });
@@ -502,7 +503,7 @@ export async function moneyContext(userId, now = new Date()) {
   /* Internal rows included: the calendar keeps everything it learned in two of them, and the
      block below read a filtered list, so the twin's calendar was always null (2026-09-16).
      Nothing here shows a fact raw; describeContext names the kinds it speaks. */
-  const facts = await listFacts(userId, { includeInternal: true }).catch(() => []);
+  const facts = await listFacts(userId, { includeInternal: true }).catch(quietly('context/facts', () => []));
   const segments = monthSegments(transactions, now, spendingRule(facts));
   const here = segments[0];
   const before = segments[1] || null;
@@ -592,7 +593,7 @@ export async function categorySpend(userId, { month = null } = {}) {
   if (error) throw new Error(error.message);
   /* A transfer to a friend is not where the money went; it is money that moved. The same
      rule the forecast uses, so the hero and this list add up to the same euros. */
-  const facts = await listFacts(userId).catch(() => []);
+  const facts = await listFacts(userId).catch(quietly('categories/facts', () => []));
   const counts = spendingRule(facts);
   const roles = personRoles(facts);
   const rows = (all || []).filter(counts);
@@ -893,7 +894,7 @@ export async function learn(userId, now = new Date()) {
 
   const profiles = learnMerchants(transactions, { now, categoryOf, priors });
   /* Days the calendar says were spent away are not silence (covariates.js). */
-  const { away } = calendarFromFacts(await listFacts(userId, { includeInternal: true }).catch(() => []), { now });
+  const { away } = calendarFromFacts(await listFacts(userId, { includeInternal: true }).catch(quietly('learn/facts', () => [])), { now });
   const predictions = predictNext(profiles, { now, away });
   const patterns = learnPatterns({ transactions, profiles, categoryOf, now });
   const summary = describeForTwin({ profiles, patterns, predictions, now });
@@ -957,7 +958,7 @@ export async function questionsFor(userId, now = new Date()) {
     listFacts(userId),
     listEuroTransactions(userId, { limit: 5000 }),
     supabaseAdmin.from('money_questions_asked').select('question_id, skipped').eq('user_id', userId).then((r) => r.data || []),
-    listBankAccounts(userId).catch(() => []),
+    listBankAccounts(userId).catch(quietly('questions/accounts', () => [])),
   ]);
   const declined = new Set(asked.filter((a) => a.skipped).map((a) => a.question_id));
   const keys = [...new Set(transactions.map((t) => t.merchant_key))];

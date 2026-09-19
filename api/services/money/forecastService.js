@@ -20,6 +20,7 @@ import { calendarForecast } from './calendar.js';
 import { dayIn } from './zone.js';
 import { listEuroTransactions, listTransactions } from './transactionRepository.js';
 import { listFacts } from './factsRepository.js';
+import { quietly } from './quietly.js';
 
 const log = createLogger('money-forecast');
 
@@ -103,7 +104,7 @@ export async function forecast(userId, now = new Date()) {
 }
 
 export async function months(userId, now = new Date()) {
-  const [transactions, facts] = await Promise.all([listEuroTransactions(userId, { limit: 5000 }), listFacts(userId).catch(() => [])]);
+  const [transactions, facts] = await Promise.all([listEuroTransactions(userId, { limit: 5000 }), listFacts(userId).catch(quietly('forecast/facts', () => []))]);
   return monthSegments(transactions, now, spendingRule(facts));
 }
 
