@@ -266,6 +266,41 @@ const App = () => {
                 </ErrorBoundary>
               </ProtectedRoute>
             } />
+            <Route path="/presence/calls" element={
+              <ProtectedRoute fallbackPath="/presence/login">
+                <ErrorBoundary>
+                  <PresenceHome page="calls" />
+                </ErrorBoundary>
+              </ProtectedRoute>
+            } />
+            <Route path="/presence/conversations" element={
+              <ProtectedRoute fallbackPath="/presence/login">
+                <ErrorBoundary>
+                  <PresenceHome page="conversations" />
+                </ErrorBoundary>
+              </ProtectedRoute>
+            } />
+            <Route path="/presence/notes" element={
+              <ProtectedRoute fallbackPath="/presence/login">
+                <ErrorBoundary>
+                  <PresenceHome page="notes" />
+                </ErrorBoundary>
+              </ProtectedRoute>
+            } />
+            <Route path="/presence/people" element={
+              <ProtectedRoute fallbackPath="/presence/login">
+                <ErrorBoundary>
+                  <PresenceHome page="people" />
+                </ErrorBoundary>
+              </ProtectedRoute>
+            } />
+            <Route path="/presence/settings" element={
+              <ProtectedRoute fallbackPath="/presence/login">
+                <ErrorBoundary>
+                  <PresenceHome page="settings" />
+                </ErrorBoundary>
+              </ProtectedRoute>
+            } />
             {/* An invite link: sign in, then the membership is written. */}
             <Route path="/presence/join/:token" element={
               <ProtectedRoute fallbackPath="/presence/login">

@@ -30,6 +30,7 @@ import {
 } from '../services/presenceStore.js';
 import { compileCallBrief } from '../services/presenceCallBrief.js';
 import { summarizeConversation } from '../services/presenceSummarizer.js';
+import { relayCall } from '../services/presenceRelay.js';
 import { voiceProvider } from '../services/voiceProvider.js';
 import { createLogger } from '../services/logger.js';
 
@@ -237,10 +238,18 @@ router.post('/:token/complete', async (req, res) => {
       if (notesError) log.error('Queued notes not marked delivered', { error: notesError.message });
     }
 
-    // Summarize in the background; the elder page never waits on an LLM.
-    summarizeConversation(conversation.id, presence, transcript).catch((err) =>
-      log.error('Background summary failed', { error: err.message }),
-    );
+    // Summarize and relay in the background; the elder page never waits on an LLM.
+    // The family hears about a web call the way they hear about a phone call.
+    summarizeConversation(conversation.id, presence, transcript)
+      .then((summary) => relayCall(presence, {
+        id: conversation.id,
+        presence_id: presence.id,
+        summary: summary.summary,
+        needs_family: summary.needsFamily,
+        urgency: summary.urgency,
+      }))
+      .then((relayed) => { if (!relayed?.sent) log.warn('Web call not relayed', { conversationId: conversation.id, reason: relayed?.reason }); })
+      .catch((err) => log.error('Background summary or relay failed', { error: err.message }));
 
     res.status(201).json({ success: true, conversation_id: conversation.id });
   } catch (err) {

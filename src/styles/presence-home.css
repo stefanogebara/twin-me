@@ -96,3 +96,21 @@
   color: var(--c-ink);
 }
 .presence-cosmos .pc-loading .pc-empty { margin: 0; }
+
+/* --------------------------------------------------------- the six pages -- */
+/* 2026-09-19: sections 240px apart on a desktop (Stefano), 120 on a phone;
+   the row that goes somewhere carries a chevron in the action slot. */
+.presence-cosmos.dsh .pc-appsection + .pc-appsection { margin-top: 240px; }
+@media (max-width: 767px) {
+  .presence-cosmos.dsh .pc-appsection + .pc-appsection { margin-top: 120px; }
+}
+.presence-cosmos.dsh .pc-row-go {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  color: var(--c-ink-2);
+  border-radius: 4px;
+}
+.presence-cosmos.dsh .pc-row-go:hover { background: rgba(37, 31, 33, 0.05); color: var(--c-ink); }
