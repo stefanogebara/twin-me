@@ -9,7 +9,7 @@
  */
 import type { OrbState } from '../../components/LedgerOrb';
 
-export type CallState = 'loading' | 'invalid' | 'ready' | 'connecting' | 'live' | 'saving' | 'done' | 'lost' | 'error';
+export type CallState = 'loading' | 'invalid' | 'unavailable' | 'ready' | 'connecting' | 'live' | 'saving' | 'done' | 'lost' | 'error';
 export type OrbMode = 'idle' | 'listening' | 'speaking';
 
 export type CallOrb = { state: OrbState; size: number; speed: number };

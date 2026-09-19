@@ -95,15 +95,21 @@ export default function PresenceCallPage() {
     if (data) setHome(data);
   }, [token]);
 
+  /** Bumped by "Tentar de novo" when the channel did not answer; re-runs the load. */
+  const [loadTry, setLoadTry] = useState(0);
+
   useEffect(() => {
     let cancelled = false;
+    setState('loading');
     void (async () => {
-      const [call, homeData] = await Promise.all([fetchCallConfig(token), fetchCallHome(token)]);
+      const [got, homeData] = await Promise.all([fetchCallConfig(token), fetchCallHome(token)]);
       if (cancelled) return;
-      if (!call) {
-        setState('invalid');
+      if ('error' in got) {
+        // A dead link and a channel that did not answer this time are different news for her.
+        setState(got.error === 'gone' ? 'invalid' : 'unavailable');
         return;
       }
+      const call = got.call;
       setConfig(call);
       setHome(homeData);
       setAssent(call.assent_required ? 'asking' : 'given');
@@ -116,7 +122,7 @@ export default function PresenceCallPage() {
     return () => {
       cancelled = true;
     };
-  }, [token, trackEvent]);
+  }, [token, trackEvent, loadTry]);
 
   useEffect(() => {
     const panel = panelRef.current;
@@ -372,6 +378,16 @@ export default function PresenceCallPage() {
           <>
             <h1>Este link não está mais ativo.</h1>
             <p className="pc-call-sub">Peça um link novo para a sua família.</p>
+          </>
+        )}
+
+        {state === 'unavailable' && (
+          <>
+            <h1>Não consegui preparar a nossa conversa.</h1>
+            <p className="pc-call-sub">Não é o link. Espere um instante e tente de novo.</p>
+            <div className="pc-call-actions">
+              <button className="pc-call-cta" onClick={() => setLoadTry((n) => n + 1)}>Tentar de novo</button>
+            </div>
           </>
         )}
 

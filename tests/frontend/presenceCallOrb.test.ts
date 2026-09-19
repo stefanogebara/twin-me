@@ -32,3 +32,9 @@ describe('orbFor', () => {
     for (const s of ['done', 'lost', 'invalid', 'error'] as const) expect(orbFor(s, 'idle')).toBeNull();
   });
 });
+
+describe('orbFor when the channel did not answer', () => {
+  it('shows nothing while she is asked to try again', () => {
+    expect(orbFor('unavailable', 'idle')).toBeNull();
+  });
+});

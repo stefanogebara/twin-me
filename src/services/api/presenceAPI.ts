@@ -290,14 +290,22 @@ export interface PresenceCallConfig {
   assent_required: boolean;
 }
 
-export async function fetchCallConfig(token: string): Promise<PresenceCallConfig | null> {
+/**
+ * A dead link ('gone': the server does not know the token) and a channel that did not
+ * answer this time ('unavailable': a 5xx or no network) are different news for her, so
+ * the page can say "tente de novo" instead of "este link não está mais ativo".
+ */
+export type CallConfigResult = { call: PresenceCallConfig } | { error: 'gone' | 'unavailable' };
+
+export async function fetchCallConfig(token: string): Promise<CallConfigResult> {
   try {
     const response = await fetch(`${API_URL}/presence-call/${encodeURIComponent(token)}`);
-    if (!response.ok) return null;
+    if (response.status >= 500) return { error: 'unavailable' };
+    if (!response.ok) return { error: 'gone' };
     const data = await response.json();
-    return data?.call ?? null;
+    return data?.call ? { call: data.call } : { error: 'unavailable' };
   } catch {
-    return null;
+    return { error: 'unavailable' };
   }
 }
 
