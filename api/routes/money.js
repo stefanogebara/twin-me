@@ -43,6 +43,8 @@ import { Router } from 'express';
 import crypto from 'node:crypto';
 import multer from 'multer';
 import { authenticateUser } from '../middleware/auth.js';
+import { validate } from '../middleware/validate.js';
+import * as S from './moneySchemas.js';
 import { inboxAddress, inboxDomain, isInboxConfigured, verifySvix, ingestReceivedEmail, extractReceipt, receiptToSighting } from '../services/money/inbox.js';
 import { readAttachment, acceptsAttachment, MAX_ATTACHMENT_BYTES } from '../services/money/attachments.js';
 import { extractDocumentText } from '../services/documentExtractionService.js';
@@ -90,7 +92,7 @@ async function authenticateUserOrKey(req, res, next) {
   }
 }
 
-router.post('/capture', authenticateUserOrKey, async (req, res) => {
+router.post('/capture', authenticateUserOrKey, validate({ body: S.CAPTURE }), async (req, res) => {
   if (!moneyCapabilities(req.user.id).capture) return res.status(403).json({ success: false, error: 'Phone capture is not available in this beta. Add a statement instead.' });
   if (req.body?.ownerId && req.body.ownerId !== req.user.id) return res.status(403).json({ success: false, error: 'Capture belongs to a different account' });
   /* The Android listener sends the notification's text; an iPhone Wallet automation sends the
@@ -196,7 +198,7 @@ router.get('/transactions/:id/sightings', async (req, res) => {
   catch (error) { log.error('sightings failed', { error: error.message }); res.status(500).json({ success: false, error: 'Internal server error' }); }
 });
 
-router.post('/transactions/:id/verdict', async (req, res) => {
+router.post('/transactions/:id/verdict', validate({ params: S.UUID_PARAM, body: S.VERDICT }), async (req, res) => {
   const { verdict = null } = req.body || {};
   if (verdict !== null && !['worth_it', 'not_me'].includes(verdict)) {
     return res.status(400).json({ success: false, error: 'verdict must be worth_it, not_me or null' });
@@ -239,7 +241,7 @@ router.get('/banks', async (req, res) => {
   catch (error) { log.error('banks failed', { error: error.message }); res.status(502).json({ success: false, error: 'Bank feed unavailable' }); }
 });
 
-router.post('/bank/connect', async (req, res) => {
+router.post('/bank/connect', validate({ body: S.BANK_CONNECT }), async (req, res) => {
   if (!moneyCapabilities(req.user.id).bank) return res.status(403).json({ success: false, error: 'Live bank connections are not available in this beta. Add a statement instead.' });
   if (!isConfigured()) return res.status(503).json({ success: false, error: 'Bank feed not configured' });
   try {
@@ -257,7 +259,7 @@ router.get('/bank/accounts', async (req, res) => {
   catch (error) { log.error('bank accounts failed', { error: error.message }); res.status(500).json({ success: false, error: 'Internal server error' }); }
 });
 
-router.post('/bank/accounts/:accountId/cards/:last4/type', async (req, res) => {
+router.post('/bank/accounts/:accountId/cards/:last4/type', validate({ params: S.CARD_TYPE_PARAMS, body: S.CARD_TYPE }), async (req, res) => {
   try {
     res.json({ success: true, data: await labelCard(req.user.id, req.params.accountId, req.params.last4, req.body?.type) });
   } catch (error) {
@@ -318,7 +320,7 @@ router.post('/bank/refresh-if-stale', async (req, res) => {
   }
 });
 
-router.post('/bank/pull', async (req, res) => {
+router.post('/bank/pull', validate({ body: S.BANK_PULL }), async (req, res) => {
   if (!isConfigured()) return res.status(503).json({ success: false, error: 'Bank feed not configured' });
   try {
     const data = await pullBankFeed(req.user.id, { since: typeof req.body?.since === 'string' ? req.body.since : undefined, attended: true, psu: psuOf(req) });
@@ -359,7 +361,7 @@ router.get('/statement/accounts', async (req, res) => {
   try { res.json({ success: true, data: await statementAccounts(req.user.id) }); }
   catch (error) { statementFailure(res, error); }
 });
-router.post('/statement/accounts', async (req, res) => {
+router.post('/statement/accounts', validate({ body: S.STATEMENT_ACCOUNT }), async (req, res) => {
   try { res.status(201).json({ success: true, data: await createStatementAccount(req.user.id, req.body) }); }
   catch (error) { statementFailure(res, error); }
 });
@@ -397,7 +399,7 @@ router.get('/categories', async (req, res) => {
 });
 
 /** Look up the merchants not yet placed. Repeat until `left` is zero. */
-router.post('/places/lookup', async (req, res) => {
+router.post('/places/lookup', validate({ body: S.PLACES_LOOKUP }), async (req, res) => {
   const limit = Math.min(Math.max(parseInt(String(req.body?.limit ?? '12'), 10) || 12, 1), 40);
   try { res.json({ success: true, data: await enrichPlaces(req.user.id, { limit }) }); }
   catch (error) { log.error('place lookup failed', { error: error.message }); res.status(502).json({ success: false, error: 'The place lookup did not answer.' }); }
@@ -409,7 +411,7 @@ router.get('/places', async (req, res) => {
   catch (error) { log.error('places failed', { error: error.message }); res.status(500).json({ success: false, error: 'Internal server error' }); }
 });
 
-router.post('/places/:merchantKey/category', async (req, res) => {
+router.post('/places/:merchantKey/category', validate({ params: S.PLACE_CATEGORY_PARAMS, body: S.PLACE_CATEGORY }), async (req, res) => {
   const category = req.body?.category ?? null;
   if (category !== null && (typeof category !== 'string' || category.length > 40)) {
     return res.status(400).json({ success: false, error: 'category must be a short word or null' });
@@ -599,7 +601,7 @@ router.get('/questions', async (req, res) => {
   catch (error) { log.error('questions failed', { error: error.message }); res.status(500).json({ success: false, error: 'Internal server error' }); }
 });
 
-router.post('/questions/answer', async (req, res) => {
+router.post('/questions/answer', validate({ body: S.ANSWER }), async (req, res) => {
   const { questionId, kind, subject, subjectLabel, value, amount, day, share, note } = req.body || {};
   if (!kind) return res.status(400).json({ success: false, error: 'kind is required' });
   try { res.json({ success: true, data: await answerQuestion(req.user.id, { questionId, kind, subject, subjectLabel, value, amount, day, share, note: typeof note === 'string' ? note : undefined }) }); }
@@ -609,7 +611,7 @@ router.post('/questions/answer', async (req, res) => {
   }
 });
 
-router.post('/questions/:id/skip', async (req, res) => {
+router.post('/questions/:id/skip', validate({ params: S.ID_PARAM }), async (req, res) => {
   try { res.json({ success: true, data: await skipQuestion(req.user.id, req.params.id) }); }
   catch (error) { log.error('skip failed', { error: error.message }); res.status(500).json({ success: false, error: 'Internal server error' }); }
 });
@@ -619,7 +621,7 @@ router.get('/facts', async (req, res) => {
   catch (error) { log.error('facts failed', { error: error.message }); res.status(500).json({ success: false, error: 'Internal server error' }); }
 });
 /* Forget one thing they said; its question is open again. */
-router.delete('/facts/:id', async (req, res) => {
+router.delete('/facts/:id', validate({ params: S.ID_PARAM }), async (req, res) => {
   try { res.json({ success: true, data: await deleteFact(req.user.id, String(req.params.id).slice(0, 64)) }); }
   catch (error) { log.error('fact delete failed', { error: error.message }); res.status(500).json({ success: false, error: 'Internal server error' }); }
 });
@@ -631,7 +633,7 @@ router.get('/chat/history', async (req, res) => {
   catch (error) { log.error('chat history failed', { error: error.message }); res.status(500).json({ success: false, error: 'Internal server error' }); }
 });
 
-router.post('/chat', async (req, res) => {
+router.post('/chat', validate({ body: S.CHAT }), async (req, res) => {
   const { message, history } = req.body || {};
   if (typeof message !== 'string' || !message.trim()) return res.status(400).json({ success: false, error: 'message is required' });
   if (message.length > 2000) return res.status(400).json({ success: false, error: 'message is too long' });
@@ -648,7 +650,7 @@ router.post('/chat', async (req, res) => {
  * Exactly six fields ever go down this wire. The plain /chat endpoint is unchanged and the
  * app falls back to it, so a stream that breaks costs a person nothing but the liveliness.
  */
-router.post('/chat/stream', async (req, res) => {
+router.post('/chat/stream', validate({ body: S.CHAT }), async (req, res) => {
   const { message, history } = req.body || {};
   if (typeof message !== 'string' || !message.trim()) return res.status(400).json({ success: false, error: 'message is required' });
   if (message.length > 2000) return res.status(400).json({ success: false, error: 'message is too long' });
@@ -678,7 +680,7 @@ router.post('/chat/stream', async (req, res) => {
   }
 });
 
-router.post('/chat/act', async (req, res) => {
+router.post('/chat/act', validate({ body: S.CHAT_ACT }), async (req, res) => {
   const { action } = req.body || {};
   if (!action || typeof action !== 'object' || typeof action.kind !== 'string') return res.status(400).json({ success: false, error: 'action is required' });
   try { res.json({ success: true, data: await chatAct(req.user.id, action) }); }
@@ -774,7 +776,7 @@ router.get('/calendar/connect', async (req, res) => {
 
 /* A Canvas, Blackboard or any .ics link, pasted. Fetched once to prove it reads, then kept
    as one fact and read with the rest of the calendar. Removing it removes the fact. */
-router.post('/calendar/feed', async (req, res) => {
+router.post('/calendar/feed', validate({ body: S.CALENDAR_FEED }), async (req, res) => {
   const url = typeof req.body?.url === 'string' ? req.body.url.trim().slice(0, 2000) : '';
   if (!url) return res.status(400).json({ success: false, error: 'Paste the calendar link.' });
   try {
@@ -792,7 +794,7 @@ router.post('/calendar/feed', async (req, res) => {
     res.status(500).json({ success: false, error: 'Internal server error' });
   }
 });
-router.delete('/calendar/feed/:id', async (req, res) => {
+router.delete('/calendar/feed/:id', validate({ params: S.ID_PARAM }), async (req, res) => {
   try {
     await removeCalendarFeed(req.user.id, String(req.params.id).slice(0, 32));
     res.json({ success: true });
@@ -867,7 +869,7 @@ router.get('/home/map', async (req, res) => {
   }
 });
 
-router.post('/home', async (req, res) => {
+router.post('/home', validate({ body: S.HOME }), async (req, res) => {
   const { district, city, lat, lng, source, place_id: placeId } = req.body || {};
   if (!district && !city) return res.status(400).json({ success: false, error: 'district or city is required' });
   try {
@@ -906,7 +908,7 @@ router.get('/readings', async (req, res) => {
   } catch (error) { log.error('readings failed', { error: error.message }); res.status(500).json({ success: false, error: 'Internal server error' }); }
 });
 
-router.post('/readings/:id/verdict', async (req, res) => {
+router.post('/readings/:id/verdict', validate({ params: S.ID_PARAM, body: S.READING_VERDICT }), async (req, res) => {
   const verdict = req.body?.verdict;
   if (verdict !== null && verdict !== 'true' && verdict !== 'not_me') {
     return res.status(400).json({ success: false, error: 'verdict must be true, not_me or null' });
