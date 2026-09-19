@@ -139,12 +139,12 @@ const App = () => {
        fetched the legacy twin's heaviest routes and their charts at 0 ms, on the money
        screen too, where none of it was ever shown. */
     const warm = () => { void loadMoneyChatPage(); void loadPlanPage(); void loadMoneySetupPage(); };
-    if ('requestIdleCallback' in window) {
+    if (typeof window.requestIdleCallback === 'function') {
       const id = window.requestIdleCallback(warm, { timeout: 4000 });
       return () => window.cancelIdleCallback(id);
     }
-    const timer = window.setTimeout(warm, 1500);
-    return () => window.clearTimeout(timer);
+    const timer = setTimeout(warm, 1500);
+    return () => clearTimeout(timer);
   }, []);
 
   return (

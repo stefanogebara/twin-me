@@ -1,52 +1,80 @@
 import React, { createContext, useContext, useCallback, useEffect, useRef } from 'react';
-import posthog from 'posthog-js';
+import type posthogType from 'posthog-js';
 import { useAuth } from './AuthContext';
 
 // ─── PostHog Initialization ─────────────────────────────────────
 const POSTHOG_KEY = import.meta.env.VITE_POSTHOG_KEY;
 const POSTHOG_HOST = import.meta.env.VITE_POSTHOG_HOST || 'https://us.i.posthog.com';
 
-let posthogInitialized = false;
+type PostHog = typeof posthogType;
+/* posthog-js is 209 KB of the entry chunk and nothing on the first paint needs it (M3-2,
+   2026-09-19). It is fetched once the browser is idle; until then every call is queued in
+   order and delivered when it arrives, so no event is lost and no screen waits on it. */
+let client: PostHog | null = null;
+let loading: Promise<void> | null = null;
+const queued: Array<(p: PostHog) => void> = [];
+const enabled = Boolean(POSTHOG_KEY) && POSTHOG_KEY !== 'placeholder' && !String(POSTHOG_KEY).startsWith('phc_xxx');
 
-export function initPostHog() {
-  if (posthogInitialized || !POSTHOG_KEY || POSTHOG_KEY === 'placeholder' || POSTHOG_KEY.startsWith('phc_xxx')) return;
-  posthog.init(POSTHOG_KEY, {
-    api_host: POSTHOG_HOST,
-    capture_pageview: false,     // We handle pageviews via React Router
-    capture_pageleave: true,
-    // autocapture disabled (audit-2026-05-31): PostHog's click/input autocapture
-    // hooks EVERY interaction and builds the $autocapture event on the event
-    // handler — it was the dominant cost on the user's first click (~300ms+ INP
-    // measured on Talk to Twin, plus ~66ms on every subsequent click). The app is
-    // richly hand-instrumented (88 trackEvent/trackFunnel/trackUserAction calls
-    // across the auth, onboarding, connect, and chat funnels), so autocapture is
-    // largely redundant. Off = clicks no longer run any PostHog work. Re-enable
-    // if you want exploratory/heatmap auto-capture back.
-    autocapture: false,
-    persistence: 'localStorage',
-    // perf (audit-2026-05-29): the session-replay recorder (rrweb) takes its
-    // initial DOM snapshot lazily on the user's FIRST interaction — measured at
-    // ~300ms+ of INP on the first click on Talk to Twin (the snapshot ran on
-    // mouseup, blocking the click). Disable auto-start and kick replay off at
-    // idle instead, so the snapshot never blocks an interaction. Trade-off: the
-    // first few seconds of each session aren't replayed; events + autocapture
-    // still fire immediately.
-    disable_session_recording: true,
-    loaded: () => {},
+function withPostHog(fn: (p: PostHog) => void) {
+  if (!enabled) return;
+  if (client) { fn(client); return; }
+  queued.push(fn);
+}
+
+/** How many calls wait for the client; for tests. */
+export function postHogQueued(): number { return queued.length; }
+
+const onIdle = (fn: () => void, timeout: number, fallbackMs: number) => {
+  if (typeof window === 'undefined') { fn(); return; }
+  if (typeof window.requestIdleCallback === 'function') window.requestIdleCallback(fn, { timeout });
+  else setTimeout(fn, fallbackMs);
+};
+
+function loadPostHog(): Promise<void> {
+  if (loading) return loading;
+  loading = import('posthog-js').then(({ default: posthog }) => {
+    posthog.init(POSTHOG_KEY, {
+      api_host: POSTHOG_HOST,
+      capture_pageview: false,     // We handle pageviews via React Router
+      capture_pageleave: true,
+      // autocapture disabled (audit-2026-05-31): PostHog's click/input autocapture
+      // hooks EVERY interaction and builds the $autocapture event on the event
+      // handler — it was the dominant cost on the user's first click (~300ms+ INP
+      // measured on Talk to Twin, plus ~66ms on every subsequent click). The app is
+      // richly hand-instrumented (88 trackEvent/trackFunnel/trackUserAction calls
+      // across the auth, onboarding, connect, and chat funnels), so autocapture is
+      // largely redundant. Off = clicks no longer run any PostHog work. Re-enable
+      // if you want exploratory/heatmap auto-capture back.
+      autocapture: false,
+      persistence: 'localStorage',
+      // perf (audit-2026-05-29): the session-replay recorder (rrweb) takes its
+      // initial DOM snapshot lazily on the user's FIRST interaction — measured at
+      // ~300ms+ of INP on the first click on Talk to Twin (the snapshot ran on
+      // mouseup, blocking the click). Disable auto-start and kick replay off at
+      // idle instead, so the snapshot never blocks an interaction. Trade-off: the
+      // first few seconds of each session aren't replayed; events + autocapture
+      // still fire immediately.
+      disable_session_recording: true,
+      loaded: () => {},
+    });
+    client = posthog;
+    for (const fn of queued.splice(0)) fn(posthog);
+    // Start session replay OFF the critical interaction path (idle, a few seconds
+    // in). requestIdleCallback's timeout guarantees it still starts if the tab
+    // never goes idle; setTimeout is the fallback for browsers without rIC.
+    onIdle(() => { try { posthog.startSessionRecording(); } catch { /* recorder optional */ } }, 5000, 3000);
   });
-  posthogInitialized = true;
+  return loading;
+}
 
-  // Start session replay OFF the critical interaction path (idle, a few seconds
-  // in). requestIdleCallback's timeout guarantees it still starts if the tab
-  // never goes idle; setTimeout is the fallback for browsers without rIC.
-  const startReplay = () => {
-    try { posthog.startSessionRecording(); } catch { /* recorder optional */ }
-  };
-  if (typeof window !== 'undefined' && 'requestIdleCallback' in window) {
-    window.requestIdleCallback(startReplay, { timeout: 5000 });
-  } else if (typeof window !== 'undefined') {
-    window.setTimeout(startReplay, 3000);
-  }
+/**
+ * Asks for the client once the browser is idle (or after two seconds, whichever is first)
+ * and resolves when it is ready. Safe to call more than once.
+ */
+export function initPostHog(): Promise<void> {
+  if (!enabled) return Promise.resolve();
+  if (loading) return loading;
+  return new Promise<void>((resolve) => { onIdle(() => { void loadPostHog().then(resolve, resolve); }, 2000, 1500); });
 }
 
 // ─── Context Interface ──────────────────────────────────────────
@@ -71,14 +99,14 @@ export const AnalyticsProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     if (!POSTHOG_KEY) return;
 
     if (user?.id && identifiedRef.current !== user.id) {
-      posthog.identify(user.id, {
+      withPostHog((p) => p.identify(user.id, {
         email: user.email,
         name: user.name || user.full_name,
         created_at: user.created_at,
-      });
+      }));
       identifiedRef.current = user.id;
     } else if (!user?.id && identifiedRef.current) {
-      posthog.reset();
+      withPostHog((p) => p.reset());
       identifiedRef.current = null;
     }
   }, [user?.id, user?.email, user?.name, user?.full_name, user?.created_at]);
@@ -89,45 +117,42 @@ export const AnalyticsProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
   const trackEvent = useCallback((eventType: string, eventData: Record<string, unknown> = {}) => {
     if (!isEnabled()) return;
-    posthog.capture(eventType, eventData);
+    withPostHog((p) => p.capture(eventType, eventData));
   }, [isEnabled]);
 
   const trackPageView = useCallback((pagePath: string) => {
     if (!isEnabled()) return;
-    posthog.capture('$pageview', {
-      $current_url: window.location.origin + pagePath,
-      path: pagePath,
-      title: document.title,
-    });
+    const props = { $current_url: window.location.origin + pagePath, path: pagePath, title: document.title };
+    withPostHog((p) => p.capture('$pageview', props));
   }, [isEnabled]);
 
   const trackUserAction = useCallback((action: string, target: string, metadata: Record<string, unknown> = {}) => {
     if (!isEnabled()) return;
-    posthog.capture('user_action', { action, target, ...metadata });
+    withPostHog((p) => p.capture('user_action', { action, target, ...metadata }));
   }, [isEnabled]);
 
   const trackConversation = useCallback((twinId: string, messageCount: number, duration: number) => {
     if (!isEnabled()) return;
-    posthog.capture('conversation_session', {
+    withPostHog((p) => p.capture('conversation_session', {
       twin_id: twinId,
       message_count: messageCount,
       duration_seconds: duration,
       engagement_level: messageCount > 10 ? 'high' : messageCount > 5 ? 'medium' : 'low',
-    });
+    }));
   }, [isEnabled]);
 
   const trackTwinInteraction = useCallback((twinId: string, interactionType: string, metadata: Record<string, unknown> = {}) => {
     if (!isEnabled()) return;
-    posthog.capture('twin_interaction', {
+    withPostHog((p) => p.capture('twin_interaction', {
       twin_id: twinId,
       interaction_type: interactionType,
       ...metadata,
-    });
+    }));
   }, [isEnabled]);
 
   const trackFunnel = useCallback((step: string, metadata: Record<string, unknown> = {}) => {
     if (!isEnabled()) return;
-    posthog.capture(step, metadata);
+    withPostHog((p) => p.capture(step, metadata));
   }, [isEnabled]);
 
   const value: AnalyticsContextType = {
