@@ -6,10 +6,13 @@
  * own language. Two things must hold: the English it composes is the English the server
  * composed, word for word, and every phrase it asks for exists in both dictionaries.
  */
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeAll } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { readingWords, weekdayName, monthName, listOf, ordinal, allowanceWords } from '../../src/pages/money/readingWords';
-import { translate } from '../../src/lib/i18n';
+import { translate, ensureDict } from '../../src/lib/i18n';
+
+/* The dictionaries arrive on demand since 2026-09-19; the tests ask for both first. */
+beforeAll(async () => { await ensureDict('es'); await ensureDict('pt-BR'); });
 
 const en = (s: string, vars?: Record<string, string | number>) => translate('en', s, vars);
 const es = (s: string, vars?: Record<string, string | number>) => translate('es', s, vars);

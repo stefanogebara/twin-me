@@ -6,9 +6,12 @@
  * A question with no line in a dictionary is asked in English on a Spanish page, under a
  * heading at 32px. That is the loudest kind of mixed language there is, so it is pinned.
  */
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeAll } from 'vitest';
 import { readFileSync } from 'node:fs';
-import { translate } from '../../src/lib/i18n';
+import { translate, ensureDict } from '../../src/lib/i18n';
+
+/* The dictionaries arrive on demand since 2026-09-19; the tests ask for both first. */
+beforeAll(async () => { await ensureDict('es'); await ensureDict('pt-BR'); });
 
 const source = (name: string) => readFileSync(new URL(`../../api/services/money/${name}`, import.meta.url), 'utf8');
 const files = ['context.js', 'bizum.js'].map(source).join('\n');
