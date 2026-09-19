@@ -97,7 +97,19 @@ describe('the day, written down and scored', () => {
   it('summarises the band from the scored days', () => {
     const figures = Array.from({ length: 5 }, (_, i) => ({ kind: 'day_total', predicted_for: `2026-09-0${i + 1}`, value: 20, low: 10, high: 30, actual: 22, hit: true, scored_at: '2026-09-10T00:00:00Z' }));
     const s = summarise(figures, []);
-    expect(s.band).toEqual({ days: 5, coverage: 1, widen: 0, trusted: false });
+    expect(s.band).toEqual({ days: 5, coverage: 1, widen: 0, trusted: false, carried_from: null });
+  });
+  /* After a correction to the ledger every recent day is unscored again for four days, and a
+     band with no scored days had no widening at all: 50,19 EUR of learning gone in a moment.
+     The widening a day was issued with is on its row, so the last one is carried until a new
+     one is earned, and the summary says which day it is carried from. */
+  it('carries the widening it was last issued with while no day is scored', () => {
+    const figures = [
+      { kind: 'day_total', predicted_on: '2026-09-17', predicted_for: '2026-09-18', value: 8.75, low: 0, high: 58.76, issued_low: 0, issued_high: 108.95, scored_at: null },
+      { kind: 'day_total', predicted_on: '2026-09-18', predicted_for: '2026-09-19', value: 2.75, low: 0, high: 52.33, issued_low: 0, issued_high: 102.52, scored_at: null },
+    ];
+    const s = summarise(figures, []);
+    expect(s.band).toEqual({ days: 0, coverage: null, widen: 50.19, trusted: false, carried_from: '2026-09-18' });
   });
 });
 

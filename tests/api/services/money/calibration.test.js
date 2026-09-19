@@ -3,7 +3,7 @@
  * and the record of hits and misses turns into one widening in euros.
  */
 import { describe, it, expect } from 'vitest';
-import { dayForecast, dayActual, calibrate, intervalScore, widenOver, dayStrip, ALPHA, STRIP_DAYS } from '../../../../api/services/money/calibration.js';
+import { dayForecast, dayActual, calibrate, carriedWiden, intervalScore, widenOver, dayStrip, ALPHA, STRIP_DAYS } from '../../../../api/services/money/calibration.js';
 
 const DAY = 86400000;
 /* Twelve weeks ending Saturday 12 Sept 2026: weekdays cost 10, Fridays 40, Sundays 0. */
@@ -60,6 +60,27 @@ describe('intervalScore', () => {
     expect(intervalScore(10, 30, 20)).toBe(20);
     expect(intervalScore(10, 30, 35)).toBe(20 + (2 / ALPHA) * 5);
     expect(intervalScore(10, 30, 4)).toBe(20 + (2 / ALPHA) * 6);
+  });
+});
+
+/* A band that has no scored days has no widening, and after the settling rule of 18 September
+   that is true for four days after every correction: the widening went from 50,19 EUR to
+   nothing the moment the ledger was repaired, and the day's range lost everything it had
+   learned. The widening a band was issued with is written on the row it was issued for
+   (issued_low, issued_high), so the last one it earned can be read back until a new one exists. */
+describe('carriedWiden', () => {
+  const row = (on, low, high, issuedLow, issuedHigh) => ({ kind: 'day_total', predicted_on: on, predicted_for: on, value: 10, low, high, issued_low: issuedLow, issued_high: issuedHigh });
+  it('reads the widening the newest row was issued with', () => {
+    const rows = [row('2026-09-16', 0, 40, 0, 88.3), row('2026-09-18', 0, 52.33, 0, 102.52)];
+    expect(carriedWiden(rows)).toEqual({ widen: 50.19, from: '2026-09-18' });
+  });
+  it('is nothing when no row was ever issued with one', () => {
+    expect(carriedWiden([])).toBeNull();
+    expect(carriedWiden([{ kind: 'day_total', predicted_on: '2026-09-18', low: 0, high: 50 }])).toBeNull();
+    expect(carriedWiden([row('2026-09-18', 0, 50, 0, 50)])).toBeNull();
+  });
+  it('ignores rows of other kinds', () => {
+    expect(carriedWiden([{ ...row('2026-09-18', 0, 50, 0, 90), kind: 'month_total' }])).toBeNull();
   });
 });
 

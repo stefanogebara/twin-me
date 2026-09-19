@@ -52,6 +52,38 @@ describe('cron-money-pull', () => {
   });
   afterEach(() => vi.useRealTimers());
 
+  /* The loop that writes the day down and scores it ran last, on whatever the bank read left
+     of the minute. On 19 September the read took 37 seconds, the loop's 35-second gate was
+     already shut, and the day was not written down -- and nothing said so, because a skip was
+     not an error. The bank now yields to the loop, and a skip is counted and said. */
+  it('writes the day down even when the bank read eats the budget', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date('2026-09-19T06:00:00Z'));
+    pull.mockImplementation(async (userId, { deadline }) => {
+      /* The read stops at the deadline it is given; the loop must still have time after it. */
+      expect(deadline - Date.now()).toBeLessThanOrEqual(30000);
+      /* A slow bank: the read runs until the deadline it was given and no further. */
+      vi.setSystemTime(Math.min(deadline, Date.now() + 33000));
+      return [{ created: 0, complete: false, error: 'time_budget_exhausted' }];
+    });
+    const res = await request(app()).get('/api/cron/money-pull').set(AUTH);
+    expect(res.status).toBe(200);
+    expect(learn).toHaveBeenCalledWith('u1');
+    expect(learn).toHaveBeenCalledWith('u2');
+    expect(res.body.learned).toBe(2);
+    expect(res.body.learnSkipped).toBe(0);
+  });
+
+  it('counts and says when the loop truly had no time left', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date('2026-09-19T06:00:00Z'));
+    pull.mockImplementation(async () => { vi.setSystemTime(Date.now() + 56000); return [{ created: 0 }]; });
+    const res = await request(app()).get('/api/cron/money-pull').set(AUTH);
+    expect(learn).not.toHaveBeenCalled();
+    expect(res.body.learnSkipped).toBe(1);
+    expect(res.body.learned).toBe(0);
+  });
+
   it('tells the day\'s first run from the others by the hour', () => {
     expect(isDailyRun(new Date('2026-09-14T00:05:00Z'))).toBe(true);
     expect(isDailyRun(new Date('2026-09-14T08:00:00Z'))).toBe(false);
