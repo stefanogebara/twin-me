@@ -14,14 +14,14 @@
  *
  * Pure: facts, rows and the forecast in, findings out.
  */
+import { money } from './currency.js';
 
 export const KEEP_KIND = 'keep';
 export const CAP_KIND = 'cap';
 export const INTENTION_KINDS = Object.freeze(['keep_month', 'cap_month']);
 
-const EUR = new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR' });
 /* The same form the analyst uses on the screen: Intl's own, sign and no-break space kept. */
-const euro = (n) => EUR.format(Math.abs(Number(n) || 0));
+const euro = (n) => money(Math.abs(Number(n) || 0));
 const r2 = (n) => Math.round(Number(n) * 100) / 100;
 const abs = (t) => Math.abs(Number(t.amount) || 0);
 const norm = (s) => String(s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9 ]+/g, ' ').replace(/\s+/g, ' ').trim();

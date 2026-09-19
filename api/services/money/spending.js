@@ -12,6 +12,7 @@
  * or an employer is a real cost and stays. Everything that is not a transfer is spending.
  * Pure, so the tests hand it rows.
  */
+import { ours } from './currency.js';
 
 export const NOT_SPENDING = new Set(['flatmate', 'family', 'friend', 'partner']);
 const PERSON_CHANNELS = new Set(['transfer', 'bizum']);
@@ -30,7 +31,7 @@ export function spendingRule(facts = []) {
   const roles = personRoles(facts);
   return (t) => {
     if (t?.verdict === 'not_me') return false;
-    if (t?.currency && t.currency !== 'EUR') return false;
+    if (!ours(t?.currency)) return false;
     if (!t || !PERSON_CHANNELS.has(t.channel)) return true;
     const role = roles.get(String(t.merchant_key || '').toLowerCase());
     return !(role && NOT_SPENDING.has(role));
@@ -48,5 +49,5 @@ export function markCounted(transactions = [], facts = []) {
 
 /** An outflow that counts: the test every sum of "spent" must use. */
 export function isOutflow(t) {
-  return t?.verdict !== 'not_me' && (!t?.currency || t.currency === 'EUR') && Number(t?.amount) < 0 && t?.counts !== false;
+  return t?.verdict !== 'not_me' && ours(t?.currency) && Number(t?.amount) < 0 && t?.counts !== false;
 }

@@ -5,6 +5,7 @@ import { supabaseAdmin } from '../database.js';
 import { scoreOne, scoringCutoff } from './figureScoring.js';
 import { spendingRule } from './spending.js';
 import { dayIn } from './zone.js';
+import { ours } from './currency.js';
 
 export async function currentFigureScores(userId, { now = new Date() } = {}) {
   z.string().uuid().parse(userId);
@@ -21,7 +22,7 @@ export async function currentFigureScores(userId, { now = new Date() } = {}) {
     // recorded yet, so statement-only and mixed-source histories remain unscored.
     // This proves a completed read after settling, not arbitrary historical coverage (B1).
     const sourceCutoffs = snapshot.accounts.map(a => a.provider === 'enablebanking'
-      && a.currency === 'EUR' && !a.sync_checkpoint && Number.isFinite(Date.parse(a.last_pulled_at))
+      && ours(a.currency) && !a.sync_checkpoint && Number.isFinite(Date.parse(a.last_pulled_at))
       && Date.parse(a.last_pulled_at) <= now.getTime() ? scoringCutoff(new Date(a.last_pulled_at)) : null);
     const covered = p => sourceCutoffs.length > 0 && sourceCutoffs.every(c => c && c >= p.predicted_for);
     const changes=[];

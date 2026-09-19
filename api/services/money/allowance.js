@@ -23,6 +23,7 @@
 import { studentMonth } from './priors.js';
 import { keepAmount } from './intention.js';
 import { dayIn, weekdayIn, daysBetweenIn } from './zone.js';
+import { ours } from './currency.js';
 
 /** Two complete months is the least that can stand for "a typical month" of this person. */
 export const MIN_MONTHS_FOR_TYPICAL = 2;
@@ -97,7 +98,7 @@ export function freshBalance(accounts = [], now = new Date(), facts = [], transa
   const current = now.getTime();
   const usable = (a) => {
     const at = Date.parse(a.balance_at); const observed = Date.parse(a.balance_observed_at);
-    return a.currency === 'EUR' && a.balance != null && Number.isFinite(Number(a.balance))
+    return ours(a.currency) && a.balance != null && Number.isFinite(Number(a.balance))
       && ['ITAV', 'XPCD', 'CLAV', 'ITBD', 'CLBD'].includes(a.balance_type)
       && Number.isFinite(at) && at <= current && current - at < BALANCE_FRESH_MS
       && Number.isFinite(observed) && observed >= at && observed <= current;
@@ -107,7 +108,7 @@ export function freshBalance(accounts = [], now = new Date(), facts = [], transa
   let adjustment = 0;
   const selectedIds = new Set(selected.map((a) => a.id));
   for (const t of transactions) {
-    if (Number(t.amount) >= 0 || (t.currency || 'EUR') !== 'EUR') continue;
+    if (Number(t.amount) >= 0 || !ours(t.currency)) continue;
     if (t.account_id && !selectedIds.has(t.account_id)) continue;
     const account = t.account_id ? selected.find((a) => a.id === t.account_id) : null;
     const candidates = account ? [account] : selected;
@@ -193,7 +194,9 @@ export function safeToSpend({ cast = null, segments = [], facts = [], accounts =
   });
 
   if (!cast) return none('There is no month to read yet.');
-  if (cast.unsupported_currency || accounts.some((a) => a.currency && a.currency !== 'EUR')) return none('Spending guidance is available for euro accounts only. Foreign currencies have not been converted.');
+  /* Money that is not this ledger's is refused rather than converted: a figure that quietly
+     adds dollars to euros is worse than one that says it cannot. */
+  if (cast.unsupported_currency || accounts.some((a) => !ours(a.currency))) return none('Spending guidance is available for euro accounts only. Foreign currencies have not been converted.');
 
   const income = statedIncome(facts);
   const keep = keepAmount(facts);

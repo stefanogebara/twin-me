@@ -26,6 +26,7 @@
  * out, so they pour into the same list as everything else the money says.
  */
 import { dayIn } from './zone.js';
+import { money } from './currency.js';
 
 export const CHARGE_AHEAD = 'charge_ahead';
 export const NAMED_EXPENSE = 'named_expense';
@@ -41,10 +42,9 @@ export const NAMED_MIN = 20;
 export const RETIRE_AFTER = 30;
 
 const DAY = 86400000;
-const EUR = new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR' });
 /* The formatter puts a narrow no-break space before the sign; a sentence wants a plain one. */
 /* The same form the analyst uses on the screen: Intl's own, sign and no-break space kept. */
-const euro = (n) => EUR.format(Math.abs(Number(n) || 0));
+const euro = (n) => money(Math.abs(Number(n) || 0));
 const r2 = (n) => Math.round(Number(n) * 100) / 100;
 /* The day a person is living, not the day in UTC: see zone.js. */
 const dayOf = (d) => dayIn(d);

@@ -40,12 +40,12 @@
 
 import { detectSplits, splitQuestions } from './bizum.js';
 import { dayOfMonthIn, monthIn } from './zone.js';
+import { money } from './currency.js';
 
 const DAY = 86400000;
 /** Below this a monthly charge is a subscription, not a roof. */
 export const RENT_FLOOR = 200;
-const EUR = new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR', maximumFractionDigits: 2 });
-const euro = (n) => EUR.format(Math.abs(Number(n) || 0));
+const euro = (n) => money(Math.abs(Number(n) || 0));
 /** The 1st, not the 1th. */
 function ordinal(d) {
   const n = Number(d);

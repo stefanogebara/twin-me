@@ -15,6 +15,7 @@
 
 import { shortName } from './bizum.js';
 import { dayIn, dayOfMonthIn, partsIn, monthIn } from './zone.js';
+import { money } from './currency.js';
 
 export const INCOME_LATE = 'income_late';
 /** An arrival within this many days of the usual day counts as on time. */
@@ -30,9 +31,8 @@ export const SAID_CONFIDENCE = 0.5;
 export const HORIZON_DAYS = 45;
 
 const DAY = 86400000;
-const EUR = new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR' });
 /* The same form the analyst uses on the screen: Intl's own, sign and no-break space kept. */
-const euro = (n) => EUR.format(Math.abs(Number(n) || 0));
+const euro = (n) => money(Math.abs(Number(n) || 0));
 const r2 = (n) => Math.round(Number(n) * 100) / 100;
 const dayOf = (d) => dayIn(d);
 const norm = (s) => String(s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9 ]+/g, ' ').replace(/\s+/g, ' ').trim();

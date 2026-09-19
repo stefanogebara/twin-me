@@ -45,11 +45,11 @@ export const MAX_DELTAS = 3;
 
 import { awayDaysBetween } from './covariates.js';
 import { dayIn, startOfDayIn, weekdayIn } from './zone.js';
+import { money } from './currency.js';
 
 const DAY = 86400000;
-const EUR = new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR' });
 /* The same form the analyst uses on the screen: Intl's own, sign and no-break space kept. */
-const euro = (n) => EUR.format(Math.abs(Number(n) || 0));
+const euro = (n) => money(Math.abs(Number(n) || 0));
 const r2 = (n) => Math.round(Number(n) * 100) / 100;
 const at = (t) => new Date(t.occurred_at).getTime();
 const abs = (t) => Math.abs(Number(t.amount) || 0);
