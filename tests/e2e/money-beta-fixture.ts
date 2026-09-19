@@ -52,10 +52,18 @@ export async function moneyFixture(page: Page, { firstVisit = false } = {}) {
       if(state.statementFailed) return json({success:false,error:'The statement service is unavailable. Try again.'},503);
       return json({success:true,data:{read:1,created:1,skipped:0,attached:0}});
     }
-    if (path==='/money/bank/accounts' && state.cards) return json({success:true,data:[
+    const accountsNow = () => state.empty ? [] : state.cards ? [
       {...account,cards:[{last4:'1234',type:state.cardTypes['acc1:1234'] || 'unknown',source:state.cardTypes['acc1:1234']?'user':null},{last4:'5678',type:'credit',source:'user'}]},
       {...account,id:'acc2',name:'Second Account',cards:[{last4:'1234',type:'debit',source:'user'}]}
-    ]});
+    ] : [account];
+    if (path==='/money/bank/accounts' && state.cards) return json({success:true,data:accountsNow()});
+    /* The page in one read (M2-3): the same parts the single routes serve, under the same states. */
+    if(path==='/money/page') return json({success:true,data:{
+      forecast, today: state.changed ? {...today,amount:29.99} : today,
+      ledger: state.empty ? [] : state.paginated ? [...Array.from({length:200},(_,i)=>({...ledger[0],id:`tx${i}`})),{...ledger[0],id:'tx201',merchant_raw:'Last page cafe',merchant_name:'Last page cafe'}] : ledger,
+      recurring: [], accounts: accountsNow(), months: data['/money/months'], readings: data['/money/readings'], categories: data['/money/categories'], usage: data['/money/usage'],
+      capabilities: {bank:state.advanced,capture:state.advanced}, inbox: data['/money/inbox'], facts: data['/money/facts'], failed: [],
+    }});
     if (/^\/money\/bank\/accounts\/[^/]+\/cards\/\d{4}\/type$/.test(path)) {
       const parts=path.split('/'); const body=route.request().postDataJSON();
       state.cardTypes[parts[4]+':'+parts[6]]=body.type;
