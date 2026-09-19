@@ -69,7 +69,7 @@ Status words: `todo` · `doing (who, date)` · `done (#PR, date)` · `blocked (w
 | M2-3 | One read per view, cached per ingestion revision | Today cold < 1.5 s | todo |
 | M2-4 | Separate the bank read from the daily loop (own cron, own budget) | `learnSkipped` = 0 for a week | done (claude/loop-and-coverage) — `/api/cron/money-learn` daily 05:30 UTC for every person with a ledger; 4 tests; cost canary green |
 | M2-5 | Park the legacy twin behind `LEGACY_TWIN_ENABLED`; money CI lane | money CI < 3 min | todo — see Decisions D3 |
-| M2-6 | Agentic OS phase 2: report card for every goal, money canaries, `loop.sh` triage → plan → implement → inspect | grades gate unattended runs | doing (Claude, 2026-09-19) — slice 1: report card for every nightly job, money canaries as graded jobs, the loop's triage on GitHub Actions |
+| M2-6 | Agentic OS phase 2: report card for every goal, money canaries, `loop.sh` triage → plan → implement → inspect | grades gate unattended runs | slice 1 done (#434, 2026-09-19): `scripts/ci/reportCard.mjs` grades every nightly job (20 nights, ≥95% eligible, <90% attention; money never automated), three graded jobs added (module loads, money first, money canaries), `report-card` job + artifact; `scripts/agentic/loop.mjs` triage → plan → issue on `.github/workflows/agentic-loop.yml` 06:30 UTC (refusals read from finish_reason, output capped at 1200 tokens). Slice 2 (implement + inspect) needs the agent harness key — open question 6 |
 
 ### Milestone 3 — quality
 
@@ -112,6 +112,7 @@ Status words: `todo` · `doing (who, date)` · `done (#PR, date)` · `blocked (w
 3. **QW3:** a Sentry DSN (free tier is enough) — Claude cannot create the account.
 4. **The day's number:** the most likely spend (shipped) or a sustainable allowance? The label "Today's estimate" fits either; commit to one.
 5. **Enable Banking's reply** (sent 2026-09-18) and **Plaid eligibility** for the US friends.
+6. **Actions secrets for the loop:** `OPENROUTER_API_KEY` in the repository's GitHub Actions secrets (the loop's triage runs without it but asks nothing), and later an agent-harness key for the implement/inspect stages. Claude cannot add secrets.
 
 ## Ideas the scouts synthesised (2026-09-19) — for Stefano to pick from, ranked by evidence TwinMe already holds
 
@@ -126,3 +127,4 @@ Status words: `todo` · `doing (who, date)` · `done (#PR, date)` · `blocked (w
 ## Session log
 
 - **2026-09-19 (Claude):** merged #424–#426 prerequisites; wrote the audit; created this file. Quick wins QW1, QW2, QW4, QW5, QW6 and OW1, OW3 done on `claude/quick-wins`; QW3 blocked on a DSN. Legacy usage measured (D1). Orb deviation found (D2). AGENTS.md drift found and fixed (D5). All three scouts returned and were triaged into `docs/intel/` (OW4). M0-3 and M2-1 done on `claude/loadable-core` (#432); orbs on `claude/orbs-exact` (#431); quick wins on `claude/quick-wins` (#430).
+- **2026-09-19 (Claude, later):** M2-4 (daily learn cron) and M0-1 (coverage floor 65/58/52/61) on `claude/loop-and-coverage` (#434); M2-6 slice 1 on the same branch: report card generalised, graded jobs, the loop's triage stage on Actions. Next: M2-2 (split MoneyForAccount).

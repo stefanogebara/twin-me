@@ -31,9 +31,16 @@ The nightly run also includes `tests/api/routes/whatsappZapiWebhookAuth.test.js`
    at import time.
 3. Add a row to the table above.
 
-## Report card (Phase 2 pointer)
+## Report card (Phase 2, slice 1 — 2026-09-19)
 
-The workflow-run history of goals-nightly IS the report card for now: each
-run is a pass/fail with a sha. Phase 2 aggregates trailing-20 grades per task
-type and gates unattended execution on >= 95% (demote below 90%). Do not
-build a parallel log until that phase lands.
+Every job in goals-nightly.yml is a task type. `scripts/ci/reportCard.mjs` grades each
+by its last twenty completed nights (rules pinned in `tests/unit/reportCard.test.js`):
+twenty nights at 95% or better make a task type eligible for unattended runs, under 90%
+takes it away. The `report-card` job runs after every other job, writes
+`test-results/report-card.json` as an artifact and the grades into the step summary.
+Money is never automated on a streak: `autonomous_writes` is false and is not a parameter.
+
+The loop (`.github/workflows/agentic-loop.yml`, `scripts/agentic/loop.mjs`) runs after the
+nightly: a cheap model reads what changed and the report card and says whether anything
+needs attention; a stronger model writes the plan; it is opened as an issue labelled `loop`.
+Implement and inspect stages arrive with the agent harness (slice 2).
