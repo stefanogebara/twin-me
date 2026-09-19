@@ -27,6 +27,7 @@ import { getValidAccessToken } from '../tokenRefreshService.js';
 import { listTransactions } from './transactionRepository.js';
 import { listFacts, categoriesFor } from './factsRepository.js';
 import { weekdayIn, partsIn, dayIn } from './zone.js';
+import { quietly } from './quietly.js';
 
 const log = createLogger('MoneyCalendar');
 
@@ -476,7 +477,7 @@ async function readCapped(r) {
     const { done, value } = await reader.read();
     if (done) break;
     size += value.byteLength;
-    if (size > FEED_MAX_BYTES) { await reader.cancel().catch(() => {}); throw Object.assign(new Error(FEED_UNREADABLE), { code: 'feed_unreadable', why: 'too large' }); }
+    if (size > FEED_MAX_BYTES) { await reader.cancel().catch(quietly('feed/cancel-oversize', undefined)); throw Object.assign(new Error(FEED_UNREADABLE), { code: 'feed_unreadable', why: 'too large' }); }
     chunks.push(value);
   }
   return Buffer.concat(chunks.map((c) => Buffer.from(c))).toString('utf8');
@@ -541,7 +542,7 @@ export async function addFeed(userId, url, { fetchImpl = fetch, now = new Date()
   if (learn) {
     const from = now.getTime() - LEARN_DAYS * DAY_MS; const to = now.getTime() + SNAPSHOT_DAYS * DAY_MS;
     const mine = events.filter((e) => ms(e.end || e.start) >= from && ms(e.start) <= to);
-    const others = await eventsFor(userId, new Date(from).toISOString(), new Date(to).toISOString(), { feeds: existing }).catch(() => []);
+    const others = await eventsFor(userId, new Date(from).toISOString(), new Date(to).toISOString(), { feeds: existing }).catch(quietly('feed/events-after-add', () => []));
     await learnEventSpend(userId, { now, events: others.concat(mine) }).catch((e) => log.warn(`calendar learn after feed failed: ${e.message}`));
   }
   return { id, kind, label: FEED_LABELS[kind], added_at: nowIso, events: events.length, already: false };
@@ -566,7 +567,7 @@ export async function feedEvents(feeds, fromISO, toISO, { fetchImpl = fetch } = 
 
 /** Whether any calendar source exists: Google, or a pasted link. */
 export async function calendarStatus(userId) {
-  const [t, feeds] = await Promise.all([token(userId), listFeeds(userId).catch(() => [])]);
+  const [t, feeds] = await Promise.all([token(userId), listFeeds(userId).catch(quietly('calendar-status/feeds', () => []))]);
   return { connected: Boolean(t.accessToken) || feeds.length > 0, google: Boolean(t.accessToken), needsReconnect: t.needsReconnect, feeds };
 }
 
@@ -589,7 +590,7 @@ export async function eventsFor(userId, fromISO, toISO, { accessToken = null, fe
     const data = await client.get(`/calendars/primary/events?${params.toString()}`);
     google = (data?.items || []).map(normaliseEvent).filter(Boolean);
   }
-  const links = feeds || (await listFeeds(userId).catch(() => []));
+  const links = feeds || (await listFeeds(userId).catch(quietly('events/feeds', () => [])));
   const fromFeeds = links.length ? await feedEvents(links, fromISO, toISO) : [];
   return google.concat(fromFeeds).sort((a, b) => ms(a.start) - ms(b.start));
 }

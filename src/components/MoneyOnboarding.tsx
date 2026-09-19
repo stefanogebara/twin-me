@@ -25,12 +25,20 @@ const SKIP = (step: Step) => `mv-start-skip:${step}`;
 const skipped = (step: Step) => { try { return localStorage.getItem(SKIP(step)) === '1'; } catch { return false; } };
 const skip = (step: Step) => { try { localStorage.setItem(SKIP(step), '1'); } catch { /* a courtesy */ } };
 
-export default function MoneyOnboarding() {
+/* What the step is decided from. The money page reads these for itself and hands them over
+   (M2-3, 2026-09-19): `undefined` means read them here, `null` means they are on their way,
+   and a part that could not be read is null so the step waits rather than guesses. */
+export type OnboardingGiven = { accounts: MoneyAccount[] | null; facts: MoneyFact[] | null; capabilities: { bank: boolean; capture: boolean } | null };
+
+export default function MoneyOnboarding({ given, reread }: { given?: OnboardingGiven | null; reread?: () => void } = {}) {
   const { user } = useAuth();
   const userId = user?.id;
-  const [accounts, setAccounts] = useState<MoneyAccount[] | null>(null);
-  const [facts, setFacts] = useState<MoneyFact[] | null>(null);
-  const [capabilities, setCapabilities] = useState<{ ownerId: string; bank: boolean; capture: boolean } | null>(null);
+  const [ownAccounts, setAccounts] = useState<MoneyAccount[] | null>(null);
+  const [ownFacts, setFacts] = useState<MoneyFact[] | null>(null);
+  const [ownCapabilities, setCapabilities] = useState<{ ownerId: string; bank: boolean; capture: boolean } | null>(null);
+  const accounts = given === undefined ? ownAccounts : given ? given.accounts : null;
+  const facts = given === undefined ? ownFacts : given ? given.facts : null;
+  const capabilities = given === undefined ? ownCapabilities : given && given.capabilities && userId ? { ownerId: userId, ...given.capabilities } : null;
   const loadRevision = useRef(0);
   const [rested, setRested] = useState<Record<string, boolean>>({});
   const [languageDone, setLanguageDone] = useState(false);
@@ -38,6 +46,8 @@ export default function MoneyOnboarding() {
 
   const load = useCallback(async () => {
     if (!userId) return;
+    /* Handed the page's read: a change asks the page to read again, and nothing is read here. */
+    if (given !== undefined) { reread?.(); return; }
     const revision = ++loadRevision.current;
     const [a, f, c] = await Promise.allSettled([moneyAPI.accounts(), moneyAPI.facts(), moneyAPI.capabilities()]);
     if (revision !== loadRevision.current) return;
@@ -47,8 +57,8 @@ export default function MoneyOnboarding() {
     setAccounts(a.status === 'fulfilled' ? a.value : null);
     setFacts(f.status === 'fulfilled' ? f.value : null);
     setCapabilities({ ownerId: userId, ...(c.status === 'fulfilled' ? c.value : { bank: false, capture: false }) });
-  }, [userId]);
-  useEffect(() => { void load(); return () => { ++loadRevision.current; }; }, [load]);
+  }, [userId, given, reread]);
+  useEffect(() => { if (given === undefined) void load(); return () => { ++loadRevision.current; }; }, [load, given]);
 
   const language = (user as { preferred_language?: string | null } | null)?.preferred_language;
   const hasPlace = (facts || []).some((f) => ['home_area', 'study_place', 'work_place'].includes(f.kind));

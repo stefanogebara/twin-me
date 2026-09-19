@@ -569,3 +569,12 @@ A financial day's actual is revisable: settlement, imports and corrections can c
 The 40px spacing was verified as rendered, not as matching Instinct's authenticated workspace or the user's preference. A sign-in reference is insufficient evidence for dashboard spacing. Surface conflicts with newer design contracts explicitly, and distinguish technical checks from design acceptance before extending a redesign.
 
 A text input may match `:focus-visible` after a mouse click. In a compound composer, put its visible focus on the container and suppress only the redundant inner outline; preserve separate keyboard indicators on attachment/send controls. Verify both pointer and keyboard entry in the rendered page.
+
+## 2026-09-19 — measure a page on a production build, from the right server, without preflights
+
+A local `vite build` honours `.env`'s `NODE_ENV="development"` and ships development React: StrictMode runs every effect twice, so a page that reads once looked like it read twice and the trace only made sense after `NODE_ENV=production npx vite build`. Any timing or request count taken from a local build must name the build mode.
+
+With the API on another port, every request with an Authorization header is preceded by a CORS preflight, and a request listener that does not filter `OPTIONS` reports every call twice. Production serves the app and the API from one origin and has no preflights. Filter the method before counting.
+
+Six blocking Google Fonts stylesheets, five of them for retired systems, held the first API request for four seconds on a slow link; the fix was to serve the one family the register uses from `public/fonts`. A third-party `<link rel="stylesheet">` in the head is on the critical path of every screen, whatever the page itself does.
+

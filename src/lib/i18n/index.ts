@@ -12,16 +12,42 @@
  *
  * Strings with a value in them use {name} holes: t('{n} payments', { n: 4 }).
  */
-import { useCallback, useEffect } from 'react';
+import { useCallback, useEffect, useSyncExternalStore } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { ES } from './es';
-import { PT_BR } from './pt-BR';
-import { ES_MONEY } from './es.money';
-import { PT_BR_MONEY } from './pt-BR.money';
 
 export type Lang = 'en' | 'es' | 'pt-BR';
-const DICT: Record<Lang, Record<string, string>> = { en: {}, es: { ...ES, ...ES_MONEY }, 'pt-BR': { ...PT_BR, ...PT_BR_MONEY } };
+/* A dictionary arrives only for the language spoken (M3-2, 2026-09-19): both together were
+   119 KB of the entry chunk for everyone, English readers included. English needs none.
+   main.tsx asks for the remembered language before the first frame, and a signed-in page
+   waits for the account's before it paints, so nobody reads a line in the wrong language. */
+const DICT: Record<Lang, Record<string, string>> = { en: {}, es: {}, 'pt-BR': {} };
+const READY: Record<Lang, boolean> = { en: true, es: false, 'pt-BR': false };
+const LOADING: Partial<Record<Lang, Promise<void>>> = {};
+let version = 0;
+const listeners = new Set<() => void>();
 const LOCALE: Record<Lang, string> = { en: 'en-GB', es: 'es-ES', 'pt-BR': 'pt-BR' };
+
+/** Whether the dictionary for a language is here, so a page can be said in it. */
+export function dictReady(lang: Lang): boolean { return READY[lang]; }
+
+/** Fetches a language's dictionary once; resolves when it is here. English resolves at once. */
+export function ensureDict(lang: Lang): Promise<void> {
+  if (READY[lang]) return Promise.resolve();
+  if (LOADING[lang]) return LOADING[lang] as Promise<void>;
+  const load = lang === 'es'
+    ? Promise.all([import('./es'), import('./es.money')]).then(([a, b]) => { DICT.es = { ...a.ES, ...b.ES_MONEY }; })
+    : Promise.all([import('./pt-BR'), import('./pt-BR.money')]).then(([a, b]) => { DICT['pt-BR'] = { ...a.PT_BR, ...b.PT_BR_MONEY }; });
+  LOADING[lang] = load.then(() => { READY[lang] = true; version += 1; listeners.forEach((l) => l()); }, (error) => { delete LOADING[lang]; throw error; });
+  return LOADING[lang] as Promise<void>;
+}
+const subscribe = (l: () => void) => { listeners.add(l); return () => { listeners.delete(l); }; };
+const snapshot = () => version;
+/** Whether a language's dictionary is here, re-rendering the caller the moment it lands. */
+export function useDictReady(lang: Lang): boolean {
+  useSyncExternalStore(subscribe, snapshot, snapshot);
+  useEffect(() => { if (!READY[lang]) void ensureDict(lang).catch(() => { /* English stands until it arrives */ }); }, [lang]);
+  return READY[lang];
+}
 
 const STORE = 'twinme:lang';
 const known = (l: unknown): l is Lang => l === 'es' || l === 'pt-BR' || l === 'en';
@@ -59,6 +85,9 @@ export function translate(lang: Lang, source: string, holes?: Record<string, str
 export function useLang(): Lang {
   const { user } = useAuth();
   const lang = langFrom(user, storedLang());
+  /* Re-rendered when a dictionary lands, so a line said before it arrived is said again in it. */
+  useSyncExternalStore(subscribe, snapshot, snapshot);
+  useEffect(() => { void ensureDict(lang).catch(() => { /* English stands until it arrives */ }); }, [lang]);
   /* Once the account has said which language it is, this browser keeps it for the next
      first frame; nothing else reads it. */
   useEffect(() => { if ((user as { preferred_language?: string | null } | null)?.preferred_language) rememberLang(lang); }, [user, lang]);

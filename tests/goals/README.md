@@ -18,6 +18,10 @@ Plan and rationale: `.claude/plans/2026-07-12-agentic-os/README.md`.
 | `money-first.goal.test.js` | Money is the product (Stefano, 2026-09-19) | `/`, `/home`, `/dashboard`, sign-in and the onboarding gate all land on `/money`; the twin is one link away, never the door |
 | `agents-in-sync.goal.test.js` | One instruction file for two agents (2026-09-19) | `AGENTS.md` is byte-identical to `CLAUDE.md` |
 | `money-imports.goal.test.js` | The money core loads a module at a time (audit A1, 2026-09-19) | every `api/services/money/*.js` imports within two seconds; the modules still in a cycle are named and shrink with M2-1 |
+| `money-page-shape.goal.test.js` | No function on the money pages is longer than 250 lines (M2-2, 2026-09-19) | every top-level function under `src/pages/money` measured; the three that were already long may only shrink |
+| `money-one-read.goal.test.js` | Today is one request and waits on no third party (M2-3, 2026-09-19) | the hook reads `moneyAPI.page` and none of the nine parts alone; `GET /money/page` exists; index.html loads no stylesheet or font from another origin |
+| `money-quiet-failures.goal.test.js` | No error in the money code is swallowed without a name (M1-3, 2026-09-19) | no anonymous `.catch(() => [])` in the money services or routes; every `quietly('name')` is unique |
+| `env-example-in-sync.goal.test.js` | `.env.example` is what the code reads (M3-4, 2026-09-19) | the committed file equals `scripts/env-example.mjs`'s output; the server's required keys are first and uncommented |
 
 The nightly run also includes `tests/api/routes/whatsappZapiWebhookAuth.test.js`
 (webhook auth gate) by reference — reuse, don't duplicate.
@@ -31,9 +35,16 @@ The nightly run also includes `tests/api/routes/whatsappZapiWebhookAuth.test.js`
    at import time.
 3. Add a row to the table above.
 
-## Report card (Phase 2 pointer)
+## Report card (Phase 2, slice 1 — 2026-09-19)
 
-The workflow-run history of goals-nightly IS the report card for now: each
-run is a pass/fail with a sha. Phase 2 aggregates trailing-20 grades per task
-type and gates unattended execution on >= 95% (demote below 90%). Do not
-build a parallel log until that phase lands.
+Every job in goals-nightly.yml is a task type. `scripts/ci/reportCard.mjs` grades each
+by its last twenty completed nights (rules pinned in `tests/unit/reportCard.test.js`):
+twenty nights at 95% or better make a task type eligible for unattended runs, under 90%
+takes it away. The `report-card` job runs after every other job, writes
+`test-results/report-card.json` as an artifact and the grades into the step summary.
+Money is never automated on a streak: `autonomous_writes` is false and is not a parameter.
+
+The loop (`.github/workflows/agentic-loop.yml`, `scripts/agentic/loop.mjs`) runs after the
+nightly: a cheap model reads what changed and the report card and says whether anything
+needs attention; a stronger model writes the plan; it is opened as an issue labelled `loop`.
+Implement and inspect stages arrive with the agent harness (slice 2).

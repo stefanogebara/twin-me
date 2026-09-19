@@ -42,3 +42,17 @@ describe('money first', () => {
     expect(money).toMatch(/<Link to="\/today">/);
   });
 });
+
+/* Nothing outside the money pages is warmed at start (M3-2, 2026-09-19): the legacy twin's
+   heaviest routes and their charts were fetched at 0 ms on every screen. */
+describe('the app warms only the money pages', () => {
+  it('prefetches no route outside src/pages/money', () => {
+    const app = readFileSync(new URL('../../src/App.tsx', import.meta.url), 'utf8');
+    const warm = app.match(/const warm = \(\) => \{([^}]*)\}/);
+    expect(warm, 'the warm-up block').not.toBeNull();
+    const loaders = [...warm[1].matchAll(/void (load\w+)\(\)/g)].map((m) => m[1]);
+    expect(loaders.length).toBeGreaterThan(0);
+    for (const l of loaders) expect(app, `${l} points at a money page`).toMatch(new RegExp(`const ${l} = \\(\\) => import\\("./pages/money/`));
+    expect(app).not.toMatch(/prefetchHeavyRoutes|void loadTodayPage\(\)|void loadTalkToTwin\(\)|void loadMoneyPage\(\)/);
+  });
+});

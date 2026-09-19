@@ -5,6 +5,7 @@ import { AuthProvider } from './contexts/AuthContext';
 import { initPostHog } from './contexts/AnalyticsContext';
 import { cleanupLegacyServiceWorker } from './services/swCleanup';
 import App from "./App.tsx";
+import { ensureDict, langFrom, storedLang } from './lib/i18n';
 import "./index.css";
 
 // Evict the legacy cache-first service worker that pinned returning users to an
@@ -28,10 +29,13 @@ if (import.meta.env.VITE_SENTRY_DSN) {
   }
 }
 
-createRoot(document.getElementById("root")!).render(
+/* The remembered language's dictionary comes before the first frame, so a Portuguese reader
+   never sees an English one; English needs nothing and renders at once (M3-2, 2026-09-19). */
+const render = () => createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <AuthProvider>
       <App />
     </AuthProvider>
   </StrictMode>
 );
+void ensureDict(langFrom(null, storedLang())).then(render, render);

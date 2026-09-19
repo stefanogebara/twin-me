@@ -30,3 +30,14 @@ export async function listTransactions(userId, { since, limit = 10000, currency 
   return includeRejected ? all : all.filter((row) => row.verdict !== 'not_me');
 }
 export const listEuroTransactions = (userId, options = {}) => listTransactions(userId, { ...options, currency: 'EUR' });
+
+/**
+ * Every person who has a ledger at all: bank feed, statement, phone or receipts. A cron that
+ * writes the day down and scores it is about the ledger, not the bank, so it must not be
+ * gated on who has a bank job to claim (2026-09-19). One page of ids, distinct.
+ */
+export async function moneyUserIds({ limit = 500 } = {}) {
+  const { data, error } = await supabaseAdmin.from('money_transactions').select('user_id').limit(20000);
+  if (error) throw new Error(`Cannot list money users: ${error.message}`);
+  return [...new Set((data || []).map((r) => r.user_id).filter(Boolean))].slice(0, limit);
+}

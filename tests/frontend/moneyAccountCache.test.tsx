@@ -18,6 +18,11 @@ vi.mock('@/pages/money/figures/TotalRow', () => ({ default: () => null }));
 vi.mock('@/services/api/moneyAPI', async (original) => {
   const actual = await original<Record<string,unknown>>();
   return { ...actual, moneyAPI: new Proxy({}, { get: (_, key) => {
+    /* The page is one read now (M2-3); it is built from the same two fakes so every count below holds. */
+    if (key === 'page') return async () => {
+      const [forecast, today] = await Promise.all([f.forecast(), f.today()]);
+      return { forecast, today, ledger: [{ id: 't', amount: -5, currency: 'EUR', occurred_at: new Date().toISOString(), merchant_key: 'coffee' }], recurring: [], accounts: [], months: [], readings: [], categories: null, usage: null, capabilities: { bank: false, capture: false }, inbox: { receiving: false }, facts: [], failed: [] };
+    };
     if (key === 'forecast') return f.forecast;
     if (key === 'today') return f.today;
     if (key === 'ledger') return async () => [{ id: 't', amount: -5, currency: 'EUR', occurred_at: new Date().toISOString(), merchant_key: 'coffee' }];
@@ -80,4 +85,30 @@ it('paints after a mount that was interrupted and remounted', async () => {
   root = createRoot(host);
   await act(async () => { root.render(<React.StrictMode><MoneyV2Page /></React.StrictMode>); });
   expect(host.textContent).toContain('42');
+});
+
+it('paints at once from what the tab kept, then reads again quietly', async () => {
+  /* A reload or a return from the bank: the numbers of a moment ago, then the fresh ones. */
+  f.owner = 'K';
+  const { moneyRevision } = await import('../../src/services/api/moneyChanges');
+  sessionStorage.setItem('twinme:money:page:K', JSON.stringify({ userId: 'K', revision: moneyRevision(), at: Date.now() - 120000, forecast: { month: '2026-09-01', spent: 5, days_left: 13, committed: 0, projected_p90: 5 }, today: { amount: 77.5, basis: 'income', base: 1000, income: 1000, keep: 0, free: 100, budget: 1000, days_left: 13, today_events: [], sentence: '' }, ledger: [{ id: 'k', amount: -5, currency: 'EUR', occurred_at: new Date().toISOString(), merchant_key: 'coffee' }], recurring: [], accounts: [], months: [], readings: [], categories: null, usage: null, capabilities: { bank: false, capture: false }, inbox: null, unread: false }));
+  f.forecast.mockClear().mockReturnValue(new Promise(() => {}));
+  f.today.mockClear().mockReturnValue(new Promise(() => {}));
+  root = createRoot(host);
+  await act(async () => { root.render(<MoneyV2Page />); });
+  expect(host.textContent).toContain('77');
+  expect(f.forecast).toHaveBeenCalledOnce();
+  sessionStorage.removeItem('twinme:money:page:K');
+});
+
+it('never paints another person from what the tab kept', async () => {
+  const { moneyRevision } = await import('../../src/services/api/moneyChanges');
+  sessionStorage.setItem('twinme:money:page:K', JSON.stringify({ userId: 'K', revision: moneyRevision(), at: Date.now(), forecast: null, today: { amount: 77.5, basis: 'income', base: 1000, income: 1000, keep: 0, free: 100, budget: 1000, days_left: 13, today_events: [], sentence: '' }, ledger: [{ id: 'k', amount: -5, currency: 'EUR', occurred_at: new Date().toISOString(), merchant_key: 'coffee' }], recurring: [], accounts: [], months: [], readings: [], categories: null, usage: null, capabilities: { bank: false, capture: false }, inbox: null, unread: false }));
+  f.owner = 'L';
+  f.forecast.mockClear().mockReturnValue(new Promise(() => {}));
+  f.today.mockClear().mockReturnValue(new Promise(() => {}));
+  root = createRoot(host);
+  await act(async () => { root.render(<MoneyV2Page />); });
+  expect(host.textContent).not.toContain('77');
+  sessionStorage.removeItem('twinme:money:page:K');
 });

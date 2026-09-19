@@ -1,0 +1,18 @@
+{
+  "//": "The money pages under strict TypeScript (audit M3-1, 2026-09-19). The app's own config stays as it is; this one is checked in CI (Build & Test, 'Money pages, strict types') and nightly, and covers what a signed-in person sees first.",
+  "extends": "./tsconfig.app.json",
+  "compilerOptions": {
+    "strict": true,
+    "noEmit": true,
+    "composite": false,
+    "incremental": false
+  },
+  "include": [
+    "src/pages/money/**/*",
+    "src/components/MoneyOnboarding.tsx",
+    "src/components/LedgerOrb.tsx",
+    "src/components/Wait.tsx",
+    "src/vite-env.d.ts",
+    "src/**/*.d.ts"
+  ]
+}

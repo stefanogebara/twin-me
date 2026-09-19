@@ -1,0 +1,37 @@
+name: Agentic loop
+
+# Agentic OS, phase 2, stage one (docs/roadmap/PROGRESS.md, M2-6; decision D4 puts it here:
+# no machine has to be awake, the run history is the report card, nothing lands on the
+# Vercel bill). After the nightly canaries, a cheap model reads what changed and the report
+# card and says whether anything needs attention; if so, a stronger model writes the plan and
+# it is opened as an issue. Nothing here edits code, touches money tables or the bank.
+# Implement and inspect stages arrive with the agent harness (slice 2).
+
+on:
+  schedule:
+    - cron: '30 6 * * *' # 06:30 UTC, after goals-nightly at 06:00
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+  actions: read
+
+jobs:
+  triage:
+    name: Triage and plan
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0 # the log since the last run
+      - uses: actions/setup-node@v5
+        with:
+          node-version-file: .nvmrc
+      - name: Triage
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+        run: node scripts/agentic/loop.mjs

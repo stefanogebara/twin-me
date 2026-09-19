@@ -42,7 +42,7 @@ jobs:
         with:
           node-version-file: .nvmrc
           cache: npm
-      - run: npm ci --legacy-peer-deps
+      - run: npm ci
       - name: Payment, tenant and delivery invariants
         env:
           MONEY_TEST_DATABASE_URL: postgresql://postgres:money-test-only@127.0.0.1:5432/twinme_money_test
@@ -53,11 +53,6 @@ jobs:
       - run: npx playwright install --with-deps chromium
       - run: npm run build
       - run: npx playwright test --config playwright.money.config.ts
-      - name: Shadow report card (previous twenty completed nights)
-        if: always()
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: node scripts/ci/money-report-card.mjs
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -80,7 +75,7 @@ jobs:
           cache: npm
 
       - name: Install dependencies
-        run: npm ci --legacy-peer-deps
+        run: npm ci
 
       # Same Supabase stubs as ci.yml: service modules require these at import
       # time; goals tests never dial them.
@@ -122,3 +117,91 @@ jobs:
           else
             gh issue create --repo "$REPO" --title "Goals nightly RED: shipped-feature canary regressed" --body "$BODY"
           fi
+
+  # ---- Graded task types (agentic OS phase 2, slice 1; 2026-09-19) ---------------
+  # Each job is a kind of work the report card grades by its last twenty nights.
+  money-imports:
+    name: Money loads a module at a time
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - env:
+          SUPABASE_URL: https://ci-stub.supabase.co
+          SUPABASE_ANON_KEY: ci-stub-anon-key
+          SUPABASE_SERVICE_ROLE_KEY: ci-stub-service-role-key
+        run: npx vitest run tests/goals/money-imports.goal.test.js
+  money-first:
+    name: Money first, one instruction file
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - run: npx vitest run tests/goals/money-first.goal.test.js tests/goals/agents-in-sync.goal.test.js
+      - run: npx tsc -p tsconfig.money.json
+  money-canaries:
+    name: Money canaries
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      # Today paints; one payment, one line; the day is written down; the loop is budgeted.
+      - env:
+          SUPABASE_URL: https://ci-stub.supabase.co
+          SUPABASE_ANON_KEY: ci-stub-anon-key
+          SUPABASE_SERVICE_ROLE_KEY: ci-stub-service-role-key
+        run: npx vitest run tests/frontend/moneyAccountCache.test.tsx tests/api/services/money/bankIdentity.test.js tests/api/routes/cronMoneyLearn.test.js tests/api/routes/cronMoneyPull.test.js tests/api/services/money/allowance.test.js
+  # M0-2 (2026-09-19): the whole unit suite without the retry that hides its order flake. Ten
+  # green nights here, graded by the report card, are the evidence for dropping --retry=2 in CI.
+  unit-no-retry:
+    name: Unit suite, no retries
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - env:
+          SUPABASE_URL: https://ci-stub.supabase.co
+          SUPABASE_ANON_KEY: ci-stub-anon-key
+          SUPABASE_SERVICE_ROLE_KEY: ci-stub-service-role-key
+        run: npx vitest run --retry=0 --exclude '**/*.integration.test.js'
+  report-card:
+    name: Report card
+    needs: [money-safety, goals, money-imports, money-first, money-canaries, unit-no-retry]
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version-file: .nvmrc
+      - name: Grade every job by its last twenty nights (shadow: money is never automated)
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+        run: node scripts/ci/money-report-card.mjs
+      - uses: actions/upload-artifact@v4
+        with:
+          name: report-card
+          path: test-results/report-card.json
+          retention-days: 90

@@ -43,7 +43,7 @@ jobs:
           cache: npm
 
       - name: Install dependencies
-        run: npm ci --legacy-peer-deps
+        run: npm ci
 
       - name: Build (vite)
         run: npm run build
@@ -67,6 +67,16 @@ jobs:
           SUPABASE_SERVICE_ROLE_KEY: ci-stub-service-role-key
         run: npx vitest run --retry=2 --exclude '**/*.integration.test.js'
 
+      # ---- Coverage floor for the product (audit 2026-09-19, M0-1) ----
+      # The money core and its pages, measured on their own: the floor in
+      # vitest.money.config.ts can only rise. The legacy surface is not gated.
+      - name: Money coverage floor
+        env:
+          SUPABASE_URL: https://ci-stub.supabase.co
+          SUPABASE_ANON_KEY: ci-stub-anon-key
+          SUPABASE_SERVICE_ROLE_KEY: ci-stub-service-role-key
+        run: npx vitest run --config vitest.money.config.ts --coverage
+
       # ---- Baseline-freeze gate (audit 2026-06 M0.5) ----
       # Replaces the old non-blocking lint+tsc steps. Runs eslint + tsc once and
       # counts errors plus route files with direct Supabase access (.from). These
@@ -75,6 +85,10 @@ jobs:
       # backlog. This is how lint/tsc get teeth without a big-bang cleanup.
       - name: Baseline freeze (eslint + tsc + direct-DB-in-routes)
         run: node scripts/ci/check-baselines.mjs
+      # The money pages are strict (M3-1, 2026-09-19): what a signed-in person sees first
+      # is typed all the way, whatever the rest of the app still allows.
+      - name: Money pages, strict types
+        run: npx tsc -p tsconfig.money.json
 
   money-persistence:
     name: Money persistence
@@ -97,7 +111,7 @@ jobs:
         with:
           node-version-file: .nvmrc
           cache: npm
-      - run: npm ci --legacy-peer-deps
+      - run: npm ci
       - name: Real database invariants (no production secrets)
         env:
           MONEY_TEST_DATABASE_URL: postgresql://postgres:money-test-only@127.0.0.1:5432/twinme_money_test
@@ -116,7 +130,7 @@ jobs:
         with:
           node-version-file: .nvmrc
           cache: npm
-      - run: npm ci --legacy-peer-deps
+      - run: npm ci
       - run: npx playwright install --with-deps chromium
       - run: npm run build
       - run: npx playwright test --config playwright.money.config.ts
@@ -150,7 +164,7 @@ jobs:
         run: npm ci --no-audit --no-fund
 
       - name: Install shared test runner
-        run: npm ci --legacy-peer-deps
+        run: npm ci
       - name: Capture account lifecycle
         run: npx vitest run --config vitest.mobile.config.ts
       - name: Typecheck
@@ -202,7 +216,7 @@ jobs:
           cache: npm
 
       - name: Install dependencies
-        run: npm ci --legacy-peer-deps
+        run: npm ci
 
       - name: Install Playwright browser (chromium)
         run: npx playwright install --with-deps chromium

@@ -2,6 +2,7 @@ import React, { ReactNode } from 'react';
 import Wait from '@/components/Wait';
 import { useAuth } from '../contexts/AuthContext';
 import { Navigate, useLocation } from 'react-router-dom';
+import { useDictReady, langOf } from '@/lib/i18n';
 
 interface ProtectedRouteProps {
   children: ReactNode;
@@ -36,12 +37,15 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   fallbackPath = '/auth',
   requireAdmin = false
 }) => {
-  const { isSignedIn, isLoaded, isAdmin, needsOnboarding } = useAuth();
+  const { isSignedIn, isLoaded, isAdmin, needsOnboarding, user } = useAuth();
   const location = useLocation();
 
   // Wait for auth verification to complete before making any decisions
   // This prevents showing content then redirecting (the "session expired" feeling)
-  if (!isLoaded) {
+  /* And for the account's dictionary: a page in the wrong language for a frame is the
+     "greeted in English on a Portuguese account" bug again (M3-2, 2026-09-19). */
+  const dictionaryReady = useDictReady(langOf(user));
+  if (!isLoaded || !dictionaryReady) {
     return (
       <Wait />
     );

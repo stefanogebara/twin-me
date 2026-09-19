@@ -1,7 +1,6 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react-swc";
 import path from "path";
-import { componentTagger } from "lovable-tagger";
 
 // Vercel preview deploys share the same VITE_API_URL env var as production,
 // which bakes the prod origin into the preview bundle -> every /api call from
@@ -13,7 +12,7 @@ const viteApiUrl =
     : process.env.VITE_API_URL || "http://localhost:3004/api";
 
 // https://vitejs.dev/config/
-export default defineConfig(({ mode }) => ({
+export default defineConfig(() => ({
   define: {
     "import.meta.env.VITE_API_URL": JSON.stringify(viteApiUrl),
   },
@@ -34,7 +33,9 @@ export default defineConfig(({ mode }) => ({
       }
     }
   },
-  plugins: [react(), mode === "development" && componentTagger()].filter(Boolean),
+  /* lovable-tagger (a Lovable-era dev plugin) wanted vite 5 and was the one reason for
+     --legacy-peer-deps (M3-5, 2026-09-19). */
+  plugins: [react()],
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),

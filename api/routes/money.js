@@ -36,7 +36,8 @@
  * Spec: .claude/plans/2026-09-07-money-twin/README.md
  */
 
-import { accountsWithCards, labelCard } from '../services/money/instruments.js';
+import { labelCard } from '../services/money/instruments.js';
+import { readPage, accountsView, PAGE_VIEWS } from '../services/money/pageRead.js';
 import { listReceiptNotices } from '../services/money/notices.js';
 import { Router } from 'express';
 import crypto from 'node:crypto';
@@ -60,12 +61,12 @@ import { ahead as calendarAhead, learnEventSpend, addFeed as addCalendarFeed, re
 import { todayAllowance } from '../services/money/allowanceService.js';
 import { monthPlan, planLine } from '../services/money/plan.js';
 import { spendingRule } from '../services/money/spending.js';
-import { reconnectByAccount } from '../services/money/store.js';
 import { guessHome, savedHome, searchAreas, searchPlaces, staticMap, saveHome, placePoint } from '../services/money/home.js';
 import { encryptState } from '../services/encryption.js';
 import { signState, readState } from '../services/money/bankState.js';
 import { getAppUrl } from '../utils/oauthUtils.js';
 import { getGoogleWorkspaceScopes } from '../config/googleWorkspaceScopes.js';
+import { quietly } from '../services/money/quietly.js';
 
 const log = createLogger('MoneyRoute');
 const router = Router();
@@ -138,6 +139,21 @@ router.post('/inbox/resend', async (req, res) => {
 
 router.use(authenticateUser);
 router.get('/capabilities', (req, res) => res.json({ success: true, data: moneyCapabilities(req.user.id) }));
+
+/**
+ * The page in one read (M2-3). Every part the three views share, under one authentication,
+ * with the names of the parts that could not be read: the page says "could not be read"
+ * only when the month, the ledger and the day all failed, and paints the rest.
+ */
+router.get('/page', async (req, res) => {
+  const view = typeof req.query.view === 'string' ? req.query.view : 'today';
+  if (!PAGE_VIEWS.has(view)) return res.status(400).json({ success: false, error: 'Unknown view' });
+  try {
+    const { data, failed } = await readPage(req.user.id, { view });
+    if (failed.length) log.warn('page read incomplete', { failed });
+    res.json({ success: true, data: { ...data, failed } });
+  } catch (error) { log.error('page failed', { error: error.message }); res.status(500).json({ success: false, error: 'Internal server error' }); }
+});
 
 router.get('/notices', async (req, res) => {
   try { res.json({ success: true, data: await listReceiptNotices(req.user.id) }); }
@@ -237,16 +253,8 @@ router.post('/bank/connect', async (req, res) => {
 });
 
 router.get('/bank/accounts', async (req, res) => {
-  try {
-    const [accounts, gone] = await Promise.all([
-      listBankAccounts(req.user.id),
-      reconnectByAccount(req.user.id).catch(() => new Set()),
-    ]);
-    /* The connection's state travels with the accounts, each with its own: a month that
-       stopped moving because one bank ended its session must say which bank, and not send
-       the person to reconnect the other. */
-    res.json({ success: true, data: (await accountsWithCards(req.user.id, accounts)).map(({ session_id, created_at, ...a }) => ({ ...a, needs_reconnect: gone.has(a.id) })) });
-  } catch (error) { log.error('bank accounts failed', { error: error.message }); res.status(500).json({ success: false, error: 'Internal server error' }); }
+  try { res.json({ success: true, data: await accountsView(req.user.id) }); }
+  catch (error) { log.error('bank accounts failed', { error: error.message }); res.status(500).json({ success: false, error: 'Internal server error' }); }
 });
 
 router.post('/bank/accounts/:accountId/cards/:last4/type', async (req, res) => {
@@ -717,10 +725,10 @@ router.post('/chat/attach', attachOne, async (req, res) => {
   const note = typeof req.body?.note === 'string' ? req.body.note.replace(/\s+/g, ' ').trim().slice(0, 500) : '';
   const name = String(req.file.originalname || 'file').replace(/[\r\n\t]/g, ' ').trim().slice(0, 120) || 'file';
   try {
-    const language = await userLanguage(req.user.id).catch(() => null);
+    const language = await userLanguage(req.user.id).catch(quietly('attach/user-language', null));
     const r = await readAttachment(req.user.id, { buffer: req.file.buffer, filename: name, mimeType: req.file.mimetype, note, language }, ATTACHMENT_DEPS);
-    await saveChatTurn(req.user.id, { role: 'user', text: `Sent ${name}${note ? `. ${note}` : ''}` }).catch(() => null);
-    await saveChatTurn(req.user.id, { role: 'twin', text: r.said, receipts: r.receipts || null }).catch(() => null);
+    await saveChatTurn(req.user.id, { role: 'user', text: `Sent ${name}${note ? `. ${note}` : ''}` }).catch(quietly('attach/save-user-turn', null));
+    await saveChatTurn(req.user.id, { role: 'twin', text: r.said, receipts: r.receipts || null }).catch(quietly('attach/save-twin-turn', null));
     log.info('chat attachment read', { userId: req.user.id, kind: r.kind, bytes: req.file.size });
     if (!res.headersSent) res.json({ success: true, data: { kind: r.kind, said: r.said, receipts: r.receipts || [] } });
   } catch (error) {
@@ -809,7 +817,7 @@ router.get('/home', async (req, res) => {
   try {
     const [guess, saved] = await Promise.all([
       guessHome(req.user.id).catch((e) => { log.warn('home guess failed', { error: e.message }); return null; }),
-      savedHome(req.user.id).catch(() => null),
+      savedHome(req.user.id).catch(quietly('home/saved', null)),
     ]);
     res.json({ success: true, data: { guess, saved } });
   } catch (error) {
@@ -867,7 +875,7 @@ router.post('/home', async (req, res) => {
        has actually picked one. The ledger needs it to know which shops are near home. */
     let point = { lat, lng };
     if ((!Number.isFinite(Number(lat)) || !Number.isFinite(Number(lng))) && placeId) {
-      const found = await placePoint(placeId).catch(() => null);
+      const found = await placePoint(placeId).catch(quietly('home/place-point', null));
       if (found) point = { lat: found.lat, lng: found.lng };
     }
     const out = await saveHome(req.user.id, { district, city, lat: point.lat, lng: point.lng, source: source === 'guess' ? 'guess' : 'confirmed' });
@@ -925,7 +933,7 @@ bankCallback.get('/bank/callback', async (req, res) => {
        feed log, and the reason is the bank's word, not a guess. */
     const refused = typeof req.query.error === 'string' ? req.query.error.replace(/[^a-z0-9_ .-]/gi, '').slice(0, 80) : '';
     log.warn('bank authorisation refused', { error: refused || 'no code' });
-    await recordCallbackFailure(userId, `refused: ${refused || 'no code'}`).catch(() => {});
+    await recordCallbackFailure(userId, `refused: ${refused || 'no code'}`).catch(quietly('bank-callback/record-refused', undefined));
     return res.redirect(302, `${back}?bank=failed${refused ? `&why=${encodeURIComponent(refused)}` : ''}`);
   }
   try {
@@ -944,7 +952,7 @@ bankCallback.get('/bank/callback', async (req, res) => {
            mode reads only the accounts linked in its Control Panel, and its sessions come
            back authorised and empty for everyone else. */
         const app = await applicationInfo().catch((e) => ({ error: e.message.slice(0, 120) }));
-        await recordCallbackFailure(userId, `no accounts: ${session.bankName || 'bank'} session=${session.sessionId} first=${first} again=${JSON.stringify(again ? again.raw : null)} app=${JSON.stringify(app)}`, { keepIds: true }).catch(() => {});
+        await recordCallbackFailure(userId, `no accounts: ${session.bankName || 'bank'} session=${session.sessionId} first=${first} again=${JSON.stringify(again ? again.raw : null)} app=${JSON.stringify(app)}`, { keepIds: true }).catch(quietly('bank-callback/record-no-accounts', undefined));
       }
     }
     if (!session.accounts.length) {
@@ -953,7 +961,7 @@ bankCallback.get('/bank/callback', async (req, res) => {
          to read and no row to show, which is what a Revolut looked like on 2026-09-15. The
          whole session object goes to the log, so the next one can be read, not guessed. */
       log.warn('bank session without accounts', { session: JSON.stringify(session.raw || {}).slice(0, 1500) });
-      if (!session.sessionId) await recordCallbackFailure(userId, `no accounts: ${session.bankName || 'bank'}`).catch(() => {});
+      if (!session.sessionId) await recordCallbackFailure(userId, `no accounts: ${session.bankName || 'bank'}`).catch(quietly('bank-callback/record-no-session', undefined));
       return res.redirect(302, `${back}?bank=failed&why=${encodeURIComponent('no accounts were shared')}`);
     }
     await saveBankAccounts(userId, session);
@@ -962,7 +970,7 @@ bankCallback.get('/bank/callback', async (req, res) => {
     res.redirect(302, `${back}?bank=connected${session.bankName ? `&name=${encodeURIComponent(session.bankName)}` : ''}`);
   } catch (error) {
     log.error('bank callback failed', { error: error.message });
-    await recordCallbackFailure(userId, error.message).catch(() => {});
+    await recordCallbackFailure(userId, error.message).catch(quietly('bank-callback/record-error', undefined));
     res.redirect(302, `${back}?bank=failed`);
   }
 });

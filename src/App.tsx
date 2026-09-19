@@ -8,7 +8,6 @@ import { useEffect, useRef, lazy, Suspense } from "react";
 import Wait from "@/components/Wait";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import { lazyWithRetry } from "@/lib/lazyWithRetry";
-import { SidebarLayout } from "./components/layout/SidebarLayout";
 import { LoadingProvider } from "./contexts/LoadingContext";
 import { ErrorProvider } from "./contexts/ErrorContext";
 import { AnalyticsProvider, useAnalytics } from "./contexts/AnalyticsContext";
@@ -26,10 +25,7 @@ import { ClassicBackground } from "./components/ClassicBackground";
 import { BackgroundModeProvider, useBackgroundMode } from "./contexts/BackgroundModeContext";
 
 // Eager-loaded (critical path: landing, auth, 404)
-import Index from "./pages/Index";
 import CustomAuth from "./pages/CustomAuth";
-import OAuthCallback from "./pages/OAuthCallback";
-import NotFound from "./pages/NotFound";
 // Design prototypes: dev-only routes (see the /preview block below). The
 // DEV ternary lets Vite dead-code-eliminate the dynamic imports in prod, so
 // no prototype chunks are emitted at all.
@@ -58,9 +54,20 @@ const loadTalkToTwin = () => import("./pages/TalkToTwin");
 const loadTodayPage = () => import("./pages/TodayPage");
 const loadMoneyPage = () => import("./pages/MoneyPage");
 const MoneyV2Page = lazyWithRetry(() => import("./pages/money/MoneyV2Page"));
-const MoneySetupPage = lazyWithRetry(() => import("./pages/money/MoneySetupPage"));
-const MoneyChatPage = lazyWithRetry(() => import("./pages/money/MoneyChatPage"));
-const PlanPage = lazyWithRetry(() => import("./pages/money/PlanPage"));
+/* Money is the product (M3-2, 2026-09-19): the marketing front door, the OAuth return, the
+   404 and the legacy twin's sidebar were in the entry chunk of every screen; each is its own
+   file now and arrives when its route does. Sign-in stays eager: it is a new person's first
+   screen and small. */
+const Index = lazyWithRetry(() => import("./pages/Index"));
+const OAuthCallback = lazyWithRetry(() => import("./pages/OAuthCallback"));
+const NotFound = lazyWithRetry(() => import("./pages/NotFound"));
+const SidebarLayout = lazy(() => import("./components/layout/SidebarLayout").then((m) => ({ default: m.SidebarLayout })));
+const loadMoneySetupPage = () => import("./pages/money/MoneySetupPage");
+const loadMoneyChatPage = () => import("./pages/money/MoneyChatPage");
+const loadPlanPage = () => import("./pages/money/PlanPage");
+const MoneySetupPage = lazyWithRetry(loadMoneySetupPage);
+const MoneyChatPage = lazyWithRetry(loadMoneyChatPage);
+const PlanPage = lazyWithRetry(loadPlanPage);
 const loadMoneyInsightsPage = () => import("./pages/MoneyInsightsPage");
 
 const Settings = lazyWithRetry(() => import("./pages/Settings"));
@@ -131,19 +138,17 @@ const App = () => {
   useExtensionSync();
 
   useEffect(() => {
-    // Warm the heaviest authenticated routes after boot so route navigation
-    // doesn't block on first-time dev transforms.
-    // audit-2026-05-15 H12: added MoneyPage — Agent 2 found it flashed the
-    // global flower-pulse Suspense fallback for ~3s on cold cache before
-    // its chunk arrived.
-    const prefetchHeavyRoutes = () => {
-      void loadTodayPage();
-      void loadTalkToTwin();
-      void loadMoneyPage();
-    };
-
-    const timer = window.setTimeout(prefetchHeavyRoutes, 0);
-    return () => window.clearTimeout(timer);
+    /* Money is the product (2026-09-19, M3-2): the pages a person moves between after Today
+       are warmed once the browser is idle, and nothing else is. Until then every start
+       fetched the legacy twin's heaviest routes and their charts at 0 ms, on the money
+       screen too, where none of it was ever shown. */
+    const warm = () => { void loadMoneyChatPage(); void loadPlanPage(); void loadMoneySetupPage(); };
+    if (typeof window.requestIdleCallback === 'function') {
+      const id = window.requestIdleCallback(warm, { timeout: 4000 });
+      return () => window.cancelIdleCallback(id);
+    }
+    const timer = setTimeout(warm, 1500);
+    return () => clearTimeout(timer);
   }, []);
 
   return (

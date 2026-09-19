@@ -6,20 +6,20 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Menu, X } from 'lucide-react';
-import MoneyOnboarding from '../../components/MoneyOnboarding';
+import MoneyOnboarding, { type OnboardingGiven } from '../../components/MoneyOnboarding';
 import { useT } from '@/lib/i18n';
 
 export type MoneyNavLink = { to: string; label: string; current?: boolean; sub?: boolean };
 
 
 
-export default function MoneyNav({ links }: { links: MoneyNavLink[] }) {
+export default function MoneyNav({ links, onboarding }: { links: MoneyNavLink[]; onboarding?: { given: OnboardingGiven | null; reread: () => void } }) {
   const [open, setOpen] = useState(false);
   const t = useT();
   const close = () => setOpen(false);
   return (
     <>
-    <MoneyOnboarding />
+    <MoneyOnboarding given={onboarding?.given} reread={onboarding?.reread} />
     <aside className={`mv-side${open ? ' is-open' : ''}`}>
       <div className="mv-side-bar">
         <Link to="/money" className="mv-mark" aria-label={t('TwinMe, this month')} onClick={close}><i /><i /><i /><i /><i /><i /></Link>

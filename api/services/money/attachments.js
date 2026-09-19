@@ -31,6 +31,7 @@ import crypto from 'node:crypto';
 import { say } from './chat.js';
 import { LEDGER_TZ } from './zone.js';
 import { money } from './currency.js';
+import { quietly } from './quietly.js';
 
 /** Vercel caps a request body at 4.5 MB; a photo shrinks on the client before it comes. */
 export const MAX_ATTACHMENT_BYTES = 4 * 1024 * 1024;
@@ -120,7 +121,7 @@ export async function readAttachment(userId, { buffer, filename = '', mimeType =
         return said('nothing', w('Upload this statement in Sources and choose the account it belongs to.'));
       }
       const result = await ingestSightings(userId, rows.sightings);
-      if (afterLedgerChange) await afterLedgerChange(userId).catch(() => {});
+      if (afterLedgerChange) await afterLedgerChange(userId).catch(quietly('attach/after-ledger-change', undefined));
       const created = Number(result?.created) || 0;
       const readWord = rows.sightings.length === 1
         ? w('Read {n} payment from {name}', { n: 1, name })
@@ -180,7 +181,7 @@ export async function readAttachment(userId, { buffer, filename = '', mimeType =
       system: `${SUMMARY_SYSTEM} ${LANGUAGE_LINE[language] || ''}`.trim(),
       messages: [{ role: 'user', content: `File: ${name}${note ? `\nThe person says: ${String(note).slice(0, 300)}` : ''}\n\n${text.slice(0, 6000)}` }],
       maxTokens: 120, temperature: 0, userId, serviceName: 'money-attachment', skipCache: true,
-    }).catch(() => null);
+    }).catch(quietly('attach/complete', null));
     const raw = reply?.content ?? reply?.text ?? reply;
     summary = gateSummary(typeof raw === 'string' ? raw : '', `${text}\n${note || ''}`);
   }

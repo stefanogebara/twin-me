@@ -165,7 +165,17 @@ async function completeLedger(since?: string): Promise<MoneyTransaction[]> {
   throw new Error('Choose a shorter ledger date range.');
 }
 
+export type MoneyPage = {
+  forecast: MoneyForecast | null; today: MoneyToday | null; ledger: MoneyTransaction[] | null; recurring: MoneyRecurring[] | null;
+  accounts: MoneyAccount[] | null; months: MoneyMonth[] | null; readings: MoneyReading[] | null; categories: MoneyCategories | null;
+  usage: MoneyUsage | null; capabilities: { bank: boolean; capture: boolean } | null; inbox: { address: string; receiving: boolean } | null;
+  facts: MoneyFact[] | null;
+  failed: string[];
+};
+
 export const moneyAPI = {
+  /* The page in one read: every part Today, Month and You share, and which could not be read. */
+  page: (view: 'today' | 'month' | 'you') => authFetch(`/money/page?view=${view}`).then((r) => json<MoneyPage>(r)),
   forecast: () => authFetch('/money/forecast').then((r) => json<MoneyForecast>(r)),
   ledger: completeLedger,
   sightings: (id: string) => authFetch(`/money/transactions/${id}/sightings`).then((r) => json<MoneySighting[]>(r)),
