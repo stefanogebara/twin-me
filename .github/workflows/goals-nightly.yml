@@ -42,7 +42,7 @@ jobs:
         with:
           node-version-file: .nvmrc
           cache: npm
-      - run: npm ci --legacy-peer-deps
+      - run: npm ci
       - name: Payment, tenant and delivery invariants
         env:
           MONEY_TEST_DATABASE_URL: postgresql://postgres:money-test-only@127.0.0.1:5432/twinme_money_test
@@ -75,7 +75,7 @@ jobs:
           cache: npm
 
       - name: Install dependencies
-        run: npm ci --legacy-peer-deps
+        run: npm ci
 
       # Same Supabase stubs as ci.yml: service modules require these at import
       # time; goals tests never dial them.
@@ -130,7 +130,7 @@ jobs:
         with:
           node-version-file: .nvmrc
           cache: npm
-      - run: npm ci --legacy-peer-deps
+      - run: npm ci
       - env:
           SUPABASE_URL: https://ci-stub.supabase.co
           SUPABASE_ANON_KEY: ci-stub-anon-key
@@ -146,7 +146,7 @@ jobs:
         with:
           node-version-file: .nvmrc
           cache: npm
-      - run: npm ci --legacy-peer-deps
+      - run: npm ci
       - run: npx vitest run tests/goals/money-first.goal.test.js tests/goals/agents-in-sync.goal.test.js
       - run: npx tsc -p tsconfig.money.json
   money-canaries:
@@ -159,7 +159,7 @@ jobs:
         with:
           node-version-file: .nvmrc
           cache: npm
-      - run: npm ci --legacy-peer-deps
+      - run: npm ci
       # Today paints; one payment, one line; the day is written down; the loop is budgeted.
       - env:
           SUPABASE_URL: https://ci-stub.supabase.co
@@ -178,7 +178,7 @@ jobs:
         with:
           node-version-file: .nvmrc
           cache: npm
-      - run: npm ci --legacy-peer-deps
+      - run: npm ci
       - env:
           SUPABASE_URL: https://ci-stub.supabase.co
           SUPABASE_ANON_KEY: ci-stub-anon-key
