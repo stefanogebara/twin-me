@@ -22,7 +22,7 @@ import { CHANGE_BOUNDARY, readingRank, readingStake } from './readingOrder';
 type Snapshot = {
   userId: string | null; revision: number; at: number; forecast: MoneyForecast | null; today: MoneyToday | null; ledger: MoneyTransaction[]; recurring: MoneyRecurring[];
   accounts: MoneyBankAccount[]; months: MoneyMonth[]; readings: MoneyReading[]; categories: MoneyCategories | null; usage: MoneyUsage | null; unread: boolean;
-  capabilities: { bank: boolean; capture: boolean }; inbox: { address: string; receiving: boolean } | null;
+  capabilities: { bank: boolean; capture: boolean }; inbox: { address: string; receiving: boolean } | null; facts: MoneyFact[] | null;
 };
 let SNAPSHOT: Snapshot | null = null;
 const SNAPSHOT_FRESH_MS = 30000;
@@ -64,6 +64,11 @@ export function useMoneyRead(userId: string | null, view: MoneyView) {
   const [usage, setUsage] = useState<MoneyUsage | null>(SNAPSHOT?.usage ?? null);
   const [capabilities, setCapabilities] = useState(SNAPSHOT?.capabilities ?? { bank: false, capture: false });
   const [inbox, setInbox] = useState<{ address: string; receiving: boolean } | null>(SNAPSHOT?.inbox ?? null);
+  /* What it knows, in the person's words: the You page and the onboarding both read it. */
+  const [facts, setFacts] = useState<MoneyFact[] | null>(SNAPSHOT?.facts ?? null);
+  /* The parts of the last read that could not be read, by name: a part that failed is not
+     an empty part, and whoever paints it must know the difference. */
+  const [failedParts, setFailedParts] = useState<Set<string>>(new Set());
   const [loaded, setLoaded] = useState(Boolean(SNAPSHOT));
   const seq = useRef(0);
   /* A read in the air, so a view change during one does not send nine requests after it. It
@@ -106,6 +111,8 @@ export function useMoneyRead(userId: string | null, view: MoneyView) {
     const u = got('usage'); if (u !== undefined) setUsage(u);
     const cap = got('capabilities'); if (cap !== undefined) setCapabilities(cap);
     const ib = got('inbox'); if (ib !== undefined) setInbox(ib); else if (page && failed.has('inbox')) setInbox(null);
+    const fa = got('facts'); if (fa !== undefined) setFacts(fa);
+    setFailedParts(page ? failed : new Set(['forecast', 'today', 'ledger', 'recurring', 'accounts', 'months', 'readings', 'categories', 'usage', 'capabilities', 'inbox', 'facts']));
     /* A month that could not be read is not an empty month. Every rejection was dropped, so a
        server that was down told the person their ledger was empty and offered to connect the
        bank they already have (2026-09-16). */
@@ -128,6 +135,7 @@ export function useMoneyRead(userId: string | null, view: MoneyView) {
         usage: u !== undefined ? u : SNAPSHOT?.usage ?? null,
         capabilities: cap !== undefined ? cap : SNAPSHOT?.capabilities ?? { bank: false, capture: false },
         inbox: ib !== undefined ? ib : SNAPSHOT?.inbox ?? null,
+        facts: fa !== undefined ? fa : SNAPSHOT?.facts ?? null,
         unread: false,
       };
       storeSnapshot(SNAPSHOT);
@@ -171,16 +179,15 @@ export function useMoneyRead(userId: string | null, view: MoneyView) {
       .catch(() => {});
     return () => { live = false; };
   }, [load]);
-  return { forecast, today, unread, ledger, setLedger, recurring, accounts, months, readings, categories, setCategories, usage, capabilities, inbox, loaded, needsReconnect, setNeedsReconnect, load };
+  return { forecast, today, unread, ledger, setLedger, recurring, accounts, months, readings, categories, setCategories, usage, capabilities, inbox, facts, failedParts, loaded, needsReconnect, setNeedsReconnect, load };
 }
 
-/** What only You shows, read only there: the calendar, the facts, the patterns, the inbox. */
+/** What only You shows, read only there: the calendar, the questions, the patterns. */
 export function useYouReads(view: MoneyView, inbox: { address: string; receiving: boolean } | null) {
   const [copied, setCopied] = useState(false);
   /* The calendar lens: Google, or links pasted from Canvas and Blackboard. */
   const [calendar, setCalendar] = useState<MoneyCalendar | null>(null);
   /* What it knows, in the person's words, and what it still wants to ask: the You page. */
-  const [facts, setFacts] = useState<MoneyFact[] | null>(null);
   const [questions, setQuestions] = useState<MoneyQuestions | null>(null);
   /* A read that failed is not a calendar that was never connected: mapped to connected:false,
      one failed request offered Connect Google to somebody who had already connected it. */
@@ -191,15 +198,11 @@ export function useYouReads(view: MoneyView, inbox: { address: string; receiving
   );
   /* Only You shows the calendar, and reading it fetches every pasted link: not on every page. */
   useEffect(() => { if (view === 'you') void loadCalendar(); }, [view, loadCalendar]);
-  const [youFailed, setYouFailed] = useState(false);
+
   const [patterns, setPatterns] = useState<MoneyPattern[] | null>(null);
+  /* The facts come with the page; You reads only what it still wants to ask. */
   const loadYou = useCallback(async () => {
-    const [f, q] = await Promise.allSettled([moneyAPI.facts(), moneyAPI.questions()]);
-    /* Same rule as the calendar: nothing to show and nothing could be read are different
-       lines, and the second one must not read as the first. */
-    if (f.status === 'fulfilled') setFacts(f.value);
-    if (q.status === 'fulfilled') setQuestions(q.value);
-    setYouFailed(f.status === 'rejected');
+    try { setQuestions(await moneyAPI.questions()); } catch { /* the row keeps what it had */ }
   }, []);
   /* What it worked out on its own, only on the page that shows it: it is a read of the whole
      ledger and nothing else needs it. */
@@ -209,7 +212,7 @@ export function useYouReads(view: MoneyView, inbox: { address: string; receiving
     if (!inbox) return;
     try { await navigator.clipboard.writeText(inbox.address); setCopied(true); setTimeout(() => setCopied(false), 1600); } catch { /* the address is on the page to select */ }
   }, [inbox]);
-  return { calendar, calendarFailed, loadCalendar, facts, questions, youFailed, loadYou, patterns, copied, copyInbox };
+  return { calendar, calendarFailed, loadCalendar, questions, loadYou, patterns, copied, copyInbox };
 }
 
 type ActionDeps = {
@@ -445,6 +448,7 @@ export function useMoneyAccount(view: MoneyView, userId: string | null) {
   const ahead = forecast ? stillToCome(t, locale, forecast) : [];
   return {
     t, locale, user, ...r, ...y, ...a,
+    youFailed: r.failedParts.has('facts'),
     reconnect, quietDays, bookedLine, bankLine, empty, monthKey, monthRows, incomeEdge, edge, balanceLine, todayDay, pairMax,
     ranked, changed, shown, lead, rest, projectable, monthlyLoad, subscriptions, bills, byMonth, monthLabel, last, unmeasured, ahead,
   };

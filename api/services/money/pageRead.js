@@ -11,6 +11,7 @@
 import { forecast, months } from './forecastService.js';
 import { todayAllowance } from './allowanceService.js';
 import { listTransactions } from './transactionRepository.js';
+import { listFacts } from './factsRepository.js';
 import { refreshRecurring, listBankAccounts, reconnectByAccount, listReadings, categorySpend, subscriptionUsage } from './store.js';
 import { accountsWithCards } from './instruments.js';
 import { moneyCapabilities } from './betaCapabilities.js';
@@ -52,6 +53,7 @@ export async function readPage(userId, { view = 'today', now = new Date() } = {}
     recurring: refreshRecurring(userId),
     accounts: accountsView(userId),
     readings: listReadings(userId),
+    facts: listFacts(userId),
     categories: categorySpend(userId, { month: firstOfMonthIn(now) }),
     usage: subscriptionUsage(userId),
     capabilities: Promise.resolve(moneyCapabilities(userId)),

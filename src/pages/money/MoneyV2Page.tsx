@@ -32,7 +32,9 @@ function MoneyForAccount({ view = 'today', userId }: { view?: MoneyView; userId:
   return (
     <main className="mv">
       <div className="mv-shell">
-        <MoneyNav links={MONEY_NAV(view)} />
+        {/* The onboarding decides its step from the accounts, the facts and the capabilities; the
+            page has just read them, so it hands them over instead of letting it read them again. */}
+        <MoneyNav links={MONEY_NAV(view)} onboarding={{ given: m.loaded ? { accounts: m.failedParts.has('accounts') ? null : m.accounts, facts: m.failedParts.has('facts') ? null : m.facts, capabilities: m.failedParts.has('capabilities') ? null : m.capabilities } : null, reread: m.load }} />
         <div className="mv-col">
           {view === 'today' ? <TodayView m={m} /> : view === 'month' ? <MonthView m={m} /> : <YouView m={m} />}
           {/* What a press just did or failed to do, on whichever page the press was made. */}

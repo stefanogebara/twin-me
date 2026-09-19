@@ -169,6 +169,7 @@ export type MoneyPage = {
   forecast: MoneyForecast | null; today: MoneyToday | null; ledger: MoneyTransaction[] | null; recurring: MoneyRecurring[] | null;
   accounts: MoneyAccount[] | null; months: MoneyMonth[] | null; readings: MoneyReading[] | null; categories: MoneyCategories | null;
   usage: MoneyUsage | null; capabilities: { bank: boolean; capture: boolean } | null; inbox: { address: string; receiving: boolean } | null;
+  facts: MoneyFact[] | null;
   failed: string[];
 };
 
