@@ -3146,51 +3146,6 @@ select.pc-input {
    (user-directed: OpenAI-style orb; glass like the hero demos)
    ============================================================ */
 
-.pc-orb {
-  --orb: 1;
-  position: relative;
-  width: 172px;
-  height: 172px;
-  border-radius: 50%;
-  transform: scale(var(--orb));
-  transition: transform 90ms linear;
-  background:
-    radial-gradient(circle at 32% 30%, rgba(255, 255, 255, 0.95) 0%, rgba(255, 255, 255, 0) 42%),
-    radial-gradient(circle at 70% 28%, #9ec8ff 0%, rgba(158, 200, 255, 0) 52%),
-    radial-gradient(circle at 26% 74%, #ffc9a8 0%, rgba(255, 201, 168, 0) 54%),
-    radial-gradient(circle at 76% 76%, #d3b8ff 0%, rgba(211, 184, 255, 0) 56%),
-    radial-gradient(circle at 50% 50%, #bfd8f6 0%, #e8eef9 100%);
-  box-shadow:
-    inset 0 0 34px rgba(255, 255, 255, 0.55),
-    0 18px 60px rgba(120, 150, 200, 0.35);
-}
-
-/* A soft rotating sheen keeps it alive even in silence. */
-.pc-orb::before {
-  content: '';
-  position: absolute;
-  inset: -6%;
-  border-radius: 50%;
-  background: conic-gradient(from 0deg,
-    rgba(158, 200, 255, 0) 0%, rgba(158, 200, 255, 0.5) 18%,
-    rgba(255, 201, 168, 0.45) 42%, rgba(211, 184, 255, 0.5) 68%,
-    rgba(158, 200, 255, 0) 100%);
-  filter: blur(18px);
-  animation: pc-orb-spin 9s linear infinite;
-  z-index: -1;
-}
-
-.pc-orb.is-listening::before { animation-duration: 6s; }
-.pc-orb.is-speaking::before { animation-duration: 3.2s; }
-
-@keyframes pc-orb-spin {
-  to { transform: rotate(360deg); }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .pc-orb::before { animation: none; }
-  .pc-orb { transition: none; }
-}
 
 /* Liquid-glass transcript panel: translucent, blurred, inset-lit. */
 .pc-transcript {
@@ -3279,15 +3234,11 @@ select.pc-input {
   padding: 24px 0;
 }
 
-.pc-call-stage > .pc-orb {
-  width: 232px;
-  height: 232px;
+.pc-call-stage > .pc-orb-wrap {
   margin-bottom: 56px;
 }
 
-.pc-call-stage.is-live > .pc-orb {
-  width: 200px;
-  height: 200px;
+.pc-call-stage.is-live > .pc-orb-wrap {
   margin-bottom: 36px;
 }
 
@@ -3401,7 +3352,7 @@ select.pc-input {
 
 @media (max-width: 640px) {
   .pc-call { padding: 16px 20px calc(20px + env(safe-area-inset-bottom)); }
-  .pc-call-stage > .pc-orb, .pc-call-stage.is-live > .pc-orb { width: 168px; height: 168px; margin-bottom: 36px; }
+  .pc-call-stage > .pc-orb-wrap, .pc-call-stage.is-live > .pc-orb-wrap { margin-bottom: 36px; }
   .pc-call-stage h1 { font-size: clamp(44px, 12vw, 56px); }
   .pc-call-stage .pc-call-sub { font-size: 21px; margin-bottom: 32px; }
   .pc-call-actions { width: 100%; flex-direction: column; }

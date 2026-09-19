@@ -38,6 +38,7 @@ import {
   type PresenceOverview,
   type PresenceReadiness,
 } from '@/services/api/presenceAPI';
+import LedgerOrb from '@/components/LedgerOrb';
 import '@/styles/presence-cosmos.css';
 import '@/styles/presence-home.css';
 
@@ -299,7 +300,10 @@ export default function PresenceHome() {
             {state === 'error' ? (
               <p className="pc-empty">Não consegui carregar. Recarregue a página.</p>
             ) : (
-              <p className="pc-empty dsh-loading">Carregando a Presença dela</p>
+              <div className="pc-loading" role="status" aria-live="polite">
+                <LedgerOrb state="breathing" size={64} label="Carregando" />
+                <p className="pc-empty">Carregando a Presença dela</p>
+              </div>
             )}
           </div>
         </div>
