@@ -583,7 +583,7 @@ router.get('/:id/overview', authenticateUser, async (req, res) => {
         role: 'companion',
         presence: presenceForCompanion(presence.data || owned),
         notes: notes.data || [],
-        needs: (conversations.data || []).map(({ id, created_at, needs_family, urgency }) => ({ id, created_at, needs_family: needs_family || [], urgency: urgency || null })),
+        needs: (conversations.data || []).map(({ id, started_at, needs_family, urgency }) => ({ id, started_at, needs_family: needs_family || [], urgency: urgency || null })),
       });
     }
 

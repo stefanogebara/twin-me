@@ -35,7 +35,9 @@ export const PUBLIC_EXACT = [
 // '/preview/' hosts the public cinematic design prototypes (static bundle
 // in /public/cinematic); '/p/' and '/s/' are the public shared soul
 // signatures — all must load signed-out so they are shareable.
-export const PUBLIC_PREFIX = ['/auth/', '/login/', '/discover/', '/p/', '/s/', '/preview/'];
+// '/call/' is her Presence call link: she has no account, and a family member's
+// stale session on the same tablet must never bounce her to a sign-in.
+export const PUBLIC_PREFIX = ['/auth/', '/login/', '/discover/', '/p/', '/s/', '/preview/', '/call/'];
 
 export function isPublicRoute(pathname: string): boolean {
   return PUBLIC_EXACT.includes(pathname) || PUBLIC_PREFIX.some((p) => pathname.startsWith(p));
