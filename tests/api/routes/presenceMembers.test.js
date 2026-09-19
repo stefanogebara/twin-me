@@ -26,7 +26,7 @@ const ok = (data) => ({ data, error: null });
 
 const { store, log } = vi.hoisted(() => {
   const names = [
-    'findLivePresenceById', 'getLatestPresenceForOwner', 'getResumeDetails', 'getOverview', 'listRecentCalls', 'getOwnerWhatsApp',
+    'findLivePresenceById', 'getLatestPresenceForOwner', 'getResumeDetails', 'getOverview', 'listRecentCalls', 'getOwnerWhatsApp', 'createPresence',
     'updatePresence', 'queueNote', 'listMembers', 'findMembership', 'addMember', 'removeMember', 'listPresencesForMember',
     'createInvite', 'findInviteByToken', 'acceptInvite',
   ];
@@ -205,5 +205,14 @@ describe('GET /mine', () => {
     expect(res.status).toBe(200);
     expect(res.body.role).toBe('owner');
     expect(store.listPresencesForMember).not.toHaveBeenCalled();
+  });
+});
+
+describe('POST / (a new presence)', () => {
+  it('writes the owner as its first member', async () => {
+    store.createPresence.mockResolvedValue(ok({ ...PRESENCE, status: 'draft' }));
+    const res = await request(app()).post('/api/presence').set('Authorization', as(OWNER)).send({ cared_for_name: 'Lurdes', caller_name: 'Ana' });
+    expect(res.status).toBe(201);
+    expect(store.addMember).toHaveBeenCalledWith({ presence_id: PRESENCE_ID, user_id: OWNER, role: 'owner', invited_by: null });
   });
 });

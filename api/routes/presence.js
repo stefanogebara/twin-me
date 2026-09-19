@@ -355,6 +355,9 @@ router.post('/', authenticateUser, async (req, res) => {
       tone: clip(body.tone, 80),
     });
     if (error) throw error;
+    // The owner is her first member; the rows are what "who may see this" reads.
+    const member = await addMember({ presence_id: data.id, user_id: req.user.id, role: 'owner', invited_by: null });
+    if (member.error) log.error('Owner member row not written', { presenceId: data.id, error: member.error.message });
     res.status(201).json({ success: true, presence: data });
   } catch (err) {
     log.error('POST / failed', { error: err.message });

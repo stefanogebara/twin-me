@@ -17,7 +17,7 @@ const CONVERSATION = {
 const { store, log, wa } = vi.hoisted(() => ({
   store: {
     getOwnerWhatsApp: vi.fn(), setConversationDigest: vi.fn(), findConversationByDigestMessageId: vi.fn(),
-    listActivePresencesOwnedBy: vi.fn(), queueNote: vi.fn(),
+    listActivePresencesOwnedBy: vi.fn(), queueNote: vi.fn(), listMemberWhatsApp: vi.fn(), listPresencesForMember: vi.fn(),
   },
   log: { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() },
   wa: { sendWhatsAppMessage: vi.fn(), sendWhatsAppTemplate: vi.fn() },
@@ -165,5 +165,61 @@ describe('handleFamilyReply', () => {
     const reply = await handleFamilyReply({ userId: 'user-1', text: 'Diga que eu vou domingo.', contextMessageId: 'wamid.t1' });
 
     expect(reply).toBe('Não deu para anotar agora. Tente de novo em instantes.');
+  });
+});
+
+describe('the members around her (Phase 2, T5)', () => {
+  const MEMBERS = [
+    { user_id: 'user-1', role: 'owner', phone: '+5511988887777' },
+    { user_id: 'user-2', role: 'family', phone: '+5511977776666' },
+    { user_id: 'user-3', role: 'companion', phone: '+5511966665555' },
+  ];
+
+  it('sends the digest to the owner and the family, and only the needs line to the companion', async () => {
+    store.listMemberWhatsApp.mockResolvedValue(ok(MEMBERS));
+    const result = await relayCall(PRESENCE, { ...CONVERSATION, needs_family: ['Remédio acabou.'] });
+
+    expect(result.sent).toBe(true);
+    const digests = wa.sendWhatsAppTemplate.mock.calls.filter(([, t]) => t === DIGEST_TEMPLATE).map(([phone]) => phone);
+    expect(digests).toEqual(['+5511988887777', '+5511977776666']);
+    expect(wa.sendWhatsAppMessage).toHaveBeenCalledWith('+5511966665555', expect.stringContaining('Remédio acabou.'));
+    expect(wa.sendWhatsAppMessage.mock.calls[0][1]).not.toContain('animada');
+    // The owner's digest is the one a reply maps back to.
+    expect(store.setConversationDigest).toHaveBeenCalledWith('c-1', 'wamid.t1');
+  });
+
+  it('sends the companion nothing when there is nothing a person needs to do', async () => {
+    store.listMemberWhatsApp.mockResolvedValue(ok(MEMBERS));
+    await relayCall(PRESENCE, CONVERSATION);
+    expect(wa.sendWhatsAppMessage).not.toHaveBeenCalledWith('+5511966665555', expect.anything());
+  });
+
+  it('sends the urgent message to everyone, the companion included', async () => {
+    store.listMemberWhatsApp.mockResolvedValue(ok(MEMBERS));
+    await relayCall(PRESENCE, { ...CONVERSATION, urgency: 'high', needs_family: ['Caiu no banheiro.'] });
+    const urgent = wa.sendWhatsAppTemplate.mock.calls.filter(([, t]) => t === URGENT_TEMPLATE).map(([phone]) => phone);
+    expect(urgent).toEqual(['+5511988887777', '+5511977776666', '+5511966665555']);
+  });
+
+  it('still reaches the owner when the member rows are missing (before the backfill)', async () => {
+    store.listMemberWhatsApp.mockResolvedValue(ok([]));
+    const result = await relayCall(PRESENCE, CONVERSATION);
+    expect(result.sent).toBe(true);
+    expect(wa.sendWhatsAppTemplate).toHaveBeenCalledWith('+5511988887777', DIGEST_TEMPLATE, 'pt_BR', expect.any(Array));
+  });
+
+  it('tells the owner and the family, not the companion, when she did not answer', async () => {
+    store.listMemberWhatsApp.mockResolvedValue(ok(MEMBERS));
+    await relayNoAnswer(PRESENCE);
+    expect(wa.sendWhatsAppMessage.mock.calls.map(([phone]) => phone)).toEqual(['+5511988887777', '+5511977776666']);
+  });
+
+  it('accepts "nota:" from a family member who belongs to one presence', async () => {
+    store.listActivePresencesOwnedBy.mockResolvedValue(ok([]));
+    store.listPresencesForMember.mockResolvedValue(ok([{ role: 'family', presences: { id: 'p-1', status: 'active' } }]));
+    store.queueNote.mockResolvedValue(ok({ id: 'n-1' }));
+    const reply = await handleFamilyReply({ userId: 'user-2', text: 'nota: leva o casaco amanhã', contextMessageId: null });
+    expect(reply).toBe('Anotado. Ela ouve na próxima ligação.');
+    expect(store.queueNote).toHaveBeenCalledWith(expect.objectContaining({ presence_id: 'p-1', author_user_id: 'user-2', body: 'leva o casaco amanhã' }));
   });
 });
