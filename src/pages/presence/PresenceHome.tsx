@@ -42,6 +42,7 @@ import {
   type PresenceMember,
 } from '@/services/api/presenceAPI';
 import LedgerOrb from '@/components/LedgerOrb';
+import BrandMark from '@/components/brand/Mark';
 import PresenceCompanionHome from './PresenceCompanionHome';
 import '@/styles/presence-cosmos.css';
 import '@/styles/presence-home.css';
@@ -179,21 +180,31 @@ function errorLine(err: unknown, action: 'link' | 'other') {
 }
 
 /** The sidebar: plain links, the current one underlined. */
-const NAV = [
-  { href: '#calls', label: 'Ligações' },
-  { href: '#whatsapp', label: 'WhatsApp' },
-  { href: '#conversations', label: 'Conversas' },
-  { href: '#notes', label: 'Recados' },
-  { href: '#people', label: 'Pessoas' },
-  { href: '#voice', label: 'Voz' },
-  { href: '#settings', label: 'Configurações' },
+/**
+ * The family's app is six pages (2026-09-19): one route each, the sidebar is real
+ * navigation, and each page carries the sections named here. Hoje is the front:
+ * the next call, what needs a person, the last conversation.
+ */
+export type PresencePage = 'home' | 'calls' | 'conversations' | 'notes' | 'people' | 'settings';
+const PAGES: Array<{ id: PresencePage; path: string; label: string }> = [
+  { id: 'home', path: '/presence/home', label: 'Hoje' },
+  { id: 'calls', path: '/presence/calls', label: 'Ligações' },
+  { id: 'conversations', path: '/presence/conversations', label: 'Conversas' },
+  { id: 'notes', path: '/presence/notes', label: 'Recados' },
+  { id: 'people', path: '/presence/people', label: 'Pessoas' },
+  { id: 'settings', path: '/presence/settings', label: 'Configurações' },
 ];
+const SECTIONS: Record<PresencePage, string[]> = {
+  home: ['needs'],
+  calls: ['calls'],
+  conversations: ['conversations'],
+  notes: ['notes'],
+  people: ['asks', 'people'],
+  settings: ['link', 'whatsapp', 'voice', 'settings', 'members'],
+};
 
 const ROLE_LABEL: Record<PresenceMember['role'], string> = { owner: 'Você', family: 'Familiar', companion: 'Cuidadora' };
-/** What the sidebar and the page hide from a family member: the owner's controls. */
-const OWNER_ONLY = new Set(['#voice', '#settings']);
-
-export default function PresenceHome() {
+export default function PresenceHome({ page = 'home' }: { page?: PresencePage }) {
   const navigate = useNavigate();
   const { trackEvent } = useAnalytics();
   const [overview, setOverview] = useState<PresenceOverview | null>(null);
@@ -213,6 +224,7 @@ export default function PresenceHome() {
   const [inviteLink, setInviteLink] = useState<{ url: string; role: 'family' | 'companion' } | null>(null);
   const [inviteCopied, setInviteCopied] = useState(false);
   const isOwner = (overview?.role ?? 'owner') === 'owner';
+  const show = (id: string) => SECTIONS[page].includes(id);
   const [statusBusy, setStatusBusy] = useState(false);
   const [deleteBusy, setDeleteBusy] = useState(false);
   const [openConv, setOpenConv] = useState<string | null>(null);
@@ -343,9 +355,8 @@ export default function PresenceHome() {
     <aside className={`pc-side${menuOpen ? ' is-open' : ''}`} id="dsh-nav">
       <Link className="pc-side-brand" to="/presence" aria-label="Presença"><Mark /></Link>
       <nav className="pc-side-nav" aria-label="A Presença dela">
-        <Link className="pc-side-link" to="/presence/home" aria-current="page">Início</Link>
-        {NAV.filter((item) => isOwner || !OWNER_ONLY.has(item.href)).map((item) => (
-          <a className="pc-side-link" href={item.href} key={item.href} onClick={() => setMenuOpen(false)}>{item.label}</a>
+        {PAGES.map((item) => (
+          <Link className="pc-side-link" to={item.path} key={item.id} aria-current={item.id === page ? 'page' : undefined} onClick={() => setMenuOpen(false)}>{item.label}</Link>
         ))}
         {isOwner ? <Link className="pc-side-link" to="/presence/onboarding">Sobre ela</Link> : null}
       </nav>
@@ -732,9 +743,45 @@ export default function PresenceHome() {
             <p className="pc-apphead-line">{ledger}</p>
           </header>
 
+          {page === 'home' && (
+            <section className="pc-appsection" id="today">
+              <div className="pc-sechead">
+                <h2 className="pc-sechead-title">Hoje</h2>
+                <p className="pc-sechead-line">O que está para acontecer, e o que já aconteceu.</p>
+              </div>
+              <ul className="pc-list">
+                <li className="pc-row">
+                  <span className="pc-row-icon" aria-hidden="true"><CalendarClock /></span>
+                  <div className="pc-row-text">
+                    <p className="pc-row-title">Próxima ligação</p>
+                    <p className="pc-row-line">{nextCallLine}</p>
+                  </div>
+                  <Link className="pc-row-action pc-row-go" to="/presence/calls" aria-label="Ligações"><ChevronRight size={16} /></Link>
+                </li>
+                <li className="pc-row">
+                  <span className="pc-row-icon" aria-hidden="true"><MessageCircle /></span>
+                  <div className="pc-row-text">
+                    <p className="pc-row-title">Última conversa</p>
+                    <p className="pc-row-line">{conversations[0] ? `${formatWhen(conversations[0].started_at)} · ${conversations[0].summary.slice(0, 72)}${conversations[0].summary.length > 72 ? '…' : ''}` : 'Nenhuma conversa ainda.'}</p>
+                  </div>
+                  <Link className="pc-row-action pc-row-go" to="/presence/conversations" aria-label="Conversas"><ChevronRight size={16} /></Link>
+                </li>
+                <li className="pc-row">
+                  <span className="pc-row-icon" aria-hidden="true"><MessageSquare /></span>
+                  <div className="pc-row-text">
+                    <p className="pc-row-title">Recados</p>
+                    <p className="pc-row-line">{queuedNotes.length ? `${queuedNotes.length} ${queuedNotes.length === 1 ? 'recado esperando' : 'recados esperando'} a próxima ligação.` : 'Nenhum recado esperando.'}</p>
+                  </div>
+                  <Link className="pc-row-action pc-row-go" to="/presence/notes" aria-label="Recados"><ChevronRight size={16} /></Link>
+                </li>
+              </ul>
+            </section>
+          )}
+
           {isOwner && (
           <>
-          <section className="pc-appsection" id="link">
+          {show('link') && (
+<section className="pc-appsection" id="link">
             <div className="pc-sechead">
               <h2 className="pc-sechead-title">O link dela</h2>
               <p className="pc-sechead-line">{linkLine}</p>
@@ -817,11 +864,13 @@ export default function PresenceHome() {
               )}
             </ul>
           </section>
+)}
 
                     </>
           )}
 
-          <section className="pc-appsection" id="calls">
+          {show('calls') && (
+<section className="pc-appsection" id="calls">
             <div className="pc-sechead">
               <h2 className="pc-sechead-title">Ligações</h2>
               <p className="pc-sechead-line">A Presença liga para o celular dela na hora combinada.</p>
@@ -1004,8 +1053,10 @@ export default function PresenceHome() {
               </ul>
             )}
           </section>
+)}
 
-          <section className="pc-appsection" id="whatsapp">
+          {show('whatsapp') && (
+<section className="pc-appsection" id="whatsapp">
             <div className="pc-sechead">
               <h2 className="pc-sechead-title">WhatsApp</h2>
               <p className="pc-sechead-line">Depois de cada ligação, um resumo chega no seu WhatsApp.</p>
@@ -1013,7 +1064,7 @@ export default function PresenceHome() {
             {whatsapp.linked ? (
               <ul className="pc-list">
                 <li className="pc-row">
-                  <span className="pc-row-icon" aria-hidden="true"><MessageSquare /></span>
+                  <span className="pc-row-icon" aria-hidden="true"><BrandMark name="whatsapp" size={20} /></span>
                   <div className="pc-row-text">
                     <p className="pc-row-title">Conectado ao número terminado em {whatsapp.phone_last4}.</p>
                     <p className="pc-row-line">Você recebe uma mensagem depois de cada ligação. Responda a mensagem e ela ouve na próxima.</p>
@@ -1086,9 +1137,10 @@ export default function PresenceHome() {
               </ul>
             )}
           </section>
+)}
 
-          {asks.length > 0 && (
-            <section className="pc-appsection" id="asks">
+          {asks.length > 0 && show('asks') && (
+<section className="pc-appsection" id="asks">
               <div className="pc-sechead">
                 <h2 className="pc-sechead-title">Quem é essa pessoa?</h2>
                 <p className="pc-sechead-line">Ela falou de alguém novo. A Presença nunca adivinha.</p>
@@ -1144,8 +1196,8 @@ export default function PresenceHome() {
             </section>
           )}
 
-          {needsYou.length > 0 && (
-            <section className="pc-appsection" id="needs">
+          {needsYou.length > 0 && show('needs') && (
+<section className="pc-appsection" id="needs">
               <div className="pc-sechead">
                 <h2 className="pc-sechead-title">Precisa de você</h2>
                 <p className="pc-sechead-line">Coisas que só a família pode fazer.</p>
@@ -1167,7 +1219,8 @@ export default function PresenceHome() {
             </section>
           )}
 
-          <section className="pc-appsection" id="conversations">
+          {show('conversations') && (
+<section className="pc-appsection" id="conversations">
             <div className="pc-sechead">
               <h2 className="pc-sechead-title">Conversas</h2>
               <p className="pc-sechead-line">O que veio das ligações dela.</p>
@@ -1233,8 +1286,10 @@ export default function PresenceHome() {
               </ul>
             )}
           </section>
+)}
 
-          <section className="pc-appsection" id="notes">
+          {show('notes') && (
+<section className="pc-appsection" id="notes">
             <div className="pc-sechead">
               <h2 className="pc-sechead-title">Recados para ela</h2>
               <p className="pc-sechead-line">Lidos em voz alta na próxima ligação, como vindos de você.</p>
@@ -1266,8 +1321,10 @@ export default function PresenceHome() {
               ))}
             </ul>
           </section>
+)}
 
-          <section className="pc-appsection" id="people">
+          {show('people') && (
+<section className="pc-appsection" id="people">
             <div className="pc-sechead">
               <h2 className="pc-sechead-title">As pessoas dela</h2>
               <p className="pc-sechead-line">De quem ela fala, e como chama cada um.</p>
@@ -1296,10 +1353,12 @@ export default function PresenceHome() {
               </ul>
             )}
           </section>
+)}
 
           {isOwner && (
           <>
-          <section className="pc-appsection" id="voice">
+          {show('voice') && (
+<section className="pc-appsection" id="voice">
             <div className="pc-sechead">
               <h2 className="pc-sechead-title">A sua voz</h2>
               <p className="pc-sechead-line">Como soam as ligações dela.</p>
@@ -1307,7 +1366,7 @@ export default function PresenceHome() {
             {voiceReady ? (
               <ul className="pc-list">
                 <li className="pc-row">
-                  <span className="pc-row-icon" aria-hidden="true"><Mic /></span>
+                  <span className="pc-row-icon" aria-hidden="true"><BrandMark name="elevenlabs" size={18} /></span>
                   <div className="pc-row-text">
                     <p className="pc-row-title">A sua voz</p>
                     <p className="pc-row-line">{voiceLine}</p>
@@ -1326,13 +1385,15 @@ export default function PresenceHome() {
               </div>
             )}
           </section>
+)}
 
                     </>
           )}
 
           {isOwner && (
           <>
-          <section className="pc-appsection" id="settings">
+          {show('settings') && (
+<section className="pc-appsection" id="settings">
             <div className="pc-sechead">
               <h2 className="pc-sechead-title">Configurações</h2>
               <p className="pc-sechead-line">Pausar por um tempo, ou apagar de vez.</p>
@@ -1366,8 +1427,10 @@ export default function PresenceHome() {
               {errorRow('delete')}
             </ul>
           </section>
+)}
 
-          <section className="pc-appsection" id="members">
+          {show('members') && (
+<section className="pc-appsection" id="members">
             <div className="pc-sechead">
               <h2 className="pc-sechead-title">Quem acompanha</h2>
               <p className="pc-sechead-line">A família vê as conversas. A cuidadora vê só o que ela precisa.</p>
@@ -1407,7 +1470,7 @@ export default function PresenceHome() {
                         target="_blank"
                         rel="noreferrer"
                       >
-                        Mandar no WhatsApp
+                        <BrandMark name="whatsapp" size={14} /> Mandar no WhatsApp
                       </a>
                       <button className="pc-btn pc-btn--ghost" onClick={copyInvite}>
                         {inviteCopied ? <Check size={14} /> : <Copy size={14} />} {inviteCopied ? 'Copiado' : 'Copiar'}
@@ -1419,6 +1482,7 @@ export default function PresenceHome() {
               </li>
             </ul>
           </section>
+)}
           </>
           )}
 

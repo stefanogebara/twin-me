@@ -2,6 +2,7 @@ import { useEffect, useState, type CSSProperties } from 'react';
 import { ArrowLeft, Loader2 } from 'lucide-react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
+import BrandMark from '@/components/brand/Mark';
 import '@/styles/money-v2.css';
 import '@/styles/auth.css';
 
@@ -63,7 +64,7 @@ export default function PresenceLoginPage() {
             onClick={continueWithGoogle}
             disabled={loading}
           >
-            {loading ? <Loader2 className="animate-spin" size={16} aria-hidden="true" /> : null}
+            {loading ? <Loader2 className="animate-spin" size={16} aria-hidden="true" /> : <BrandMark name="google" size={16} />}
             {loading ? 'Opening Google' : 'Continue with Google'}
           </button>
           {error ? <p className="au-note au-note--error" role="alert">{error}</p> : null}
