@@ -14,7 +14,8 @@ const PRESENCE = { id: '11111111-1111-4111-8111-111111111111', owner_user_id: 'u
 const ok = (data) => ({ data, error: null });
 const fail = (message) => ({ data: null, error: { message } });
 
-const { store, log, llm, brief, voiceService } = vi.hoisted(() => ({
+const { store, log, llm, brief, voiceService, relay } = vi.hoisted(() => ({
+  relay: { relayCall: vi.fn() },
   store: {
     findPresenceByCallToken: vi.fn(),
     getElderHome: vi.fn(),
@@ -35,6 +36,7 @@ vi.mock('../../../api/services/logger.js', () => ({ createLogger: () => log }));
 vi.mock('../../../api/services/llmGateway.js', () => ({ complete: llm.complete, TIER_ANALYSIS: 'analysis' }));
 vi.mock('../../../api/services/presenceCallBrief.js', () => brief);
 vi.mock('../../../api/services/voiceService.js', () => ({ voiceService }));
+vi.mock('../../../api/services/presenceRelay.js', () => relay);
 
 const callRoutes = (await import('../../../api/routes/presence-call.js')).default;
 
@@ -389,5 +391,23 @@ describe('background summary', () => {
     expect(store.addFacts.mock.calls[0][0]).toEqual([
       expect.objectContaining({ kind: 'biography', question: 'Summers', answer: 'She spent every summer in Ubatuba.', confidence: 'provisional' }),
     ]);
+  });
+});
+
+describe('the family hears about a web call too (2026-09-19)', () => {
+  it('relays the digest after the summary, as the phone webhook does', async () => {
+    llm.complete.mockResolvedValue({ content: JSON.stringify({ summary: 'Ela falou do jardim.', her_recap: 'y', needs_family: ['Remédio acabou.'], urgency: 'normal', learned_facts: [], unknown_people: [] }) });
+    relay.relayCall.mockResolvedValue({ sent: true });
+
+    const res = await complete({
+      transcript: [{ role: 'assistant', content: 'Oi' }, { role: 'user', content: 'O jardim está lindo.' }],
+      duration_seconds: 90,
+    });
+
+    expect(res.status).toBe(201);
+    await vi.waitFor(() => expect(relay.relayCall).toHaveBeenCalledWith(
+      expect.objectContaining({ id: PRESENCE.id }),
+      expect.objectContaining({ id: 'conv-1', summary: 'Ela falou do jardim.', needs_family: ['Remédio acabou.'], urgency: 'normal' }),
+    ));
   });
 });
