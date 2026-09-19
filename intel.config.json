@@ -33,8 +33,10 @@
     "escopos OAuth nunca são conferidos contra o que foi de fato concedido (api/services/scopeEscalationService.js:43, TODO explícito)",
     "três árvores de migração convivem — database/migrations/ (77), database/supabase/migrations/ (100) e supabase/migrations/ (15, numeração antiga). Já causou confusão documentada em 6d79c4c7 e 74441933",
     "README promete 10 plataformas conectáveis; o código tem 7 (api/config/platformConfigs.js:14)",
-    "ml/gnn_model.py (HGT em PyTorch Geometric) + neo4j em ml/requirements.txt estão parados desde 2025-11-17, mas continuam nominalmente importados por api/services/graphProcessor.js e temporalPatternDetector.js",
-    "normalized_fidelity é NULL para todo mundo e o teto nunca foi medido: ele exige duas waves na MESMA battery_version, a bateria foi revisada 3x em 9 dias (v1 20 itens, v2 e v3 25) e cada tentativa virou uma wave 1 nova. v3 está estável desde 2026-08-12, então um retake agora produz o primeiro teto real; /fidelity passou a explicar isso. Enquanto não houver wave 2, o número público é o bruto, rotulado como tal"
+    "normalized_fidelity é NULL para todo mundo e o teto nunca foi medido: ele exige duas waves na MESMA battery_version, a bateria foi revisada 3x em 9 dias (v1 20 itens, v2 e v3 25) e cada tentativa virou uma wave 1 nova. v3 está estável desde 2026-08-12, então um retake agora produz o primeiro teto real; /fidelity passou a explicar isso. Enquanto não houver wave 2, o número público é o bruto, rotulado como tal",
+    "o dia tem ~22 EUR de ruído irredutível e 53% dos dias custam zero: dayForecast (api/services/money/calibration.js) é uma média de três semanas sem modelo de zero-inflação (medido 2026-09-18, scripts/money/evaluate-day-forecast.mjs)",
+    "a categoria de comércio cobre 47 de 65 lojas (77% do dinheiro); o resto é cauda longa sem provedor (api/services/money/places.js, money_places)",
+    "a banda do dia segura 67% onde deveria 80% (medido 2026-09-18); o alargamento conformal precisa de dias pontuados que a regra de assentamento de 4 dias atrasa (api/services/money/calibration.js, figureScoring.js)"
   ],
   "settled": [
     "não vira ferramenta de clonagem para terceiros",
@@ -72,7 +74,10 @@
     "agregadores de dados pessoais",
     "proveniência e auditabilidade de inferência sobre pessoa",
     "avaliação de fidelidade de persona (eval harness)",
-    "captura ambiente em desktop (janela ativa, reunião, transcrição local)"
+    "captura ambiente em desktop (janela ativa, reunião, transcrição local)",
+    "orçamento e previsão de gasto pessoal (TwinMe Money: dia, mês, banda conformal)",
+    "open banking / PSD2, reconciliação de pagamentos entre fontes (banco, celular, recibo, extrato)",
+    "nudges financeiros e comunicação de incerteza para leigos"
   ],
   "scout_modalities": [
     "concorrentes-diretos",

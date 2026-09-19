@@ -37,7 +37,11 @@ export async function bootstrapMoney(pool, { forward = true } = {}) {
   for (const name of archived) await pool.query(await fs.readFile(path.join(archive, name), 'utf8'));
   if (forward) {
     const canonical = 'database/migrations';
-    for (const name of (await fs.readdir(canonical)).filter((n) => /^202609(?:17|18)[0-9]*_money.*\.sql$/.test(n)).sort()) {
+    /* Every canonical money migration from the atomic-ingestion rewrite onward, by date. The
+       list was once written as "17th or 18th September" and silently skipped the 19th's, so a
+       migration could pass CI without ever having been applied to the test database
+       (2026-09-19). */
+    for (const name of (await fs.readdir(canonical)).filter((n) => /^\d{8,}_money.*\.sql$/.test(n) && n.slice(0, 8) >= '20260917').sort()) {
       await pool.query(await fs.readFile(path.join(canonical, name), 'utf8'));
     }
   }

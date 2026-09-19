@@ -31,6 +31,22 @@ const ACCOUNT2 = '00000000-0000-4000-8000-000000000011';
 const rows = async () => (await pool.query('SELECT * FROM money_transactions ORDER BY created_at,id')).rows;
 
 describe('Money persisted invariants', () => {
+  /* The anon key ships in the browser bundle. Supabase grants it every new public table by
+     default, so it held full DML on money_transactions with row level security as the only
+     barrier. No client reads these tables with it, so it is revoked, and a new money table
+     must not inherit the default either (2026-09-19, audit S3). */
+  it('gives the public key no privilege on any money table', async () => {
+    const { rows } = await pool.query(`
+      SELECT table_name, string_agg(privilege_type, ',') AS privs
+      FROM information_schema.role_table_grants
+      WHERE grantee = 'anon' AND table_schema = 'public' AND table_name LIKE 'money\\_%' ESCAPE '\\'
+      GROUP BY table_name`);
+    expect(rows).toEqual([]);
+    /* And what its policies still allow authenticated: select_own stays. */
+    const { rows: auth } = await pool.query(`SELECT count(*)::int AS n FROM information_schema.role_table_grants WHERE grantee='authenticated' AND table_name='money_transactions' AND privilege_type='SELECT'`);
+    expect(auth[0].n).toBe(1);
+  });
+
   it('preserves old undated captures outside the ledger and isolates their retries by owner', async () => {
     const body={text:'Compra 5,00 EUR en Cafe'};
     await holdUndatedCapture(USER, body); await holdUndatedCapture(USER, body); await holdUndatedCapture(OTHER, body);

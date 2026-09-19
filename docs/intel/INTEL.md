@@ -240,6 +240,22 @@ já vá ser avaliada.
 
 ---
 
+### [DISCUTIR 10/15] A faixa do dia deve ser uma largura que se vê, nunca um selo de "confiável"
+**Fonte:** [Reyes, Massoumi, Batmaz, Kersten-Oertel — Shades of Uncertainty, 2026](https://arxiv.org/abs/2602.01264) (dois estudos, N=37 e N=10) · corroborado por [Srivastava et al., 2026](https://arxiv.org/abs/2602.00248) noutro domínio.
+**Mecanismo:** codificação contínua da incerteza (uma faixa com largura) melhora a confiança *calibrada* e faz o leigo notar os limites do modelo; codificação binária (presente/ausente, confiável/não) aumenta a confiança sem aumentar a precisão dela. P2 A3 D2 E2 L1.
+**Onde toca:** `src/pages/money/figures/Fortnight.tsx` e `DayGlobe.tsx` desenham a faixa; `readingWords.ts` diz "a faixa acertou em 0 dos últimos 3 dias"; `calibration.js` marca `trusted` aos 60 dias — um selo binário, exatamente o que o paper diz que engana.
+**Pergunta para o Stefano:** o "trusted" some da página e a faixa passa a ser mostrada só como largura em euros (e o quanto ela mudou), sem nenhuma palavra de confiança?
+
+### [DISCUTIR 9/15] O aviso do dia sai do app para o canal que o aluno já olha?
+**Fonte:** [Rocket Money — Rowan, set. 2026](https://www.rocketmoney.com/rowan): o assistente fala por SMS, propõe uma ação e nada acontece sem resposta de confirmação. P2 A2 D2 E1 L2.
+**Mecanismo:** o produto abandona a tela como lugar do aviso; o canal é a thread de mensagens, com confirmação explícita. O TwinMe já tem o celular como fonte (captura de notificação, `captureParser.js`) e infraestrutura de WhatsApp (`api/routes/whatsapp-*-webhook.js`), e o número do dia é computado, não gerado — o que Rowan não tem.
+**Pergunta para o Stefano:** o número do dia (e o "amanhã cobra o Spotify, sobram 8 EUR") vai para o WhatsApp do aluno de manhã, ou o produto fica só na página? Se vai, é uma mensagem por dia, no máximo, e nunca com um botão que mova dinheiro.
+
+### [DISCUTIR 9/15] O Ask devolve feedback sobre a meta em vez de sugerir perguntas?
+**Fonte:** [Schimpf et al. — Supporting Effective Goal Setting with LLM-Based Chatbots, 2026](https://arxiv.org/abs/2602.08636), RCT N=543. P2 A2 D2 E2 L1.
+**Mecanismo:** entre orientação, sugestões e feedback como alavancas de um chatbot de metas, é o *feedback sobre o progresso* que melhora a qualidade da meta; sugestões não. O Ask hoje abre com cinco perguntas prontas (`chat.js`, `OFFERS`) e o fato `goal` (`context.js`) é uma escolha entre três palavras sem número.
+**Pergunta para o Stefano:** a meta passa a ter um número e uma data, e o Ask devolve toda semana onde ela está — em vez de oferecer perguntas?
+
 ## Fila de trabalho
 - [PROTOTIPAR 14/15] Conformal PID: banda de gasto que aprende com os erros → `BACKLOG.md#banda-conformal-pid` (2026-09-14)
 
@@ -271,7 +287,24 @@ Novos em 2026-08-24:
 - [PROTOTIPAR 11/15] Servir o gêmeo por MCP e medir se o retrato é o produto → `BACKLOG.md#mcp-contexto-portatil`
   · âncora: `api/mcp-server/src/server.ts`, `api/routes/api-keys.js`
 
+Novos em 2026-09-19 (varredura de três batedores: produtos, papers, o que as pessoas dizem):
+
+- [PROTOTIPAR 13/15] O dia como dois passos: "vai custar algo?" e "quanto, se custar" → `BACKLOG.md#dia-hurdle`
+  · âncora: `api/services/money/calibration.js` (dayForecast), `scripts/money/evaluate-day-forecast.mjs`
+- **Fundido** em `BACKLOG.md#banda-conformal-pid` (perna 2): calibrar a faixa pelos resíduos dos dias *parecidos* (mesmo dia da semana, mesma distância do pagamento) em vez de todos — [Jin et al., Retrieval-Corrected Conformal Prediction for Time Series, 2026](https://arxiv.org/abs/2608.10553), 12/15.
+- **Fundido** em `BACKLOG.md#mcp-contexto-portatil`: o Copilot Money expõe o ledger por MCP desde maio de 2026 ([changelog](https://www.copilot.money/changelog)); o item ganha uma perna "o dinheiro por MCP" com âncora em `api/mcp-server/src/server.ts` e `api/services/money/forecastService.js`.
+
 ## Radar
+- `2026-09-19` **YNAB casa o pagamento do cartão com a compra** (ago. 2026, [what's new](https://www.ynab.com/whats-new)): uma saída da conta corrente ligada ao lançamento da fatura por valor e proximidade de data, para não contar duas vezes. É o problema F6/B3 da revisão de 18/09; a heurística é copiável em `api/services/money/ledger.js`.
+- `2026-09-19` **YNAB só troca a categoria de um comércio quando 2 das últimas 3 concordam** (ago. 2026): filtro de ruído sem modelo. Cabe em `places.js`/`setPlaceCategory` para quando provedor e pessoa discordam.
+- `2026-09-19` **Fintonic passa a conectar o Revolut** (ago. 2026, [blog](https://www.fintonic.com/blog/)): o incumbente espanhol trata o Revolut como conta de primeira classe — o mesmo pressuposto multi-banco do TwinMe.
+- `2026-09-19` **Monarch: cenários "e se" sobre o histórico real** (abr. 2026, [what's new](https://www.monarch.com/whats-new)); sem nenhuma alegação de acurácia publicada.
+- `2026-09-19` **Visa Research: embeddings de LLM para texto de comércio, gerados uma vez e destilados** ([Fan et al., 2025](https://arxiv.org/abs/2601.05271)): o custo do LLM pago offline, não por transação — o padrão certo para a cauda longa de `money_places`.
+- `2026-09-19` **HMM de dois regimes sobre open banking** ([Medina-Olivares, Calabrese, 2023/26](https://arxiv.org/abs/2306.01749)): separa endividamento ocasional de persistente em fluxo PSD2 individual; candidato a "mês ruim" como regime, não como alerta.
+- `2026-09-19` **Lembretes que nomeiam o gasto futuro aumentam a poupança** ([Karlan et al., NBER w16205](https://www.nber.org/papers/w16205), o resultado-âncora do campo): sustenta "amanhã cobra o Spotify" contra um nudge genérico.
+- `2026-09-19` **Splitwise: o que se ama (divisão por item) e o que se odeia (paywall, dinheiro "pendente" por dias)** ([reviews](https://apps.apple.com/us/app/splitwise-split-expenses/id458023433?see-all=reviews)): qualquer divisão no TwinMe rotula o Bizum que já saiu, nunca segura dinheiro.
+- `2026-09-19` **Santander/imagin: o código do Bizum some antes de copiar; Revolut: bloqueios sem explicação** ([ES reviews](https://apps.apple.com/es/app/santander-espa%C3%B1a/id408043474?see-all=reviews), [Revolut](https://apps.apple.com/es/app/revolut-m%C3%A1s-que-un-banco/id932493382?see-all=reviews)): o contexto de confiança em que a conexão bancária do TwinMe vai aparecer.
+- `2026-09-19` **Cleo: a voz que "roasta" é o que mais se ama e o que mais se odeia quando os números não são confiáveis** ([reviews](https://apps.apple.com/us/app/cleo-ai-cash-advance-budget/id1447274646?see-all=reviews)): tom com número computado é um espaço vazio.
 - `2026-09-14` BBVA AI Factory (ICAIF 2024): separar as cobranças de um beneficiário em sub-séries (memo, valor, periodicidade) antes de prever data e valor, mediana de intervalos com tolerância por cadência; já adotado em parte em `recurring.js` (#328); paper inacessível (403), write-up sem números, teto REGISTRAR. [fonte](https://www.bbvaaifactory.com/financial-habits-analysis/)
 
 - `2026-08-24` **Supabase passa a ignorar VERSION em CREATE EXTENSION** — entrada de 22/07, vigente 05/08; a versão pedida é ignorada e a default do projeto é instalada, com warning. Nenhuma das três árvores de migração do TwinMe pina versão, então nada muda aqui — resta confirmar que a default do projeto é pgvector ≥ 0.8.2, que corrigiu o CVE-2026-3172 no build paralelo de HNSW. [changelog](https://supabase.com/changelog) · 7/15

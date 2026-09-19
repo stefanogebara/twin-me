@@ -191,7 +191,7 @@ const App = () => {
             <Route path="/signin" element={<Navigate to="/auth" replace />} />
 
             {/* Legacy path redirects */}
-            <Route path="/home" element={<Navigate to="/today" replace />} />
+            <Route path="/home" element={<Navigate to="/money" replace />} />
             <Route path="/chat" element={<Navigate to="/talk-to-twin" replace />} />
             <Route path="/custom-auth" element={<CustomAuth />} />
             <Route path="/oauth/callback" element={<OAuthCallback />} />
@@ -243,7 +243,7 @@ const App = () => {
             {/* Phase 1 (product-truth-review 2026-08-09): ONE home. DashboardV2
                 (the 12-card feed) and BriefingPage both rendered the same
                 MorningBriefingCard as /today — three homes collapsed to one. */}
-            <Route path="/dashboard" element={<Navigate to="/today" replace />} />
+            <Route path="/dashboard" element={<Navigate to="/money" replace />} />
             <Route path="/briefing" element={<Navigate to="/today" replace />} />
             {/* Today — the one home: brief + action inbox + twin composer. */}
             <Route path="/today" element={

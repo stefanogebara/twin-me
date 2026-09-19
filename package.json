@@ -31,7 +31,8 @@
     "audit:pluggy": "node scripts/audit-all.mjs --only=pluggy",
     "audit:pages": "node scripts/audit-all.mjs --only=money,chat,identity",
     "pluggy:setup": "node scripts/pluggy-setup.mjs",
-    "prepare": "git config core.hooksPath .githooks || exit 0"
+    "prepare": "git config core.hooksPath .githooks || exit 0",
+    "sync:agents": "node scripts/sync-agents.mjs"
   },
   "dependencies": {
     "@bull-board/api": "^6.13.1",

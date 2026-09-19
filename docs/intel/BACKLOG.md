@@ -8,6 +8,28 @@ spikes estão abertos. Ver `STATE.md` para o estado do repositório.
 
 ---
 
+### dia-hurdle — O dia como dois passos: "vai custar algo?" e "quanto, se custar"
+**Origem:** INTEL 2026-09-19 · **Veredito:** PROTOTIPAR 13/15 (P3 A3 D3 E2 L2; resolve um `known_gap` escrito em 2026-09-19: 53% dos dias custam zero e a média de três semanas não sabe disso)
+**Fonte:** [Muşat, Căbuz — Switch-Hurdle, 2026](https://arxiv.org/abs/2602.22685) · [Bai, Chu — Taxonomy-Conditioned Hierarchical Bayesian TSB, 2025](https://arxiv.org/abs/2511.12749)
+
+**O mecanismo:** um modelo de barreira (hurdle) separa a previsão em duas: a probabilidade de o dia ter algum gasto (logística sobre dia da semana, dias desde o pagamento, dia na agenda) e o valor condicional a haver gasto (média ou quantis dos dias com gasto). O ponto é o produto p·E[y|y>0]; a faixa vem dos dois lados. Para demanda intermitente (o caso: 35 de 66 dias a zero) isto bate a média simples e, com TSB hierárquico, uma série rala empresta força das categorias da própria pessoa em vez de outros usuários.
+
+**Já no código:** `dayForecast` em `api/services/money/calibration.js` é a média dos últimos 21 dias com os zeros dentro (PR #424, medido: erro típico 22,14 EUR, contra 28,41 da mediana por dia da semana e 28,67 de "nada"). `scripts/money/evaluate-day-forecast.mjs` já roda origem móvel sobre o ledger real e compara métodos.
+
+**Hipótese:** p(gasto) × média condicional, com p estimada por dia da semana e distância do pagamento, reduz o erro típico em ≥ 8% frente à média de três semanas, e a faixa (quantis condicionais) sobe de 67% para ≥ 75% de cobertura sem alargar mais de 20%.
+
+**Spike (4h):** acrescentar ao harness o método `hurdle` (p por dia da semana sobre 12 semanas; valor condicional = média dos últimos 21 dias com gasto) e a faixa `[0, q90 condicional]`; rodar sobre os 66 dias; imprimir erro, viés, cobertura e largura lado a lado.
+
+**Medir:** erro típico, cobertura e largura por horizonte (amanhã, 7 dias).
+
+**Parar se:** o ganho no erro for < 5% ou a cobertura não subir; ou se p(gasto) por dia da semana não diferir de 0,47 (o global) em nenhum dia — aí não há sinal para separar.
+
+**Toca:** `api/services/money/calibration.js` (dayForecast), `scripts/money/evaluate-day-forecast.mjs`, `tests/api/services/money/calibration.test.js`.
+
+**Status:** aberto
+
+---
+
 ### banda-conformal-pid — A banda de gasto aprende com os erros, sem o chão que a impede de estreitar
 **Origem:** INTEL 2026-09-14 · **Veredito:** PROTOTIPAR 14/15 (P3 A3 D3 E3 L2; cairia em IMPLEMENTAR, mas a trava exige problema já escrito em BACKLOG/known_gaps, e o money twin não estava em nenhum)
 **Fonte:** [Angelopoulos, Candès, Tibshirani, Conformal PID Control for Time Series Prediction, 2023](https://arxiv.org/abs/2307.16895) · [código MIT](https://github.com/aangelopoulos/conformal-time-series)
@@ -25,6 +47,8 @@ spikes estão abertos. Ver `STATE.md` para o estado do repositório.
 **Parar se:** menos de 60 dias reais com transação no ledger (só sintético, sem conclusão), ou diferença entre variantes < 3% no interval score.
 
 **Toca:** `api/services/money/calibration.js`, `api/services/money/projection.js`, `api/services/money/predictions.js`, `tests/api/services/money/calibration.test.js`, `src/pages/money/MoneyV2Page.tsx`
+
+**Perna 2 (2026-09-19, fundida por INTEL):** calibrar o quantil pelos resíduos dos dias *parecidos* — mesmo dia da semana, mesma distância do pagamento — em vez de por todos os resíduos ([Jin et al., Retrieval-Corrected Conformal Prediction, 2026](https://arxiv.org/abs/2608.10553)). Encaixa no problema de um usuário só, com poucos resíduos para gastar: escolhe-se os k mais parecidos, não os k mais recentes. Medir com o mesmo harness, contra a perna 1. Toca `calibration.js` (`calibrate`, `widenOver`).
 
 **Status:** aberto
 
@@ -502,4 +526,6 @@ ChatGPT/Claude em `api/services/exports/registry.js`, que hoje tem três parsers
 de conversa com assistente, apesar de `api/routes/claude-sync.js` já ler `~/.claude`.
 
 **Toca:** `api/mcp-server/src/server.ts`, `api/mcp-server/package.json`, `api/routes/api-keys.js`, `api/routes/mcp.js`, `twin-research/fidelity-eval.js`, `api/services/exports/registry.js`
+**Perna (2026-09-19, fundida por INTEL):** o Copilot Money expõe categorias, transações, orçamentos e recorrências por MCP desde 15/05/2026 ([changelog](https://www.copilot.money/changelog)), e o TwinMe já tem um servidor MCP (`api/mcp-server`). O dinheiro por MCP é uma ferramenta a mais no servidor: `money.today`, `money.month`, `money.recurring`, todas lendo `api/services/money/forecastService.js` e `allowanceService.js` — números computados, nunca gerados, o que nenhum cliente de chat genérico tem. Medir: alguém usa? (chamadas por semana no log do servidor).
+
 **Status:** aberto
