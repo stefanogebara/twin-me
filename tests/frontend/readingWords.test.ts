@@ -90,7 +90,8 @@ describe('a reading in the reader own language', () => {
   it('has a word for every phrase it asks for, in both languages', () => {
     /* A reading with no line for one of its holes reads half in English, which is the whole
        reason this module exists. */
-    const source = readFileSync(new URL('../../src/pages/money/readingWords.ts', import.meta.url), 'utf8');
+    /* The words live in three files since 2026-09-19: the public function, the helpers, one sayer per kind. */
+    const source = ['readingWords', 'readingHelpers', 'readingSayers'].map((f) => readFileSync(new URL(`../../src/pages/money/${f}.ts`, import.meta.url), 'utf8')).join('\n');
     const keys = new Set<string>();
     for (const m of source.matchAll(/t\('((?:[^'\\]|\\.)*)'/g)) keys.add(m[1]);
     for (const m of source.matchAll(/'[a-z ]+': '([A-Z][^']*)'/g)) keys.add(m[1]);
