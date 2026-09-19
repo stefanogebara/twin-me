@@ -66,9 +66,12 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
     // The money product is its own front door: it carries its own onboarding
     // (sources, then the questions it cannot work out on its own), so the
     // soul-signature gate must not pull a new person out of it.
+    /* Money is the product (2026-09-19). A new person who lands anywhere else is sent to
+       /money, which carries its own onboarding; the soul-signature flow stays reachable at
+       its own addresses for whoever goes there on purpose, and is never the front door. */
     const inMoney = location.pathname === '/money' || location.pathname.startsWith('/money/');
     if (needsOnboarding && !inMoney && location.pathname !== '/soul-reveal' && location.pathname !== '/onboarding/wow') {
-      return <Navigate to="/soul-reveal" replace />;
+      return <Navigate to="/money" replace />;
     }
     return <>{children}</>;
   }

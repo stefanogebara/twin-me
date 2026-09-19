@@ -15,6 +15,7 @@ Plan and rationale: `.claude/plans/2026-07-12-agentic-os/README.md`.
 | `habit-loop-protocol.goal.test.js` | Daily WhatsApp habit loop (PR #178 + thread approvals) | Offer lands LAST in the composed brief; "yes"/"skip"/"sim"/"nao" still resolve; flag stays default-OFF |
 | `vercel-cost-rules.goal.test.js` | Vercel cost rules ($375 incident, March 2026) | No cron more frequent than */15; maxDuration <= 60; crons stay under /api/cron/ |
 | `no-emoji-twin-output.goal.test.js` | NO EMOJIS rule (QW2 + audit H7) | stripEmoji backstop keeps removing pictographic/ZWJ emoji, leaves accents alone |
+| `money-first.goal.test.js` | Money is the product (Stefano, 2026-09-19) | `/`, `/home`, `/dashboard`, sign-in and the onboarding gate all land on `/money`; the twin is one link away, never the door |
 
 The nightly run also includes `tests/api/routes/whatsappZapiWebhookAuth.test.js`
 (webhook auth gate) by reference — reuse, don't duplicate.
