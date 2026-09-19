@@ -79,6 +79,22 @@
   .presence-cosmos.cal .pc-orb-wrap { transition: none; }
 }
 
+/* ----------------------------------------------------------------- glow -- */
+/* voice-glow's mobile preset, pinned to the bottom of her screen, under the
+   words. It carries no pointer events and the page keeps its own ground. */
+.presence-cosmos.cal .pc-call-glow {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 42dvh;
+  pointer-events: none;
+  z-index: 0;
+}
+.presence-cosmos.cal .pc-call-brand,
+.presence-cosmos.cal .pc-call-stage,
+.presence-cosmos.cal .pc-call-footer { position: relative; z-index: 1; }
+
 /* ------------------------------------------------------------------ words -- */
 
 .presence-cosmos.cal .pc-call-stage h1 {
