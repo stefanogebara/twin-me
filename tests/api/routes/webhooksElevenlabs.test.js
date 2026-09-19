@@ -23,7 +23,7 @@ const PRESENCE = {
 const { store, log, brief, summarizer, relay } = vi.hoisted(() => ({
   store: {
     findActivePresenceById: vi.fn(), findPresenceByElderPhone: vi.fn(), findConversationByProviderId: vi.fn(),
-    createConversation: vi.fn(), updateCallByConversation: vi.fn(), markQueuedNotesDelivered: vi.fn(), createCall: vi.fn(),
+    createConversation: vi.fn(), updateCallByConversation: vi.fn(), markQueuedNotesDelivered: vi.fn(), createCall: vi.fn(), listCallsSince: vi.fn(),
   },
   log: { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() },
   brief: { compileCallBrief: vi.fn() },
@@ -87,6 +87,7 @@ beforeEach(() => {
   summarizer.summarizeConversation.mockResolvedValue({ summary: 'Ela estava bem.', needsFamily: [], urgency: 'normal', assent: null, preferredName: '' });
   relay.relayCall.mockResolvedValue({ sent: true });
   relay.relayNoAnswer.mockResolvedValue({ sent: true });
+  store.listCallsSince.mockResolvedValue({ data: [], error: null });
 });
 
 afterEach(() => {
@@ -206,7 +207,7 @@ describe('POST /post-call', () => {
     const res = await failure('busy');
 
     expect(res.status).toBe(200);
-    await vi.waitFor(() => expect(relay.relayNoAnswer).toHaveBeenCalledWith(PRESENCE));
+    await vi.waitFor(() => expect(relay.relayNoAnswer).toHaveBeenCalledWith(PRESENCE, { days: 1 }));
     expect(store.findActivePresenceById).toHaveBeenCalledWith(PRESENCE.id);
   });
 
@@ -249,5 +250,37 @@ describe('POST /initiation — she calls in', () => {
 
     expect(res.status).toBe(404);
     expect(brief.compileCallBrief).not.toHaveBeenCalled();
+  });
+});
+
+describe('the second day she does not answer (Phase 2, T8)', () => {
+  const failure = (reason) => signed({ type: 'call_initiation_failure', event_timestamp: 1, data: { agent_id: 'agent-1', conversation_id: 'conv-1', failure_reason: reason, metadata: { type: 'twilio', body: {} } } });
+  it('counts yesterday too when nothing was answered then either', async () => {
+    const today = new Date().toISOString().slice(0, 10);
+    const yesterday = new Date(Date.now() - 86400e3).toISOString().slice(0, 10);
+    store.updateCallByConversation.mockResolvedValue({ data: [{ attempt: 2, presence_id: PRESENCE.id }], error: null });
+    store.listCallsSince.mockResolvedValue({ data: [
+      { presence_id: PRESENCE.id, status: 'no_answer', scheduled_for: `${yesterday}T13:00:00Z` },
+      { presence_id: PRESENCE.id, status: 'no_answer', scheduled_for: `${yesterday}T14:00:00Z` },
+      { presence_id: PRESENCE.id, status: 'no_answer', scheduled_for: `${today}T13:00:00Z` },
+    ], error: null });
+
+    await failure('busy');
+
+    await vi.waitFor(() => expect(relay.relayNoAnswer).toHaveBeenCalledWith(PRESENCE, { days: 2 }));
+  });
+
+  it('is one day when yesterday she answered', async () => {
+    const today = new Date().toISOString().slice(0, 10);
+    const yesterday = new Date(Date.now() - 86400e3).toISOString().slice(0, 10);
+    store.updateCallByConversation.mockResolvedValue({ data: [{ attempt: 2, presence_id: PRESENCE.id }], error: null });
+    store.listCallsSince.mockResolvedValue({ data: [
+      { presence_id: PRESENCE.id, status: 'completed', scheduled_for: `${yesterday}T13:00:00Z` },
+      { presence_id: PRESENCE.id, status: 'no_answer', scheduled_for: `${today}T13:00:00Z` },
+    ], error: null });
+
+    await failure('busy');
+
+    await vi.waitFor(() => expect(relay.relayNoAnswer).toHaveBeenCalledWith(PRESENCE, { days: 1 }));
   });
 });

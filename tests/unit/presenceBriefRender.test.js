@@ -111,3 +111,17 @@ describe('renderCallBrief', () => {
     expect(firstMessage).toMatch(/Oi, ela!/);
   });
 });
+
+describe('the emergency contact (Phase 2, T8)', () => {
+  it('tells the presence whom it will let know, right now, when she speaks of pain, a fall or asks for help', () => {
+    const { prompt } = renderCallBrief({ presence: { ...presence, emergency_name: 'Ana', emergency_phone: '+5511999990000' } });
+    expect(prompt).toMatch(/vou avisar (a )?Ana agora/);
+    expect(prompt).toMatch(/not an emergency service|não é um serviço de emergência/i);
+    expect(prompt).not.toContain('+5511999990000');
+  });
+
+  it('says nothing about it when no contact is set', () => {
+    const { prompt } = renderCallBrief({ presence });
+    expect(prompt).not.toMatch(/vou avisar/);
+  });
+});

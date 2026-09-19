@@ -681,3 +681,22 @@ describe('parallel reads fail the request instead of reading as empty', () => {
     expect(store.setCallToken).not.toHaveBeenCalled();
   });
 });
+
+describe('PATCH /:id — the emergency contact (Phase 2, T8)', () => {
+  it('saves a name and a phone in E.164, and clears them with null', async () => {
+    store.updatePresence.mockResolvedValue(ok({ ...OWNED, emergency_name: 'Ana', emergency_phone: '+5511999990000' }));
+    const res = await api('patch', `/${PRESENCE_ID}`).send({ emergency_name: '  Ana ', emergency_phone: '+55 (11) 99999-0000' });
+    expect(res.status).toBe(200);
+    expect(store.updatePresence).toHaveBeenCalledWith(PRESENCE_ID, expect.objectContaining({ emergency_name: 'Ana', emergency_phone: '+5511999990000' }));
+
+    store.updatePresence.mockClear();
+    await api('patch', `/${PRESENCE_ID}`).send({ emergency_name: null, emergency_phone: null });
+    expect(store.updatePresence).toHaveBeenCalledWith(PRESENCE_ID, expect.objectContaining({ emergency_name: null, emergency_phone: null }));
+  });
+
+  it('refuses a phone that is not a phone', async () => {
+    const res = await api('patch', `/${PRESENCE_ID}`).send({ emergency_phone: 'liga pra Ana' });
+    expect(res.status).toBe(400);
+    expect(store.updatePresence).not.toHaveBeenCalled();
+  });
+});

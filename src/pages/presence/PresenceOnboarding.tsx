@@ -18,6 +18,7 @@ import {
 import { Link, useNavigate } from 'react-router-dom';
 import { PresenceApiError, presenceAPI } from '@/services/api/presenceAPI';
 import { useAnalytics } from '@/contexts/AnalyticsContext';
+import { openQuestions } from './onboardingQuestions';
 import '@/styles/presence-cosmos.css';
 import '@/styles/presence-cosmos-onboarding.css';
 
@@ -48,7 +49,7 @@ import '@/styles/presence-cosmos-onboarding.css';
  * (the authed route), never in the preview.
  */
 
-type StepId = 'start' | 'bond' | 'about' | 'review' | 'style' | 'phone' | 'relay';
+type StepId = 'start' | 'bond' | 'about' | 'review' | 'questions' | 'phone' | 'relay';
 type AboutRec = 'idle' | 'recording' | 'ready' | 'processing' | 'done';
 /** Who sits with her on the first call. Draft only: it changes the hint, not the server. */
 type Companion = 'me' | 'caregiver' | 'nobody';
@@ -65,7 +66,8 @@ type PresenceDraft = {
   people: Person[];
   anchors: { place: string; dish: string; person: string };
   boundaries: string[];
-  answers: string[];
+  /** "Três perguntas": answers keyed by question id (onboardingQuestions.ts). */
+  answers: Record<string, string>;
   firstNote: string;
   aboutText: string;
   aboutTranscript: string;
@@ -78,7 +80,7 @@ type PresenceDraft = {
   companion: Companion;
 };
 
-const DRAFT_KEY = 'twinme-presence-draft-v7';
+const DRAFT_KEY = 'twinme-presence-draft-v8';
 
 const DEFAULT_DRAFT: PresenceDraft = {
   stepIndex: 0,
@@ -93,7 +95,7 @@ const DEFAULT_DRAFT: PresenceDraft = {
   ],
   anchors: { place: '', dish: '', person: '' },
   boundaries: [''],
-  answers: ['', ''],
+  answers: {},
   firstNote: '',
   aboutText: '',
   aboutTranscript: '',
@@ -109,7 +111,7 @@ const STEPS: Array<{ id: StepId; short: string; eyebrow: string }> = [
   { id: 'bond', short: 'Vínculo', eyebrow: 'A relação' },
   { id: 'about', short: 'Sobre ela', eyebrow: 'Me conta sobre ela' },
   { id: 'review', short: 'Revisão', eyebrow: 'O que eu entendi' },
-  { id: 'style', short: 'Jeito', eyebrow: 'Como vocês são juntos' },
+  { id: 'questions', short: 'Três perguntas', eyebrow: 'O que o áudio não contou' },
   { id: 'phone', short: 'O telefone dela', eyebrow: 'Quando a Presença liga' },
   { id: 'relay', short: 'Retorno', eyebrow: 'O que volta para você' },
 ];
@@ -158,22 +160,6 @@ const SYNC_FAILED = 'Não deu para salvar. Vamos tentar de novo no próximo pass
 const SERVER_UNREACHABLE = 'Não deu para falar com o servidor. Tente de novo em instantes.';
 const ABOUT_FAILED = 'Não consegui entender a gravação. Tente de novo ou escreva algumas linhas.';
 const ACTIVATE_FAILED = 'Não deu para ativar a Presença. Tente de novo.';
-
-// Style: the two codebook questions that a voice note rarely answers by itself.
-const QUESTIONS: Array<{ kind: 'tone' | 'language'; label: string; prompt: string; placeholder: string }> = [
-  {
-    kind: 'tone',
-    label: 'O seu jeito carinhoso',
-    prompt: 'Quando ela repete uma história que você já ouviu, como você costuma responder?',
-    placeholder: 'Brinco com ela de leve e pergunto o detalhe que ela esqueceu da última vez.',
-  },
-  {
-    kind: 'language',
-    label: 'Palavras só de vocês',
-    prompt: 'Que apelidos, expressões ou piadinhas são só de vocês dois?',
-    placeholder: 'Eu chamo ela de Nunu. Ela chama todo plano bom de plano de domingo, mesmo na terça.',
-  },
-];
 
 const ANCHORS: Array<{ key: keyof PresenceDraft['anchors']; label: string; placeholder: string }> = [
   { key: 'place', label: 'Um lugar que importa para ela', placeholder: 'A casa de praia em Ubatuba' },
@@ -246,7 +232,9 @@ function loadStoredDraft(persist: boolean): PresenceDraft {
         : DEFAULT_DRAFT.people,
       anchors: { ...DEFAULT_DRAFT.anchors, ...(parsed.anchors ?? {}) },
       boundaries: Array.isArray(parsed.boundaries) && parsed.boundaries.length > 0 ? parsed.boundaries.map(String) : DEFAULT_DRAFT.boundaries,
-      answers: Array.isArray(parsed.answers) && parsed.answers.length === 2 ? parsed.answers.map(String) : DEFAULT_DRAFT.answers,
+      answers: parsed.answers && typeof parsed.answers === 'object' && !Array.isArray(parsed.answers)
+        ? Object.fromEntries(Object.entries(parsed.answers).map(([k, v]) => [k, String(v ?? '')]))
+        : DEFAULT_DRAFT.answers,
       firstNote: text(parsed.firstNote, ''),
       aboutText: text(parsed.aboutText, ''),
       aboutTranscript: text(parsed.aboutTranscript, ''),
@@ -299,7 +287,9 @@ export function PresenceOnboardingExperience({ persistDraft = false, onExit }: P
 
   const step = STEPS[stepIndex];
   const displayName = caredForName.trim() || 'ela';
-  const answeredCount = answers.filter((a) => a.trim()).length;
+  // Only what the note left open, three at most; the answers are keyed by question id.
+  const questions = openQuestions({ tone, people, anchors, boundaries });
+  const answeredCount = questions.filter((q) => (answers[q.id] || '').trim()).length;
   const understood = Boolean(aboutCounts);
 
   useEffect(() => {
@@ -404,10 +394,10 @@ export function PresenceOnboardingExperience({ persistDraft = false, onExit }: P
               if (text) await presenceAPI.saveFact(id, 'boundary', text.slice(0, 200), text);
             }
             break;
-          case 'style':
-            for (const [index, question] of QUESTIONS.entries()) {
-              const answer = d.answers[index]?.trim();
-              if (answer) await presenceAPI.saveFact(id, question.kind, question.prompt, answer);
+          case 'questions':
+            for (const question of openQuestions({ tone: d.tone, people: d.people, anchors: d.anchors, boundaries: d.boundaries })) {
+              const answer = (d.answers[question.id] || '').trim();
+              if (answer) await presenceAPI.saveFact(id, question.factKind, question.prompt, answer);
             }
             break;
           case 'phone': {
@@ -966,45 +956,49 @@ export function PresenceOnboardingExperience({ persistDraft = false, onExit }: P
               </>
             )}
 
-            {step.id === 'style' && (
+            {step.id === 'questions' && (
               <>
                 <header className="pc-apphead">
-                  <h1 className="pc-apphead-title">Duas coisas que um áudio raramente conta.</h1>
-                  <p className="pc-apphead-line">Como vocês são de verdade juntos, e as palavras que só vocês dois usam.</p>
+                  <h1 className="pc-apphead-title">{questions.length ? 'Três perguntas, só do que ficou em aberto.' : 'O áudio contou tudo.'}</h1>
+                  <p className="pc-apphead-line">{questions.length ? 'O resto ela já sabe. Uma frase basta em cada uma.' : 'Não sobrou pergunta. Pode seguir.'}</p>
                 </header>
-                <section className="pc-appsection">
-                  <ul className="pc-list">
-                    <li className="pc-row pc-row--plain">
-                      <div className="pc-row-text">
-                        <p className="pc-row-title">{QUESTIONS[questionIndex].prompt}</p>
-                        <p className="pc-row-line">{QUESTIONS[questionIndex].label} · {questionIndex + 1} de {QUESTIONS.length}</p>
-                      </div>
-                      <div className="pc-row-action">
-                        <button className="pc-btn pc-btn--ghost" onClick={() => setQuestionIndex((index) => (index + 1) % QUESTIONS.length)}>
-                          {questionIndex === QUESTIONS.length - 1 ? 'Primeira pergunta' : 'Próxima pergunta'}
-                        </button>
-                      </div>
-                    </li>
-                    <li className="pc-row pc-row--plain obx-form">
-                      <textarea
-                        className="pc-input"
-                        value={answers[questionIndex]}
-                        placeholder={QUESTIONS[questionIndex].placeholder}
-                        onChange={(event) => {
-                          const next = [...answers];
-                          next[questionIndex] = event.target.value;
-                          patch({ answers: next });
-                        }}
-                        aria-label="Sua resposta"
-                      />
-                    </li>
-                  </ul>
-                  <p className="pc-empty">
-                    {answeredCount === 0
-                      ? 'Nada ainda. Uma resposta sincera já basta para começar.'
-                      : `Já aprendi: ${answers.map((answer, index) => (answer.trim() ? QUESTIONS[index].label : null)).filter(Boolean).join(', ')}.`}
-                  </p>
-                </section>
+                {questions.length > 0 && (() => {
+                  const index = Math.min(questionIndex, questions.length - 1);
+                  const question = questions[index];
+                  return (
+                    <section className="pc-appsection">
+                      <ul className="pc-list">
+                        <li className="pc-row pc-row--plain">
+                          <div className="pc-row-text">
+                            <p className="pc-row-title">{question.prompt}</p>
+                            <p className="pc-row-line">{question.label} · {index + 1} de {questions.length}</p>
+                          </div>
+                          {questions.length > 1 ? (
+                            <div className="pc-row-action">
+                              <button className="pc-btn pc-btn--ghost" onClick={() => setQuestionIndex((index + 1) % questions.length)}>
+                                {index === questions.length - 1 ? 'Primeira pergunta' : 'Próxima pergunta'}
+                              </button>
+                            </div>
+                          ) : <span />}
+                        </li>
+                        <li className="pc-row pc-row--plain obx-form">
+                          <textarea
+                            className="pc-input"
+                            value={answers[question.id] || ''}
+                            placeholder={question.placeholder}
+                            onChange={(event) => patch({ answers: { ...answers, [question.id]: event.target.value } })}
+                            aria-label="Sua resposta"
+                          />
+                        </li>
+                      </ul>
+                      <p className="pc-empty">
+                        {answeredCount === 0
+                          ? 'Nada ainda. Uma resposta sincera já basta para começar.'
+                          : `Já aprendi: ${questions.map((q) => ((answers[q.id] || '').trim() ? q.label : null)).filter(Boolean).join(', ')}.`}
+                      </p>
+                    </section>
+                  );
+                })()}
               </>
             )}
 

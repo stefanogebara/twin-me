@@ -488,3 +488,107 @@ export async function recordVoiceRevoked(row) {
   return supabaseAdmin.from('presence_voice').upsert(row, { onConflict: 'presence_id' })
     .select('status').single();
 }
+
+// ====================================================================
+// Members and invites (Phase 2, T3): who is around her besides the owner
+// ====================================================================
+
+/** A presence's members, oldest first: the owner row, then whoever joined. */
+export async function listMembers(presenceId) {
+  return supabaseAdmin
+    .from('presence_members')
+    .select('id, user_id, role, invited_by, created_at')
+    .eq('presence_id', presenceId)
+    .order('created_at', { ascending: true });
+}
+
+/** One user's role on a presence, or null. */
+export async function findMembership(presenceId, userId) {
+  return supabaseAdmin
+    .from('presence_members')
+    .select('role')
+    .eq('presence_id', presenceId)
+    .eq('user_id', userId)
+    .maybeSingle();
+}
+
+/** Add a member; an existing row (any role) is left as it is. */
+export async function addMember(row) {
+  return supabaseAdmin
+    .from('presence_members')
+    .upsert(row, { onConflict: 'presence_id,user_id', ignoreDuplicates: true });
+}
+
+/** Remove a member. The owner row is never removed this way. */
+export async function removeMember(presenceId, userId) {
+  return supabaseAdmin
+    .from('presence_members')
+    .delete()
+    .eq('presence_id', presenceId)
+    .eq('user_id', userId)
+    .neq('role', 'owner');
+}
+
+/** The live presences a user belongs to, newest membership first, each with the role. */
+export async function listPresencesForMember(userId) {
+  return supabaseAdmin
+    .from('presence_members')
+    .select('role, created_at, presences!inner(*)')
+    .eq('user_id', userId)
+    .neq('presences.status', 'deleted')
+    .order('created_at', { ascending: false });
+}
+
+/** An invite the owner sends as a link. */
+export async function createInvite(row) {
+  return supabaseAdmin
+    .from('presence_invites')
+    .insert(row)
+    .select('id, token, role, expires_at')
+    .single();
+}
+
+export async function findInviteByToken(token) {
+  return supabaseAdmin
+    .from('presence_invites')
+    .select('id, presence_id, role, expires_at, accepted_at')
+    .eq('token', token)
+    .maybeSingle();
+}
+
+/** Mark an invite accepted; a second acceptance matches no row. */
+export async function acceptInvite(inviteId, userId) {
+  return supabaseAdmin
+    .from('presence_invites')
+    .update({ accepted_by: userId, accepted_at: new Date().toISOString() })
+    .eq('id', inviteId)
+    .is('accepted_at', null)
+    .select('id')
+    .maybeSingle();
+}
+
+/**
+ * The members who can be reached on WhatsApp: [{ user_id, role, phone }].
+ * Two reads (members, then their enabled channels), joined here.
+ */
+export async function listMemberWhatsApp(presenceId) {
+  const members = await supabaseAdmin
+    .from('presence_members')
+    .select('user_id, role')
+    .eq('presence_id', presenceId);
+  if (members.error) return { data: null, error: members.error };
+  const rows = members.data || [];
+  if (!rows.length) return { data: [], error: null };
+  const channels = await supabaseAdmin
+    .from('messaging_channels')
+    .select('user_id, channel_id')
+    .in('user_id', rows.map((m) => m.user_id))
+    .eq('channel', 'whatsapp')
+    .eq('is_enabled', true);
+  if (channels.error) return { data: null, error: channels.error };
+  const phoneOf = new Map((channels.data || []).map((c) => [c.user_id, c.channel_id]));
+  return {
+    data: rows.filter((m) => phoneOf.get(m.user_id)).map((m) => ({ user_id: m.user_id, role: m.role, phone: phoneOf.get(m.user_id) })),
+    error: null,
+  };
+}

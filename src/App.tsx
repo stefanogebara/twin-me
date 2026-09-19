@@ -99,6 +99,7 @@ const PresenceLandingPage = lazyWithRetry(() => import("./pages/PresenceLandingP
 const PresenceLoginPage = lazyWithRetry(() => import("./pages/PresenceLoginPage"));
 const PresenceHome = lazyWithRetry(() => import("./pages/presence/PresenceHome"));
 const PresenceCallPage = lazyWithRetry(() => import("./pages/presence/PresenceCallPage"));
+const PresenceJoinPage = lazyWithRetry(() => import("./pages/presence/PresenceJoinPage"));
 
 
 
@@ -260,6 +261,14 @@ const App = () => {
               <ProtectedRoute fallbackPath="/presence/login">
                 <ErrorBoundary>
                   <PresenceHome />
+                </ErrorBoundary>
+              </ProtectedRoute>
+            } />
+            {/* An invite link: sign in, then the membership is written. */}
+            <Route path="/presence/join/:token" element={
+              <ProtectedRoute fallbackPath="/presence/login">
+                <ErrorBoundary>
+                  <PresenceJoinPage />
                 </ErrorBoundary>
               </ProtectedRoute>
             } />

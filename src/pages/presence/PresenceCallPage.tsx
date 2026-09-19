@@ -12,6 +12,8 @@ import {
 } from '@/services/api/presenceAPI';
 import { useAnalytics } from '@/contexts/AnalyticsContext';
 import '@/styles/presence-cosmos.css';
+import LedgerOrb from '../../components/LedgerOrb';
+import { orbFor } from './callOrb';
 import '@/styles/presence-call.css';
 
 /**
@@ -32,7 +34,7 @@ import '@/styles/presence-call.css';
  * ended but the server did not keep it; the transcript stays in memory for a retry.
  */
 
-type CallState = 'loading' | 'invalid' | 'ready' | 'connecting' | 'live' | 'saving' | 'done' | 'lost' | 'error';
+import type { CallState } from './callOrb';
 
 type Turn = { role: 'user' | 'assistant'; content: string };
 
@@ -93,15 +95,21 @@ export default function PresenceCallPage() {
     if (data) setHome(data);
   }, [token]);
 
+  /** Bumped by "Tentar de novo" when the channel did not answer; re-runs the load. */
+  const [loadTry, setLoadTry] = useState(0);
+
   useEffect(() => {
     let cancelled = false;
+    setState('loading');
     void (async () => {
-      const [call, homeData] = await Promise.all([fetchCallConfig(token), fetchCallHome(token)]);
+      const [got, homeData] = await Promise.all([fetchCallConfig(token), fetchCallHome(token)]);
       if (cancelled) return;
-      if (!call) {
-        setState('invalid');
+      if ('error' in got) {
+        // A dead link and a channel that did not answer this time are different news for her.
+        setState(got.error === 'gone' ? 'invalid' : 'unavailable');
         return;
       }
+      const call = got.call;
       setConfig(call);
       setHome(homeData);
       setAssent(call.assent_required ? 'asking' : 'given');
@@ -114,7 +122,7 @@ export default function PresenceCallPage() {
     return () => {
       cancelled = true;
     };
-  }, [token, trackEvent]);
+  }, [token, trackEvent, loadTry]);
 
   useEffect(() => {
     const panel = panelRef.current;
@@ -346,12 +354,25 @@ export default function PresenceCallPage() {
     </div>
   );
 
+  // One orb, one meaning: something is happening. The wrapper carries the volume scale (--orb).
+  const orb = orbFor(state, orbMode);
+  const orbEl = orb ? (
+    <div ref={orbRef} className={`pc-orb-wrap is-${orbMode}`} aria-hidden="true">
+      <LedgerOrb state={orb.state} size={orb.size} speed={orb.speed} label="" />
+    </div>
+  ) : null;
+
   return (
     <main className="presence-cosmos cal pc-call" id="main-content">
       <div className="pc-call-brand"><Mark /> Presença</div>
 
       <section className={`pc-call-stage ${state === 'live' ? 'is-live' : ''}`} aria-live="polite">
-        {state === 'loading' && <p className="pc-call-sub">Um momento…</p>}
+        {state === 'loading' && (
+          <>
+            {orbEl}
+            <p className="pc-call-sub">Um momento…</p>
+          </>
+        )}
 
         {state === 'invalid' && (
           <>
@@ -360,9 +381,19 @@ export default function PresenceCallPage() {
           </>
         )}
 
+        {state === 'unavailable' && (
+          <>
+            <h1>Não consegui preparar a nossa conversa.</h1>
+            <p className="pc-call-sub">Não é o link. Espere um instante e tente de novo.</p>
+            <div className="pc-call-actions">
+              <button className="pc-call-cta" onClick={() => setLoadTry((n) => n + 1)}>Tentar de novo</button>
+            </div>
+          </>
+        )}
+
         {(state === 'ready' || state === 'connecting') && (
           <>
-            <div className="pc-orb" aria-hidden="true" />
+            {orbEl}
             <h1>{name ? `Oi, ${name}.` : 'Oi.'}</h1>
 
             {assent === 'asking' && (
@@ -407,7 +438,7 @@ export default function PresenceCallPage() {
 
         {state === 'live' && (
           <>
-            <div ref={orbRef} className={`pc-orb is-${orbMode}`} aria-hidden="true" />
+            {orbEl}
             <p className="pc-call-status">
               {orbMode === 'speaking' ? 'Falando com você…' : 'Estou te ouvindo.'}
             </p>
@@ -425,11 +456,15 @@ export default function PresenceCallPage() {
           </>
         )}
 
-        {state === 'saving' && <h1>Guardando a conversa…</h1>}
+        {state === 'saving' && (
+          <>
+            {orbEl}
+            <h1>Guardando a conversa…</h1>
+          </>
+        )}
 
         {state === 'done' && (
           <>
-            <div className="pc-orb" aria-hidden="true" />
             <h1>Que conversa boa.</h1>
             <p className="pc-call-sub">{caller} vai receber um resumo. Volte quando quiser.</p>
             <div className="pc-call-actions">

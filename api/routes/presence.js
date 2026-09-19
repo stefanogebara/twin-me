@@ -29,6 +29,7 @@
  */
 
 import express from 'express';
+import { randomBytes } from 'node:crypto';
 import fs from 'fs';
 import path from 'path';
 import multer from 'multer';
@@ -67,6 +68,14 @@ import {
   deletePresence,
   listRecentCalls,
   getOwnerWhatsApp,
+  listMembers,
+  findMembership,
+  addMember,
+  removeMember,
+  listPresencesForMember,
+  createInvite,
+  findInviteByToken,
+  acceptInvite,
 } from '../services/presenceStore.js';
 import { createLogger } from '../services/logger.js';
 import { deriveReadiness } from '../services/presenceReadiness.js';
@@ -79,6 +88,27 @@ const PATCHABLE_FIELDS = ['cared_for_name', 'relationship', 'caller_name', 'tone
 // Her phone and the call schedule (Phase 1): validated apart from the text fields.
 const SCHEDULE_FIELDS = ['elder_phone', 'call_hour', 'call_days', 'call_timezone'];
 const E164_RE = /^\+[1-9][0-9]{7,14}$/;
+// The emergency contact (Phase 2, T8): a name she hears, a phone the family keeps.
+const EMERGENCY_FIELDS = ['emergency_name', 'emergency_phone'];
+
+/** "+55 (11) 99999-0000" -> "+5511999990000"; null clears; anything else is invalid. */
+function parseEmergencyPatch(body) {
+  const patch = {};
+  if (body.emergency_name !== undefined) {
+    patch.emergency_name = body.emergency_name === null ? null : clip(String(body.emergency_name).trim(), 120) || null;
+  }
+  if (body.emergency_phone !== undefined) {
+    if (body.emergency_phone === null || body.emergency_phone === '') {
+      patch.emergency_phone = null;
+    } else {
+      const digits = String(body.emergency_phone).replace(/[^\d+]/g, '');
+      const phone = digits.startsWith('+') ? `+${digits.slice(1).replace(/\+/g, '')}` : `+${digits}`;
+      if (!E164_RE.test(phone)) return { error: 'Telefone inválido: use o formato internacional, +55 11 99999 0000' };
+      patch.emergency_phone = phone;
+    }
+  }
+  return { patch };
+}
 const TIMEZONES = new Set(typeof Intl.supportedValuesOf === 'function' ? Intl.supportedValuesOf('timeZone') : []);
 
 /** "+55 (11) 99999-0000" -> "+5511999990000"; null clears; anything else is invalid. */
@@ -175,6 +205,55 @@ async function loadOwned(req, res) {
   return data;
 }
 
+/**
+ * Who is around her (Phase 2, README 7.3). Owner: everything. Family: the page,
+ * notes, asks, conversations. Companion (acompanhante, cuidadora): notes and the
+ * needs list only. A stranger, and a member below the required role, is told
+ * there is no such presence, the same answer loadOwned gives.
+ */
+const ROLE_RANK = { companion: 1, family: 2, owner: 3 };
+const INVITE_ROLES = new Set(['family', 'companion']);
+const INVITE_DAYS = 7;
+
+/** Fetch a presence and the requester's role on it, requiring at least `atLeast`. Returns null after responding. */
+async function loadMember(req, res, atLeast = 'companion') {
+  const { id } = req.params;
+  if (!UUID_RE.test(id)) {
+    res.status(400).json({ success: false, error: 'Invalid presence id' });
+    return null;
+  }
+  const { data, error } = await findLivePresenceById(id);
+  if (error) {
+    log.error('Presence lookup failed', { error: error.message });
+    res.status(500).json({ success: false, error: 'Lookup failed' });
+    return null;
+  }
+  let role = null;
+  if (data) {
+    if (data.owner_user_id === req.user.id) role = 'owner';
+    else {
+      const membership = await findMembership(id, req.user.id);
+      if (membership.error) {
+        log.error('Membership lookup failed', { error: membership.error.message });
+        res.status(500).json({ success: false, error: 'Lookup failed' });
+        return null;
+      }
+      role = membership.data?.role || null;
+    }
+  }
+  if (!data || !role || ROLE_RANK[role] < ROLE_RANK[atLeast]) {
+    res.status(404).json({ success: false, error: 'Presence not found' });
+    return null;
+  }
+  return { ...data, role };
+}
+
+/** What a companion may see of her: who she is and when she is called. */
+function presenceForCompanion(p) {
+  const { id, cared_for_name, caller_name, relationship, status, call_hour, call_days, call_timezone } = p;
+  return { id, cared_for_name, caller_name, relationship, status, call_hour, call_days, call_timezone };
+}
+
 const clip = (value, max) => String(value ?? '').slice(0, max);
 
 /** Identity of a fact for de-duplication: kind, question and answer, case- and space-insensitive. */
@@ -222,13 +301,21 @@ router.get('/mine', authenticateUser, async (req, res) => {
   try {
     const { data: presence, error } = await getLatestPresenceForOwner(req.user.id);
     if (error) throw error;
-    if (!presence) return res.json({ success: true, presence: null });
+    if (!presence) {
+      // Not an owner: the newest presence they were invited into, with the role.
+      const memberships = await listPresencesForMember(req.user.id);
+      if (memberships.error) throw memberships.error;
+      const first = (memberships.data || [])[0];
+      if (!first?.presences) return res.json({ success: true, presence: null });
+      return res.json({ success: true, role: first.role, presence: first.role === 'companion' ? presenceForCompanion(first.presences) : first.presences, people: [], voice: null, facts: [] });
+    }
 
     const { people, voice, facts, error: detailsError } = await getResumeDetails(presence.id);
     if (detailsError) throw detailsError;
 
     res.json({
       success: true,
+      role: 'owner',
       presence,
       people: people.data || [],
       voice: voice.data || null,
@@ -237,6 +324,41 @@ router.get('/mine', authenticateUser, async (req, res) => {
   } catch (err) {
     log.error('GET /mine failed', { error: err.message });
     res.status(500).json({ success: false, error: 'Failed to load presence' });
+  }
+});
+
+// ====================================================================
+// POST /join/:token — accept an invite (any signed-in user)
+// ====================================================================
+router.post('/join/:token', authenticateUser, async (req, res) => {
+  try {
+    const token = String(req.params.token || '');
+    if (!/^[A-Za-z0-9_-]{20,64}$/.test(token)) return res.status(404).json({ success: false, error: 'Invite not found' });
+    const invite = await findInviteByToken(token);
+    if (invite.error) throw invite.error;
+    if (!invite.data) return res.status(404).json({ success: false, error: 'Invite not found' });
+    if (invite.data.accepted_at || new Date(invite.data.expires_at).getTime() < Date.now()) {
+      return res.status(410).json({ success: false, error: 'Invite no longer valid' });
+    }
+    const presence = await findLivePresenceById(invite.data.presence_id);
+    if (presence.error) throw presence.error;
+    if (!presence.data) return res.status(404).json({ success: false, error: 'Invite not found' });
+
+    // The owner opening their own link is already in; nothing to write.
+    if (presence.data.owner_user_id === req.user.id) {
+      return res.json({ success: true, presence_id: presence.data.id, role: 'owner', cared_for_name: presence.data.cared_for_name });
+    }
+    const added = await addMember({ presence_id: presence.data.id, user_id: req.user.id, role: invite.data.role, invited_by: null });
+    if (added.error) throw added.error;
+    const burned = await acceptInvite(invite.data.id, req.user.id);
+    if (burned.error) log.error('Invite not marked accepted', { inviteId: invite.data.id, error: burned.error.message });
+    // An existing member keeps their earlier role; report what they actually have.
+    const membership = await findMembership(presence.data.id, req.user.id);
+    const role = membership.data?.role || invite.data.role;
+    res.json({ success: true, presence_id: presence.data.id, role, cared_for_name: presence.data.cared_for_name });
+  } catch (err) {
+    log.error('POST join failed', { error: err.message });
+    res.status(500).json({ success: false, error: 'Failed to join' });
   }
 });
 
@@ -254,6 +376,9 @@ router.post('/', authenticateUser, async (req, res) => {
       tone: clip(body.tone, 80),
     });
     if (error) throw error;
+    // The owner is her first member; the rows are what "who may see this" reads.
+    const member = await addMember({ presence_id: data.id, user_id: req.user.id, role: 'owner', invited_by: null });
+    if (member.error) log.error('Owner member row not written', { presenceId: data.id, error: member.error.message });
     res.status(201).json({ success: true, presence: data });
   } catch (err) {
     log.error('POST / failed', { error: err.message });
@@ -285,6 +410,11 @@ router.patch('/:id', authenticateUser, async (req, res) => {
       const schedule = parseSchedulePatch(req.body);
       if (schedule.error) return res.status(400).json({ success: false, error: schedule.error });
       Object.assign(patch, schedule.patch);
+    }
+    if (EMERGENCY_FIELDS.some((field) => req.body?.[field] !== undefined)) {
+      const emergency = parseEmergencyPatch(req.body);
+      if (emergency.error) return res.status(400).json({ success: false, error: emergency.error });
+      Object.assign(patch, emergency.patch);
     }
     if (Object.keys(patch).length === 0) {
       return res.status(400).json({ success: false, error: 'No patchable fields provided' });
@@ -383,7 +513,7 @@ router.post('/:id/facts', authenticateUser, async (req, res) => {
 // ====================================================================
 router.post('/:id/notes', authenticateUser, async (req, res) => {
   try {
-    const owned = await loadOwned(req, res);
+    const owned = await loadMember(req, res, 'companion');
     if (!owned) return;
 
     const body = String(req.body?.body || '').trim();
@@ -433,7 +563,7 @@ router.post('/:id/call-link', authenticateUser, async (req, res) => {
 // ====================================================================
 router.get('/:id/overview', authenticateUser, async (req, res) => {
   try {
-    const owned = await loadOwned(req, res);
+    const owned = await loadMember(req, res, 'companion');
     if (!owned) return;
 
     const [overview, calls, whatsapp] = await Promise.all([
@@ -446,8 +576,20 @@ router.get('/:id/overview', authenticateUser, async (req, res) => {
     if (calls.error) throw calls.error;
     if (whatsapp.error) throw whatsapp.error;
 
+    if (owned.role === 'companion') {
+      // Notes and the needs list only: never a summary, never a transcript.
+      return res.json({
+        success: true,
+        role: 'companion',
+        presence: presenceForCompanion(presence.data || owned),
+        notes: notes.data || [],
+        needs: (conversations.data || []).map(({ id, created_at, needs_family, urgency }) => ({ id, created_at, needs_family: needs_family || [], urgency: urgency || null })),
+      });
+    }
+
     res.json({
       success: true,
+      role: owned.role,
       presence: presence.data,
       people: people.data || [],
       voice: voice.data || null,
@@ -472,7 +614,7 @@ router.get('/:id/overview', authenticateUser, async (req, res) => {
 // ====================================================================
 router.get('/:id/readiness', authenticateUser, async (req, res) => {
   try {
-    const owned = await loadOwned(req, res);
+    const owned = await loadMember(req, res, 'family');
     if (!owned) return;
     const readiness = await computeReadiness(owned);
     res.json({ success: true, ...readiness });
@@ -769,7 +911,7 @@ router.delete('/:id', authenticateUser, async (req, res) => {
 // ====================================================================
 router.post('/:id/asks/:factId', authenticateUser, async (req, res) => {
   try {
-    const owned = await loadOwned(req, res);
+    const owned = await loadMember(req, res, 'family');
     if (!owned) return;
     const { factId } = req.params;
     if (!UUID_RE.test(factId)) return res.status(400).json({ success: false, error: 'Invalid ask id' });
@@ -832,7 +974,7 @@ router.post('/:id/asks/:factId', authenticateUser, async (req, res) => {
 // actually said, in her words.
 router.get('/:id/conversations/:conversationId', authenticateUser, async (req, res) => {
   try {
-    const owned = await loadOwned(req, res);
+    const owned = await loadMember(req, res, 'family');
     if (!owned) return;
     const { conversationId } = req.params;
     if (!UUID_RE.test(conversationId)) return res.status(400).json({ success: false, error: 'Invalid conversation id' });
@@ -845,6 +987,55 @@ router.get('/:id/conversations/:conversationId', authenticateUser, async (req, r
   } catch (err) {
     log.error('GET conversation failed', { error: err.message });
     res.status(500).json({ success: false, error: 'Failed to load the conversation' });
+  }
+});
+
+// ====================================================================
+// Members and invites — the owner only (Phase 2, README 7.3)
+// ====================================================================
+router.get('/:id/members', authenticateUser, async (req, res) => {
+  try {
+    const owned = await loadOwned(req, res);
+    if (!owned) return;
+    const { data, error } = await listMembers(owned.id);
+    if (error) throw error;
+    res.json({ success: true, members: data || [] });
+  } catch (err) {
+    log.error('GET members failed', { error: err.message });
+    res.status(500).json({ success: false, error: 'Failed to load members' });
+  }
+});
+
+router.delete('/:id/members/:userId', authenticateUser, async (req, res) => {
+  try {
+    const owned = await loadOwned(req, res);
+    if (!owned) return;
+    const { userId } = req.params;
+    if (!UUID_RE.test(userId)) return res.status(400).json({ success: false, error: 'Invalid user id' });
+    if (userId === req.user.id) return res.status(400).json({ success: false, error: 'The owner cannot leave their own presence' });
+    const { error } = await removeMember(owned.id, userId);
+    if (error) throw error;
+    res.json({ success: true });
+  } catch (err) {
+    log.error('DELETE member failed', { error: err.message });
+    res.status(500).json({ success: false, error: 'Failed to remove member' });
+  }
+});
+
+router.post('/:id/invites', authenticateUser, async (req, res) => {
+  try {
+    const owned = await loadOwned(req, res);
+    if (!owned) return;
+    const role = String(req.body?.role || '');
+    if (!INVITE_ROLES.has(role)) return res.status(400).json({ success: false, error: 'role must be family or companion' });
+    const token = randomBytes(24).toString('base64url');
+    const expiresAt = new Date(Date.now() + INVITE_DAYS * 86400e3).toISOString();
+    const { data, error } = await createInvite({ presence_id: owned.id, role, token, created_by: req.user.id, expires_at: expiresAt });
+    if (error) throw error;
+    res.status(201).json({ success: true, role: data.role, expires_at: data.expires_at, join_path: `/presence/join/${data.token}` });
+  } catch (err) {
+    log.error('POST invites failed', { error: err.message });
+    res.status(500).json({ success: false, error: 'Failed to create invite' });
   }
 });
 

@@ -1,6 +1,6 @@
 import { useEffect, useState, type CSSProperties } from 'react';
 import { ArrowLeft, Loader2 } from 'lucide-react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import '@/styles/money-v2.css';
 import '@/styles/auth.css';
@@ -12,23 +12,29 @@ import '@/styles/auth.css';
  * glass card, the serif and the tracked caps are gone.
  *
  * Auth itself is unchanged: Google OAuth through AuthContext, landing on
- * /presence/onboarding.
+ * /presence/onboarding, or on the Presence path ProtectedRoute sent us from
+ * (?redirect=): an invite link must come back to itself after the sign-in.
  */
+const PRESENCE_PATH = /^\/(presence\/[A-Za-z0-9_\-/]*|presence)$/;
+
 export default function PresenceLoginPage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { isLoaded, isSignedIn, signInWithOAuth } = useAuth();
+  const wanted = new URLSearchParams(location.search).get('redirect') || '';
+  const landing = PRESENCE_PATH.test(wanted) ? wanted : '/presence/onboarding';
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
   useEffect(() => {
-    if (isLoaded && isSignedIn) navigate('/presence/onboarding', { replace: true });
-  }, [isLoaded, isSignedIn, navigate]);
+    if (isLoaded && isSignedIn) navigate(landing, { replace: true });
+  }, [isLoaded, isSignedIn, navigate, landing]);
 
   async function continueWithGoogle() {
     setLoading(true);
     setError('');
     try {
-      await signInWithOAuth('google', '/presence/onboarding');
+      await signInWithOAuth('google', landing);
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : 'Sign in could not start. Please try again.');
       setLoading(false);

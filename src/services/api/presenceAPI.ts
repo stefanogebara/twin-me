@@ -33,10 +33,13 @@ export interface PresenceRecord {
   call_days?: number[];
   call_timezone?: string;
   elder_assent_at?: string | null;
+  /** Whom the presence says it will tell "agora" when she speaks of pain, a fall, or asks for help. */
+  emergency_name?: string | null;
+  emergency_phone?: string | null;
 }
 
 /** The fields the family may change on PATCH; the server validates each. */
-export type PresencePatch = Partial<Pick<PresenceRecord, 'cared_for_name' | 'relationship' | 'caller_name' | 'tone' | 'status' | 'elder_phone' | 'call_hour' | 'call_days' | 'call_timezone'>>;
+export type PresencePatch = Partial<Pick<PresenceRecord, 'cared_for_name' | 'relationship' | 'caller_name' | 'tone' | 'status' | 'elder_phone' | 'call_hour' | 'call_days' | 'call_timezone' | 'emergency_name' | 'emergency_phone'>>;
 
 export interface PresenceCall {
   id: string;
@@ -58,6 +61,8 @@ export type PresenceFactKind = 'tone' | 'language' | 'boundary' | 'anchor' | 'bi
 
 interface MineResponse {
   success: boolean;
+  /** The signed-in user's place around her; absent when there is no presence. */
+  role?: PresenceRole;
   presence: PresenceRecord | null;
   people?: Array<{ id: string; name: string; relation: string; called_by: string }>;
   voice?: { status: string; sample_count: number; sample_seconds: number } | null;
@@ -162,7 +167,24 @@ export const presenceAPI = {
   },
 
   overview: (id: string) =>
-    request<PresenceOverview>(`/presence/${id}/overview`),
+    request<PresenceOverview | CompanionOverview>(`/presence/${id}/overview`),
+
+  // The people around her (owner only, except join).
+  members: (id: string) =>
+    request<{ success: boolean; members: PresenceMember[] }>(`/presence/${id}/members`),
+
+  invite: (id: string, role: 'family' | 'companion') =>
+    request<{ success: boolean; role: 'family' | 'companion'; expires_at: string; join_path: string }>(`/presence/${id}/invites`, {
+      method: 'POST',
+      body: JSON.stringify({ role }),
+    }),
+
+  removeMember: (id: string, userId: string) =>
+    request<{ success: boolean }>(`/presence/${id}/members/${userId}`, { method: 'DELETE' }),
+
+  /** Accept an invite link. 404 unknown, 410 used or expired (PresenceApiError). */
+  join: (token: string) =>
+    request<{ success: boolean; presence_id: string; role: PresenceRole; cared_for_name: string }>(`/presence/join/${encodeURIComponent(token)}`, { method: 'POST' }),
 
   /** Upload one voice sample. 503 (PresenceApiError) while cloning is not enabled. */
   uploadVoiceSample: (id: string, audio: Blob, sampleSeconds: number) => {
@@ -256,8 +278,29 @@ export interface PresenceConversation {
   status: 'recorded' | 'summarized' | 'failed';
 }
 
+/** Owner: everything. Family: the page. Companion (acompanhante, cuidadora): notes and needs only. */
+export type PresenceRole = 'owner' | 'family' | 'companion';
+
+export interface PresenceMember {
+  id: string;
+  user_id: string;
+  role: PresenceRole;
+  invited_by: string | null;
+  created_at: string;
+}
+
+/** What a companion sees: who she is, when she is called, the notes, and what needs a person. */
+export interface CompanionOverview {
+  success: boolean;
+  role: 'companion';
+  presence: Pick<PresenceRecord, 'id' | 'cared_for_name' | 'caller_name' | 'relationship' | 'status' | 'call_hour' | 'call_days' | 'call_timezone'>;
+  notes: PresenceNote[];
+  needs: Array<{ id: string; created_at: string; needs_family: string[]; urgency: string | null }>;
+}
+
 export interface PresenceOverview {
   success: boolean;
+  role: 'owner' | 'family';
   presence: PresenceRecord & { call_token: string | null; elder_assent_at?: string | null };
   people: Array<{ id: string; name: string; relation: string; called_by: string }>;
   voice: { status: string; sample_count: number; sample_seconds: number } | null;
@@ -290,14 +333,22 @@ export interface PresenceCallConfig {
   assent_required: boolean;
 }
 
-export async function fetchCallConfig(token: string): Promise<PresenceCallConfig | null> {
+/**
+ * A dead link ('gone': the server does not know the token) and a channel that did not
+ * answer this time ('unavailable': a 5xx or no network) are different news for her, so
+ * the page can say "tente de novo" instead of "este link não está mais ativo".
+ */
+export type CallConfigResult = { call: PresenceCallConfig } | { error: 'gone' | 'unavailable' };
+
+export async function fetchCallConfig(token: string): Promise<CallConfigResult> {
   try {
     const response = await fetch(`${API_URL}/presence-call/${encodeURIComponent(token)}`);
-    if (!response.ok) return null;
+    if (response.status >= 500) return { error: 'unavailable' };
+    if (!response.ok) return { error: 'gone' };
     const data = await response.json();
-    return data?.call ?? null;
+    return data?.call ? { call: data.call } : { error: 'unavailable' };
   } catch {
-    return null;
+    return { error: 'unavailable' };
   }
 }
 

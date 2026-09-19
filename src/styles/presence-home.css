@@ -83,3 +83,16 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* ------------------------------------------------------------ loading -- */
+/* The page on its way: the orb breathing over its one quiet line, centred,
+   the same wait the money pages show. Nothing else. */
+.presence-cosmos .pc-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 64px 0;
+  color: var(--c-ink);
+}
+.presence-cosmos .pc-loading .pc-empty { margin: 0; }

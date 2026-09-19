@@ -62,50 +62,21 @@
 }
 
 /* -------------------------------------------------------------------- orb -- */
-/* A thin fixed ring says where the presence lives; inside it a flat disc is
-   the presence itself, and the disc is what moves. The scale of the whole
-   thing is still driven by real audio (the page writes --orb every 80ms). */
+/* The orb is LedgerOrb (the thinking-orbs engine the money pages use), drawn in
+   the page's ink. The wrapper only carries the scale that real audio drives:
+   the page writes --orb every 80 ms while the call is live. */
 
-.presence-cosmos.cal .pc-orb {
-  background: none;
-  box-shadow: none;
-  border: 1px solid var(--c-ink-4);
+.presence-cosmos.cal .pc-orb-wrap {
+  --orb: 1;
+  display: inline-block;
+  line-height: 0;
+  color: var(--c-ink);
+  transform: scale(var(--orb));
   transition: transform 90ms linear;
 }
 
-.presence-cosmos.cal .pc-orb::before {
-  inset: 0;
-  /* the conic sheen and its blur are gone with the gradients */
-  filter: none;
-  background: rgba(37, 31, 33, 0.07);
-  transform: scale(0.9);
-  animation: cal-breath 6.5s ease-in-out infinite;
-  transition: transform 0.34s cubic-bezier(0.32, 0.72, 0, 1), background 0.34s ease;
-  z-index: 0;
-}
-
-/* She is talking: it draws in and attends. */
-.presence-cosmos.cal .pc-orb.is-listening::before {
-  background: rgba(37, 31, 33, 0.05);
-  transform: scale(0.72);
-  animation: none;
-}
-
-/* It is talking back: it fills. */
-.presence-cosmos.cal .pc-orb.is-speaking::before {
-  background: rgba(37, 31, 33, 0.12);
-  transform: scale(1.02);
-  animation: none;
-}
-
-/* Idle has to move or it reads as broken — but barely, and slowly. */
-@keyframes cal-breath {
-  0%, 100% { transform: scale(0.9); }
-  50%      { transform: scale(0.955); }
-}
-
 @media (prefers-reduced-motion: reduce) {
-  .presence-cosmos.cal .pc-orb::before { animation: none; transition: none; }
+  .presence-cosmos.cal .pc-orb-wrap { transition: none; }
 }
 
 /* ------------------------------------------------------------------ words -- */

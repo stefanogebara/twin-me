@@ -316,7 +316,7 @@ describe('her assent', () => {
 
 describe('urgency', () => {
   const call = () => complete({
-    transcript: [{ role: 'assistant', content: 'Oi' }, { role: 'user', content: 'Caí no banheiro hoje.' }],
+    transcript: [{ role: 'assistant', content: 'Oi' }, { role: 'user', content: 'Fui à praia hoje.' }],
     duration_seconds: 90,
   });
 
