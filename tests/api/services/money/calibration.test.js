@@ -21,12 +21,29 @@ function ledger() {
 }
 
 describe('dayForecast', () => {
-  it('reads a Friday from the Fridays, recurring charges left out', () => {
-    const f = dayForecast(ledger(), '2026-09-18');
-    expect(f).toMatchObject({ kind: 'day_total', predicted_for: '2026-09-18', value: 40, low: 40, high: 40 });
+  /* Three weeks of this ledger are three Fridays at 40, three Sundays at nothing and fifteen
+     days at 10: 270 EUR over 21 days. The band is the spread of the whole twelve weeks, where
+     a tenth of the days cost nothing and a tenth cost 40. Recurring charges are left out of
+     both, so the 9,99 every day never appears. */
+  it('reads a day as what a day has cost lately, and bands it by the whole history', () => {
+    const f = dayForecast(ledger(), '2026-09-13');
+    expect(f).toMatchObject({ kind: 'day_total', predicted_for: '2026-09-13', value: 12.86, low: 0, high: 40 });
   });
-  it('reads a Sunday as nothing, and says nothing before a fortnight', () => {
-    expect(dayForecast(ledger(), '2026-09-13').value).toBe(0);
+  /* The figure no longer changes with the weekday. It read that weekday's median until
+     2026-09-18 and was nearly always nothing, because most days cost nothing: measured over
+     66 days it missed by 28,41 EUR where saying nothing at all missed by 28,67. Which days
+     are heavier is weekdayShare's business, not this one's. */
+  /* A Friday said 40 and a Sunday nothing while the weekday chose the figure. Now neither the
+     Friday nor the Sunday is asked about: both read what the three weeks behind them cost, and
+     they differ only by which days those windows hold -- the quiet days after the ledger ends
+     pull the later one down, 10,95 against 8,57. */
+  it('no longer lets the weekday choose the figure', () => {
+    const friday = dayForecast(ledger(), '2026-09-18');
+    const sunday = dayForecast(ledger(), '2026-09-20');
+    expect([friday.value, sunday.value]).toEqual([10.95, 8.57]);
+    expect(friday.high).toBe(sunday.high);
+  });
+  it('says nothing before a fortnight', () => {
     expect(dayForecast(ledger().slice(0, 5), '2026-09-13')).toBeNull();
   });
   it('applies the spending rule the rest of the product uses', () => {

@@ -43,7 +43,16 @@ async function api(path, init = {}) {
   const res = await fetch(`${BASE}${path}`, { ...init, signal: init.signal || AbortSignal.timeout(8000), headers: { 'Authorization': `Bearer ${makeJwt()}`, 'Content-Type': 'application/json', ...(init.headers || {}) } });
   const text = await res.text();
   let json = null; try { json = text ? JSON.parse(text) : null; } catch { /* keep text */ }
-  if (!res.ok) throw new Error(`enablebanking ${path} ${res.status}: ${(text || '').slice(0, 200)}`);
+  if (!res.ok) {
+    /* The path is inside the message, and the path carries the query, so anything matching on
+       the message alone matches its own request: a test for "transaction_status" in the error
+       was true of every failed read, because every read asks for it. The answer is kept apart
+       from the question. */
+    const error = new Error(`enablebanking ${path} ${res.status}: ${(text || '').slice(0, 200)}`);
+    error.status = res.status;
+    error.body = text || '';
+    throw error;
+  }
   return json;
 }
 
@@ -208,7 +217,14 @@ export async function fetchTransactions(accountUid, dateFrom, continuationKey = 
     try {
       j = await api(`/accounts/${encodeURIComponent(accountUid)}/transactions?${qs}`, { headers, signal });
     } catch (error) {
-      if (status && /\b422\b/.test(String(error.message)) && /transaction_status|TransactionStatus/i.test(String(error.message))) {
+      const said = String(error.body ?? error.message ?? '');
+      const refused = Number(error.status) === 422 || Number(error.status) === 400;
+      if (refused && /date_from|DateFrom|period|too (far|old)|history/i.test(said)) {
+        /* A bank that will not reach as far back as it was asked says so rather than
+           answering with less. Ninety days is what PSD2 obliges every bank to hold. */
+        qs.set('date_from', new Date(Date.now() - 90 * 86400000).toISOString().slice(0, 10));
+        j = await api(`/accounts/${encodeURIComponent(accountUid)}/transactions?${qs}`, { headers, signal });
+      } else if (status && refused && /transaction_status|TransactionStatus/i.test(said)) {
         qs.delete('transaction_status');
         j = await api(`/accounts/${encodeURIComponent(accountUid)}/transactions?${qs}`, { headers, signal });
       } else throw error;
