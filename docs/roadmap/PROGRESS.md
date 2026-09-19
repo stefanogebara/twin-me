@@ -46,7 +46,7 @@ Status words: `todo` · `doing (who, date)` · `done (#PR, date)` · `blocked (w
 
 | ID | Task | Acceptance | Status |
 |---|---|---|---|
-| M0-1 | Coverage as a number for `api/services/money` and `src/pages/money`, threshold at today's value | CI fails below baseline | todo |
+| M0-1 | Coverage as a number for `api/services/money` and `src/pages/money`, threshold at today's value | CI fails below baseline | done (claude/loop-and-coverage) — `vitest.money.config.ts`: lines 65.19%, functions 58.78%, branches 52.41%, statements 61.52% over 67 files / 815 tests; floor 65/58/52/61 in CI |
 | M0-2 | Find the order-dependent flake behind `--retry=2`; remove the retry | ten green nightlies at `--retry=0` | todo |
 | M0-3 | Import-time canary: every `api/services/money/*.js` imports in < 2 s | fails today on `store.js` | done (claude/loadable-core, #432) — `tests/goals/money-imports.goal.test.js`, exception list empty |
 | M0-4 | Backup rehearsal before ledger-touching migrations | restore proven once | todo |
@@ -67,9 +67,9 @@ Status words: `todo` · `doing (who, date)` · `done (#PR, date)` · `blocked (w
 | M2-1 | Break the money cycles (`store.js ↔ calendar.js`, `store.js ↔ predictions.js`) | `madge --circular` = 0; M0-3 passes | done (#432) — `factsRepository.js` + `forecastService.js`; madge 0; bare import of `store.js` 252 ms where it never returned; store.js 1,237 → 1,108 lines |
 | M2-2 | Split `MoneyForAccount` into a hook + three views | longest function < 250 lines | todo |
 | M2-3 | One read per view, cached per ingestion revision | Today cold < 1.5 s | todo |
-| M2-4 | Separate the bank read from the daily loop (own cron, own budget) | `learnSkipped` = 0 for a week | todo |
+| M2-4 | Separate the bank read from the daily loop (own cron, own budget) | `learnSkipped` = 0 for a week | done (claude/loop-and-coverage) — `/api/cron/money-learn` daily 05:30 UTC for every person with a ledger; 4 tests; cost canary green |
 | M2-5 | Park the legacy twin behind `LEGACY_TWIN_ENABLED`; money CI lane | money CI < 3 min | todo — see Decisions D3 |
-| M2-6 | Agentic OS phase 2: report card for every goal, money canaries, `loop.sh` triage → plan → implement → inspect | grades gate unattended runs | todo — see Decisions D4 |
+| M2-6 | Agentic OS phase 2: report card for every goal, money canaries, `loop.sh` triage → plan → implement → inspect | grades gate unattended runs | doing (Claude, 2026-09-19) — slice 1: report card for every nightly job, money canaries as graded jobs, the loop's triage on GitHub Actions |
 
 ### Milestone 3 — quality
 

@@ -67,6 +67,16 @@ jobs:
           SUPABASE_SERVICE_ROLE_KEY: ci-stub-service-role-key
         run: npx vitest run --retry=2 --exclude '**/*.integration.test.js'
 
+      # ---- Coverage floor for the product (audit 2026-09-19, M0-1) ----
+      # The money core and its pages, measured on their own: the floor in
+      # vitest.money.config.ts can only rise. The legacy surface is not gated.
+      - name: Money coverage floor
+        env:
+          SUPABASE_URL: https://ci-stub.supabase.co
+          SUPABASE_ANON_KEY: ci-stub-anon-key
+          SUPABASE_SERVICE_ROLE_KEY: ci-stub-service-role-key
+        run: npx vitest run --config vitest.money.config.ts --coverage
+
       # ---- Baseline-freeze gate (audit 2026-06 M0.5) ----
       # Replaces the old non-blocking lint+tsc steps. Runs eslint + tsc once and
       # counts errors plus route files with direct Supabase access (.from). These
