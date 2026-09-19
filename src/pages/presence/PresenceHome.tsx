@@ -48,23 +48,23 @@ import '@/styles/presence-cosmos.css';
 import '@/styles/presence-home.css';
 
 /**
- * /presence/home — the family's page, in the register (rows, not cards).
+ * The family's app — six pages, one component (PAGES and SECTIONS below).
  *
  * Composition (see src/styles/presence-home.css for the reasoning):
- *   sidebar — plain links to the sections, and setup; a menu on phones
- *   title   — her name, and the old plate's ledger as one grey line
- *   column  — her link first (the tablet fallback), then the calls (her
- *             mobile, the hour, the last ten), the family's WhatsApp, what
- *             needs a person, what came back, what you can say, who is who,
- *             the voice, and last the settings (pause, delete)
+ *   sidebar — plain links to the six pages; a menu on phones
+ *   title   — her name, and how she is in one line
+ *   Hoje    — what she said, as a letter; then what needs a person, then when
+ *             the next call is. No rows, no counts (2026-09-19).
+ *   the rest — Ligações, Conversas (a journal of her words), Recados,
+ *             Pessoas, Configurações. Rows survive where they belong: things
+ *             you set and switch, not things she said.
  *
  * Every string a family member reads is Brazilian Portuguese: the family is
  * Brazilian, and the server already speaks Portuguese in readiness lines,
  * summaries and needs_family. Code and identifiers stay English.
  *
- * The readiness "knows" list was removed rather than restyled: the ledger
- * already states people, stories and voice, so the list repeated the page back
- * to itself. What is missing still shows, because that is actionable.
+ * The readiness "knows" list was removed rather than restyled: it repeated the
+ * page back to itself. What is missing still shows, because that is actionable.
  *
  * Failures: presenceAPI throws PresenceApiError. Each action keeps one error
  * line, shown right under the row that failed, keyed in `errors`.
@@ -91,12 +91,6 @@ function formatWhen(iso: string) {
   } catch {
     return '';
   }
-}
-
-function formatDuration(seconds: number) {
-  const m = Math.floor(seconds / 60);
-  const s = seconds % 60;
-  return m > 0 ? `${m} min ${s.toString().padStart(2, '0')} s` : `${s} s`;
 }
 
 const NOTE_STATE: Record<PresenceNote['status'], string> = {
@@ -427,15 +421,17 @@ export default function PresenceHome({ page = 'home' }: { page?: PresencePage })
     ? `As ligações dela usam a sua voz${voice?.sample_count ? ` (${voice.sample_count} ${voice.sample_count === 1 ? 'amostra' : 'amostras'})` : ''}.`
     : 'Em breve: a sua voz nas ligações dela. Por enquanto, ela ouve uma voz padrão, calorosa.';
 
-  /** The old plate's ledger, as the title's one grey line. Every part states a
-   *  real count or says plainly that there is none. */
-  const ledger = [
-    paused ? 'ligações pausadas' : null,
-    conversations.length ? `${conversations.length} ${conversations.length === 1 ? 'conversa' : 'conversas'}` : 'nenhuma conversa ainda',
-    queuedNotes.length ? `${queuedNotes.length} ${queuedNotes.length === 1 ? 'recado esperando' : 'recados esperando'}` : null,
-    people.length ? `${people.length} ${people.length === 1 ? 'pessoa' : 'pessoas'}` : 'nenhuma pessoa ainda',
-    voiceReady ? 'a sua voz' : 'voz padrão',
-  ].filter(Boolean).join(' · ');
+  /**
+   * 2026-09-19: the counts line under her name is gone. "4 conversas · 1 recado
+   * esperando · 7 pessoas · voz padrão" on every page made a product about a
+   * person read like a report about a record. The title says how she is, or
+   * that the calls are paused, and nothing else.
+   */
+  const headLine = paused
+    ? 'As ligações estão pausadas.'
+    : conversations[0]
+      ? `A última conversa foi ${formatWhen(conversations[0].started_at).toLowerCase()}.`
+      : 'Ainda não houve nenhuma conversa.';
 
   async function rotateLink() {
     setLinkBusy(true);
@@ -740,41 +736,45 @@ export default function PresenceHome({ page = 'home' }: { page?: PresencePage })
         <div className="pc-col">
           <header className="pc-apphead">
             <h1 className="pc-apphead-title">{name}</h1>
-            <p className="pc-apphead-line">{ledger}</p>
+            <p className="pc-apphead-line">{headLine}</p>
           </header>
 
           {page === 'home' && (
             <section className="pc-appsection" id="today">
-              <div className="pc-sechead">
-                <h2 className="pc-sechead-title">Hoje</h2>
-                <p className="pc-sechead-line">O que está para acontecer, e o que já aconteceu.</p>
-              </div>
-              <ul className="pc-list">
-                <li className="pc-row">
-                  <span className="pc-row-icon" aria-hidden="true"><CalendarClock /></span>
-                  <div className="pc-row-text">
-                    <p className="pc-row-title">Próxima ligação</p>
-                    <p className="pc-row-line">{nextCallLine}</p>
-                  </div>
-                  <Link className="pc-row-action pc-row-go" to="/presence/calls" aria-label="Ligações"><ChevronRight size={16} /></Link>
-                </li>
-                <li className="pc-row">
-                  <span className="pc-row-icon" aria-hidden="true"><MessageCircle /></span>
-                  <div className="pc-row-text">
-                    <p className="pc-row-title">Última conversa</p>
-                    <p className="pc-row-line">{conversations[0] ? `${formatWhen(conversations[0].started_at)} · ${conversations[0].summary.slice(0, 72)}${conversations[0].summary.length > 72 ? '…' : ''}` : 'Nenhuma conversa ainda.'}</p>
-                  </div>
-                  <Link className="pc-row-action pc-row-go" to="/presence/conversations" aria-label="Conversas"><ChevronRight size={16} /></Link>
-                </li>
-                <li className="pc-row">
-                  <span className="pc-row-icon" aria-hidden="true"><MessageSquare /></span>
-                  <div className="pc-row-text">
-                    <p className="pc-row-title">Recados</p>
-                    <p className="pc-row-line">{queuedNotes.length ? `${queuedNotes.length} ${queuedNotes.length === 1 ? 'recado esperando' : 'recados esperando'} a próxima ligação.` : 'Nenhum recado esperando.'}</p>
-                  </div>
-                  <Link className="pc-row-action pc-row-go" to="/presence/notes" aria-label="Recados"><ChevronRight size={16} /></Link>
-                </li>
-              </ul>
+              {conversations[0] ? (
+                <article className="pc-letter">
+                  <p className="pc-letter-when">{formatWhen(conversations[0].started_at)}</p>
+                  {/* Her day, in the words the summary used. Not a row, not a
+                      count: the thing the family opened the page to read. */}
+                  <p className="pc-letter-body">{conversations[0].summary || 'A conversa está sendo resumida.'}</p>
+                  <Link className="pc-letter-more" to="/presence/conversations">Ler as conversas dela</Link>
+                </article>
+              ) : (
+                <article className="pc-letter">
+                  <p className="pc-letter-body pc-letter-body--quiet">
+                    {elderPhone
+                      ? `A primeira ligação para ${name} ainda não aconteceu. Quando acontecer, o que ela contou aparece aqui.`
+                      : `Falta o celular de ${name} para as ligações começarem.`}
+                  </p>
+                  {elderPhone ? null : <Link className="pc-letter-more" to="/presence/calls">Cadastrar o celular dela</Link>}
+                </article>
+              )}
+
+              {needsYou.length > 0 && (
+                <div className="pc-letter-needs">
+                  <p className="pc-letter-needs-head">Precisa de você</p>
+                  <ul>
+                    {needsYou.map((entry, index) => (
+                      <li key={index}>{entry.urgent ? <strong>Urgente: </strong> : null}{entry.item}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              <p className="pc-letter-next">
+                {nextCallLine}
+                {queuedNotes.length ? ` ${queuedNotes.length === 1 ? 'Um recado seu vai junto' : `${queuedNotes.length} recados seus vão juntos`}.` : ''}
+              </p>
             </section>
           )}
 
@@ -1236,11 +1236,14 @@ export default function PresenceHome({ page = 'home' }: { page?: PresencePage })
                   const open = openConv === c.id;
                   return (
                     <li key={c.id}>
-                      <div className="pc-row">
-                        <span className="pc-row-icon" aria-hidden="true"><MessageCircle /></span>
+                      <div className="pc-row pc-row--entry">
+                        <span className="pc-row-icon pc-row-icon--entry" aria-hidden="true"><MessageCircle /></span>
                         <div className="pc-row-text">
-                          <p className="pc-row-title">{formatWhen(c.started_at)} · {formatDuration(c.duration_seconds)}</p>
-                          <p className={`pc-row-line${open ? '' : ' pc-row-line--clip'}`}>{summary}</p>
+                          {/* The date is the heading and her words are the text; the
+                              call's length in seconds was the most report-like thing
+                              on the page and a family never needed it. */}
+                          <p className="pc-entry-when">{formatWhen(c.started_at)}</p>
+                          <p className="pc-entry-body">{summary}</p>
                         </div>
                         <div className="pc-row-action">
                           {c.turn_count > 0 ? (

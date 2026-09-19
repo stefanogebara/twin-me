@@ -114,3 +114,94 @@
   border-radius: 4px;
 }
 .presence-cosmos.dsh .pc-row-go:hover { background: rgba(37, 31, 33, 0.05); color: var(--c-ink); }
+
+/* ===================================================================== letter */
+/* Hoje (2026-09-19). The page a daughter opens to know how her mother is, so
+   what her mother said is the page: one date, her day in prose at reading size,
+   and one way further in. Rows stayed where rows belong — the things you set
+   and switch — and left the things she said. */
+
+.presence-cosmos.dsh .pc-letter {
+  max-width: 62ch;
+}
+
+.presence-cosmos.dsh .pc-letter-when {
+  margin: 0 0 16px;
+  font-size: 13px;
+  font-weight: 400;
+  color: var(--c-ink-3);
+}
+
+.presence-cosmos.dsh .pc-letter-body {
+  margin: 0;
+  font-size: 22px;
+  line-height: 1.55;
+  letter-spacing: -0.01em;
+  font-weight: 350;
+  color: var(--c-ink);
+  text-wrap: pretty;
+}
+
+.presence-cosmos.dsh .pc-letter-body--quiet { color: var(--c-ink-2); }
+
+.presence-cosmos.dsh .pc-letter-more {
+  display: inline-block;
+  margin-top: 24px;
+  font-size: 13px;
+  color: var(--c-ink-2);
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+}
+.presence-cosmos.dsh .pc-letter-more:hover { color: var(--c-ink); }
+
+/* What only a person can do: under her words, set apart by the ink rule. */
+.presence-cosmos.dsh .pc-letter-needs {
+  margin-top: 48px;
+  padding-top: 20px;
+  border-top: 1px solid var(--c-ink);
+  max-width: 62ch;
+}
+.presence-cosmos.dsh .pc-letter-needs-head {
+  margin: 0 0 12px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--c-ink);
+}
+.presence-cosmos.dsh .pc-letter-needs ul { margin: 0; padding: 0; list-style: none; }
+.presence-cosmos.dsh .pc-letter-needs li {
+  margin: 0 0 8px;
+  font-size: 15px;
+  line-height: 1.5;
+  color: var(--c-ink-2);
+}
+.presence-cosmos.dsh .pc-letter-needs li:last-child { margin-bottom: 0; }
+
+.presence-cosmos.dsh .pc-letter-next {
+  margin: 48px 0 0;
+  font-size: 13px;
+  color: var(--c-ink-3);
+}
+
+/* ==================================================================== journal */
+/* Conversas: each call is a date and her words, not a log line with a duration. */
+.presence-cosmos.dsh .pc-row--entry { align-items: flex-start; padding-block: 20px; }
+.presence-cosmos.dsh .pc-row-icon--entry { margin-top: 2px; }
+.presence-cosmos.dsh .pc-entry-when {
+  margin: 0 0 6px;
+  font-size: 13px;
+  font-weight: 400;
+  color: var(--c-ink-3);
+}
+.presence-cosmos.dsh .pc-entry-body {
+  margin: 0;
+  font-size: 16px;
+  line-height: 1.55;
+  color: var(--c-ink);
+  text-wrap: pretty;
+}
+
+@media (max-width: 767px) {
+  .presence-cosmos.dsh .pc-letter-body { font-size: 19px; }
+  .presence-cosmos.dsh .pc-entry-body { font-size: 15px; }
+}
