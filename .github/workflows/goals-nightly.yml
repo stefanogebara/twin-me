@@ -148,6 +148,7 @@ jobs:
           cache: npm
       - run: npm ci --legacy-peer-deps
       - run: npx vitest run tests/goals/money-first.goal.test.js tests/goals/agents-in-sync.goal.test.js
+      - run: npx tsc -p tsconfig.money.json
   money-canaries:
     name: Money canaries
     runs-on: ubuntu-latest

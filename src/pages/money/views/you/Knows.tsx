@@ -25,7 +25,7 @@ export default function Knows({ m }: { m: MoneyAccount }) {
                 <li><p className="mv-empty">{t('That could not be read right now.')}</p></li>
               ) : facts && facts.length === 0 ? (
                 <li><p className="mv-empty">{t('Nothing yet. The questions are where this fills.')}</p></li>
-              ) : [...facts].sort((a, b) => factRank(a) - factRank(b)).map((f) => {
+              ) : [...(facts || [])].sort((a, b) => factRank(a) - factRank(b)).map((f) => {
                 /* A row of fifteen identical buttons is a form, not a list: the fact opens, and
                    Forget waits inside it with the ledger's note. */
                 const isOpen = open === `fact:${f.id}`;

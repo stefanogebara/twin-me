@@ -102,6 +102,11 @@ jobs:
           --health-cmd "pg_isready -U postgres"
           --health-interval 5s --health-timeout 5s --health-retries 10
     steps:
+      # The money pages are strict (M3-1, 2026-09-19): what a signed-in person sees first
+      # is typed all the way, whatever the rest of the app still allows.
+      - name: Money pages, strict types
+        run: npx tsc -p tsconfig.money.json
+
       - uses: actions/checkout@v5
       - uses: actions/setup-node@v5
         with:

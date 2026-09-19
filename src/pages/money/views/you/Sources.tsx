@@ -94,7 +94,7 @@ export default function Sources({ m }: { m: MoneyAccount }) {
                   {(calendar?.learned || []).map((l, i) => (
                     <li key={l.key || l.label || i} className="mv-item mv-item--sub">
                       <span className="mv-item-text">
-                        <span className="mv-item-title">{t(l.label)}</span>
+                        <span className="mv-item-title">{t(l.label || "")}</span>
                         <span className="mv-item-sub">{t('about {amount}, on {n} of {m} days like it', { amount: euro(l.median || 0), n: l.paid ?? 0, m: l.occurrences ?? 0 })}</span>
                       </span>
                     </li>

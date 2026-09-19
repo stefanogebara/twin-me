@@ -99,7 +99,7 @@ export function useMoneyRead(userId: string | null, view: MoneyView) {
     reading.current = false;
     lastLoad.current = Date.now();
     const failed = new Set(page ? page.failed : []);
-    const got = <K extends keyof MoneyPage>(k: K): MoneyPage[K] | undefined => (page && !failed.has(k) && page[k] !== null ? page[k] : undefined);
+    const got = <K extends keyof MoneyPage>(k: K): NonNullable<MoneyPage[K]> | undefined => (page && !failed.has(k) && page[k] !== null ? (page[k] as NonNullable<MoneyPage[K]>) : undefined);
     const f = got('forecast'); if (f !== undefined) setForecast(f);
     const td = got('today'); if (page && !failed.has('today')) setToday(page.today);
     const l = got('ledger'); if (l !== undefined) setLedger(l);
@@ -122,7 +122,7 @@ export function useMoneyRead(userId: string | null, view: MoneyView) {
     /* Kept for the next mount. A read that failed outright is not kept: the next page should
        try again rather than paint a failure it has not seen. */
     if (!unreadNow) {
-      SNAPSHOT = {
+      const kept: Snapshot = {
         userId, revision: moneyRevision(), at: Date.now(),
         forecast: f !== undefined ? f : SNAPSHOT?.forecast ?? null,
         today: td !== undefined ? td : SNAPSHOT?.today ?? null,
@@ -138,7 +138,8 @@ export function useMoneyRead(userId: string | null, view: MoneyView) {
         facts: fa !== undefined ? fa : SNAPSHOT?.facts ?? null,
         unread: false,
       };
-      storeSnapshot(SNAPSHOT);
+      SNAPSHOT = kept;
+      storeSnapshot(kept);
     }
   }, [userId]);
   /* Read again on every page (the three views share one mounted component, so a switch
