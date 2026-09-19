@@ -29,15 +29,15 @@ Status words: `todo` · `doing (who, date)` · `done (#PR, date)` · `blocked (w
 
 | # | Task | Status |
 |---|---|---|
-| QW1 | `bankState.js`: refuse to sign or read without `JWT_SECRET`; `timingSafeEqual` | doing (Claude, 2026-09-19) |
-| QW2 | Revoke `anon` on `money_*` tables (migration + catalog test) | todo |
-| QW3 | `SENTRY_DSN` on Vercel + alert on `cron_executions` failures | todo — needs the DSN from Stefano |
-| QW4 | Rewrite `CLAUDE.md` architecture to what exists; `AGENTS.md` = `CLAUDE.md`; CI check | todo |
-| QW5 | Delete `test/`, `ml/`, `context/`, `screenshots/`; untrack `mobile/node_modules` | todo |
-| QW6 | Delete or fix the 79 skipped tests | todo |
-| OW1 | **Money first**: `/`, `/home`, `/dashboard`, post-sign-in and post-OAuth all land on `/money`; the twin is a secondary link | todo |
-| OW2 | **Orbs exactly as the library**: monochrome ink per the library's own theme rule; chat avatar orb at 64 while thinking; every loading state on the money surface is an orb | todo |
-| OW3 | **Codex protocol** live: this file, `sync:agents`, branch prefixes, the Decisions rule | doing (Claude, 2026-09-19) |
+| QW1 | `bankState.js`: refuse to sign or read without `JWT_SECRET`; `timingSafeEqual` | done (claude/quick-wins `ba89498a`, 2026-09-19) — 8 tests; the route answers 502 instead of signing with 'dev' |
+| QW2 | Revoke `anon` on `money_*` tables (migration + catalog test) | done (`ba89498a`) — catalog test fails without the migration; found and fixed the test bootstrap loading only 17th/18th migrations |
+| QW3 | `SENTRY_DSN` on Vercel + alert on `cron_executions` failures | blocked — needs a DSN from Stefano (open question 3) |
+| QW4 | Rewrite `CLAUDE.md` architecture to what exists; `AGENTS.md` = `CLAUDE.md`; CI check | done (`8df36edf`) — money first; the five gone services named as gone; `npm run sync:agents` + `agents-in-sync.goal.test.js` |
+| QW5 | Delete `test/`, `ml/`, `context/`, `screenshots/`; untrack `mobile/node_modules` | done (`ba89498a`) — `mobile/node_modules` was never tracked; ignore rule added |
+| QW6 | Delete or fix the 79 skipped tests | done (`812f5770`) — 9 spec files + 11 cases of deleted code removed; what remains is opt-in gates (`TWINME_RUN_*`, `RUN_HEAVY_AUDITS`, `STRIPE_E2E`) and runtime guards; suite 5,506 passing, 4 skipped |
+| OW1 | **Money first**: `/`, `/home`, `/dashboard`, post-sign-in and post-OAuth all land on `/money`; the twin is a secondary link | done (`783bc68d`) — `/home`, `/dashboard`, the onboarding gate; pinned by `money-first.goal.test.js` |
+| OW2 | **Orbs exactly as the library**: monochrome ink per the library's own theme rule; chat avatar orb at 64 while thinking; every loading state on the money surface is an orb | doing (Claude, 2026-09-19) |
+| OW3 | **Codex protocol** live: this file, `sync:agents`, branch prefixes, the Decisions rule | done (`8df36edf`) — protocol in `CLAUDE.md`, copied to `AGENTS.md` |
 | OW4 | **Scouting**: three background scouts (products, papers, social) reporting candidates into `docs/intel/` through the `/intel` rubric | doing (Claude, 2026-09-19) |
 
 ## Milestones (from the 19 September audit — `.claude/plans/2026-09-19-repo-audit/README.md`, published at https://claude.ai/code/artifact/ae6cd0ba-b090-4660-85ff-cfadb9323679)
@@ -113,4 +113,4 @@ Status words: `todo` · `doing (who, date)` · `done (#PR, date)` · `blocked (w
 
 ## Session log
 
-- **2026-09-19 (Claude):** merged #424–#426 prerequisites; wrote the audit; created this file; started QW1, OW3, OW4. Legacy usage measured (D1). Orb deviation found (D2). AGENTS.md drift found (D5).
+- **2026-09-19 (Claude):** merged #424–#426 prerequisites; wrote the audit; created this file. Quick wins QW1, QW2, QW4, QW5, QW6 and OW1, OW3 done on `claude/quick-wins`; QW3 blocked on a DSN. Legacy usage measured (D1). Orb deviation found (D2). AGENTS.md drift found and fixed (D5). Scouts: products and papers returned; social still running.
