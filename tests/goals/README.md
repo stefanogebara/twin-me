@@ -21,6 +21,7 @@ Plan and rationale: `.claude/plans/2026-07-12-agentic-os/README.md`.
 | `money-page-shape.goal.test.js` | No function on the money pages is longer than 250 lines (M2-2, 2026-09-19) | every top-level function under `src/pages/money` measured; the three that were already long may only shrink |
 | `money-one-read.goal.test.js` | Today is one request and waits on no third party (M2-3, 2026-09-19) | the hook reads `moneyAPI.page` and none of the nine parts alone; `GET /money/page` exists; index.html loads no stylesheet or font from another origin |
 | `money-quiet-failures.goal.test.js` | No error in the money code is swallowed without a name (M1-3, 2026-09-19) | no anonymous `.catch(() => [])` in the money services or routes; every `quietly('name')` is unique |
+| `env-example-in-sync.goal.test.js` | `.env.example` is what the code reads (M3-4, 2026-09-19) | the committed file equals `scripts/env-example.mjs`'s output; the server's required keys are first and uncommented |
 
 The nightly run also includes `tests/api/routes/whatsappZapiWebhookAuth.test.js`
 (webhook auth gate) by reference — reuse, don't duplicate.

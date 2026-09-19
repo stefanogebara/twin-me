@@ -79,7 +79,7 @@ Status words: `todo` · `doing (who, date)` · `done (#PR, date)` · `blocked (w
 | M3-1 | `strict: true` for `src/pages/money/**` | done (#434, 2026-09-19): `tsconfig.money.json` (extends the app's, strict, the money pages + MoneyOnboarding, LedgerOrb, Wait) passes with 0 errors after 15 fixes; checked in Build & Test and in the nightly 'Money first' job |
 | M3-2 | Lazy-load every non-money route; drop `vendor-elevenlabs` from the money bundle | done (#434, 2026-09-19): the start warms only the money pages (the legacy twin's TodayPage, TalkToTwin, MoneyPage and recharts were fetched at 0 ms on every screen); PostHog arrives on idle behind an ordered queue (209 KB out); each dictionary only for its language with a first-frame guarantee (119 KB out); the front door, the OAuth return, the 404 and the legacy sidebar are their own files. Entry chunk 185 KB, was 556; the money screen loads no legacy chunk and `vendor-elevenlabs` (469 KB) is reached only from the onboarding's voice interview. Measured on a production build in Chrome: `/`, a missing page, `/money` and `/` signed in all render, 0 errors |
 | M3-3 | One Redis client | todo |
-| M3-4 | Regenerate `.env.example` from code | todo |
+| M3-4 | Regenerate `.env.example` from code | done (#434, 2026-09-19): `scripts/env-example.mjs` scans api/ and src/ (154 keys, 13 areas, the four required first, notes kept); was 109 undocumented and 16 dead; `tests/goals/env-example-in-sync.goal.test.js` holds it |
 | M3-5 | Resolve `--legacy-peer-deps` | todo |
 | M3-6 | Real-backend Playwright canary for the money journey | todo |
 
