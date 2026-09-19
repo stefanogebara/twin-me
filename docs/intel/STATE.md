@@ -1,136 +1,172 @@
 # Estado do repositório — TwinMe
 
-> Escrito pela primeira passada do `/intel` em 2026-08-24. Janela: 30 dias
-> (2026-07-14 → 2026-08-13, 91 commits). HEAD `55e44d08`, branch `main`.
+> Reescrito por `/intel` em 2026-09-14. Janela: 21 dias (2026-08-24 → 2026-09-14,
+> 50 commits). HEAD `23d3260`, branch `main`.
 > Reescrito a cada `/intel`. Fonte: o git, não o config.
 
 ## O parágrafo
 
-Os últimos 30 dias não foram de construir gêmeo — foram de **medir se o gêmeo
-é fiel e consertar a memória que sustenta isso**. A harness de fidelidade virou
-portão de merge (`46da9e52`: flag só passa se mover o score) e cobrou o preço
-no mesmo dia: o *temporal spine*, shipado 14 dias antes, foi deletado porque o
-eval reprovou. Junto veio a Grande Deleção — reranker, modos de
-neurotransmissor, roteador neuropil, 15 dos 30 crons, e a IA colapsada em cinco
-superfícies. Do lado da recuperação, a busca vetorial estava devolvendo zero
-linhas em consulta filtrada por tipo, e a resposta foi **medir e otimizar
-dentro do Postgres**, não trocar de banco: índice HNSW parcial e MMR em duas
-fases, com payload 39× menor. Uma onda de honestidade atravessou os conectores:
-parar de afirmar o que não foi medido. Nenhum conector novo apareceu no top-25
-de arquivos tocados.
+Os últimos 21 dias não foram sobre o gêmeo que já existia — foram sobre um
+**segundo produto dentro do mesmo repositório**: um money twin que lê o banco
+de verdade. `api/services/money/` nasceu do zero e já tem 30 arquivos —
+ledger, calibração PID, projeção, prioris entre usuários, detecção de
+recorrência, chat próprio, endereço de e-mail para recibos — com harness de
+teste andando junto (`calibration.test.js`, `enableBankingT.test.js`,
+`predictions.test.js`, `ledger.test.js`). Ele lê o Santander em produção via
+Enable Banking desde ~08-09, parseia os e-mails de alerta do próprio banco
+como se fossem alerta de celular, reconcilia Bizum, aceita Revolut como
+segundo banco, e virou aba própria no app (`app: one bar on a phone, and
+Money is on it`, #322) e no mobile (`mobile: the month screen catches up
+with the web`, #342). Em paralelo, dois outros movimentos: **o register
+virou a casca de todo o produto** (`design: every page on the live site
+takes the register`, #308 — o mesmo sistema medido do Instinct que o
+`CLAUDE.md` já documentava para páginas soltas, agora universal, mobile
+incluso) e uma **poda de código morto do gêmeo antigo** (pipeline de
+formação, `twin_evolution_log`, rota `/api/twin/evolution`) que tira peso sem
+tocar o que está vivo. O `/intel` de hoje cedo (PR #343, já mergeado) já
+correu atrás disso com seis itens sobre o money twin; esta passada fecha o
+que ficou pra trás: o `STATE.md` em si, que não tinha sido reescrito desde
+08-24 apesar do produto ter dobrado de escopo.
 
 ## O que shipou
 
-- **Recuperação vetorial consertada por medição** — HNSW parcial (`1b72efa4`,
-  #234: `memory_type='conversation'` ia de 0 linhas para 30 em 386ms) e MMR em
-  duas fases (`fc226194`, #235: 770.610 B/662ms → 19.879 B/254ms).
-- **Harness de fidelidade como portão de merge** (`46da9e52`) —
-  `twin-research/fidelity-eval.js` foi o arquivo mais tocado do período (19×).
-- **A Grande Deleção** — temporal spine (`a8b3314e`), reranker + neurotransmissor
-  + neuropil (`01e00797`), 15 de 30 crons (`3073983f`).
-- **Higiene epistêmica da memória** — o gêmeo parou de se citar como fato
-  (`df8b146e`) e as reflexões pararam de comer o próprio output (`4c73e592`).
-- **Onda de honestidade nos conectores** — Spotify parou de descrever pessoa
-  não medida (`f711dc83`), "ai" no nome do repo deixou de ser evidência de data
-  science (`27fd15db`), fetch que falhou deixou de virar fetch vazio
-  (`2069f5b1`).
-- **Recibos no chat** (`9da39ded`) — fontes de plataforma e confiança de
-  evidência na resposta. **O padrão de UI que o spike de proveniência precisa
-  já existe — só nunca foi levado para o traço.**
-- Story Chapters, decay Ebbinghaus per-memory, compilador de task-brief.
+- **Money twin, do zero a produção** — `api/services/money/{ledger,
+  calibration,projection,predictions,priors,recurring,bizum,nudges,chat,
+  inbox}.js` + `feeds/enableBanking.js` + `statements/importer.js`.
+  Enable Banking lê o Santander desde ~08-09 (#297 janela); Revolut somado
+  como segundo banco (#349). Endereço próprio por usuário para recibos
+  (`r-<hex>@in.twinme.me`, #315), que agora também recebe os alertas do
+  banco (#324) e lê o Santander pelo texto real de dois tipos de e-mail —
+  cartão e conta — corrigindo um caso em que o parser inventava loja a
+  partir do rodapé (#340).
+- **Calibração e projeção com disciplina de erro medido** — banda que
+  aprende com os próprios erros (#326, o PID que a passada de hoje já
+  transformou em spike `banda-conformal-pid`), mediana de três leituras
+  para o resto do mês (#329), prioris emprestados entre ledgers (#331),
+  cada comerciante como sua própria série em vez de uma agregada (#328),
+  o twin registrando o que errou sobre si mesmo (#336, #320).
+- **O register virou universal** — `design: every page on the live site
+  takes the register` (#308) e o mesmo para mobile (#301). As páginas de
+  dinheiro e o sign-in foram as primeiras a receber o sistema (#306, #300),
+  depois as páginas que esperam (#319), depois tudo.
+- **Poda do gêmeo antigo** — pipeline de formação do twin
+  (`twinPipelineOrchestrator`, `twinFormationService`,
+  `twinEvolutionService`) e seu router `/api/twin/*` retirados por órfãos
+  de cliente (#314); `twin_evolution_log` dropada em seguida (#318);
+  `GET /api/twin/evolution` já não tinha chamador (#312).
+- **Privacidade escrita para bater com o código** — a política agora diz
+  que o endereço de recibos é fonte de dado, não só recebedor passivo
+  (#341); um "quiet is a feature" (#337) documenta a filosofia de quando o
+  twin não fala.
 
 ## O que está em voo
 
-- **PRs abertos:** #257 (`fix/design-tier2-claura-sweep`), #255
-  (`fix/design-tier1-broken-buttons`), #254
-  (`feat/phase-2-make-moat-visible`) — todos de 12–13/08.
-- **Transcrição on-device compila mas não está no pipeline** —
-  `desktop/src-tauri/src/transcribe.rs`, `transcribe_wav` marcado
-  `#[allow(dead_code)] // wired into the capture -> transcribe pipeline in a
-  later 5B unit`.
-- **Risco residual assumido em commit** — `52b40c42`: o budget de 12s cobre o
-  contexto, não a perna do LLM; healthy path medido em 57s.
-- `f1d008da` registra que o ganho do digest de plataforma **não replicou** num
-  segundo dia.
-- ~40 branches remotas, a maioria já mergeada e não podada.
+- **PRs abertas, por idade:** #302 `design: Cosmos, Presence and the
+  Portrait` (draft, 10/09) · #299 `presence: the tables the Presence
+  backend needs, rescued from the working tree` (09/09, não-draft) · #278
+  `intel: 0 itens novos, 1 divergência nova (2026-09-07)` (draft) · #273
+  `intel: 0 itens novos, 2 resolvidos por código (2026-08-31)` (draft) ·
+  #272 `Inngest: split the enrichment step, and correct the plan-cap story`
+  (26/08) · #267 `fix(prod): stop the three recurring warmup errors`
+  (25/08) · #254, retitulada para `fix(ingestion): calendar observations
+  cover the user's full local day` (aberta desde 12/08, mais de um mês).
+- **Duas passadas de `/intel` anteriores (#273, #278) nunca foram
+  mergeadas** — ficaram como draft e a passada de hoje cedo (#343) rodou
+  por cima delas, direto de `main`. `seen.jsonl` e `INTEL.md` em `main`
+  já estão corretos porque #343 mergeou; #273/#278 são branches órfãs que
+  valem um fechamento manual, não conteúdo perdido.
+- **Presence** (`.claude/plans/2026-08-27-twinme-presence/`) é um segundo
+  produto em gestação, não citado em nenhum lugar do `intel.config.json` —
+  camada de comunicação assíncrona entre um idoso e a família via voz
+  clonada. Hetero-referente por natureza (a pessoa fala com o gêmeo de
+  *outra* pessoa), o que tensiona com a aposta nº1 do config antes mesmo
+  de ir ao ar. Ainda é plano + protótipo + uma PR de migração de tabelas;
+  não tocou `main`.
+- `f22ba2f` registra que `personality_scores` continua vivo (lido por
+  outras rotas) mesmo depois da poda do pipeline de formação — nenhuma
+  função ficou órfã por engano.
 
 ## O que morreu
 
-- **Temporal spine** (`a8b3314e`, 11/08) — 14 dias de vida, morto pelo eval.
-- Reranker LLM, modos de neurotransmissor, roteador neuropil (`01e00797`).
-- Cron de saliency-replay e cache-warm de grafo (`00a8e241`); 15 de 30 crons
-  (`3073983f`).
-- Braço "spread" do eval — medido, reprovado duas vezes (`d28ccb70`,
-  `3e4750fc`).
-- Rotas `/preview/*` rebaixadas a dev-only.
+- Pipeline de formação do twin (`twinPipelineOrchestrator`,
+  `twinFormationService`, **`twinEvolutionService`**) e seu router,
+  `api/routes/twin-pipeline.js` — órfãos desde que
+  `src/hooks/useTwinPipeline.ts` foi deletado (`76d1ec10`), retirados em
+  `f22ba2f` (#314, 13/09).
+- `twin_evolution_log` — dropada em `b256088` (#318), 0 linhas em produção,
+  sem view/function/trigger dependente.
+- `GET /api/twin/evolution` — sem chamador desde que
+  `EvolutionSection.tsx` morreu em #309; retirada em `7b6cffd` (#312).
+- Três arquivos remanescentes da reconstrução de Identity (`de9b306`, #309).
 
-> **Trava de estado:** item de intel que proponha ressuscitar reranker,
-> temporal spine, roteador por neurotransmissor ou agregador bancário perde o
-> eixo Alavanca. Foram medidos e reprovados aqui.
+> **Trava de estado, herdada de 08-24:** item de intel que proponha
+> ressuscitar reranker, temporal spine, roteador por neurotransmistro ou
+> agregador bancário genérico (fora do Enable Banking já em produção) perde
+> o eixo Alavanca — medidos e reprovados, ou já superados pelo código.
+> **Nova, 2026-09-14:** item que proponha reviver o pipeline de formação do
+> twin (`twinFormationService`/`twinEvolutionService`) perde o eixo
+> Alavanca — órfão de cliente, retirado em `f22ba2f`/#314/#318/#312.
 
-## Áreas quentes
+## Áreas quentes (21 dias)
 
-`twin-research/fidelity-eval.js` (19) · `api/services/memoryStreamService.js`
-(12) · `api/services/fidelityBatteryService.js` (10) ·
-`tests/api/services/twinFidelity.test.js` (8) ·
-`api/services/twinSystemPromptBuilder.js` (6) · `src/pages/TalkToTwin.tsx` (5) ·
-`api/services/twinPromptAssembly.js` (5) ·
-`api/services/observationIngestion.js` (5).
+`api/services/money/store.js` (19) · `src/pages/money/MoneyV2Page.tsx` (16) ·
+`src/styles/money-v2.css` (9) · `src/services/api/moneyAPI.ts` (9) ·
+`mobile/src/services/moneyApi.ts` (7) · `mobile/src/screens/MonthScreen.tsx`
+(7) · `api/routes/money.js` (7) · `tests/api/services/money/*` (múltiplos
+arquivos, 4–5 cada). Zero arquivo do gêmeo de memória/reflexão original está
+no top-15 — o período inteiro foi money twin + register + limpeza.
 
 ## Divergências com o config
 
-Nenhuma foi aplicada sozinha. `bets` e `settled` só o Stefano mexe.
+Nenhuma foi aplicada sozinha em `bets`/`settled`. `stack` e `platform_deps`
+receberam correção mecânica (fato, não juízo) nesta passada — ver
+`intel.config.json`.
 
-1. **`bets[1]` — "profundidade de ingestão (30+ plataformas) é o fosso" — o
-   código foi na direção oposta.** `api/config/platformConfigs.js:12` documenta
-   o corte: *"replan-2026-06-10 Track C portfolio cut: twitch, linkedin,
-   reddit, notion, pinterest, steam, soundcloud removed"*. A allowlist
-   canônica tem **7 keepers** (Spotify, YouTube, Discord, Whoop, Calendar,
-   GitHub, Gmail) + Netflix/Instagram/Amazon via extensão. Não são 30+, são 7 —
-   e plataformas foram removidas **ativamente** (`e2b804d2`, `d156e4b2`).
-   Onde o código de fato aprofundou foi noutro eixo: captura ambiente (clips de
-   janela, reunião, WhatsApp, Telegram, voz, biometria) e **fidelidade medida**.
-   **Decisão pendente do Stefano:** o fosso ainda é largura de conectores, ou
-   já virou fidelidade medida + profundidade de captura? Isso muda o que o
-   `intel` considera ameaça.
-   *(O item de 22/08 sobre Gemini e ChatGPT abrindo conectores já fazia essa
-   pergunta pelo lado do mercado. O código a responde pelo lado de dentro.)*
+1. **`settled` — "agregadores bancários estão fora; captura financeira é
+   por WhatsApp (4a74a4d6, 2026-06-12)" está contradito pelo código, sem
+   ambiguidade.** `api/services/money/feeds/enableBanking.js` lê o
+   Santander em produção via agregador desde ~08-09, e #349 soma o
+   Revolut como segundo banco. Isso não é mais captura por WhatsApp — é
+   Open Banking de verdade, com OAuth de instituição financeira. **Já
+   registrado por um analista da passada de hoje cedo em `INTEL.md`**
+   ("Um dos analistas raciocinou a partir da linha velha... Cabe ao
+   Stefano reabrir e reescrever essa entrada"); este `STATE.md` confirma
+   o mesmo fato pelo lado do git, de forma independente. WhatsApp
+   continua sendo um canal (recibos, Bizum), só deixou de ser o único.
+   **Decisão pendente do Stefano:** reescrever a linha de `settled` para
+   refletir os dois canais, ou tratar Enable Banking como exceção
+   pontual (só leitura, nunca movimentação) que não invalida o espírito
+   original da regra.
 
-2. **`bets[2]` — "processamento local no Tauri é diferencial de confiança" —
-   silencioso tendendo a contradizer.** whisper.cpp está compilado no binário,
-   mas `transcribe_wav` não está plugado. No mesmo binário,
-   `desktop/src-tauri/src/sync.rs` posta clips para o servidor, e
-   `api/routes/observations-clip.js` aceita **8.000 caracteres de conteúdo
-   bruto por clip, 100 clips por batch**. Nenhuma inferência de persona roda
-   local. Nem o README nem o `CLAUDE.md` fazem a afirmação de "local" como copy
-   — a aposta não foi cobrada nem cumprida.
+2. **`bets` não menciona dinheiro.** Nenhuma das três apostas do config
+   fala de finanças pessoais — o money twin é hoje a área mais quente do
+   repositório e não tem aposta correspondente. Não é uma violação (nada
+   em `bets` proíbe expandir), mas é uma lacuna: se o money twin é a
+   aposta de verdade dos últimos 21 dias, vale nomeá-la, mesmo que
+   provisória.
 
-3. **`stack` dizia "Anthropic API"; a realidade é OpenRouter + DeepSeek V3.2.**
-   Não existe `@anthropic-ai/sdk` no `package.json` da raiz.
-   `api/config/aiModels.js:17` é explícito: *"(was Claude Sonnet 4.6;
-   deliberately kept on DeepSeek for cost — audit #118)"*, com teste anti-drift.
-   *Corrigido no config, mais `verdict_note` avisando a rubrica.*
+3. **`focus_areas` também não cobre dinheiro** — nenhum dos 11 itens toca
+   "orçamento", "previsão de gasto" ou "agregação bancária". Enquanto
+   isso não for corrigido, o G4 da rubrica (escopo) descarta por
+   default qualquer candidato sobre esse tema, mesmo quando ele é
+   exatamente o que a passada de hoje mostrou que importa (o item do PID
+   conformal só passou porque o `known_gaps` indiretamente sustentava —
+   nomeadamente não sustentava; foi aceito porque havia código âncora
+   real, não porque `focus_areas` cobria). **Decisão pendente do
+   Stefano:** somar "previsão e calibração de gasto pessoal",
+   "agregação bancária (Open Banking)" a `focus_areas`.
 
-4. **`settled` — nenhum violado.** `pgvector fica` é respeitado com rigor
-   incomum: quando a recuperação quebrou, mediram e otimizaram dentro do
-   Postgres; há até uma migration chamada
-   `20260728f_embedding_cast_measured_not_a_bottleneck.sql`. Zero clientes de
-   Pinecone/Weaviate/Qdrant/Chroma/Milvus fora de docs arquivados.
-   **Zona cinzenta a decidir em `settled[0]`:** três rotas públicas sem auth
-   expõem a soul signature de um usuário a quem tiver o UUID —
-   `api/routes/soul-signature-public.js`, `api/routes/portfolio-public.js`
-   (que publica os **scores OCEAN brutos**) e `api/routes/og-image.js`, com a
-   rota de front `/p/:userId` comentada como *"Premium shareable profile"*.
-   É exibição opt-in de um retrato, não clonagem operacional — o `settled`
-   formalmente está de pé. Mas a linha está implícita, e vale escrevê-la.
+4. **`known_gaps` não fala de `twinEvolutionService` nem do pipeline de
+   formação** — não havia gap registrado sobre eles, e agora não há mais
+   código para o gap existir. Nada a fazer aqui além de confirmar que os
+   dois spikes abertos que citavam `twinEvolutionService.js` como âncora
+   (`pgmem-proveniencia`, `mcb-portao-escrita`) tiveram a âncora marcada
+   órfã nesta passada — ver `BACKLOG.md`.
 
-5. **`known_gaps[0]` estava certo no diagnóstico e errado na causa.** A tabela
-   de proveniência **já existe e é escrita** (`behavioral_evidence`,
-   `evidenceGeneratorService.js:418`). O problema é que ela é **write-only**:
-   nenhuma rota e nenhum arquivo de `src/` lê de volta. *Reformulado.*
-
-6. **`known_gaps[1]` e `[2]` estavam desatualizados.** Esquecimento de
-   **memória** está resolvido (cron de 5 tiers, supersessão, decay Ebbinghaus);
-   o que falta é esquecimento de **persona**. E já existe BM25 no repo — só que
-   como rescoring sobre candidatos do canal denso, com peso 0.10 que o próprio
-   `twin-config.js` admite nunca ter sido validado. *Reformulados.*
+5. **Herdadas de 08-24, ainda não resolvidas pelo Stefano:** `bets[1]`
+   (largura de conectores vs. fidelidade medida + profundidade de
+   captura), `bets[2]` (processamento local no Tauri, ainda não cobrado
+   como copy nem cumprido — `transcribe_wav` continua com
+   `#[allow(dead_code)]`), e a zona cinzenta das três rotas públicas sem
+   auth (`soul-signature-public.js`, `portfolio-public.js`,
+   `og-image.js`). Nenhuma mudou nos últimos 21 dias.
