@@ -170,12 +170,12 @@
 
   :root {
     /* Typography */
-    --font-heading: 'Instrument Serif', Georgia, serif;
-    --font-accent: 'Instrument Serif', Georgia, serif;
+    --font-heading: 'Geist', 'Inter', system-ui, sans-serif; /* the register has no serif; only Geist is loaded (2026-09-19) */
+    --font-accent: 'Geist', 'Inter', system-ui, sans-serif;
     --font-body: 'Geist', 'Inter', system-ui, sans-serif;
     --font-ui: 'Geist', 'Inter', system-ui, sans-serif;
     --font-sans: 'Geist', 'Inter', system-ui, sans-serif;
-    --font-serif: 'Instrument Serif', Georgia, serif;
+    --font-serif: 'Geist', 'Inter', system-ui, sans-serif;
     --font-mono: ui-monospace, monospace;
 
     /* Platform brand colors */

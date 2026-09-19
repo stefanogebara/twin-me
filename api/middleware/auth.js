@@ -24,14 +24,36 @@ export async function blacklistToken(token, expiresInSeconds) {
     if (isRedisAvailable()) {
       const client = getRedisClient();
       await client.set(key, '1', 'EX', expiresInSeconds);
+      rememberBlacklist(key, true);
       return;
     }
   } catch {}
   inMemoryBlacklist.set(key, Date.now() + expiresInSeconds * 1000);
+  rememberBlacklist(key, true);
+}
+
+/* Redis answers "is this token revoked" from another region, about 350 ms a call here, and
+   every request paid it: a page of fourteen requests spent five seconds asking the same
+   question (audit M2-3, 2026-09-19). The answer is kept for a short while per token; a
+   revocation is written into the memo at once on this instance, and reaches the others
+   within the window. */
+const BLACKLIST_MEMO_MS = 30 * 1000;
+const blacklistMemo = new Map();
+function rememberBlacklist(key, value) {
+  if (blacklistMemo.size > 5000) blacklistMemo.clear();
+  blacklistMemo.set(key, { value, at: Date.now() });
 }
 
 async function isTokenBlacklisted(token) {
   const key = TOKEN_BLACKLIST_PREFIX + tokenFingerprint(token);
+  const known = blacklistMemo.get(key);
+  if (known && Date.now() - known.at < BLACKLIST_MEMO_MS) return known.value;
+  const answer = await askBlacklist(key);
+  rememberBlacklist(key, answer);
+  return answer;
+}
+
+async function askBlacklist(key) {
   try {
     const { getRedisClient, isRedisAvailable } = await import('../services/redisClient.js');
     if (isRedisAvailable()) {

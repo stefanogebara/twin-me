@@ -7,7 +7,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLocale, useT } from '@/lib/i18n';
-import { moneyAPI, shortDay, BANKS, type MoneyAccount as MoneyBankAccount, type MoneyCalendar, type MoneyCategories, type MoneyFact, type MoneyForecast, type MoneyPattern, type MoneyQuestions, type MoneyToday, type MoneyMonth, type MoneyReading, type MoneyRecurring, type MoneyTransaction, type MoneyUsage } from '../../services/api/moneyAPI';
+import { moneyAPI, shortDay, BANKS, type MoneyAccount as MoneyBankAccount, type MoneyCalendar, type MoneyCategories, type MoneyFact, type MoneyForecast, type MoneyPattern, type MoneyQuestions, type MoneyToday, type MoneyMonth, type MoneyPage, type MoneyReading, type MoneyRecurring, type MoneyTransaction, type MoneyUsage } from '../../services/api/moneyAPI';
 import { moneyRevision, MONEY_CHANGED } from '../../services/api/moneyChanges';
 import { todayHere, localDay } from './readingWords';
 import type { MoneyView } from './navLinks';
@@ -22,13 +22,34 @@ import { CHANGE_BOUNDARY, readingRank, readingStake } from './readingOrder';
 type Snapshot = {
   userId: string | null; revision: number; at: number; forecast: MoneyForecast | null; today: MoneyToday | null; ledger: MoneyTransaction[]; recurring: MoneyRecurring[];
   accounts: MoneyBankAccount[]; months: MoneyMonth[]; readings: MoneyReading[]; categories: MoneyCategories | null; usage: MoneyUsage | null; unread: boolean;
+  capabilities: { bank: boolean; capture: boolean }; inbox: { address: string; receiving: boolean } | null;
 };
 let SNAPSHOT: Snapshot | null = null;
 const SNAPSHOT_FRESH_MS = 30000;
+/* The tab keeps the last read too (M2-3, 2026-09-19): a reload, or a return from the bank's
+   site, paints the page at once from what it showed a moment ago and reads again quietly.
+   The tab and not the browser: it goes when the tab closes, and it is keyed by the person, so
+   a change of account on the same tab never paints another person's month. */
+const STORE_KEY = (userId: string) => `twinme:money:page:${userId}`;
+function storedSnapshot(userId: string | null): Snapshot | null {
+  if (!userId) return null;
+  try {
+    const raw = sessionStorage.getItem(STORE_KEY(userId));
+    if (!raw) return null;
+    const kept = JSON.parse(raw) as Snapshot;
+    /* A read the tab kept before a chat edit or a bank read moved the ledger is not painted:
+       its revision is the one it was read at, and only the current one counts. On a reload
+       the counter starts again at zero, which is the revision every stored read carries. */
+    return kept && kept.userId === userId && Array.isArray(kept.ledger) && kept.revision === moneyRevision() ? kept : null;
+  } catch { return null; }
+}
+function storeSnapshot(snapshot: Snapshot) {
+  try { sessionStorage.setItem(STORE_KEY(snapshot.userId as string), JSON.stringify(snapshot)); } catch { /* a full or absent store means the next reload waits, as before */ }
+}
 
 /** The nine reads that make the page, kept fresh and kept across mounts. */
 export function useMoneyRead(userId: string | null, view: MoneyView) {
-  if (SNAPSHOT?.userId !== userId || SNAPSHOT?.revision !== moneyRevision()) SNAPSHOT = null;
+  if (SNAPSHOT?.userId !== userId || SNAPSHOT?.revision !== moneyRevision()) SNAPSHOT = storedSnapshot(userId);
   const [forecast, setForecast] = useState<MoneyForecast | null>(SNAPSHOT?.forecast ?? null);
   /* The one number a person opens the app for. It leads Today; the month sits under it. */
   const [today, setToday] = useState<MoneyToday | null>(SNAPSHOT?.today ?? null);
@@ -41,12 +62,8 @@ export function useMoneyRead(userId: string | null, view: MoneyView) {
   const [needsReconnect, setNeedsReconnect] = useState(false);
   const [categories, setCategories] = useState<MoneyCategories | null>(SNAPSHOT?.categories ?? null);
   const [usage, setUsage] = useState<MoneyUsage | null>(SNAPSHOT?.usage ?? null);
-  const [capabilities, setCapabilities] = useState({ bank: false, capture: false });
-  useEffect(() => {
-    let live = true;
-    moneyAPI.capabilities().then((value) => { if (live) setCapabilities(value); }).catch(() => {});
-    return () => { live = false; };
-  }, []);
+  const [capabilities, setCapabilities] = useState(SNAPSHOT?.capabilities ?? { bank: false, capture: false });
+  const [inbox, setInbox] = useState<{ address: string; receiving: boolean } | null>(SNAPSHOT?.inbox ?? null);
   const [loaded, setLoaded] = useState(Boolean(SNAPSHOT));
   const seq = useRef(0);
   /* A read in the air, so a view change during one does not send nine requests after it. It
@@ -55,13 +72,19 @@ export function useMoneyRead(userId: string | null, view: MoneyView) {
   const reading = useRef(false);
   useEffect(() => () => { seq.current++; reading.current = false; }, []);
   const lastLoad = useRef(SNAPSHOT?.at ?? 0);
+  /* The view the read is for, without making the read a new function on every view change:
+     every effect that hangs off load (the stale check, the change listener) would run again
+     on each switch, and the stale check is a request. */
+  const viewRef = useRef(view);
+  viewRef.current = view;
   const load = useCallback(async () => {
     const mine = ++seq.current;
     reading.current = true;
-    const [f, l, r, a, m, rd, c, u, td] = await Promise.allSettled([
-      moneyAPI.forecast(), moneyAPI.ledger(), moneyAPI.recurring(), moneyAPI.accounts(), moneyAPI.months(), moneyAPI.readings(),
-      moneyAPI.categories(`${todayHere().slice(0, 7)}-01`), moneyAPI.usage(), moneyAPI.today(),
-    ]);
+    /* One request for the page (M2-3, 2026-09-19): nine reads under one authentication on
+       the server, and the names of the parts that could not be read. Nine requests over a
+       browser's six connections painted in rounds. */
+    let page: MoneyPage | null = null;
+    try { page = await moneyAPI.page(viewRef.current); } catch { page = null; }
     if (mine !== seq.current) return;
     /* Marked when the read lands, not when it leaves. Stamped on departure, a read cancelled
        by an unmount still counted as "just loaded", so the mount that replaced it read
@@ -70,19 +93,23 @@ export function useMoneyRead(userId: string | null, view: MoneyView) {
        (2026-09-18). */
     reading.current = false;
     lastLoad.current = Date.now();
-    if (f.status === 'fulfilled') setForecast(f.value);
-    if (td.status === 'fulfilled') setToday(td.value);
-    if (l.status === 'fulfilled') setLedger(l.value);
-    if (r.status === 'fulfilled') setRecurring(r.value);
-    if (a.status === 'fulfilled') setAccounts(a.value);
-    if (m.status === 'fulfilled') setMonths(m.value);
-    if (rd.status === 'fulfilled') setReadings(rd.value);
-    if (c.status === 'fulfilled') setCategories(c.value);
-    if (u.status === 'fulfilled') setUsage(u.value);
+    const failed = new Set(page ? page.failed : []);
+    const got = <K extends keyof MoneyPage>(k: K): MoneyPage[K] | undefined => (page && !failed.has(k) && page[k] !== null ? page[k] : undefined);
+    const f = got('forecast'); if (f !== undefined) setForecast(f);
+    const td = got('today'); if (page && !failed.has('today')) setToday(page.today);
+    const l = got('ledger'); if (l !== undefined) setLedger(l);
+    const r = got('recurring'); if (r !== undefined) setRecurring(r);
+    const a = got('accounts'); if (a !== undefined) setAccounts(a);
+    const m = got('months'); if (m !== undefined) setMonths(m);
+    const rd = got('readings'); if (rd !== undefined) setReadings(rd);
+    const c = got('categories'); if (c !== undefined) setCategories(c);
+    const u = got('usage'); if (u !== undefined) setUsage(u);
+    const cap = got('capabilities'); if (cap !== undefined) setCapabilities(cap);
+    const ib = got('inbox'); if (ib !== undefined) setInbox(ib); else if (page && failed.has('inbox')) setInbox(null);
     /* A month that could not be read is not an empty month. Every rejection was dropped, so a
        server that was down told the person their ledger was empty and offered to connect the
        bank they already have (2026-09-16). */
-    const unreadNow = f.status === 'rejected' && l.status === 'rejected' && td.status === 'rejected';
+    const unreadNow = !page || (failed.has('forecast') && failed.has('ledger') && failed.has('today'));
     setUnread(unreadNow);
     setLoaded(true);
     /* Kept for the next mount. A read that failed outright is not kept: the next page should
@@ -90,17 +117,20 @@ export function useMoneyRead(userId: string | null, view: MoneyView) {
     if (!unreadNow) {
       SNAPSHOT = {
         userId, revision: moneyRevision(), at: Date.now(),
-        forecast: f.status === 'fulfilled' ? f.value : SNAPSHOT?.forecast ?? null,
-        today: td.status === 'fulfilled' ? td.value : SNAPSHOT?.today ?? null,
-        ledger: l.status === 'fulfilled' ? l.value : SNAPSHOT?.ledger ?? [],
-        recurring: r.status === 'fulfilled' ? r.value : SNAPSHOT?.recurring ?? [],
-        accounts: a.status === 'fulfilled' ? a.value : SNAPSHOT?.accounts ?? [],
-        months: m.status === 'fulfilled' ? m.value : SNAPSHOT?.months ?? [],
-        readings: rd.status === 'fulfilled' ? rd.value : SNAPSHOT?.readings ?? [],
-        categories: c.status === 'fulfilled' ? c.value : SNAPSHOT?.categories ?? null,
-        usage: u.status === 'fulfilled' ? u.value : SNAPSHOT?.usage ?? null,
+        forecast: f !== undefined ? f : SNAPSHOT?.forecast ?? null,
+        today: td !== undefined ? td : SNAPSHOT?.today ?? null,
+        ledger: l !== undefined ? l : SNAPSHOT?.ledger ?? [],
+        recurring: r !== undefined ? r : SNAPSHOT?.recurring ?? [],
+        accounts: a !== undefined ? a : SNAPSHOT?.accounts ?? [],
+        months: m !== undefined ? m : SNAPSHOT?.months ?? [],
+        readings: rd !== undefined ? rd : SNAPSHOT?.readings ?? [],
+        categories: c !== undefined ? c : SNAPSHOT?.categories ?? null,
+        usage: u !== undefined ? u : SNAPSHOT?.usage ?? null,
+        capabilities: cap !== undefined ? cap : SNAPSHOT?.capabilities ?? { bank: false, capture: false },
+        inbox: ib !== undefined ? ib : SNAPSHOT?.inbox ?? null,
         unread: false,
       };
+      storeSnapshot(SNAPSHOT);
     }
   }, [userId]);
   /* Read again on every page (the three views share one mounted component, so a switch
@@ -141,19 +171,17 @@ export function useMoneyRead(userId: string | null, view: MoneyView) {
       .catch(() => {});
     return () => { live = false; };
   }, [load]);
-  return { forecast, today, unread, ledger, setLedger, recurring, accounts, months, readings, categories, setCategories, usage, capabilities, loaded, needsReconnect, setNeedsReconnect, load };
+  return { forecast, today, unread, ledger, setLedger, recurring, accounts, months, readings, categories, setCategories, usage, capabilities, inbox, loaded, needsReconnect, setNeedsReconnect, load };
 }
 
 /** What only You shows, read only there: the calendar, the facts, the patterns, the inbox. */
-export function useYouReads(view: MoneyView) {
-  const [inbox, setInbox] = useState<{ address: string; receiving: boolean } | null>(null);
+export function useYouReads(view: MoneyView, inbox: { address: string; receiving: boolean } | null) {
   const [copied, setCopied] = useState(false);
   /* The calendar lens: Google, or links pasted from Canvas and Blackboard. */
   const [calendar, setCalendar] = useState<MoneyCalendar | null>(null);
   /* What it knows, in the person's words, and what it still wants to ask: the You page. */
   const [facts, setFacts] = useState<MoneyFact[] | null>(null);
   const [questions, setQuestions] = useState<MoneyQuestions | null>(null);
-  useEffect(() => { moneyAPI.inbox().then(setInbox).catch(() => setInbox(null)); }, []);
   /* A read that failed is not a calendar that was never connected: mapped to connected:false,
      one failed request offered Connect Google to somebody who had already connected it. */
   const [calendarFailed, setCalendarFailed] = useState(false);
@@ -181,7 +209,7 @@ export function useYouReads(view: MoneyView) {
     if (!inbox) return;
     try { await navigator.clipboard.writeText(inbox.address); setCopied(true); setTimeout(() => setCopied(false), 1600); } catch { /* the address is on the page to select */ }
   }, [inbox]);
-  return { calendar, calendarFailed, loadCalendar, facts, questions, youFailed, loadYou, patterns, inbox, copied, copyInbox };
+  return { calendar, calendarFailed, loadCalendar, facts, questions, youFailed, loadYou, patterns, copied, copyInbox };
 }
 
 type ActionDeps = {
@@ -315,7 +343,7 @@ export function useMoneyAccount(view: MoneyView, userId: string | null) {
   const locale = useLocale();
   const { user } = useAuth();
   const r = useMoneyRead(userId, view);
-  const y = useYouReads(view);
+  const y = useYouReads(view, r.inbox);
   const a = useMoneyActions({ t, load: r.load, loadCalendar: y.loadCalendar, loadYou: y.loadYou, setLedger: r.setLedger, setCategories: r.setCategories, setNeedsReconnect: r.setNeedsReconnect });
   const { forecast, today, ledger, recurring, accounts, months, readings, usage, loaded, needsReconnect } = r;
   const { busy, read, bankReady } = a;

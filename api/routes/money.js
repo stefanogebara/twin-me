@@ -36,7 +36,8 @@
  * Spec: .claude/plans/2026-09-07-money-twin/README.md
  */
 
-import { accountsWithCards, labelCard } from '../services/money/instruments.js';
+import { labelCard } from '../services/money/instruments.js';
+import { readPage, accountsView, PAGE_VIEWS } from '../services/money/pageRead.js';
 import { listReceiptNotices } from '../services/money/notices.js';
 import { Router } from 'express';
 import crypto from 'node:crypto';
@@ -60,7 +61,6 @@ import { ahead as calendarAhead, learnEventSpend, addFeed as addCalendarFeed, re
 import { todayAllowance } from '../services/money/allowanceService.js';
 import { monthPlan, planLine } from '../services/money/plan.js';
 import { spendingRule } from '../services/money/spending.js';
-import { reconnectByAccount } from '../services/money/store.js';
 import { guessHome, savedHome, searchAreas, searchPlaces, staticMap, saveHome, placePoint } from '../services/money/home.js';
 import { encryptState } from '../services/encryption.js';
 import { signState, readState } from '../services/money/bankState.js';
@@ -138,6 +138,21 @@ router.post('/inbox/resend', async (req, res) => {
 
 router.use(authenticateUser);
 router.get('/capabilities', (req, res) => res.json({ success: true, data: moneyCapabilities(req.user.id) }));
+
+/**
+ * The page in one read (M2-3). Every part the three views share, under one authentication,
+ * with the names of the parts that could not be read: the page says "could not be read"
+ * only when the month, the ledger and the day all failed, and paints the rest.
+ */
+router.get('/page', async (req, res) => {
+  const view = typeof req.query.view === 'string' ? req.query.view : 'today';
+  if (!PAGE_VIEWS.has(view)) return res.status(400).json({ success: false, error: 'Unknown view' });
+  try {
+    const { data, failed } = await readPage(req.user.id, { view });
+    if (failed.length) log.warn('page read incomplete', { failed });
+    res.json({ success: true, data: { ...data, failed } });
+  } catch (error) { log.error('page failed', { error: error.message }); res.status(500).json({ success: false, error: 'Internal server error' }); }
+});
 
 router.get('/notices', async (req, res) => {
   try { res.json({ success: true, data: await listReceiptNotices(req.user.id) }); }
@@ -237,16 +252,8 @@ router.post('/bank/connect', async (req, res) => {
 });
 
 router.get('/bank/accounts', async (req, res) => {
-  try {
-    const [accounts, gone] = await Promise.all([
-      listBankAccounts(req.user.id),
-      reconnectByAccount(req.user.id).catch(() => new Set()),
-    ]);
-    /* The connection's state travels with the accounts, each with its own: a month that
-       stopped moving because one bank ended its session must say which bank, and not send
-       the person to reconnect the other. */
-    res.json({ success: true, data: (await accountsWithCards(req.user.id, accounts)).map(({ session_id, created_at, ...a }) => ({ ...a, needs_reconnect: gone.has(a.id) })) });
-  } catch (error) { log.error('bank accounts failed', { error: error.message }); res.status(500).json({ success: false, error: 'Internal server error' }); }
+  try { res.json({ success: true, data: await accountsView(req.user.id) }); }
+  catch (error) { log.error('bank accounts failed', { error: error.message }); res.status(500).json({ success: false, error: 'Internal server error' }); }
 });
 
 router.post('/bank/accounts/:accountId/cards/:last4/type', async (req, res) => {
