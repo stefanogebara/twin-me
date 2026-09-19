@@ -184,9 +184,44 @@ jobs:
           SUPABASE_ANON_KEY: ci-stub-anon-key
           SUPABASE_SERVICE_ROLE_KEY: ci-stub-service-role-key
         run: npx vitest run --retry=0 --exclude '**/*.integration.test.js'
+  # M3-6 (2026-09-19): the money journey on production as a signed-in person. Runs only when
+  # MONEY_CANARY_TOKEN is set (an access token for the canary account, minted by the owner);
+  # without it the job succeeds with a note, so the report card stays honest about it.
+  money-production:
+    name: Money on production
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - id: gate
+        env:
+          TOKEN: ${{ secrets.MONEY_CANARY_TOKEN }}
+        run: |
+          if [ -n "$TOKEN" ]; then echo "has=true" >> "$GITHUB_OUTPUT"; else echo "has=false" >> "$GITHUB_OUTPUT"; echo "MONEY_CANARY_TOKEN is not set: the production canary did not run." >> "$GITHUB_STEP_SUMMARY"; fi
+      - if: steps.gate.outputs.has == 'true'
+        run: npm ci
+      - if: steps.gate.outputs.has == 'true'
+        run: npx playwright install --with-deps chromium
+      - if: steps.gate.outputs.has == 'true'
+        env:
+          MONEY_CANARY_TOKEN: ${{ secrets.MONEY_CANARY_TOKEN }}
+          MONEY_CANARY_URL: ${{ secrets.MONEY_CANARY_URL }}
+        run: npx playwright test --config playwright.production.config.ts
+      - if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: money-production-failure
+          path: |
+            test-results/
+            playwright-report/
+          retention-days: 14
   report-card:
     name: Report card
-    needs: [money-safety, goals, money-imports, money-first, money-canaries, unit-no-retry]
+    needs: [money-safety, goals, money-imports, money-first, money-canaries, unit-no-retry, money-production]
     if: always()
     runs-on: ubuntu-latest
     timeout-minutes: 5

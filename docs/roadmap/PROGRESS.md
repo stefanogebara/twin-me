@@ -81,7 +81,7 @@ Status words: `todo` · `doing (who, date)` · `done (#PR, date)` · `blocked (w
 | M3-3 | One Redis client | done (#434, 2026-09-19): the OAuth rate limiter rode a second connection from the `redis` package, and its Redis store was built after the limiters were, so no limiter ever held it (every Vercel instance counted alone). Each limiter now has a store that is the shared ioredis client when it is up and memory when not, decided on first use, with its own prefix; the `redis` package is gone |
 | M3-4 | Regenerate `.env.example` from code | done (#434, 2026-09-19): `scripts/env-example.mjs` scans api/ and src/ (154 keys, 13 areas, the four required first, notes kept); was 109 undocumented and 16 dead; `tests/goals/env-example-in-sync.goal.test.js` holds it |
 | M3-5 | Resolve `--legacy-peer-deps` | done (#434, 2026-09-19): the one conflict was `lovable-tagger` (a Lovable-era dev plugin wanting vite 5 against vite 7); removed, the lock regenerated strictly, `.npmrc` and every `npm ci` in CI and the nightly without the flag |
-| M3-6 | Real-backend Playwright canary for the money journey | todo |
+| M3-6 | Real-backend Playwright canary for the money journey | built, waiting on a secret (2026-09-19): `tests/e2e/money-production.spec.ts` + `playwright.production.config.ts` walk Today (figure within 6 s, at most 8 money requests, one page read), Month and You on twin-ai-learn.vercel.app as a signed-in person; the nightly job 'Money on production' runs it when `MONEY_CANARY_TOKEN` is set and says so when it is not — open question 7 |
 
 ### Done this week (for the record)
 
@@ -113,6 +113,7 @@ Status words: `todo` · `doing (who, date)` · `done (#PR, date)` · `blocked (w
 3. **QW3:** a Sentry DSN (free tier is enough) — Claude cannot create the account.
 4. **The day's number:** the most likely spend (shipped) or a sustainable allowance? The label "Today's estimate" fits either; commit to one.
 5. **Enable Banking's reply** (sent 2026-09-18) and **Plaid eligibility** for the US friends.
+7. **`MONEY_CANARY_TOKEN`** (and optionally `MONEY_CANARY_URL`) in the repository's Actions secrets: an access token for a canary account with a small real ledger, so the nightly walks production as a person. Claude can mint one locally only with the production `JWT_SECRET`, which it does not have; a token minted by Stefano (90 days) is enough.
 6. **Actions secrets for the loop:** `OPENROUTER_API_KEY` in the repository's GitHub Actions secrets (the loop's triage runs without it but asks nothing), and later an agent-harness key for the implement/inspect stages. Claude cannot add secrets.
 
 ## Ideas the scouts synthesised (2026-09-19) — for Stefano to pick from, ranked by evidence TwinMe already holds
@@ -133,3 +134,4 @@ Status words: `todo` · `doing (who, date)` · `done (#PR, date)` · `blocked (w
 - **2026-09-19 (Claude, night):** M2-3 done on `claude/loop-and-coverage` (#434): one read per view, per-tab kept read, blacklist memo, self-hosted Geist; lessons written (production build for measurements, preflights, third-party stylesheets). Next: M2-2b, then the production timing of Today after #434 lands.
 - **2026-09-19 (Claude, late):** M2-2b, M1-3, M3-1 and M3-2 slice 1 on `claude/loop-and-coverage` (#434); the entry chunk measured for slice 2; the full suite is running at `--retry=0` for M0-2.
 - **2026-09-19 (Claude, end of day):** #426, #430, #431, #432 merged (squash); `claude/loop-and-coverage` (#434, 28 commits) rebased onto main with #426's carried widening ported into `forecastService.js`. M2-2b, M1-3, M3-1, M3-2, M3-3, M3-4, M3-5 done; M0-2 graded nightly. Open: M0-4 (backup rehearsal, needs production access), M1-2 (validation middleware), M1-4/QW3/M2-5 (Stefano), M3-6 (real-backend canary, needs secrets). Next: land #434, then measure Today on Vercel.
+- **2026-09-19 (Claude, night):** #434 merged into main. M1-2 for the money routes on #436 (`claude/validate-money`); M3-6 built on the same branch, waiting on `MONEY_CANARY_TOKEN`. Production boot probe of /money after the deploy is in the session scratchpad (`prod-boot.log`).
