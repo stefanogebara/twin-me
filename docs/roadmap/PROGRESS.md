@@ -36,9 +36,9 @@ Status words: `todo` · `doing (who, date)` · `done (#PR, date)` · `blocked (w
 | QW5 | Delete `test/`, `ml/`, `context/`, `screenshots/`; untrack `mobile/node_modules` | done (`ba89498a`) — `mobile/node_modules` was never tracked; ignore rule added |
 | QW6 | Delete or fix the 79 skipped tests | done (`812f5770`) — 9 spec files + 11 cases of deleted code removed; what remains is opt-in gates (`TWINME_RUN_*`, `RUN_HEAVY_AUDITS`, `STRIPE_E2E`) and runtime guards; suite 5,506 passing, 4 skipped |
 | OW1 | **Money first**: `/`, `/home`, `/dashboard`, post-sign-in and post-OAuth all land on `/money`; the twin is a secondary link | done (`783bc68d`) — `/home`, `/dashboard`, the onboarding gate; pinned by `money-first.goal.test.js` |
-| OW2 | **Orbs exactly as the library**: monochrome ink per the library's own theme rule; chat avatar orb at 64 while thinking; every loading state on the money surface is an orb | doing (Claude, 2026-09-19) |
+| OW2 | **Orbs exactly as the library**: monochrome ink per the library's own theme rule; chat avatar orb at 64 while thinking; every loading state on the money surface is an orb | done (claude/orbs-exact, 2026-09-19) — painter is the library's `M = round((dark ? 1-white : white)*255)`; measured on the built page: darkest dot rgb(26,26,26), 0 non-neutral pixels; chat pending orb at 64 |
 | OW3 | **Codex protocol** live: this file, `sync:agents`, branch prefixes, the Decisions rule | done (`8df36edf`) — protocol in `CLAUDE.md`, copied to `AGENTS.md` |
-| OW4 | **Scouting**: three background scouts (products, papers, social) reporting candidates into `docs/intel/` through the `/intel` rubric | doing (Claude, 2026-09-19) |
+| OW4 | **Scouting**: three background scouts (products, papers, social) reporting candidates into `docs/intel/` through the `/intel` rubric | done (2026-09-19) — 33 candidates triaged: 3 DISCUTIR (INTEL.md, Em aberto), 1 PROTOTIPAR (`dia-hurdle`) + 2 fusions (BACKLOG.md), 10 Radar, 17 descartes in `seen.jsonl`; the seven synthesised ideas are listed below for Stefano |
 
 ## Milestones (from the 19 September audit — `.claude/plans/2026-09-19-repo-audit/README.md`, published at https://claude.ai/code/artifact/ae6cd0ba-b090-4660-85ff-cfadb9323679)
 
@@ -48,7 +48,7 @@ Status words: `todo` · `doing (who, date)` · `done (#PR, date)` · `blocked (w
 |---|---|---|---|
 | M0-1 | Coverage as a number for `api/services/money` and `src/pages/money`, threshold at today's value | CI fails below baseline | todo |
 | M0-2 | Find the order-dependent flake behind `--retry=2`; remove the retry | ten green nightlies at `--retry=0` | todo |
-| M0-3 | Import-time canary: every `api/services/money/*.js` imports in < 2 s | fails today on `store.js` | todo |
+| M0-3 | Import-time canary: every `api/services/money/*.js` imports in < 2 s | fails today on `store.js` | done (claude/loadable-core, #432) — `tests/goals/money-imports.goal.test.js`, exception list empty |
 | M0-4 | Backup rehearsal before ledger-touching migrations | restore proven once | todo |
 
 ### Milestone 1 — critical fixes
@@ -64,7 +64,7 @@ Status words: `todo` · `doing (who, date)` · `done (#PR, date)` · `blocked (w
 
 | ID | Task | Acceptance | Status |
 |---|---|---|---|
-| M2-1 | Break the money cycles (`store.js ↔ calendar.js`, `store.js ↔ predictions.js`) | `madge --circular` = 0; M0-3 passes | todo |
+| M2-1 | Break the money cycles (`store.js ↔ calendar.js`, `store.js ↔ predictions.js`) | `madge --circular` = 0; M0-3 passes | done (#432) — `factsRepository.js` + `forecastService.js`; madge 0; bare import of `store.js` 252 ms where it never returned; store.js 1,237 → 1,108 lines |
 | M2-2 | Split `MoneyForAccount` into a hook + three views | longest function < 250 lines | todo |
 | M2-3 | One read per view, cached per ingestion revision | Today cold < 1.5 s | todo |
 | M2-4 | Separate the bank read from the daily loop (own cron, own budget) | `learnSkipped` = 0 for a week | todo |
@@ -103,6 +103,8 @@ Status words: `todo` · `doing (who, date)` · `done (#PR, date)` · `blocked (w
 - **D4 (2026-09-19) — Where the loop runs: GitHub Actions**, scheduled next to `goals-nightly.yml`. No machine has to be awake, secrets live in repository settings, run history *is* the report card (the existing `money-report-card.mjs` reads it), and it adds nothing to the Vercel bill. A Mac `launchd` job was the alternative and loses on all four.
 - **D5 (2026-09-19) — Codex and Claude share this file and one instruction source.** See the protocol above. `AGENTS.md` becomes a generated copy of `CLAUDE.md`.
 
+- **D6 (2026-09-19) — The intel scope now includes the product.** `intel.config.json` `focus_areas` were entirely about the twin; three money areas were added and the audit's measured gaps replaced the `ml/gnn` one (that directory was deleted today). `bets` and `settled` still describe the twin-first strategy ("30+ platforms is the moat") and are **not** edited — CLAUDE.md says only Stefano reopens `settled`; open question 6 asks him to.
+
 ## Open questions for Stefano
 
 1. **M1-4:** fail closed on logout when Redis is down (some users get a 401 during an outage) — yes or no? Recommended yes.
@@ -111,6 +113,16 @@ Status words: `todo` · `doing (who, date)` · `done (#PR, date)` · `blocked (w
 4. **The day's number:** the most likely spend (shipped) or a sustainable allowance? The label "Today's estimate" fits either; commit to one.
 5. **Enable Banking's reply** (sent 2026-09-18) and **Plaid eligibility** for the US friends.
 
+## Ideas the scouts synthesised (2026-09-19) — for Stefano to pick from, ranked by evidence TwinMe already holds
+
+1. **The return window on a receipt.** The receipts inbox knows the purchase date; a receipt's own text often carries the return or warranty window. A quiet line near the deadline ("the return window on this closes in three days") saves money without asking anyone to think. No competitor surfaces it. Evidence held: `inbox.js`, `attachments.js`.
+2. **The charge before it lands.** "Spotify renews tomorrow; the day still holds" or "…now tight, 8 EUR of slack this week." Copilot's most-loved moment is catching a forgotten subscription *after* the fact; the recurring series and the allowance already know it the day before. Evidence held: `recurring.js`, `allowance.js`; Karlan et al. say a nudge that names the specific expense works where a generic one does not.
+3. **Reconciliation you can see.** Every competitor merges sources silently; the #1 quit reason is silent sync breakage. One grey line under a row — "seen by the bank and the phone" versus "bank only, not confirmed" — turns the invisible into trust. Evidence held: `money_sightings` per line.
+4. **The Bizum that is the rent.** Recurring Bizum to the same two or three people near the 1st, similar amount: label it "looks like your rent split" and count it as rent, without a wallet and without holding money (Splitwise's pending-for-days is its most hated trait). Evidence held: `bizum.js`, `person` facts.
+5. **Ninety seconds, not a ledger scroll.** The three to five payments that moved the forecast most this week, one yes/no each ("keep eating out this much, or was that a one-off?"). The manual-review ritual is what changes behaviour (HN, YNAB); this is its benefit without its labour. Evidence held: `deltas.js`, the verdict flow.
+6. **Roast, but grounded.** Cleo's voice is loved and distrusted because it sits on numbers people doubt. TwinMe's chat only says computed numbers — the same dry, specific line ("four dinners out, 60% of the month's food gone") is provably right. A register question as much as a product one.
+7. **Calendar-conditioned band.** Widen the day's band on a trip or exam week. Measured 19 September: one away day in 75 — nothing to learn from yet. Last, not first.
+
 ## Session log
 
-- **2026-09-19 (Claude):** merged #424–#426 prerequisites; wrote the audit; created this file. Quick wins QW1, QW2, QW4, QW5, QW6 and OW1, OW3 done on `claude/quick-wins`; QW3 blocked on a DSN. Legacy usage measured (D1). Orb deviation found (D2). AGENTS.md drift found and fixed (D5). Scouts: products and papers returned; social still running.
+- **2026-09-19 (Claude):** merged #424–#426 prerequisites; wrote the audit; created this file. Quick wins QW1, QW2, QW4, QW5, QW6 and OW1, OW3 done on `claude/quick-wins`; QW3 blocked on a DSN. Legacy usage measured (D1). Orb deviation found (D2). AGENTS.md drift found and fixed (D5). All three scouts returned and were triaged into `docs/intel/` (OW4). M0-3 and M2-1 done on `claude/loadable-core` (#432); orbs on `claude/orbs-exact` (#431); quick wins on `claude/quick-wins` (#430).
