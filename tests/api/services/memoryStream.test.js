@@ -125,45 +125,6 @@ describe('retrieveDiverseMemories', () => {
   // The default-budgets test above still catches "is there a budget being
   // applied at all". A rewrite would have to mock at the leg-fetch helper
   // level, not the bare supabase chain.
-  it.skip('respects custom budgets', async () => {
-    const limitSpy = vi.fn().mockReturnValue({
-      then: (cb) => Promise.resolve(cb({ data: [], error: null }))
-    });
-    supabaseAdmin._chain.limit.mockImplementation(limitSpy);
-    supabaseAdmin._chain.order.mockReturnValue(supabaseAdmin._chain);
-    supabaseAdmin.rpc.mockResolvedValue({ data: [], error: null });
-
-    await retrieveDiverseMemories('user-1', 'query', { reflections: 5, facts: 3, platformData: 2 });
-
-    const limitCalls = limitSpy.mock.calls.map(c => c[0]);
-    expect(limitCalls).toContain(3);
-  });
-
-  it.skip('filters out non-reflection types from semantic results', async () => {
-    // retrieveMemories returns mixed types (facts masquerading in semantic results)
-    const semanticResults = [
-      makeMemory('reflection', 'r1'),
-      makeMemory('fact', 'f1'),         // should be filtered out from reflections
-      makeMemory('reflection', 'r2'),
-    ];
-    supabaseAdmin.rpc.mockResolvedValue({ data: semanticResults, error: null });
-
-    // facts and platform_data queries return empty
-    supabaseAdmin._chain.then.mockImplementation((cb) =>
-      Promise.resolve(cb({ data: [], error: null }))
-    );
-
-    const result = await retrieveDiverseMemories('user-1', 'query');
-    // Only reflections from semantic search should be included
-    const reflectionIds = result.filter(m => m.memory_type === 'reflection').map(m => m.id);
-    expect(reflectionIds).toContain('r1');
-    expect(reflectionIds).toContain('r2');
-    // 'f1' should NOT appear via the reflections path (may appear via facts path though)
-    const resultFromSemanticFact = result.filter(m => m.id === 'f1' && m.memory_type === 'fact');
-    // Its inclusion via semantic is filtered; via facts query is separate (which returns [] in this test)
-    expect(result.find(m => m.id === 'f1')).toBeUndefined();
-  });
-
   // The 'filters non-reflection types' and 'combines all buckets' tests
   // below were written against an earlier retrieveDiverseMemories shape that
   // returned raw type-bucket arrays. The current pipeline runs MMR
@@ -173,28 +134,6 @@ describe('retrieveDiverseMemories', () => {
   // and a passing rerank score. Both are skipped pending a rewrite that
   // mocks at the (deeper) twin-research helpers, not the bare supabase
   // chain. The high-level contract is exercised by the integration tests.
-  it.skip('combines results from all three type buckets', async () => {
-    supabaseAdmin.rpc.mockResolvedValue({
-      data: [makeMemory('reflection', 'ref-1')],
-      error: null,
-    });
-
-    let thenCallCount = 0;
-    supabaseAdmin._chain.then.mockImplementation((cb) => {
-      thenCallCount++;
-      if (thenCallCount === 1) {
-        return Promise.resolve(cb({ data: [makeMemory('fact', 'fact-1')], error: null }));
-      }
-      return Promise.resolve(cb({ data: [makeMemory('platform_data', 'pd-1')], error: null }));
-    });
-
-    const result = await retrieveDiverseMemories('user-1', 'query');
-    const ids = result.map(m => m.id);
-    expect(ids).toContain('ref-1');
-    expect(ids).toContain('fact-1');
-    expect(ids).toContain('pd-1');
-  });
-
   it('handles supabase errors gracefully (returns empty arrays)', async () => {
     // All queries fail
     supabaseAdmin.rpc.mockResolvedValue({ data: null, error: { message: 'DB error' } });

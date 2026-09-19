@@ -29,112 +29,6 @@ const deriveSamplingParams = undefined;
 // not an OCEAN trait map. These tests would need a rewrite against the new
 // signature. The mapping is still exercised indirectly by integration tests
 // that run a real soul signature through the full chat pipeline.
-describe.skip('deriveSamplingParams (replaced by deriveSamplingParamsFrom5Layers)', () => {
-  it('returns all four sampling fields', () => {
-    const result = deriveSamplingParams({
-      openness: 0.5, conscientiousness: 0.5, extraversion: 0.5,
-      agreeableness: 0.5, neuroticism: 0.5,
-    });
-    expect(result).toHaveProperty('temperature');
-    expect(result).toHaveProperty('top_p');
-    expect(result).toHaveProperty('frequency_penalty');
-    expect(result).toHaveProperty('presence_penalty');
-  });
-
-  it('returns reasonable defaults for balanced OCEAN (all 0.5)', () => {
-    const result = deriveSamplingParams({
-      openness: 0.5, conscientiousness: 0.5, extraversion: 0.5,
-      agreeableness: 0.5, neuroticism: 0.5,
-    });
-    // temp = 0.5 + 0.5*0.25 - 0.5*0.15 + 0.5*0.05 = 0.575
-    expect(result.temperature).toBeCloseTo(0.575, 2);
-    // top_p = 0.85 + 0.5*0.08 - 0.5*0.05 = 0.865
-    expect(result.top_p).toBeCloseTo(0.865, 2);
-    // freq_penalty = 0.5*0.2 - 0.5*0.1 = 0.05
-    expect(result.frequency_penalty).toBeCloseTo(0.05, 2);
-    // pres_penalty = 0.5*0.2 = 0.1
-    expect(result.presence_penalty).toBeCloseTo(0.1, 2);
-  });
-
-  it('increases temperature with high Openness', () => {
-    const high = deriveSamplingParams({
-      openness: 0.95, conscientiousness: 0.5, extraversion: 0.5,
-      agreeableness: 0.5, neuroticism: 0.5,
-    });
-    const low = deriveSamplingParams({
-      openness: 0.1, conscientiousness: 0.5, extraversion: 0.5,
-      agreeableness: 0.5, neuroticism: 0.5,
-    });
-    expect(high.temperature).toBeGreaterThan(low.temperature);
-  });
-
-  it('decreases temperature with high Conscientiousness', () => {
-    const high = deriveSamplingParams({
-      openness: 0.5, conscientiousness: 0.95, extraversion: 0.5,
-      agreeableness: 0.5, neuroticism: 0.5,
-    });
-    const low = deriveSamplingParams({
-      openness: 0.5, conscientiousness: 0.1, extraversion: 0.5,
-      agreeableness: 0.5, neuroticism: 0.5,
-    });
-    expect(high.temperature).toBeLessThan(low.temperature);
-  });
-
-  it('increases presence_penalty with high Extraversion', () => {
-    const high = deriveSamplingParams({
-      openness: 0.5, conscientiousness: 0.5, extraversion: 0.95,
-      agreeableness: 0.5, neuroticism: 0.5,
-    });
-    const low = deriveSamplingParams({
-      openness: 0.5, conscientiousness: 0.5, extraversion: 0.1,
-      agreeableness: 0.5, neuroticism: 0.5,
-    });
-    expect(high.presence_penalty).toBeGreaterThan(low.presence_penalty);
-  });
-
-  it('clamps all values within valid bounds', () => {
-    // All traits at 1.0 — push towards upper bounds
-    const maxed = deriveSamplingParams({
-      openness: 1.0, conscientiousness: 1.0, extraversion: 1.0,
-      agreeableness: 1.0, neuroticism: 1.0,
-    });
-    expect(maxed.temperature).toBeGreaterThanOrEqual(0.4);
-    expect(maxed.temperature).toBeLessThanOrEqual(0.95);
-    expect(maxed.top_p).toBeGreaterThanOrEqual(0.8);
-    expect(maxed.top_p).toBeLessThanOrEqual(0.98);
-    expect(maxed.frequency_penalty).toBeGreaterThanOrEqual(0.0);
-    expect(maxed.frequency_penalty).toBeLessThanOrEqual(0.3);
-    expect(maxed.presence_penalty).toBeGreaterThanOrEqual(0.0);
-    expect(maxed.presence_penalty).toBeLessThanOrEqual(0.3);
-
-    // All traits at 0.0 — push towards lower bounds
-    const zeroed = deriveSamplingParams({
-      openness: 0.0, conscientiousness: 0.0, extraversion: 0.0,
-      agreeableness: 0.0, neuroticism: 0.0,
-    });
-    expect(zeroed.temperature).toBeGreaterThanOrEqual(0.4);
-    expect(zeroed.temperature).toBeLessThanOrEqual(0.95);
-    expect(zeroed.top_p).toBeGreaterThanOrEqual(0.8);
-    expect(zeroed.top_p).toBeLessThanOrEqual(0.98);
-    expect(zeroed.frequency_penalty).toBeGreaterThanOrEqual(0.0);
-    expect(zeroed.frequency_penalty).toBeLessThanOrEqual(0.3);
-    expect(zeroed.presence_penalty).toBeGreaterThanOrEqual(0.0);
-    expect(zeroed.presence_penalty).toBeLessThanOrEqual(0.3);
-  });
-
-  it('returns 3-decimal precision (round3)', () => {
-    const result = deriveSamplingParams({
-      openness: 0.82, conscientiousness: 0.45, extraversion: 0.75,
-      agreeableness: 0.60, neuroticism: 0.35,
-    });
-    // All values should have at most 3 decimal places
-    for (const val of Object.values(result)) {
-      const decimalPlaces = (val.toString().split('.')[1] || '').length;
-      expect(decimalPlaces).toBeLessThanOrEqual(3);
-    }
-  });
-});
-
 // ---------------------------------------------------------------------------
 // buildPersonalityPrompt
 // ---------------------------------------------------------------------------
@@ -164,54 +58,6 @@ describe('buildPersonalityPrompt', () => {
   // instructions and the literal phrases no longer appear. The behavioural
   // intent (different OCEAN inputs produce different prompts) is still
   // exercised by integration runs of the chat pipeline.
-  it.skip('starts with [PERSONALITY CALIBRATION] header', () => {
-    const result = buildPersonalityPrompt({
-      openness: 0.9, conscientiousness: 0.5, extraversion: 0.5,
-      agreeableness: 0.5, neuroticism: 0.5, confidence: 0.5,
-    });
-    expect(result).toMatch(/^\[PERSONALITY CALIBRATION\]/);
-  });
-
-  it.skip('includes creative instruction for high Openness (>0.65)', () => {
-    const result = buildPersonalityPrompt({
-      openness: 0.8, conscientiousness: 0.5, extraversion: 0.5,
-      agreeableness: 0.5, neuroticism: 0.5, confidence: 0.5,
-    });
-    expect(result).toContain('creative and exploratory');
-  });
-
-  it.skip('includes practical instruction for low Openness (<0.35)', () => {
-    const result = buildPersonalityPrompt({
-      openness: 0.2, conscientiousness: 0.5, extraversion: 0.5,
-      agreeableness: 0.5, neuroticism: 0.5, confidence: 0.5,
-    });
-    expect(result).toContain('practical and concrete');
-  });
-
-  it.skip('includes measured instruction for low Extraversion', () => {
-    const result = buildPersonalityPrompt({
-      openness: 0.5, conscientiousness: 0.5, extraversion: 0.2,
-      agreeableness: 0.5, neuroticism: 0.5, confidence: 0.5,
-    });
-    expect(result).toContain('measured and thoughtful');
-  });
-
-  it.skip('includes warm instruction for high Agreeableness', () => {
-    const result = buildPersonalityPrompt({
-      openness: 0.5, conscientiousness: 0.5, extraversion: 0.5,
-      agreeableness: 0.8, neuroticism: 0.5, confidence: 0.5,
-    });
-    expect(result).toContain('warm and supportive');
-  });
-
-  it.skip('includes direct instruction for low Agreeableness', () => {
-    const result = buildPersonalityPrompt({
-      openness: 0.5, conscientiousness: 0.5, extraversion: 0.5,
-      agreeableness: 0.2, neuroticism: 0.5, confidence: 0.5,
-    });
-    expect(result).toContain('direct and straightforward');
-  });
-
   it('includes stylometric sentence length instruction', () => {
     const result = buildPersonalityPrompt({
       openness: 0.5, conscientiousness: 0.5, extraversion: 0.5,
@@ -242,16 +88,6 @@ describe('buildPersonalityPrompt', () => {
   // Skipped: implementation now always emits the [ANTI-GENERIC OVERRIDE]
   // prohibitions block regardless of OCEAN values, so the prompt is never
   // empty for a confident profile.
-  it.skip('returns empty string when all traits are mid-range (no instructions triggered)', () => {
-    const result = buildPersonalityPrompt({
-      openness: 0.5, conscientiousness: 0.5, extraversion: 0.5,
-      agreeableness: 0.5, neuroticism: 0.5, confidence: 0.5,
-      // No stylometric fields → no style instructions either
-    });
-    // Mid-range traits (0.35-0.65) generate no OCEAN instructions
-    // No stylometric fields → no style instructions
-    expect(result).toBe('');
-  });
 });
 
 // ---------------------------------------------------------------------------

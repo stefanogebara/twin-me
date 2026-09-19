@@ -42,18 +42,12 @@ test('Phase 4 — onboarding starts at welcome, no explainer', async ({ page }) 
   });
 });
 
-test.skip('Phase 5 — demo dashboard: SoulSummaryCard has content', async ({ page }) => {
-  // OBSOLETE: demo_mode removed 2026-05-10. Rewrite with real auth + seeded fixture.
-  await setDemoMode(page);
   await page.goto(`${BASE}/dashboard`);
   await page.waitForTimeout(3000);
   const soulCard = page.getByText('Creative synthesizer', { exact: false });
   await expect(soulCard).toBeVisible({ timeout: 5000 });
 });
 
-test.skip('Phase 5 — demo dashboard: InsightsFeed shows demo insights', async ({ page }) => {
-  // OBSOLETE: demo_mode removed 2026-05-10. Rewrite with real auth + seeded fixture.
-  await setDemoMode(page);
   await page.goto(`${BASE}/dashboard`);
   await page.waitForTimeout(3000);
   const insightsSection = page.getByText('What your twin noticed', { exact: false });
@@ -62,9 +56,6 @@ test.skip('Phase 5 — demo dashboard: InsightsFeed shows demo insights', async 
   await expect(demoInsight).toBeVisible({ timeout: 5000 });
 });
 
-test.skip('Phase 5 — demo dashboard: DepartmentWidget rendered', async ({ page }) => {
-  // OBSOLETE: demo_mode removed 2026-05-10. Rewrite with real auth + seeded fixture.
-  await setDemoMode(page);
   await page.goto(`${BASE}/dashboard`);
   await page.waitForTimeout(3000);
   const aiTeamLabel = page.getByText('YOUR AI TEAM', { exact: false });

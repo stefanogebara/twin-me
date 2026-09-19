@@ -461,13 +461,6 @@ test.describe('Step 4: Awakening screen', () => {
     await expect(btn).toBeAttached();
   });
 
-  test.skip('typewriter text appears progressively', async () => {
-    // OBSOLETE: AwakeningScreen redesign removed the progressive-typewriter in
-    // favor of a single fade-in message + 3 insight glass cards. Keeping the
-    // test here as a marker — rewrite to assert the fade-in message lands,
-    // or to verify the 3 insight cards (Memories / Music / Rhythm) render.
-  });
-
   test('"Enter your world" enables after typing completes', async ({ page }) => {
     await navigateToAwakening(page);
     // Wait generously for the LLM + typewriter to finish
