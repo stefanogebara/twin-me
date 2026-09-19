@@ -158,6 +158,7 @@
     "autoprefixer": "^10.4.21",
     "baseline-browser-mapping": "^2.10.17",
     "concurrently": "^9.2.1",
+    "esbuild": "^0.25.10",
     "eslint": "^9.32.0",
     "eslint-plugin-react-hooks": "^5.2.0",
     "eslint-plugin-react-refresh": "^0.4.20",
@@ -171,7 +172,7 @@
     "typescript": "^5.8.3",
     "typescript-eslint": "^8.38.0",
     "vite": "^7.3.6",
-    "vitest": "^4.0.18"
+    "vitest": "^4.1.11"
   },
   "overrides": {
     "axios": "^1.18.0"
