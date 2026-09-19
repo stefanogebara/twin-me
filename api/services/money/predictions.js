@@ -24,7 +24,7 @@ import { spendingRule } from './spending.js';
 import { forecast, listTransactions, listFacts, months, scorePredictions as scoreCharges } from './store.js';
 import { safeToSpend } from './allowance.js';
 import { TWIN_PREDICTION_CONFIDENCE } from './brain.js';
-import { dayForecast, calibrate } from './calibration.js';
+import { dayForecast, calibrate, carriedWiden } from './calibration.js';
 import { dayIn } from './zone.js';
 import { currentFigureScores } from './figureScoreStore.js';
 import { money } from './currency.js';
@@ -101,12 +101,14 @@ export function summarise(figures = [], charges = []) {
   const monthsScored = scored.filter((p) => p.kind === 'month_total').sort((a, b) => (a.predicted_for < b.predicted_for ? 1 : -1));
   const days = scored.filter((p) => p.kind === 'safe_today');
   const band = calibrate(scored.filter((p) => p.kind === 'day_total'));
+  const carried = band.days === 0 ? carriedWiden(figures) : null;
+  if (carried) { band.widen = carried.widen; band.carried_from = carried.from; }
   const m = monthsScored[0];
   return {
     charges: { expected: scoredCharges.length, arrived: arrived.length, on_day: onDay.length, on_amount: onAmount.length },
     last_month: m ? { month: m.predicted_for.slice(0, 7), said: Number(m.value), actual: Number(m.actual), low: Number(m.low), high: Number(m.high), within_band: Boolean(m.hit) } : null,
     days: { counted: days.length, kept: days.filter((p) => p.hit).length },
-    band: { days: band.days, coverage: band.coverage, widen: band.widen, trusted: band.trusted },
+    band: { days: band.days, coverage: band.coverage, widen: band.widen, trusted: band.trusted, carried_from: band.carried_from || null },
   };
 }
 

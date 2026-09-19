@@ -34,6 +34,13 @@ const router = express.Router();
 export const PLACE_LOOKUPS_PER_RUN = 1;
 /** The run before this hour (UTC) is the day's first, and recomputes every reading. */
 export const DAILY_REFRESH_BEFORE_HOUR = 8;
+/* How the minute is shared. The bank read ran until 45 seconds and the loop that writes
+   the day down and scores it ran last, on whatever was left: on 19 September the read took
+   37 seconds, the loop's gate was shut, and the day was not written down -- silently,
+   because a skip was not an error. The bank now stops at 30 so the loop always has the
+   time it needs, and a read that is cut short continues next hour from its checkpoint. */
+export const PULL_BY_MS = 30000;
+export const LEARN_BY_MS = 50000;
 export const isDailyRun = (now = new Date()) => now.getUTCHours() < DAILY_REFRESH_BEFORE_HOUR;
 /** Merchants looked up on the day's first run whether or not the bank had news. */
 export const DAILY_PLACE_LOOKUPS = 1;
@@ -57,13 +64,15 @@ router.all('/', async (req, res) => {
     let failed = 0;
     let partial = 0;
     let processed = 0;
+    let learned = 0;
+    let learnSkipped = 0;
     for (const userId of userIds) {
       if (Date.now()-startedAt > 35000) break; // unstarted leases expire for the next hourly run
       processed++;
       let fresh = 0;
       let outcome = 'ok';
       try {
-        const pulled = await pullBankFeed(userId, { deadline: Math.min(startedAt+45000,Date.now()+15000) });
+        const pulled = await pullBankFeed(userId, { deadline: Math.min(startedAt+PULL_BY_MS,Date.now()+15000) });
         const expectedPause = new Set(['continuation_pending', 'time_budget_exhausted', 'already_reading', 'feed_budget_spent']);
         if (pulled.some((p) => p.error && !expectedPause.has(p.error))) { outcome = 'error'; failed++; }
         else if (pulled.some((p) => p.error || p.complete === false)) { outcome = 'partial'; partial++; }
@@ -114,14 +123,21 @@ router.all('/', async (req, res) => {
       /* Whether or not the bank had news, a day has passed: what it said for today is
          written down, and what it said for yesterday is scored against what happened. */
       await finishBankFeedJob(userId,outcome);
-      if (Date.now()-startedAt < 35000) await learnFromLedger(userId)
-        .catch((e) => log.warn('learning after pull failed', { userId, error: e.message }));
+      if (Date.now()-startedAt < LEARN_BY_MS) {
+        await learnFromLedger(userId)
+          .then(() => { learned++; })
+          .catch((e) => log.warn('learning after pull failed', { userId, error: e.message }));
+      } else {
+        /* Said out loud: a day that was not written down looks exactly like a quiet day. */
+        learnSkipped++;
+        log.warn('learning skipped: no time left', { userId, elapsedMs: Date.now()-startedAt });
+      }
     }
 
     const elapsed = Date.now() - startedAt;
-    log.info('money pull complete', { users: userIds.length, read, created, skipped, refreshed, daily, elapsedMs: elapsed });
+    log.info('money pull complete', { users: userIds.length, read, created, skipped, refreshed, learned, learnSkipped, daily, elapsedMs: elapsed });
     const success = failed === 0;
-    const summary = { users: userIds.length, read, created, skipped, refreshed, failed, partial, daily, deferred: userIds.length - processed };
+    const summary = { users: userIds.length, read, created, skipped, refreshed, failed, partial, learned, learnSkipped, daily, deferred: userIds.length - processed };
     await logCronExecution('money-pull', success ? 'success' : 'error', elapsed, summary);
     return res.status(success ? 200 : 503).json({ success, ...summary, elapsedMs: elapsed });
   } catch (err) {

@@ -429,7 +429,16 @@ describe('names the bank cut off', () => {
 });
 
 describe('failing soft', () => {
-  it('is null on a non-200, a rate limit, a malformed body and a thrown fetch', async () => {
+  /* A provider that answered "nothing here" and a provider that was never reached are two
+     different answers. Both were null, and the caller cached the null as a miss it would never
+     revisit, so a five-second timeout marked a shop unknown for ever (2026-09-19). */
+  it('is null when the provider answers that nothing is there', async () => {
+    const empty = async () => ok({ places: [] });
+    expect(await lookupPlace({ name: 'Mercadona', fetchImpl: empty, env: { GOOGLE_PLACES_API_KEY: 'k' } })).toBeNull();
+    const none = async () => ok([]);
+    expect(await lookupPlace({ name: 'Mercadona', fetchImpl: none, env: {}, now: () => 1000, sleepImpl: async () => {} })).toBeNull();
+  });
+  it('refuses to answer on a non-200, a rate limit, a malformed body and a thrown fetch', async () => {
     const cases = [
       async () => ({ ok: false, status: 500, json: async () => ({}) }),
       async () => ({ ok: false, status: 429, json: async () => ({}) }),
@@ -443,8 +452,8 @@ describe('failing soft', () => {
     const now = () => 1000;
     const sleepImpl = async () => {};
     for (const fetchImpl of cases) {
-      expect(await lookupPlace({ name: 'Mercadona', fetchImpl, env: { GOOGLE_PLACES_API_KEY: 'k' } })).toBeNull();
-      expect(await lookupPlace({ name: 'Mercadona', fetchImpl, env: {}, now, sleepImpl })).toBeNull();
+      await expect(lookupPlace({ name: 'Mercadona', fetchImpl, env: { GOOGLE_PLACES_API_KEY: 'k' } })).rejects.toMatchObject({ code: 'place_lookup_failed' });
+      await expect(lookupPlace({ name: 'Mercadona', fetchImpl, env: {}, now, sleepImpl })).rejects.toMatchObject({ code: 'place_lookup_failed' });
     }
   });
 

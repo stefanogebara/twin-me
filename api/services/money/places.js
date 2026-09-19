@@ -339,17 +339,29 @@ function cityFromAddress(address) {
   return m ? m[1].trim() : null;
 }
 
+/**
+ * A request that did not get an answer is not a provider saying "nothing here". Until
+ * 2026-09-19 both were null, and the caller wrote the null down as a miss it would never ask
+ * about again: a five-second timeout marked a shop unknown for ever. A provider's own answer
+ * comes back as its body; anything less throws, with a code the caller can read.
+ */
 async function fetchJson(fetchImpl, url, init) {
+  let res;
   try {
-    const res = await fetchImpl(url, { ...init, signal: init?.signal || AbortSignal.timeout(5000) });
-    if (!res || typeof res.json !== 'function') return null;
-    if (res.ok === false) return null;
-    if (typeof res.status === 'number' && (res.status < 200 || res.status >= 300)) return null;
-    return await res.json();
-  } catch {
-    /* A DNS failure, an abort, a body that is not JSON: all the same answer. */
-    return null;
+    res = await fetchImpl(url, { ...init, signal: init?.signal || AbortSignal.timeout(5000) });
+  } catch (error) {
+    throw unreached(`request failed: ${error?.message || error}`);
   }
+  if (!res || typeof res.json !== 'function') throw unreached('no response');
+  if (res.ok === false || (typeof res.status === 'number' && (res.status < 200 || res.status >= 300))) {
+    throw unreached(`status ${res.status ?? '?'}`);
+  }
+  try { return await res.json(); } catch { throw unreached('body was not JSON'); }
+}
+function unreached(why) {
+  const err = new Error(`place provider unreached: ${why}`);
+  err.code = 'place_lookup_failed';
+  return err;
 }
 
 async function googleSearch({ merchant, city, country, key, fetchImpl, bias }) {
@@ -381,7 +393,10 @@ async function googleSearch({ merchant, city, country, key, fetchImpl, bias }) {
     body: JSON.stringify(body),
   });
 
-  const hit = Array.isArray(data?.places) ? data.places[0] : null;
+  /* A 200 whose body is not the provider's shape -- a captive portal, an HTML error page --
+     is not the provider saying "nothing here". Nothing here is an object with no places. */
+  if (!data || typeof data !== 'object' || Array.isArray(data)) throw unreached('unexpected body');
+  const hit = Array.isArray(data.places) ? data.places[0] : null;
   if (!hit) return null;
   const lat = Number(hit.location?.latitude);
   const lon = Number(hit.location?.longitude);
@@ -425,7 +440,8 @@ async function nominatimSearch({ merchant, city, country, fetchImpl, now, sleepI
     headers: { 'User-Agent': NOMINATIM_USER_AGENT, 'Accept-Language': 'es' },
   });
 
-  const hit = Array.isArray(rows) ? rows[0] : null;
+  if (!Array.isArray(rows)) throw unreached('unexpected body');
+  const hit = rows[0] || null;
   if (!hit) return null;
   const lat = Number(hit.lat);
   const lon = Number(hit.lon);

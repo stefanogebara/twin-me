@@ -124,6 +124,29 @@ export function intervalScore(low, high, actual, alpha = ALPHA) {
  * @param {object} [opts]        { alpha = ALPHA, now }
  * @returns {{ widen: number, days: number, coverage: number|null, interval_score: number|null, trusted: boolean }}
  */
+/**
+ * The widening the band was last issued with, read back off the row it was issued for.
+ *
+ * A band with no scored days has earned nothing, and after the settling rule of 18 September
+ * that is the state for four days after every correction to the ledger: the widening went
+ * from 50,19 EUR to nothing the moment the ledger was repaired, and the day's range forgot
+ * everything it had learned. The widening is written on every row at issue time
+ * (issued_low, issued_high), so the last one can be carried until a new one exists. It is
+ * carried, not earned, and the caller says which.
+ * @param {object[]} figureRows  money_figure_scores rows of any kind, scored or not
+ * @returns {{ widen: number, from: string } | null}
+ */
+export function carriedWiden(figureRows = []) {
+  const issued = (figureRows || [])
+    .filter((r) => r && r.kind === 'day_total' && r.issued_high != null && r.high != null)
+    .sort((a, b) => (String(a.predicted_on) < String(b.predicted_on) ? 1 : -1));
+  for (const r of issued) {
+    const widen = r2(Number(r.issued_high) - Number(r.high));
+    if (widen > 0) return { widen, from: r.predicted_on };
+  }
+  return null;
+}
+
 export function calibrate(scoredDays = [], opts = {}) {
   const alpha = opts.alpha ?? ALPHA;
   const rows = (scoredDays || [])

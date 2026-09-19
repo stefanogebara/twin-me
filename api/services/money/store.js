@@ -20,7 +20,7 @@ import { projectMonth } from './projection.js';
 import { fetchTransactions, toSighting, distinctPending, fetchBalances } from './feeds/enableBanking.js';
 import { readLedger, monthSegments } from './analyst.js';
 import { spendingRule, markCounted, personRoles } from './spending.js';
-import { calibrate, dayStrip } from './calibration.js';
+import { calibrate, carriedWiden, dayStrip } from './calibration.js';
 import { poolMerchantPriors } from './priors.js';
 import { nudgeFindings, retiredKinds, NUDGE_KINDS } from './nudges.js';
 import { safeToSpend } from './allowance.js';
@@ -144,6 +144,11 @@ export async function forecast(userId, now = new Date()) {
   const { figures } = await currentFigureScores(userId, { now });
   const figureDays = figures.filter((r) => r.kind === 'day_total');
   const band = calibrate((figureDays || []).filter((r) => r.scored_at));
+  /* No scored day means no widening, which after a correction to the ledger is the state for
+     four days while the days settle again. The band keeps the widening it was last issued
+     with until it has earned a new one, and says that it is carried. */
+  const carried = band.days === 0 ? carriedWiden(figureDays) : null;
+  if (carried) { band.widen = carried.widen; band.carried_from = carried.from; }
 
   /* What the calendar expects before month end, read from the snapshot kept at the last
      calendar read, so this costs no request to Google. It goes into the projection itself:
@@ -152,7 +157,7 @@ export async function forecast(userId, now = new Date()) {
   const cal = calendarForecast(facts, { now });
   const expected = (cal.calendar_items || []).map((i) => ({ date: i.day, amount: i.amount, label: i.title }));
   const result = projectMonth({ transactions: rows, recurring: rec, commitments, income, shareOf, isSpending, isIncome, now, widen: band.widen, expected });
-  result.band_calibration = { widen: band.widen, days: band.days, coverage: band.coverage, trusted: band.trusted };
+  result.band_calibration = { widen: band.widen, days: band.days, coverage: band.coverage, trusted: band.trusted, carried_from: band.carried_from || null };
   /* The last thirty days as marks, with the range the twin gave each one and whether it
      held, and the range it has given tomorrow, widened by what it has earned so far. */
   result.days = dayStrip(rows, band.record, { now, isSpending });
@@ -817,6 +822,7 @@ export async function enrichPlaces(userId, { limit = 12 } = {}) {
     .sort((a, b) => spend.get(b) - spend.get(a));
 
   let placed = 0;
+  let unreached = 0;
   const batch = todo.slice(0, limit);
   for (const key of batch) {
     const name = names.get(key) || key;
@@ -826,7 +832,13 @@ export async function enrichPlaces(userId, { limit = 12 } = {}) {
     const brand = categoryFromBrand(name);
     let place = null;
     try { place = await lookupPlace({ name, city: cities.get(key) || null, country: 'ES' }); }
-    catch (error) { log.warn(`place lookup failed (${name})`, { error: error.message }); }
+    catch (error) {
+      /* The provider was not reached, so nothing is known either way. Written down as a miss
+         it would never be asked again; left alone, the next run asks. */
+      log.warn(`place lookup failed (${name})`, { error: error.message });
+      unreached += 1;
+      continue;
+    }
     /* A miss is recorded too, so the next run does not ask the same question again. */
     /* A weak provider answer is worse than none: "Abada" came back as "Calle de la Abada",
        a street. Below half confidence the lookup is recorded and its category dropped. */
@@ -854,7 +866,7 @@ export async function enrichPlaces(userId, { limit = 12 } = {}) {
     if (error) log.warn(`place cache write failed (${key}): ${error.message}`);
     else if (place || brand) placed += 1;
   }
-  return { looked: batch.length, placed, left: Math.max(0, todo.length - batch.length), provider: providerFor() };
+  return { looked: batch.length, placed, unreached, left: Math.max(0, todo.length - batch.length), provider: providerFor() };
 }
 
 /**
