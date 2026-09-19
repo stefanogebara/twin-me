@@ -13,6 +13,7 @@ import {
 import { useAnalytics } from '@/contexts/AnalyticsContext';
 import '@/styles/presence-cosmos.css';
 import LedgerOrb from '../../components/LedgerOrb';
+import { VoiceBeam } from 'voice-glow';
 import { orbFor } from './callOrb';
 import '@/styles/presence-call.css';
 
@@ -87,6 +88,8 @@ export default function PresenceCallPage() {
   const savedRef = useRef(false);
   const openedRef = useRef(false);
   const orbRef = useRef<HTMLDivElement | null>(null);
+  /** 0–1, her voice and the presence's, read by the glow once per frame. */
+  const levelRef = useRef(0);
   const volumeTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const panelRef = useRef<HTMLDivElement | null>(null);
 
@@ -135,6 +138,7 @@ export default function PresenceCallPage() {
       volumeTimerRef.current = null;
     }
     orbRef.current?.style.setProperty('--orb', '1');
+    levelRef.current = 0;
     setOrbMode('idle');
   }, []);
 
@@ -148,6 +152,7 @@ export default function PresenceCallPage() {
         const output = session.getOutputVolume();
         const input = session.getInputVolume();
         orb.style.setProperty('--orb', String(1 + Math.min(output * 0.5 + input * 0.22, 0.42)));
+        levelRef.current = Math.min(1, output * 1.3 + input * 1.1);
         setOrbMode(output > 0.06 ? 'speaking' : input > 0.06 ? 'listening' : 'idle');
       } catch {
         /* session mid-teardown */
@@ -362,8 +367,35 @@ export default function PresenceCallPage() {
     </div>
   ) : null;
 
+  // The voice glow (voice-glow, libraries.dev): a light that rises from the bottom
+  // of her screen with the voices while the call is live, and gathers into a
+  // travelling beam while the call connects or the conversation is being kept.
+  const glowActive = state === 'connecting' || state === 'live' || state === 'saving';
+
   return (
     <main className="presence-cosmos cal pc-call" id="main-content">
+      <VoiceBeam
+        type="mobile"
+        theme="light"
+        colorVariant="mono"
+        staticColors
+        colors={['#251f21', '#585254', '#6c6867', '#969394']}
+        bandColors={{ core: '#251f21', above: '#585254', mid: '#6c6867', below: '#969394' }}
+        bandAberration={0}
+        brightness={1.7}
+        saturation={0.3}
+        coreLight={0}
+        strength={1}
+        level={() => levelRef.current}
+        active={glowActive}
+        processing={state === 'connecting' || state === 'saving'}
+        idle={0.14}
+        distortion={0.25}
+        className="pc-call-glow"
+        aria-hidden="true"
+      >
+        <span />
+      </VoiceBeam>
       <div className="pc-call-brand"><Mark /> Presença</div>
 
       <section className={`pc-call-stage ${state === 'live' ? 'is-live' : ''}`} aria-live="polite">

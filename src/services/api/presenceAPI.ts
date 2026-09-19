@@ -295,7 +295,7 @@ export interface CompanionOverview {
   role: 'companion';
   presence: Pick<PresenceRecord, 'id' | 'cared_for_name' | 'caller_name' | 'relationship' | 'status' | 'call_hour' | 'call_days' | 'call_timezone'>;
   notes: PresenceNote[];
-  needs: Array<{ id: string; created_at: string; needs_family: string[]; urgency: string | null }>;
+  needs: Array<{ id: string; started_at: string; needs_family: string[]; urgency: string | null }>;
 }
 
 export interface PresenceOverview {

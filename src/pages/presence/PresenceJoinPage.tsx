@@ -66,6 +66,10 @@ export default function PresenceJoinPage() {
         <div className="pc-topbar">
           <Link className="pc-side-brand" to="/presence" aria-label="Presença"><Mark /></Link>
         </div>
+        {/* The shell is a two-column grid; the brand column keeps the page where the others sit. */}
+        <aside className="pc-side" id="dsh-nav">
+          <Link className="pc-side-brand" to="/presence" aria-label="Presença"><Mark /></Link>
+        </aside>
         <div className="pc-col">
           {state.kind === 'joining' && (
             <div className="pc-loading" role="status" aria-live="polite">
@@ -79,7 +83,7 @@ export default function PresenceJoinPage() {
               <h1 className="pc-apphead-title">Você entrou na Presença de {state.name}.</h1>
               <p className="pc-apphead-line">{ROLE_LINE[state.role]}</p>
               <div className="dsh-form-actions">
-                <Link className="pc-btn" to="/presence/home">Abrir</Link>
+                <Link className="pc-btn pc-btn--primary" to="/presence/home">Abrir a Presença dela</Link>
               </div>
             </header>
           )}

@@ -138,6 +138,7 @@
     "unicornstudio-react": "^1.4.29-1",
     "unpdf": "^1.6.2",
     "vaul": "^0.9.9",
+    "voice-glow": "^0.2.0",
     "web-push": "^3.6.7",
     "ws": "^8.18.3",
     "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz",
