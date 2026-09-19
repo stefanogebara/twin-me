@@ -55,3 +55,18 @@ loading surface. Test-first, one commit per task, explicit paths.
 - [x] T9 `api/services/voiceProvider.js`: `startOutboundCall`, `getConversation`,
       `verifyWebhook` behind one interface; ElevenLabs is the only implementation;
       the cron and the webhook route import the adapter.
+
+## After the merge: the walkthrough of 2026-09-19 (presence/phase-3)
+- [x] Family page as owner, companion page and join page walked in a browser
+      with a local session (bootstrap token) and the stranger account.
+- [x] Companion needs list said "Invalid Date": conversations carry
+      `started_at`, not `created_at`.
+- [x] Join page sat in the sidebar column: the shell grid needs its brand aside.
+- [x] Her call link is a public route for the session-expired bounce
+      (`/call/` in PUBLIC_PREFIX): a stale family session on the same tablet
+      must never send her to a sign-in.
+- [x] voice-glow (libraries.dev, 0.2.0, MIT): `VoiceBeam type="mobile"` pinned
+      under her call page in the register's ink, rising with the voices while
+      the call is live, a travelling beam while connecting or saving.
+      `/preview/presence-voice` (dev only) drives it with a synthetic voice.
+      thinking-orbs is already at the current release (0.3.1, vendored).

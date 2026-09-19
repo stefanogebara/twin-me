@@ -49,7 +49,7 @@ const as = (userId) => `Bearer ${jwt.sign({ id: userId, email: `${userId}@x.test
 const OVERVIEW = {
   presence: ok({ ...PRESENCE, elder_phone: '+5511999990000', call_hour: 10, call_days: [1, 2, 3], call_timezone: 'America/Sao_Paulo', relationship: 'mother' }),
   people: ok([{ id: 'pp-1', name: 'Zé' }]), voice: ok(null), facts: ok([{ id: 'f-1' }]), notes: ok([{ id: 'n-1', body: 'oi' }]),
-  conversations: ok([{ id: 'c-1', created_at: '2026-09-18T13:00:00Z', summary: 'Falou do jardim.', transcript: [{ role: 'user', content: 'x' }], needs_family: ['Remédio acabou'], urgency: 'medium' }]),
+  conversations: ok([{ id: 'c-1', started_at: '2026-09-18T13:00:00Z', summary: 'Falou do jardim.', transcript: [{ role: 'user', content: 'x' }], needs_family: ['Remédio acabou'], urgency: 'medium' }]),
   error: null,
 };
 
@@ -86,7 +86,7 @@ describe('who may read the overview', () => {
     expect(res.body.role).toBe('companion');
     expect(res.body.presence).toEqual({ id: PRESENCE_ID, cared_for_name: 'Lurdes', caller_name: 'Ana', relationship: 'mother', status: 'active', call_hour: 10, call_days: [1, 2, 3], call_timezone: 'America/Sao_Paulo' });
     expect(res.body.notes).toEqual([{ id: 'n-1', body: 'oi' }]);
-    expect(res.body.needs).toEqual([{ id: 'c-1', created_at: '2026-09-18T13:00:00Z', needs_family: ['Remédio acabou'], urgency: 'medium' }]);
+    expect(res.body.needs).toEqual([{ id: 'c-1', started_at: '2026-09-18T13:00:00Z', needs_family: ['Remédio acabou'], urgency: 'medium' }]);
     for (const k of ['conversations', 'facts', 'people', 'voice', 'whatsapp', 'calls']) expect(res.body).not.toHaveProperty(k);
     expect(JSON.stringify(res.body)).not.toContain('Falou do jardim');
   });

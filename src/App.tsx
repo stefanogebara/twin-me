@@ -36,6 +36,7 @@ import NotFound from "./pages/NotFound";
 const CinematicFrame = import.meta.env.DEV ? lazyWithRetry(() => import("./pages/preview/CinematicFrame")) : () => null;
 const PresencePrototype = import.meta.env.DEV ? lazyWithRetry(() => import("./pages/preview/PresencePrototype")) : () => null;
 const PresenceDesignSystem = import.meta.env.DEV ? lazyWithRetry(() => import("./pages/preview/PresenceDesignSystem")) : () => null;
+const PresenceVoicePreview = import.meta.env.DEV ? lazyWithRetry(() => import("./pages/preview/PresenceVoicePreview")) : () => null;
 const StardustHero = import.meta.env.DEV ? lazyWithRetry(() => import("./components/landing/StardustHero")) : () => null;
 const StardustLanding = import.meta.env.DEV ? lazyWithRetry(() => import("./pages/StardustLanding")) : () => null;
 // Nocturne — design-system rebuild preview (design/nocturne branch). Public
@@ -211,6 +212,7 @@ const App = () => {
             <Route element={<Suspense fallback={<Wait line="" />}><Outlet /></Suspense>}>
             <Route path="/preview/stardust-hero" element={<div className="w-full min-h-screen" style={{ background: 'var(--background)' }}><StardustHero /></div>} />
             <Route path="/preview/stardust" element={<StardustLanding />} />
+            <Route path="/preview/presence-voice" element={<PresenceVoicePreview />} />
             <Route path="/nocturne" element={<Suspense fallback={<Wait line="" />}><NocturneLanding /></Suspense>} />
             {/* The register's living spec. /nocturne/system is its old address and keeps working. */}
             <Route path="/system" element={<Suspense fallback={<Wait line="" />}><NocturneSpec /></Suspense>} />

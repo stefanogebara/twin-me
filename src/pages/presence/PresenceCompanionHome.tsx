@@ -60,7 +60,7 @@ export default function PresenceCompanionHome({ overview, reload }: { overview: 
   const paused = presence.status === 'paused';
 
   const items = needs
-    .flatMap((n) => (n.needs_family || []).map((item) => ({ item, urgent: n.urgency === 'high', when: n.created_at })))
+    .flatMap((n) => (n.needs_family || []).map((item) => ({ item, urgent: n.urgency === 'high', when: n.started_at })))
     .sort((a, b) => Number(b.urgent) - Number(a.urgent))
     .slice(0, 8);
 

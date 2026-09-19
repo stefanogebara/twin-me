@@ -59,3 +59,10 @@ describe('isPublicRoute', () => {
     }
   });
 });
+
+describe('her call link is public (Presence, 2026-09-19)', () => {
+  it('never bounces a stale family session off /call/:token — she has no account', () => {
+    expect(isPublicRoute('/call/te2hCHJDIZDFEoo20fQ1njBBs2zSgHzF')).toBe(true);
+    expect(shouldBounceToExpiredAuth(true, '/call/te2hCHJDIZDFEoo20fQ1njBBs2zSgHzF')).toBe(false);
+  });
+});
