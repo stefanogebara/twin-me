@@ -15,10 +15,9 @@
  * @module oauthRateLimiter
  */
 
-import rateLimit from 'express-rate-limit';
-import { ipKeyGenerator } from 'express-rate-limit';
+import rateLimit, { ipKeyGenerator, MemoryStore } from 'express-rate-limit';
 import RedisStore from 'rate-limit-redis';
-import { createClient } from 'redis';
+import { getRedisClient, isRedisAvailable } from '../services/redisClient.js';
 import { createLogger } from '../services/logger.js';
 
 const log = createLogger('OAuthRateLimiter');
@@ -66,59 +65,45 @@ const RATE_LIMIT_CONFIG = {
 // Redis Store (Optional - for distributed systems)
 // =========================================================================
 
-let redisClient = null;
-let redisStore = null;
-
 /**
- * Initializes Redis client for distributed rate limiting
- * Falls back to in-memory if Redis is unavailable
+ * A store that is Redis when the API's one client is up and memory when it is not, decided
+ * on first use rather than at load (M3-3, 2026-09-19). The limiters are built when this
+ * module loads, and the Redis store used to be created afterwards by initializeRateLimiter,
+ * so no limiter ever held it: on Vercel every instance counted alone. It also used to open a
+ * second connection with the `redis` package beside the ioredis client every other module
+ * shares; rate-limit-redis takes that client through sendCommand. Each limiter has its own
+ * prefix, as each had its own memory.
  */
-async function initializeRedisStore() {
-  if (!process.env.REDIS_URL) {
-    log.warn('No REDIS_URL configured, using in-memory store');
-    return null;
+class SharedStore {
+  constructor(prefix) {
+    this.prefix = prefix;
+    this.memory = new MemoryStore();
+    this.redis = null;
+    this.localKeys = false;
   }
-
-  try {
-    redisClient = createClient({
-      url: process.env.REDIS_URL,
-      socket: {
-        reconnectStrategy: (retries) => {
-          if (retries > 10) {
-            log.error('Redis reconnection failed after 10 attempts');
-            return new Error('Redis connection failed');
-          }
-          return Math.min(retries * 100, 3000);
-        }
-      }
-    });
-
-    redisClient.on('error', (err) => {
-      log.error('Redis error', { error: err });
-    });
-
-    redisClient.on('connect', () => {
-      log.info('Redis connected for distributed rate limiting');
-    });
-
-    await redisClient.connect();
-
-    redisStore = new RedisStore({
-      client: redisClient,
-      prefix: 'oauth_rl:' // Rate limit key prefix
-    });
-
-    return redisStore;
-  } catch (error) {
-    log.error('Redis initialization failed', { error });
-    log.warn('Falling back to in-memory store');
-    return null;
+  init(options) {
+    this.options = options;
+    this.memory.init(options);
   }
+  backend() {
+    if (this.redis) return this.redis;
+    if (!isRedisAvailable()) return this.memory;
+    try {
+      const client = getRedisClient();
+      this.redis = new RedisStore({ sendCommand: (...args) => client.call(...args), prefix: this.prefix });
+      if (this.options) this.redis.init(this.options);
+      log.info('Rate limiting on the shared Redis client', { prefix: this.prefix });
+      return this.redis;
+    } catch (error) {
+      log.error('Redis store initialization failed, counting in memory', { error: error.message });
+      return this.memory;
+    }
+  }
+  async increment(key) { return this.backend().increment(key); }
+  async decrement(key) { return this.backend().decrement(key); }
+  async resetKey(key) { return this.backend().resetKey(key); }
+  async resetAll() { return this.backend().resetAll?.(); }
 }
-
-// =========================================================================
-// Key Generator Functions
-// =========================================================================
 
 /**
  * Generates rate limit key based on IP and optionally user ID
@@ -177,7 +162,7 @@ export const oauthAuthorizationLimiter = rateLimit({
   legacyHeaders: false, // Disable `X-RateLimit-*` headers
 
   // Use Redis store if available, otherwise in-memory (default)
-  ...(redisStore && { store: redisStore }),
+  store: new SharedStore('oauth_rl:auth:'),
 
   // Custom key generator (per-IP or per-user)
   keyGenerator: generateAuthorizationKey,
@@ -219,7 +204,7 @@ export const oauthCallbackLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
 
-  ...(redisStore && { store: redisStore }),
+  store: new SharedStore('oauth_rl:callback:'),
   keyGenerator: generateCallbackKey,
 
   skip: (req) => {
@@ -249,7 +234,7 @@ export const oauthRefreshLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
 
-  ...(redisStore && { store: redisStore }),
+  store: new SharedStore('oauth_rl:refresh:'),
   keyGenerator: generateRefreshKey,
 
   skip: (req) => {
@@ -286,7 +271,7 @@ export const globalOAuthLimiter = rateLimit({
   },
   standardHeaders: true,
   legacyHeaders: false,
-  ...(redisStore && { store: redisStore }),
+  store: new SharedStore('oauth_rl:global:'),
   keyGenerator: ipKeyGenerator,
 
   handler: (req, res) => {
@@ -313,17 +298,8 @@ export const globalOAuthLimiter = rateLimit({
  * Call this in server.js on startup
  */
 export async function initializeRateLimiter() {
-  log.info('Initializing OAuth rate limiting');
-
-  const store = await initializeRedisStore();
-
-  if (store) {
-    log.info('Using Redis distributed store');
-  } else {
-    log.warn('Using in-memory store (single-server only)');
-  }
-
   log.info('OAuth rate limiting initialized', {
+    store: isRedisAvailable() ? 'the shared Redis client' : 'memory until Redis is up (single-instance)',
     authorization: '10 requests / 15 minutes',
     callback: '20 requests / 15 minutes',
     refresh: '5 requests / 20 minutes',
@@ -335,11 +311,7 @@ export async function initializeRateLimiter() {
  * Cleanup rate limiter resources (call on server shutdown)
  */
 export async function shutdownRateLimiter() {
-  if (redisClient) {
-    log.info('Closing Redis connection');
-    await redisClient.quit();
-    log.info('Redis connection closed');
-  }
+  /* The shared client is closed by its own module; the stores hold no connection of their own. */
 }
 
 // =========================================================================
