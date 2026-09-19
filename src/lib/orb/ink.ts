@@ -39,3 +39,18 @@ export function inkOf(el: Element): { ink: Rgb; page: Rgb } {
     return { ink: INK, page: PAGE };
   }
 }
+
+/**
+ * A ground a surface declared for itself with --orb-ground (a photograph, where dots fading
+ * to white would look wrong). Null on the page, where the library's own grey is the design.
+ */
+export function groundOf(el: Element): { ink: Rgb; page: Rgb } | null {
+  try {
+    const cs = getComputedStyle(el);
+    const page = parseColor(cs.getPropertyValue('--orb-ground'));
+    if (!page) return null;
+    return { ink: parseColor(cs.color) || INK, page };
+  } catch {
+    return null;
+  }
+}

@@ -1,8 +1,13 @@
 /**
  * The orb: the ledger at work, in view.
  *
- * A dotted thought-orb (Jakub Antalik's thinking-orbs engine, vendored in src/lib/orb)
- * drawn in the register's warm ink. It has one meaning on every screen: real work is
+ * A dotted thought-orb (Jakub Antalik's thinking-orbs engine, vendored in src/lib/orb),
+ * drawn exactly as the library draws it: strictly monochrome, dark dots on a light page
+ * (Stefano, 2026-09-19: the exact design of libraries.dev/orbs). The substrate is pinned
+ * light rather than read from the page, because the app stamps data-theme="dark" while
+ * rendering the light register, and the library's auto rule would paint white dots on a
+ * white page. A surface that declares --orb-ground (a photograph) is the one exception:
+ * there the dots fade toward that ground. It has one meaning on every screen: real work is
  * running right now. It is never decoration, never shown at rest, and there is one per
  * screen at most. Each state names the kind of work:
  *
@@ -22,7 +27,7 @@
  */
 import { useEffect, useRef } from 'react';
 import { MODE_DRAWS, resolvePreset } from '../lib/orb/engine.js';
-import { inkOf } from '../lib/orb/ink';
+import { groundOf } from '../lib/orb/ink';
 import { useT } from '@/lib/i18n';
 
 export type OrbState = 'working' | 'searching' | 'solving' | 'listening' | 'connecting' | 'weaving' | 'composing' | 'breathing' | 'shaping';
@@ -39,25 +44,29 @@ type Props = {
   /** A multiplier on the state's own tempo. */
   speed?: number;
   paused?: boolean;
+  /** The library's substrate. Light is the register; dark only on a surface that is dark. */
+  theme?: 'light' | 'dark';
   /** What a screen reader hears; the state's word when not given. */
   label?: string;
   className?: string;
 };
 
 
-export default function LedgerOrb({ state = 'working', size = 20, speed = 1, paused = false, label, className }: Props) {
+export default function LedgerOrb({ state = 'working', size = 20, speed = 1, paused = false, theme = 'light', label, className }: Props) {
   const t = useT();
   const ref = useRef<HTMLCanvasElement | null>(null);
 
   useEffect(() => {
     const canvas = ref.current;
     if (!canvas) return;
-    const ctx = canvas.getContext('2d') as (CanvasRenderingContext2D & { __orb?: { ink: number[]; page: number[] } }) | null;
+    const ctx = canvas.getContext('2d') as (CanvasRenderingContext2D & { __orb?: { ink: number[]; page: number[] }; __theme?: 'light' | 'dark' }) | null;
     if (!ctx) return;
     const dpr = Math.min(2, (typeof devicePixelRatio === 'number' && devicePixelRatio) || 1);
     canvas.width = Math.round(size * dpr);
     canvas.height = Math.round(size * dpr);
-    ctx.__orb = inkOf(canvas);
+    const ground = groundOf(canvas);
+    if (ground) ctx.__orb = ground; else delete ctx.__orb;
+    ctx.__theme = theme;
     const preset = resolvePreset(state, size >= 40 ? 64 : 20);
     const draw = MODE_DRAWS[preset.mode];
     const tempo = preset.speed * speed;
@@ -84,7 +93,7 @@ export default function LedgerOrb({ state = 'working', size = 20, speed = 1, pau
     document.addEventListener('visibilitychange', onVisibility);
     if (!io) start();
     return () => { stop(); io?.disconnect(); document.removeEventListener('visibilitychange', onVisibility); };
-  }, [state, size, speed, paused]);
+  }, [state, size, speed, paused, theme]);
 
   return (
     <canvas
