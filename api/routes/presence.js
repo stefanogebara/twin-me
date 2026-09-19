@@ -88,6 +88,27 @@ const PATCHABLE_FIELDS = ['cared_for_name', 'relationship', 'caller_name', 'tone
 // Her phone and the call schedule (Phase 1): validated apart from the text fields.
 const SCHEDULE_FIELDS = ['elder_phone', 'call_hour', 'call_days', 'call_timezone'];
 const E164_RE = /^\+[1-9][0-9]{7,14}$/;
+// The emergency contact (Phase 2, T8): a name she hears, a phone the family keeps.
+const EMERGENCY_FIELDS = ['emergency_name', 'emergency_phone'];
+
+/** "+55 (11) 99999-0000" -> "+5511999990000"; null clears; anything else is invalid. */
+function parseEmergencyPatch(body) {
+  const patch = {};
+  if (body.emergency_name !== undefined) {
+    patch.emergency_name = body.emergency_name === null ? null : clip(String(body.emergency_name).trim(), 120) || null;
+  }
+  if (body.emergency_phone !== undefined) {
+    if (body.emergency_phone === null || body.emergency_phone === '') {
+      patch.emergency_phone = null;
+    } else {
+      const digits = String(body.emergency_phone).replace(/[^\d+]/g, '');
+      const phone = digits.startsWith('+') ? `+${digits.slice(1).replace(/\+/g, '')}` : `+${digits}`;
+      if (!E164_RE.test(phone)) return { error: 'Telefone inválido: use o formato internacional, +55 11 99999 0000' };
+      patch.emergency_phone = phone;
+    }
+  }
+  return { patch };
+}
 const TIMEZONES = new Set(typeof Intl.supportedValuesOf === 'function' ? Intl.supportedValuesOf('timeZone') : []);
 
 /** "+55 (11) 99999-0000" -> "+5511999990000"; null clears; anything else is invalid. */
@@ -389,6 +410,11 @@ router.patch('/:id', authenticateUser, async (req, res) => {
       const schedule = parseSchedulePatch(req.body);
       if (schedule.error) return res.status(400).json({ success: false, error: schedule.error });
       Object.assign(patch, schedule.patch);
+    }
+    if (EMERGENCY_FIELDS.some((field) => req.body?.[field] !== undefined)) {
+      const emergency = parseEmergencyPatch(req.body);
+      if (emergency.error) return res.status(400).json({ success: false, error: emergency.error });
+      Object.assign(patch, emergency.patch);
     }
     if (Object.keys(patch).length === 0) {
       return res.status(400).json({ success: false, error: 'No patchable fields provided' });

@@ -31,6 +31,7 @@ import {
   updateCallByConversation,
   markQueuedNotesDelivered,
   createCall,
+  listCallsSince,
 } from '../services/presenceStore.js';
 import { compileCallBrief } from '../services/presenceCallBrief.js';
 import { summarizeConversation } from '../services/presenceSummarizer.js';
@@ -152,9 +153,37 @@ async function handleInitiationFailure(data) {
   if (call?.attempt >= 2 && status !== 'failed' && call.presence_id) {
     const { data: presence, error: presenceError } = await findActivePresenceById(call.presence_id);
     if (presenceError) throw presenceError;
-    if (presence) return { received: true, after: () => relayNoAnswer(presence) };
+    if (presence) {
+      const days = await unansweredDays(presence.id);
+      return { received: true, after: () => relayNoAnswer(presence, { days }) };
+    }
   }
   return { received: true };
+}
+
+/**
+ * How many days in a row, today included, she has not answered (Phase 2, T8):
+ * a second day is the family's cue to go and look. Counted on the UTC date of
+ * each dial, which is the same day for every hour Brazil calls at; a read that
+ * fails counts as today only, and is logged.
+ */
+async function unansweredDays(presenceId) {
+  const since = new Date(Date.now() - 4 * 86400e3).toISOString();
+  const { data, error } = await listCallsSince([presenceId], since);
+  if (error) { log.error('Calls not read for the no-answer count', { presenceId, error: error.message }); return 1; }
+  const byDay = new Map();
+  for (const c of data || []) {
+    const day = String(c.scheduled_for).slice(0, 10);
+    byDay.set(day, (byDay.get(day) || false) || ['answered', 'completed'].includes(c.status));
+  }
+  let days = 0;
+  for (let i = 0; i < 4; i += 1) {
+    const day = new Date(Date.now() - i * 86400e3).toISOString().slice(0, 10);
+    if (!byDay.has(day) && i > 0) break;
+    if (byDay.get(day) === true) break;
+    days += 1;
+  }
+  return Math.max(1, days);
 }
 
 router.post('/post-call', async (req, res) => {

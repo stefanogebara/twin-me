@@ -84,3 +84,26 @@ describe('summarizeConversation', () => {
     expect(result.summary).toMatch(/nenhuma conversa/);
   });
 });
+
+describe('the distress tripwire (Phase 2, T8)', () => {
+  it('raises the urgency to high when she spoke of a fall, whatever the model said', async () => {
+    reply({ needs_family: [], urgency: 'normal' });
+    const fell = [{ role: 'agent', content: 'Como foi o dia?' }, { role: 'user', content: 'Tudo bem, só que eu caí no quintal de manhã.' }];
+
+    const result = await summarizeConversation('c-1', PRESENCE, fell);
+
+    expect(result.urgency).toBe('high');
+    expect(result.needsFamily).toEqual([expect.stringMatching(/caí/)]);
+    expect(store.saveConversationSummary).toHaveBeenCalledWith('c-1', expect.objectContaining({ urgency: 'high', needs_family: [expect.stringMatching(/caí/)] }));
+  });
+
+  it('keeps what the model found and only adds the urgency', async () => {
+    reply({ needs_family: ['Ela pediu o remédio.'], urgency: 'normal' });
+    const pain = [{ role: 'user', content: 'tô com muita dor na perna' }];
+
+    const result = await summarizeConversation('c-1', PRESENCE, pain);
+
+    expect(result.urgency).toBe('high');
+    expect(result.needsFamily).toEqual(['Ela pediu o remédio.']);
+  });
+});

@@ -33,10 +33,13 @@ export interface PresenceRecord {
   call_days?: number[];
   call_timezone?: string;
   elder_assent_at?: string | null;
+  /** Whom the presence says it will tell "agora" when she speaks of pain, a fall, or asks for help. */
+  emergency_name?: string | null;
+  emergency_phone?: string | null;
 }
 
 /** The fields the family may change on PATCH; the server validates each. */
-export type PresencePatch = Partial<Pick<PresenceRecord, 'cared_for_name' | 'relationship' | 'caller_name' | 'tone' | 'status' | 'elder_phone' | 'call_hour' | 'call_days' | 'call_timezone'>>;
+export type PresencePatch = Partial<Pick<PresenceRecord, 'cared_for_name' | 'relationship' | 'caller_name' | 'tone' | 'status' | 'elder_phone' | 'call_hour' | 'call_days' | 'call_timezone' | 'emergency_name' | 'emergency_phone'>>;
 
 export interface PresenceCall {
   id: string;

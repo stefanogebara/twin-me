@@ -221,6 +221,10 @@ export default function PresenceHome() {
   const [phoneOpen, setPhoneOpen] = useState(false);
   const [phoneDraft, setPhoneDraft] = useState('');
   const [phoneBusy, setPhoneBusy] = useState(false);
+  const [emergencyOpen, setEmergencyOpen] = useState(false);
+  const [emergencyName, setEmergencyName] = useState('');
+  const [emergencyPhone, setEmergencyPhone] = useState('');
+  const [emergencyBusy, setEmergencyBusy] = useState(false);
   const [scheduleOpen, setScheduleOpen] = useState(false);
   const [hourDraft, setHourDraft] = useState(DEFAULT_HOUR);
   const [daysDraft, setDaysDraft] = useState<number[]>(WEEKDAYS);
@@ -561,6 +565,31 @@ export default function PresenceHome() {
     setPhoneBusy(false);
   }
 
+  function openEmergencyEditor() {
+    setEmergencyName(presence.emergency_name || '');
+    setEmergencyPhone(presence.emergency_phone || '');
+    setError('emergency', null);
+    setEmergencyOpen((open) => !open);
+  }
+
+  /** PATCH emergency_name and emergency_phone; null clears both. */
+  async function saveEmergency(clear = false) {
+    setEmergencyBusy(true);
+    setError('emergency', null);
+    try {
+      await presenceAPI.patch(presence.id, clear
+        ? { emergency_name: null, emergency_phone: null }
+        : { emergency_name: emergencyName.trim() || null, emergency_phone: compactPhone(emergencyPhone) || null });
+      trackEvent('presence_emergency_saved', { removed: clear });
+      setEmergencyOpen(false);
+      await load();
+    } catch (err) {
+      const serverLine = err instanceof PresenceApiError && err.status === 400 && !/^HTTP \d+$/.test(err.message);
+      setError('emergency', serverLine ? err.message : SAVE_FAILED);
+    }
+    setEmergencyBusy(false);
+  }
+
   function openScheduleEditor() {
     setHourDraft(callHour);
     setDaysDraft(callDays);
@@ -840,6 +869,41 @@ export default function PresenceHome() {
               )}
               {!phoneOpen ? errorRow('phone') : null}
 
+              <li className="pc-row">
+                <span className="pc-row-icon" aria-hidden="true"><AlertCircle /></span>
+                <div className="pc-row-text">
+                  <p className="pc-row-title">Contato de emergência</p>
+                  <p className="pc-row-line">{presence.emergency_name ? `Se ela falar de dor forte ou queda, ela ouve que ${presence.emergency_name} vai saber agora.` : 'Quem ela ouve que vai saber, se falar de dor forte ou queda.'}</p>
+                </div>
+                {isOwner ? (
+                  <div className="pc-row-action">
+                    <button className="pc-btn pc-btn--ghost" onClick={openEmergencyEditor} aria-expanded={emergencyOpen} aria-controls="dsh-emergency-form">
+                      {presence.emergency_name ? 'Alterar' : 'Definir'}
+                    </button>
+                  </div>
+                ) : <span />}
+              </li>
+              {emergencyOpen && (
+                <li className="pc-subrow dsh-form" id="dsh-emergency-form">
+                  <label className="pc-field">
+                    <span className="pc-field-label">Nome, como ela conhece</span>
+                    <input className="pc-input" type="text" value={emergencyName} placeholder="Ana" onChange={(e) => setEmergencyName(e.target.value)} />
+                  </label>
+                  <label className="pc-field">
+                    <span className="pc-field-label">Telefone</span>
+                    <input className="pc-input" type="tel" inputMode="tel" value={emergencyPhone} placeholder="+55 11 98888 7777" onChange={(e) => setEmergencyPhone(e.target.value)} />
+                  </label>
+                  <div className="dsh-form-actions">
+                    {presence.emergency_name ? (
+                      <button className="pc-btn pc-btn--ghost" disabled={emergencyBusy} onClick={() => saveEmergency(true)}>Remover</button>
+                    ) : null}
+                    <button className="pc-btn pc-btn--ghost" disabled={emergencyBusy || !emergencyName.trim()} onClick={() => saveEmergency()}>
+                      {emergencyBusy ? <Loader2 className="pc-spin" size={14} /> : <Check size={14} />} Salvar
+                    </button>
+                  </div>
+                  {errors.emergency ? <p className="dsh-detail" role="alert">{errors.emergency}</p> : null}
+                </li>
+              )}
               <li className="pc-row">
                 <span className="pc-row-icon" aria-hidden="true"><Clock /></span>
                 <div className="pc-row-text">

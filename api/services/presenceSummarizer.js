@@ -10,6 +10,7 @@
 
 import { saveConversationSummary, addFacts, recordElderAssent, saveFact } from './presenceStore.js';
 import { createLogger } from './logger.js';
+import { distressTripwire } from './presenceTripwire.js';
 
 const log = createLogger('PresenceSummarizer');
 
@@ -87,6 +88,16 @@ Max 6 learned_facts, max 3 unknown_people. Never invent content not in the trans
     }
   } catch {
     summary = 'Conversa guardada. O resumo não saiu desta vez.';
+  }
+
+  // The tripwire (Phase 2, T8): her own words about a fall, strong pain, or a cry
+  // for help make the call urgent even when the model called it normal. It only
+  // raises; when the model found nothing for the family, the phrase itself is the line.
+  const tripped = distressTripwire(transcript);
+  if (tripped.hit && urgency !== 'high') {
+    urgency = 'high';
+    if (needsFamily.length === 0) needsFamily = [`Ela falou "${tripped.phrase}" na ligação de hoje. Vale ligar para ela.`];
+    log.warn('Distress tripwire raised the urgency', { conversationId, phrase: tripped.phrase });
   }
 
   const { error: summaryError } = await saveConversationSummary(

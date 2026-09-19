@@ -223,3 +223,11 @@ describe('the members around her (Phase 2, T5)', () => {
     expect(store.queueNote).toHaveBeenCalledWith(expect.objectContaining({ presence_id: 'p-1', author_user_id: 'user-2', body: 'leva o casaco amanhã' }));
   });
 });
+
+describe('relayNoAnswer on the second day (Phase 2, T8)', () => {
+  it('asks the family to go and look', async () => {
+    store.listMemberWhatsApp.mockResolvedValue(ok([]));
+    await relayNoAnswer(PRESENCE, { days: 2 });
+    expect(wa.sendWhatsAppMessage).toHaveBeenCalledWith('+5511988887777', expect.stringMatching(/hoje nem ontem: dois dias sem atender/));
+  });
+});

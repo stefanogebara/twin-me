@@ -46,7 +46,7 @@ loading surface. Test-first, one commit per task, explicit paths.
       the existing `/facts`.
 
 ## Safety (README 8)
-- [ ] T8 Emergency contact on the presence (`emergency_name`, `emergency_phone`)
+- [x] T8 Emergency contact on the presence (`emergency_name`, `emergency_phone`)
       in the brief ("se ela falar de dor forte, diga que vai avisar a Ana
       agora"); a keyword tripwire at summary time that forces `urgency: high`;
       "no answer twice" already relays — add the second-day escalation.

@@ -135,14 +135,18 @@ export async function relayCall(presence, conversation) {
 }
 
 /** After the second attempt of the day went unanswered. */
-export async function relayNoAnswer(presence) {
+export async function relayNoAnswer(presence, { days = 1 } = {}) {
   const who = await recipients(presence);
   if (who.reason) return { sent: false, reason: who.reason };
   if (!who.family.length) return { sent: false, reason: 'no_channel' };
   const her = presence.cared_for_name?.trim() || 'ela';
+  // The second day in a row is different news: someone should go and look.
+  const text = days >= 2
+    ? `Não consegui falar com a ${her} hoje nem ontem: ${days === 2 ? 'dois dias' : `${days} dias`} sem atender. Vale ligar para ela, ou pedir para alguém passar lá.`
+    : `Não consegui falar com a ${her} hoje: ela não atendeu nas duas tentativas.`;
   let first = null;
   for (const phone of who.family) {
-    const result = await sendWhatsAppMessage(phone, `Não consegui falar com a ${her} hoje: ela não atendeu nas duas tentativas.`);
+    const result = await sendWhatsAppMessage(phone, text);
     if (!result?.success) { log.error('No-answer message not sent', { presenceId: presence.id, error: result?.error }); continue; }
     if (!first) first = result;
   }
