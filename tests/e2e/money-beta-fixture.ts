@@ -22,7 +22,7 @@ const data={
 };
 
 export async function moneyFixture(page: Page, { firstVisit = false } = {}) {
-  const state = { failing: false, empty: false, paginated: false, advanced: true, statementFailed: false, changed: false, offer: false, interrupted: false, cards: false, cardTypes: {} as Record<string,string>, imports: [] as string[], accountCreations: 0 };
+  const state = { failing: false, empty: false, paginated: false, advanced: true, capabilitiesFailed: false, statementFailed: false, changed: false, offer: false, interrupted: false, cards: false, cardTypes: {} as Record<string,string>, imports: [] as string[], accountCreations: 0 };
   await page.addInitScript(({ user, firstVisit }) => {
     sessionStorage.setItem('oauth_bootstrap_token','audit.synthetic.token');
     sessionStorage.setItem('twinme_new_user_check_done_v1','1');
@@ -38,7 +38,7 @@ export async function moneyFixture(page: Page, { firstVisit = false } = {}) {
     if(path==='/auth/verify') return json({success:true,user});
     if(path==='/auth/refresh') return json({success:true,token:'audit.synthetic.token',user});
     if(state.failing && path.startsWith('/money/')) return json({success:false,error:'Synthetic outage'},503);
-    if(path==='/money/capabilities') return json({success:true,data:{bank:state.advanced,capture:state.advanced}});
+    if(path==='/money/capabilities') return state.capabilitiesFailed ? json({success:false,error:'Unavailable'},503) : json({success:true,data:{bank:state.advanced,capture:state.advanced}});
     if(path==='/money/bank/accounts' && state.empty) return json({success:true,data:[]});
     if(path==='/money/statement/accounts') {
       if(route.request().method()==='POST') {
@@ -62,7 +62,7 @@ export async function moneyFixture(page: Page, { firstVisit = false } = {}) {
       forecast, today: state.changed ? {...today,amount:29.99} : today,
       ledger: state.empty ? [] : state.paginated ? [...Array.from({length:200},(_,i)=>({...ledger[0],id:`tx${i}`})),{...ledger[0],id:'tx201',merchant_raw:'Last page cafe',merchant_name:'Last page cafe'}] : ledger,
       recurring: [], accounts: accountsNow(), months: data['/money/months'], readings: data['/money/readings'], categories: data['/money/categories'], usage: data['/money/usage'],
-      capabilities: {bank:state.advanced,capture:state.advanced}, inbox: data['/money/inbox'], facts: data['/money/facts'], failed: [],
+      capabilities: state.capabilitiesFailed ? null : {bank:state.advanced,capture:state.advanced}, inbox: data['/money/inbox'], facts: data['/money/facts'], failed: state.capabilitiesFailed ? ['capabilities'] : [],
     }});
     if (/^\/money\/bank\/accounts\/[^/]+\/cards\/\d{4}\/type$/.test(path)) {
       const parts=path.split('/'); const body=route.request().postDataJSON();

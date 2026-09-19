@@ -21,8 +21,8 @@ for (const [start, title] of [['banks', 'Connect your bank.'], ['phone', 'A paym
 }
 
 test('failed capability lookup keeps advanced onboarding closed', async ({page}) => {
-  const state = await moneyFixture(page, {firstVisit:true}); state.empty=true;
-  await page.route('**/api/money/capabilities', route => route.fulfill({status:503,contentType:'application/json',body:JSON.stringify({success:false,error:'Unavailable'})}));
+  /* The page carries the capabilities since M2-3; the failure is the part's, not the route's. */
+  const state = await moneyFixture(page, {firstVisit:true}); state.empty=true; state.capabilitiesFailed=true;
   await page.goto('/money/you?start=banks');
   await page.getByRole('button',{name:/Add a statement/}).click();
   await expect(page.getByLabel('Statement account',{exact:true})).toBeVisible();

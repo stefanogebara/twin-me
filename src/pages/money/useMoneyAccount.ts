@@ -40,7 +40,9 @@ function storedSnapshot(userId: string | null): Snapshot | null {
     /* A read the tab kept before a chat edit or a bank read moved the ledger is not painted:
        its revision is the one it was read at, and only the current one counts. On a reload
        the counter starts again at zero, which is the revision every stored read carries. */
-    return kept && kept.userId === userId && Array.isArray(kept.ledger) && kept.revision === moneyRevision() ? kept : null;
+    /* A reload is a request to read again: the kept read paints at once and the read follows
+       whatever its age, unlike a switch between views inside the half-minute window. */
+    return kept && kept.userId === userId && Array.isArray(kept.ledger) && kept.revision === moneyRevision() ? { ...kept, at: 0 } : null;
   } catch { return null; }
 }
 function storeSnapshot(snapshot: Snapshot) {
