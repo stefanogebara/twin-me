@@ -72,8 +72,11 @@ function Pending({ status, thinking, still }: { status: string; thinking?: strin
   const thought = (thinking || '').trim();
   return (
     <div className="mc-pending" aria-live="polite">
+      {/* The library's two sizes are two designs: 64 is its chat-avatar scale, 20 its inline
+          scale. While an answer is on its way the orb is the avatar (2026-09-19). */}
+      <LedgerOrb state={thought ? 'solving' : 'searching'} size={64} paused={still} label="" className="mc-pending-orb" />
+      <div className="mc-pending-body">
       <p className="mc-line-text is-pending">
-        <LedgerOrb state={thought ? 'solving' : 'searching'} size={20} paused={still} label="" />
         <span>{thought ? t('Working it out') : t(status)}</span>
       </p>
       {thought ? (
@@ -82,6 +85,7 @@ function Pending({ status, thinking, still }: { status: string; thinking?: strin
           <div className="mc-thinking-well"><p className="mc-thinking-text">{thought}</p></div>
         </motion.div>
       ) : null}
+      </div>
     </div>
   );
 }

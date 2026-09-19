@@ -4,10 +4,11 @@
  * Vendored from thinking-orbs 0.3.1 by Jakub Antalik (MIT, copyright 2026 Jakub Antalik;
  * https://github.com/Jakubantalik/Libraries.dev). The geometry is his, untouched: nine
  * hand-tuned states, two sizes (64 and 20), pure Math over (size, t, opts) so the phone
- * can draw the very same frames. One thing is ours: the ink. The published engine paints
- * neutral grey; here the painter asks the canvas for an ink and a page and lerps between
- * them, so the orb is drawn in the register's warm ink on the warm page and never in a
- * black the page does not have. See src/components/LedgerOrb.tsx for the only caller.
+ * can draw the very same frames. The ink is the library's own: strictly monochrome,
+ * M = round((dark ? 1 - white : white) * 255), dark dots on a light page (Stefano,
+ * 2026-09-19: the orbs use the exact design of libraries.dev/orbs). The one exception is a
+ * surface that declares its own ground (--orb-ground, a photograph), where the dots lerp
+ * toward that ground instead of toward white. See src/components/LedgerOrb.tsx.
  *
  * Do not edit the geometry here. If the upstream engine moves, re-vendor and re-apply the
  * two `inkAt` lines (search for it).
@@ -16,16 +17,19 @@
 
 /**
  * The colour of a dot or a line. `level` is the engine's own white level (0 = full ink,
- * 255 = gone into the page). A canvas that carries `__orb` = { ink:[r,g,b], page:[r,g,b] }
- * gets the warm lerp; any other canvas gets the upstream grey, so nothing here can break
- * a caller that did not opt in.
+ * 255 = gone into the page). The library's rule, exactly: neutral grey at that level on a
+ * light substrate, inverted on a dark one (`ctx.__theme === 'dark'`). A canvas that carries
+ * `__orb` = { ink, page } has declared its own ground (a photograph) and lerps toward it.
  */
-function inkAt(ctx, level, alpha) {
+export function inkAt(ctx, level, alpha) {
   const o = ctx.__orb;
-  if (!o) return `rgba(${level},${level},${level},${alpha})`;
-  const k = level / 255;
-  const ch = (i) => Math.round(o.ink[i] + (o.page[i] - o.ink[i]) * k);
-  return `rgba(${ch(0)},${ch(1)},${ch(2)},${alpha})`;
+  if (o) {
+    const k = level / 255;
+    const ch = (i) => Math.round(o.ink[i] + (o.page[i] - o.ink[i]) * k);
+    return `rgba(${ch(0)},${ch(1)},${ch(2)},${alpha})`;
+  }
+  const M = ctx.__theme === 'dark' ? 255 - level : level;
+  return `rgba(${M},${M},${M},${alpha})`;
 }
 
 function U(n, s, t) {

@@ -121,7 +121,10 @@
 /* The ledger at work: the orb in the state of the work, the step in words beside it, and
    under it the model's own reasoning as it is written, the newest lines in view, the older
    ones gone above the fold. Quiet grey on the same page; never mistaken for the answer. */
-.mc-pending { display: grid; gap: 10px; justify-items: start; width: 100%; }
+.mc-pending { display: grid; grid-template-columns: 64px minmax(0, 1fr); gap: 16px; align-items: start; width: 100%; }
+.mc-pending-body { display: grid; gap: 10px; justify-items: start; min-width: 0; padding-top: 22px; }
+.mc-pending-orb { flex: none; }
+@media (max-width: 767px) { .mc-pending { grid-template-columns: 48px minmax(0, 1fr); gap: 12px; } }
 .mc .mc-line-text.is-pending { display: flex; align-items: center; gap: 8px; }
 .mc-thinking { display: grid; gap: 6px; width: 100%; max-width: 40rem; }
 .mc-thinking-well { display: flex; flex-direction: column; justify-content: flex-end; max-height: 98px; overflow: hidden; padding: 0 14px; border-left: 1px solid var(--rule); }
