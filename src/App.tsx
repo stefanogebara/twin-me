@@ -8,7 +8,6 @@ import { useEffect, useRef, lazy, Suspense } from "react";
 import Wait from "@/components/Wait";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import { lazyWithRetry } from "@/lib/lazyWithRetry";
-import { SidebarLayout } from "./components/layout/SidebarLayout";
 import { LoadingProvider } from "./contexts/LoadingContext";
 import { ErrorProvider } from "./contexts/ErrorContext";
 import { AnalyticsProvider, useAnalytics } from "./contexts/AnalyticsContext";
@@ -26,10 +25,7 @@ import { ClassicBackground } from "./components/ClassicBackground";
 import { BackgroundModeProvider, useBackgroundMode } from "./contexts/BackgroundModeContext";
 
 // Eager-loaded (critical path: landing, auth, 404)
-import Index from "./pages/Index";
 import CustomAuth from "./pages/CustomAuth";
-import OAuthCallback from "./pages/OAuthCallback";
-import NotFound from "./pages/NotFound";
 // Design prototypes: dev-only routes (see the /preview block below). The
 // DEV ternary lets Vite dead-code-eliminate the dynamic imports in prod, so
 // no prototype chunks are emitted at all.
@@ -58,6 +54,14 @@ const loadTalkToTwin = () => import("./pages/TalkToTwin");
 const loadTodayPage = () => import("./pages/TodayPage");
 const loadMoneyPage = () => import("./pages/MoneyPage");
 const MoneyV2Page = lazyWithRetry(() => import("./pages/money/MoneyV2Page"));
+/* Money is the product (M3-2, 2026-09-19): the marketing front door, the OAuth return, the
+   404 and the legacy twin's sidebar were in the entry chunk of every screen; each is its own
+   file now and arrives when its route does. Sign-in stays eager: it is a new person's first
+   screen and small. */
+const Index = lazyWithRetry(() => import("./pages/Index"));
+const OAuthCallback = lazyWithRetry(() => import("./pages/OAuthCallback"));
+const NotFound = lazyWithRetry(() => import("./pages/NotFound"));
+const SidebarLayout = lazy(() => import("./components/layout/SidebarLayout").then((m) => ({ default: m.SidebarLayout })));
 const loadMoneySetupPage = () => import("./pages/money/MoneySetupPage");
 const loadMoneyChatPage = () => import("./pages/money/MoneyChatPage");
 const loadPlanPage = () => import("./pages/money/PlanPage");
