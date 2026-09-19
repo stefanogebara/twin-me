@@ -45,7 +45,6 @@ describe('money first', () => {
 
 /* Nothing outside the money pages is warmed at start (M3-2, 2026-09-19): the legacy twin's
    heaviest routes and their charts were fetched at 0 ms on every screen. */
-import { readFileSync } from 'node:fs';
 describe('the app warms only the money pages', () => {
   it('prefetches no route outside src/pages/money', () => {
     const app = readFileSync(new URL('../../src/App.tsx', import.meta.url), 'utf8');
