@@ -58,9 +58,12 @@ const loadTalkToTwin = () => import("./pages/TalkToTwin");
 const loadTodayPage = () => import("./pages/TodayPage");
 const loadMoneyPage = () => import("./pages/MoneyPage");
 const MoneyV2Page = lazyWithRetry(() => import("./pages/money/MoneyV2Page"));
-const MoneySetupPage = lazyWithRetry(() => import("./pages/money/MoneySetupPage"));
-const MoneyChatPage = lazyWithRetry(() => import("./pages/money/MoneyChatPage"));
-const PlanPage = lazyWithRetry(() => import("./pages/money/PlanPage"));
+const loadMoneySetupPage = () => import("./pages/money/MoneySetupPage");
+const loadMoneyChatPage = () => import("./pages/money/MoneyChatPage");
+const loadPlanPage = () => import("./pages/money/PlanPage");
+const MoneySetupPage = lazyWithRetry(loadMoneySetupPage);
+const MoneyChatPage = lazyWithRetry(loadMoneyChatPage);
+const PlanPage = lazyWithRetry(loadPlanPage);
 const loadMoneyInsightsPage = () => import("./pages/MoneyInsightsPage");
 
 const Settings = lazyWithRetry(() => import("./pages/Settings"));
@@ -131,18 +134,16 @@ const App = () => {
   useExtensionSync();
 
   useEffect(() => {
-    // Warm the heaviest authenticated routes after boot so route navigation
-    // doesn't block on first-time dev transforms.
-    // audit-2026-05-15 H12: added MoneyPage — Agent 2 found it flashed the
-    // global flower-pulse Suspense fallback for ~3s on cold cache before
-    // its chunk arrived.
-    const prefetchHeavyRoutes = () => {
-      void loadTodayPage();
-      void loadTalkToTwin();
-      void loadMoneyPage();
-    };
-
-    const timer = window.setTimeout(prefetchHeavyRoutes, 0);
+    /* Money is the product (2026-09-19, M3-2): the pages a person moves between after Today
+       are warmed once the browser is idle, and nothing else is. Until then every start
+       fetched the legacy twin's heaviest routes and their charts at 0 ms, on the money
+       screen too, where none of it was ever shown. */
+    const warm = () => { void loadMoneyChatPage(); void loadPlanPage(); void loadMoneySetupPage(); };
+    if ('requestIdleCallback' in window) {
+      const id = window.requestIdleCallback(warm, { timeout: 4000 });
+      return () => window.cancelIdleCallback(id);
+    }
+    const timer = window.setTimeout(warm, 1500);
     return () => window.clearTimeout(timer);
   }, []);
 

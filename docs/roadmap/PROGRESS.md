@@ -77,7 +77,7 @@ Status words: `todo` · `doing (who, date)` · `done (#PR, date)` · `blocked (w
 | ID | Task | Status |
 |---|---|---|
 | M3-1 | `strict: true` for `src/pages/money/**` | todo |
-| M3-2 | Lazy-load every non-money route; drop `vendor-elevenlabs` from the money bundle | todo |
+| M3-2 | Lazy-load every non-money route; drop `vendor-elevenlabs` from the money bundle | doing (Claude, 2026-09-19) — slice 1 done (#434): the start no longer prefetches the legacy twin's TodayPage, TalkToTwin and MoneyPage (with recharts) at 0 ms; only the money siblings are warmed on idle; the money screen loads 13 chunks, 1 070 KB, none of them legacy; `vendor-elevenlabs` is reached only from the onboarding's DeepInterview/SoulOrb (lazy). Next: the 556 KB entry chunk (Index, CustomAuth, SidebarLayout, backgrounds are eager) |
 | M3-3 | One Redis client | todo |
 | M3-4 | Regenerate `.env.example` from code | todo |
 | M3-5 | Resolve `--legacy-peer-deps` | todo |
