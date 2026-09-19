@@ -1,5 +1,8 @@
 /** IO orchestration lives outside the pure allowance policy (no store/allowance cycle). */
-import { forecast, months, listFacts, listBankAccounts, listTransactions } from './store.js';
+import { forecast, months } from './forecastService.js';
+import { listFacts } from './factsRepository.js';
+import { listBankAccounts } from './store.js';
+import { listTransactions } from './transactionRepository.js';
 import { safeToSpend } from './allowance.js';
 
 export async function todayAllowance(userId, now = new Date()) {

@@ -40,8 +40,11 @@ describe('the calendar reaches the readers that speak for it', () => {
   });
 
   it('the lens still keeps them off the page', () => {
-    const store = source('store.js');
-    expect(store).toMatch(/INTERNAL_FACT_KINDS[^\n]*event_spend/);
-    expect(store).toMatch(/includeInternal \? rows : rows\.filter/);
+    /* The rule moved with listFacts into factsRepository.js on 2026-09-19 (the store.js
+       cycles); store.js re-exports it, so every reader still gets the filtered list. */
+    const facts = source('factsRepository.js');
+    expect(facts).toMatch(/INTERNAL_FACT_KINDS[^\n]*event_spend/);
+    expect(facts).toMatch(/includeInternal \? rows : rows\.filter/);
+    expect(source('store.js')).toMatch(/export \{ INTERNAL_FACT_KINDS, listFacts, categoriesFor \} from '\.\/factsRepository\.js'/);
   });
 });

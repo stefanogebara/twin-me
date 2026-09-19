@@ -17,6 +17,7 @@ Plan and rationale: `.claude/plans/2026-07-12-agentic-os/README.md`.
 | `no-emoji-twin-output.goal.test.js` | NO EMOJIS rule (QW2 + audit H7) | stripEmoji backstop keeps removing pictographic/ZWJ emoji, leaves accents alone |
 | `money-first.goal.test.js` | Money is the product (Stefano, 2026-09-19) | `/`, `/home`, `/dashboard`, sign-in and the onboarding gate all land on `/money`; the twin is one link away, never the door |
 | `agents-in-sync.goal.test.js` | One instruction file for two agents (2026-09-19) | `AGENTS.md` is byte-identical to `CLAUDE.md` |
+| `money-imports.goal.test.js` | The money core loads a module at a time (audit A1, 2026-09-19) | every `api/services/money/*.js` imports within two seconds; the modules still in a cycle are named and shrink with M2-1 |
 
 The nightly run also includes `tests/api/routes/whatsappZapiWebhookAuth.test.js`
 (webhook auth gate) by reference — reuse, don't duplicate.

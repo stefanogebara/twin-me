@@ -17,7 +17,8 @@
  */
 
 import { supabaseAdmin } from '../database.js';
-import { listTransactions, listFacts } from './store.js';
+import { listTransactions } from './transactionRepository.js';
+import { listFacts } from './factsRepository.js';
 import { describeContext } from './context.js';
 import { dayIn } from './zone.js';
 

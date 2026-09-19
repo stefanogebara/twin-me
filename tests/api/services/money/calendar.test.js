@@ -31,6 +31,8 @@ const get = vi.fn();
 vi.mock('../../../../api/services/calendar/client.js', () => ({ createCalendarClient: () => ({ get: (...a) => get(...a) }) }));
 const store = { listTransactions: vi.fn(), listFacts: vi.fn(), categoriesFor: vi.fn(async () => new Map([['la tasca', 'restaurant']])) };
 vi.mock('../../../../api/services/money/store.js', () => store);
+vi.mock('../../../../api/services/money/transactionRepository.js', () => store);
+vi.mock('../../../../api/services/money/factsRepository.js', () => store);
 
 const cal = await import('../../../../api/services/money/calendar.js');
 const {
