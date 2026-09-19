@@ -9,9 +9,9 @@ import { join } from 'node:path';
 
 const ROOT = new URL('../../src/pages/money/', import.meta.url).pathname;
 const LIMIT = 250;
-/* The ones that were already over the line when the page was split (readingWords left the list on 2026-09-19). Each may only shrink;
+/* The ones that were already over the line when the page was split (readingWords and MoneySetupPage left the list on 2026-09-19). Each may only shrink;
    a new one may not appear. Splitting them is M2-2b in docs/roadmap/PROGRESS.md. */
-const STILL_LONG = { 'MoneyChatPage.tsx:MoneyConversation': 325, 'MoneySetupPage.tsx:MoneySetupPage': 409 };
+const STILL_LONG = { 'MoneyChatPage.tsx:MoneyConversation': 325 };
 
 function walk(dir, out = []) {
   for (const name of readdirSync(dir)) {
