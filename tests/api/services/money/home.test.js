@@ -17,6 +17,8 @@ vi.mock('../../../../api/services/database.js', () => ({
 vi.mock('../../../../api/services/logger.js', () => ({ createLogger: () => ({ warn() {}, info() {}, error() {}, debug() {} }) }));
 const store = { listTransactions: vi.fn(async () => []), listFacts: vi.fn(async () => []) };
 vi.mock('../../../../api/services/money/store.js', () => store);
+vi.mock('../../../../api/services/money/transactionRepository.js', () => store);
+vi.mock('../../../../api/services/money/factsRepository.js', () => store);
 
 const home = await import('../../../../api/services/money/home.js');
 const { describeContext } = await import('../../../../api/services/money/context.js');
