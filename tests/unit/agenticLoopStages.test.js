@@ -43,3 +43,15 @@ describe('the implement stage and its own files', () => {
     for (const f of ['loop-plan.json', 'loop-implement.log', 'loop-pr.txt']) expect(ignore).toMatch(new RegExp(`^${f.replace('.', '\\.')}$`, 'm'));
   });
 });
+
+describe('the implement stage checks before it pushes', () => {
+  it('runs the unit suite without retries, the strict money typecheck and eslint, and refuses on failure', async () => {
+    const { readFileSync } = await import('node:fs');
+    const src = readFileSync(new URL('../../scripts/agentic/implement.mjs', import.meta.url), 'utf8');
+    const checks = src.indexOf('const checks = ['); const push = src.indexOf("['push',");
+    expect(checks).toBeGreaterThan(0); expect(push).toBeGreaterThan(checks);
+    expect(src).toMatch(/'vitest', 'run', '--retry=0'/);
+    expect(src).toMatch(/'tsc', '-p', 'tsconfig\.money\.json'/);
+    expect(src).toMatch(/REFUSED: /);
+  });
+});

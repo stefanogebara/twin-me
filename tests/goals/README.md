@@ -55,4 +55,6 @@ Since 2026-09-20 (slice 2) the implement job runs Claude Code headless on the pl
 `guard.mjs`, a dollar cap), refuses any change to the ledger's tables, the feed, the schema,
 the crons, the workflows or .env, and opens a PR labelled `loop`; the inspect job
 (`scripts/agentic/inspect.mjs`) has a fresh model read the diff against the plan and leaves
-its verdict as a comment and a label. The loop never merges; a person does, or not.
+its verdict as a comment and a label. A push made with GITHUB_TOKEN starts no workflow, so the
+implement stage runs the unit suite, the strict money typecheck and eslint itself before it
+pushes, and refuses on failure. The loop never merges; a person does, or not.
