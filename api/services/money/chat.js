@@ -811,8 +811,20 @@ export function notMineOffer(message, ctx) {
   return hit ? { kind: 'not_me', transaction_id: hit.id } : null;
 }
 
+/** "Each day", "per day", "day by day", "a graph of the week", "the last seven days": the week figure, a bar per day. Pure. */
+export function asksPerDay(message) {
+  const m = String(message || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  return /\b(each day|every day|per day|day by day|daily|by day|cada dia|por dia|dia a dia|dia por dia|graph of (this|the|my) week|chart of (this|the|my) week|grafico (da|de la|de esta|desta) semana|last (seven|7) days|ultimos (sete|7) dias|ultimos (siete|7) dias)\b/.test(m);
+}
+
 export function assembleReply(parsed, ctx, message = '') {
   const requests = (parsed.figures || []).slice(0, 2);
+  /* Asked for each day, the figure is the week (a bar per day), whatever the model named: it
+     drew the weekday shape for "a graph of this week" one run in two (2026-09-20). */
+  if (asksPerDay(message) && !requests.some((r) => r?.kind === 'week')) {
+    const i = requests.findIndex((r) => r?.kind === 'weekdays' || r?.kind === 'history');
+    if (i >= 0) requests[i] = { kind: 'week' }; else requests.unshift({ kind: 'week' });
+  }
   if (asksWhereItWent(message) && !requests.some((r) => r?.kind === 'shares')) {
     const named = monthInMessage(message);
     let month = null;
