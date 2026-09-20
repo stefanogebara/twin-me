@@ -394,6 +394,8 @@ function formatMessages(system, messages) {
  */
 export async function complete({
   tier = TIER_ANALYSIS,
+  /* A caller whose route can wait longer than the tier's default may say so (the money chat: 50 s under its 58 s route). */
+  timeoutMs: timeoutOverride = null,
   system,
   messages,
   maxTokens = 1024,
@@ -485,7 +487,7 @@ export async function complete({
   const startTime = Date.now();
 
   // Request timeout (4C)
-  const timeoutMs = TIER_TIMEOUTS[tier] || 30000;
+  const timeoutMs = Number(timeoutOverride) > 0 ? Number(timeoutOverride) : (TIER_TIMEOUTS[tier] || 30000);
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 

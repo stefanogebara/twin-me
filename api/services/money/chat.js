@@ -582,6 +582,7 @@ const PHRASES = {
     'Remember: {what}': 'Recordar: {what}',
     'Forget: {what}': 'Olvidar: {what}',
     'The ledger cannot answer that from what it has.': 'El libro no puede responder eso con lo que tiene.',
+    'That took too long to answer. Ask it again.': 'Eso tard\u00f3 demasiado en responder. Pregunta otra vez.',
     'The ledger has no total for that; it can only name the parts it holds.': 'El libro no tiene un total para eso; solo puede nombrar las partes que guarda.',
     'That could not be read right now.': 'Eso no se pudo leer ahora.',
     'Nothing comes back regularly yet. The ledger needs to see a charge at least twice to call it that.': 'Todav\u00eda no vuelve nada con regularidad. El libro necesita ver un cargo al menos dos veces para llamarlo as\u00ed.',
@@ -647,6 +648,7 @@ const PHRASES = {
     'Remember: {what}': 'Lembrar: {what}',
     'Forget: {what}': 'Esquecer: {what}',
     'The ledger cannot answer that from what it has.': 'O livro n\u00e3o consegue responder isso com o que tem.',
+    'That took too long to answer. Ask it again.': 'Isso demorou demais para responder. Pergunte de novo.',
     'The ledger has no total for that; it can only name the parts it holds.': 'O livro n\u00e3o tem um total para isso; s\u00f3 pode nomear as partes que guarda.',
     'That could not be read right now.': 'Isso n\u00e3o p\u00f4de ser lido agora.',
     'Nothing comes back regularly yet. The ledger needs to see a charge at least twice to call it that.': 'Nada volta com regularidade ainda. O livro precisa ver uma cobran\u00e7a pelo menos duas vezes para cham\u00e1-la assim.',
@@ -765,6 +767,23 @@ function monthInMessage(message) {
  * month it names, whether or not the model thought to ask for them; the model's own figures win
  * when it did.
  */
+/**
+ * "That payment is not mine": the offer that changes the ledger, worked out from the words
+ * when the model offered only to remember them (2026-09-20: "my flatmate used my card" got a
+ * note, not the not_me). The newest recent spending whose place is named in the message, or
+ * the newest of all when they say "the last payment". Pure; null when nothing matches.
+ */
+export function notMineOffer(message, ctx) {
+  const m = String(message || '').toLowerCase();
+  if (!/\b(not mine|isn'?t mine|is not mine|not my (payment|purchase|card|charge)|wasn'?t me|not me\b|n[a\u00e3]o (\u00e9|foi|e) (meu|minha|eu)|no (es|fue) m[i\u00ed][oa]|no fui yo|used my card|usou meu cart|us[o\u00f3] mi tarjeta)/.test(m)) return null;
+  const recent = [...(ctx.transactions || [])].filter((t) => Number(t.amount) < 0 && t.counts !== false && t.verdict !== 'not_me').sort((a, b) => at(b) - at(a)).slice(0, 40);
+  if (!recent.length) return null;
+  const words = (t) => [t.merchant_raw, t.merchant_key, ctx.placeByKey?.get(t.merchant_key)?.name].filter(Boolean).map((x) => String(x).toLowerCase());
+  let hit = recent.find((t) => words(t).some((w) => w.length >= 3 && m.includes(w)));
+  if (!hit && /\b(last|latest|newest|most recent|\u00faltim[oa]|ultim[oa])\b/.test(m)) hit = recent[0];
+  return hit ? { kind: 'not_me', transaction_id: hit.id } : null;
+}
+
 export function assembleReply(parsed, ctx, message = '') {
   const requests = (parsed.figures || []).slice(0, 2);
   if (asksWhereItWent(message) && !requests.some((r) => r?.kind === 'shares')) {
@@ -778,6 +797,11 @@ export function assembleReply(parsed, ctx, message = '') {
   }
   const built = requests.slice(0, 2).map((r) => buildFigure(r, ctx)).filter(Boolean);
   const actions = (parsed.actions || []).slice(0, 3).map((a) => validateAction(a, ctx)).filter(Boolean);
+  if (!actions.some((a) => a.kind === 'not_me')) {
+    const mine = notMineOffer(message, ctx);
+    const offer = mine ? validateAction(mine, ctx) : null;
+    if (offer) actions.unshift(offer);
+  }
   /* A statement always carries a way to keep it. The model writes "if that is right, mark it
      below" and, one time in three, attaches no offer; the person then has nothing to tap and
      the ledger learns nothing. When they told the ledger something and no learning offer
@@ -827,6 +851,8 @@ export function withoutRepeats(text, history) {
 
 const EMPTY_LEDGER = 'There is nothing in the ledger yet. Connect a bank or add a statement and ask again.';
 const NO_ANSWER = 'The ledger cannot answer that from what it has.';
+const TOO_LONG = 'That took too long to answer. Ask it again.';
+const CHAT_MODEL_TIMEOUT_MS = 50000;
 
 /**
  * Answer one message. History is the last few turns, older first, as the app kept them.
@@ -853,11 +879,14 @@ export async function answer(userId, message, history = [], { now = new Date() }
 
   let raw = '';
   try {
-    const result = await complete({ tier: TIER_CHAT, system, messages, maxTokens: 600, temperature: 0.3, userId, serviceName: 'money-chat', skipCache: true });
+    /* A long statement with the whole ledger behind it took DeepSeek past thirty seconds
+       (2026-09-20); the route can wait 58, so the model may take 50. */
+    const result = await complete({ tier: TIER_CHAT, timeoutMs: CHAT_MODEL_TIMEOUT_MS, system, messages, maxTokens: 600, temperature: 0.3, userId, serviceName: 'money-chat', skipCache: true });
     raw = result?.content || '';
   } catch (e) {
     log.warn(`chat completion failed: ${e.message}`);
-    return { text: say(ctx.language, NO_ANSWER), figures: [], actions: [], receipts: [] };
+    /* A model that did not answer is not a ledger that lacks the number: say which. */
+    return { text: say(ctx.language, /timed out/i.test(e.message) ? TOO_LONG : NO_ANSWER), figures: [], actions: [], receipts: [] };
   }
 
   const parsed = parseReply(raw);
