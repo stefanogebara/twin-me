@@ -17,6 +17,7 @@ import { createStatementAccount, statementAccounts, ownedStatementAccount, check
 import { toSighting, distinctPending } from '../../../../api/services/money/feeds/enableBanking.js';
 import { toSightings } from '../../../../api/services/money/statements/importer.js';
 import { holdUndatedCapture } from '../../../../api/services/money/legacyCapture.js';
+import { seenBy } from '../../../../api/services/money/seen.js';
 let pool;
 beforeAll(async () => {
   pool = testPool();
@@ -47,6 +48,14 @@ describe('Money persisted invariants', () => {
     expect(out).toMatch(/^money_transactions \d+$/m);
     expect(out).toMatch(/^money_transactions md5 [0-9a-f]{32}$/m);
   }, 150000);
+
+  it('says which sources saw a payment once the bank and the phone agree', async () => {
+    await ingestSighting(USER, phone);
+    await ingestSighting(USER, bank());
+    const [row] = await rows();
+    expect((await seenBy(USER))[row.id]).toEqual(['bankfeed', 'phone']);
+    expect(await seenBy(OTHER)).toEqual({});
+  });
 
   it('gives the public key no privilege on any money table', async () => {
     const { rows } = await pool.query(`

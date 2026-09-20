@@ -74,3 +74,21 @@ export function pct(v: number, f: MoneyForecast, edge: number | null = null) {
   const max = edge ? Math.max(edge, f.spent + f.committed, 1) : Math.max(f.projected_p90, f.spent + f.committed, 1) * 1.08;
   return Math.max(0, Math.min(100, (v / max) * 100));
 }
+
+/**
+ * What a row's sources say about its reconciliation, in one grey phrase. The bank's own
+ * booking is the settled fact; a phone alert or a receipt alone is a payment nobody has
+ * confirmed yet, and the line says so rather than hiding the difference.
+ */
+export function seenWords(t: T, sources: string[] | undefined, posted: boolean): string {
+  const s = new Set(sources || []);
+  const bank = s.has('bankfeed') || s.has('statement');
+  const phone = s.has('phone') || s.has('bizum');
+  const receipt = s.has('gmail') || s.has('inbox');
+  if (bank && phone) return t('seen by the bank and your phone');
+  if (bank && receipt) return t('seen by the bank and a receipt');
+  if (bank) return t('bank only');
+  if (phone) return posted ? t('phone, booked by the bank') : t('phone only, not booked yet');
+  if (receipt) return posted ? t('receipt, booked by the bank') : t('receipt only, not booked yet');
+  return '';
+}

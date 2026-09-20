@@ -170,6 +170,8 @@ export type MoneyPage = {
   accounts: MoneyAccount[] | null; months: MoneyMonth[] | null; readings: MoneyReading[] | null; categories: MoneyCategories | null;
   usage: MoneyUsage | null; capabilities: { bank: boolean; capture: boolean } | null; inbox: { address: string; receiving: boolean } | null;
   facts: MoneyFact[] | null;
+  /* Which sources saw each payment, by transaction id: the reconciliation, visible. */
+  seen: Record<string, string[]> | null;
   failed: string[];
 };
 

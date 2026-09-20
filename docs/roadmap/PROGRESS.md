@@ -124,6 +124,8 @@ Status words: `todo` · `doing (who, date)` · `done (#PR, date)` · `blocked (w
 4. **The Bizum that is the rent.** Recurring Bizum to the same two or three people near the 1st, similar amount: label it "looks like your rent split" and count it as rent, without a wallet and without holding money (Splitwise's pending-for-days is its most hated trait). Evidence held: `bizum.js`, `person` facts.
 5. **Ninety seconds, not a ledger scroll.** The three to five payments that moved the forecast most this week, one yes/no each ("keep eating out this much, or was that a one-off?"). The manual-review ritual is what changes behaviour (HN, YNAB); this is its benefit without its labour. Evidence held: `deltas.js`, the verdict flow.
 6. **Roast, but grounded.** Cleo's voice is loved and distrusted because it sits on numbers people doubt. TwinMe's chat only says computed numbers — the same dry, specific line ("four dinners out, 60% of the month's food gone") is provably right. A register question as much as a product one.
+3 is built (#438, 2026-09-20): the page carries which sources saw each payment (`seen.js`, computed from `money_sightings`), and the ledger row says it in one grey phrase: "seen by the bank and your phone", "bank only", "phone only, not booked yet". Words in three languages; proven on the real database by the persistence test.
+
 7. **Calendar-conditioned band.** Widen the day's band on a trip or exam week. Measured 19 September: one away day in 75 — nothing to learn from yet. Last, not first.
 
 ## Session log
@@ -137,3 +139,4 @@ Status words: `todo` · `doing (who, date)` · `done (#PR, date)` · `blocked (w
 - **2026-09-19 (Claude, night):** #434 merged into main. M1-2 for the money routes on #436 (`claude/validate-money`); M3-6 built on the same branch, waiting on `MONEY_CANARY_TOKEN`. Production boot probe of /money after the deploy is in the session scratchpad (`prod-boot.log`).
 - **2026-09-19 (Claude, close):** #436 merged; production probed after #434's deploy (numbers under M2-3); two API servers left running in this worktree since 13 and 16 September (2.8 GB each) were stopped. The sign-in tab still says "Discover Your Soul Signature" (`/auth` title) — a one-line fix for the next session.
 - **2026-09-20 (Claude):** #437 merged. On `claude/next-slices`: the tab title is TwinMe (was the soul-signature promise), M1-2's legacy slice (sign-in, extension, directives).
+- **2026-09-20 (Claude, later):** M0-4 done (backup rehearsal, proven on CI's database); idea 3 built (reconciliation you can see); both on #438.

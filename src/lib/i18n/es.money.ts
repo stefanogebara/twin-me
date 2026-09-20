@@ -775,4 +775,11 @@ export const ES_MONEY: Record<string, string> = {
   "no": "no",
   "The money for today is spread over the days until the next money comes in. Without a day it can only spread to the end of the month.": "El dinero de hoy se reparte entre los d\u00edas que faltan hasta que entre el siguiente. Sin un d\u00eda solo puede repartirse hasta fin de mes.",
   "how far today has to stretch": "cu\u00e1nto tiene que estirarse el d\u00eda de hoy",
+  "seen by the bank and your phone": "visto por el banco y tu móvil",
+  "seen by the bank and a receipt": "visto por el banco y un recibo",
+  "bank only": "solo el banco",
+  "phone, booked by the bank": "móvil, contabilizado por el banco",
+  "phone only, not booked yet": "solo el móvil, aún sin contabilizar",
+  "receipt, booked by the bank": "recibo, contabilizado por el banco",
+  "receipt only, not booked yet": "solo un recibo, aún sin contabilizar",
 };
