@@ -74,12 +74,12 @@ async function main() {
      maintainer's approval, because github-actions[bot] counts as a first-time contributor
      (seen on #448, 2026-09-20). A run dispatched by name does not count as the PR's checks.
      So the stage names the one command a person runs; a LOOP_PUSH_TOKEN would remove it. */
-  let approve = 'the run was not found yet; see the PR checks';
-  try {
-    const run = sh('gh', ['run', 'list', '--workflow', 'ci.yml', '--branch', branch, '--event', 'pull_request', '--limit', '1', '--json', 'databaseId', '--jq', '.[0].databaseId']);
-    if (run) approve = `gh api -X POST repos/${process.env.GITHUB_REPOSITORY}/actions/runs/${run}/approve`;
-  } catch { /* the command above still says where to look */ }
-  say(`CI on the PR waits for a maintainer's approval: ${approve}`);
+  /* Every workflow the PR starts waits (CI and the secret scan both), so the command approves
+     all of them, and the merge can be queued behind them with --auto. */
+  const repo = process.env.GITHUB_REPOSITORY;
+  say(`The PR's runs wait for a maintainer's approval. To release them and queue the merge:\n` +
+    `  for r in $(gh run list --branch ${branch} --json databaseId,conclusion --jq '.[] | select(.conclusion=="action_required") | .databaseId'); do gh api -X POST repos/${repo}/actions/runs/$r/approve; done\n` +
+    `  gh pr merge ${pr} --squash --auto --delete-branch`);
   fs.writeFileSync('loop-pr.txt', pr);
   if (process.env.GITHUB_OUTPUT) fs.appendFileSync(process.env.GITHUB_OUTPUT, `pr=${pr}\nbranch=${branch}\n`);
   say(`Implemented on ${branch}: ${changed.length} files; ${pr}`);

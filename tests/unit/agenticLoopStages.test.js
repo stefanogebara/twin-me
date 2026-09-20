@@ -53,6 +53,7 @@ describe('the implement stage checks before it pushes', () => {
     expect(src).toMatch(/'vitest', 'run', '--retry=0'/);
     expect(src).toMatch(/'tsc', '-p', 'tsconfig\.money\.json'/);
     expect(src).toMatch(/REFUSED: /);
-    expect(src).toMatch(/actions\/runs\/\$\{run\}\/approve/);
+    expect(src).toMatch(/select\(\.conclusion=="action_required"\)/);
+    expect(src).toMatch(/--squash --auto --delete-branch/);
   });
 });
