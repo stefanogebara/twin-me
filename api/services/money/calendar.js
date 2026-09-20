@@ -341,6 +341,8 @@ export function calendarFromFacts(facts, { now = new Date() } = {}) {
     snapshot,
     away: awayWindows(events),
     week: weekWord(events, now),
+    /* The days the person wrote on, as events: the week ahead reads them even without a calendar. */
+    noted,
   };
 }
 
@@ -656,7 +658,10 @@ export async function ahead(userId, days = 7, { now = new Date() } = {}) {
   const facts = await listFacts(userId, { includeInternal: true });
   const stored = calendarFromFacts(facts, { now });
   if (!status.connected) {
-    return { connected: false, google: false, feeds: [], needsReconnect: status.needsReconnect, ahead: [], free_days: [], routine: stored.routine, learned: stored.learned, total_expected: 0 };
+    /* No calendar, but the days the person wrote on (a trip remembered in the chat, a note on
+       the plan) are still the week ahead, and were dropped here until 2026-09-20. */
+    const window = aheadFrom(stored.noted || [], stored.learned, { now, days });
+    return { connected: false, google: false, feeds: [], needsReconnect: status.needsReconnect, ...window, routine: stored.routine, learned: stored.learned };
   }
   const from = new Date(now.getTime() - LEARN_DAYS * DAY_MS).toISOString();
   const to = new Date(now.getTime() + Math.max(days, SNAPSHOT_DAYS) * DAY_MS).toISOString();
@@ -671,7 +676,9 @@ export async function ahead(userId, days = 7, { now = new Date() } = {}) {
       log.warn(`calendar learn failed: ${e.message}`);
     }
   }
-  const window = aheadFrom(events, learned, { now, days });
+  /* The days the person wrote on sit beside the calendar's own events: a trip remembered in
+     the chat is in the week ahead whatever Google holds for those days (2026-09-20). */
+  const window = aheadFrom(events.concat(stored.noted || []), learned, { now, days });
   const routine = stale ? routineSummary(events, { now }) : stored.routine;
   /* How much was read and when, so a person can see the diary is being read at all and not
      merely connected (Stefano, 2026-09-16: "I don't even know if we are extracting data"). */
