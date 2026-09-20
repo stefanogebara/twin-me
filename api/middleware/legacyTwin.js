@@ -20,8 +20,8 @@ export const LEGACY_TWIN_CRONS = [
   '/api/cron/twin-summary-refresh', '/api/cron/nudge-inactive',
 ];
 
-export function legacyTwinParked(env = process.env) {
-  return String(env.LEGACY_TWIN_ENABLED || '').toLowerCase() === 'false';
+export function legacyTwinParked(value = process.env.LEGACY_TWIN_ENABLED) {
+  return String(value || '').toLowerCase() === 'false';
 }
 
 /** Answers a parked cron at once, before its handler's own work. */
