@@ -584,3 +584,22 @@ describe('act on the new offers', () => {
     }
   });
 });
+
+describe('a trip remembered', () => {
+  it('writes a note on each of its days, titled so the calendar reads them as away', async () => {
+    store.answerQuestion.mockClear();
+    const NOW = new Date('2026-09-16T10:00:00Z'); // a Wednesday
+    const r = await act('u1', { kind: 'remember', text: 'I am going to Bilbao next Friday to Sunday with two friends' }, { now: NOW });
+    expect(r.said).toMatch(/3 days are marked as away/);
+    const calls = store.answerQuestion.mock.calls.map((c) => c[1]);
+    expect(calls[0]).toMatchObject({ kind: 'note', value: 'I am going to Bilbao next Friday to Sunday with two friends' });
+    expect(calls.slice(1).map((c) => c.subject)).toEqual(['day-2026-09-18', 'day-2026-09-19', 'day-2026-09-20']);
+    expect(calls[1].value).toMatch(/^Trip: I am going to Bilbao/);
+  });
+  it('keeps a note without days as a note, and says nothing about away', async () => {
+    store.answerQuestion.mockClear();
+    const r = await act('u1', { kind: 'remember', text: 'My sister pays me back for Spotify every month' }, { now: new Date('2026-09-16T10:00:00Z') });
+    expect(r.said).toBe('Kept, in your words. It reads with that from now on.');
+    expect(store.answerQuestion.mock.calls).toHaveLength(1);
+  });
+});
