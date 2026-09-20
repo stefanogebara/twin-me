@@ -4,17 +4,25 @@ name: Agentic loop
 # no machine has to be awake, the run history is the report card, nothing lands on the
 # Vercel bill). After the nightly canaries, a cheap model reads what changed and the report
 # card and says whether anything needs attention; if so, a stronger model writes the plan and
-# it is opened as an issue. Nothing here edits code, touches money tables or the bank.
-# Implement and inspect stages arrive with the agent harness (slice 2).
+# it is opened as an issue. Then (slice 2, 2026-09-20) the implement job runs Claude Code
+# headless on the plan, on a branch, with edits and tests only, and opens a PR; the inspect
+# job has a fresh model read the diff against the plan and leave its verdict. The loop never
+# merges, and guard.mjs refuses any change to the ledger's tables, the feed or the schema.
 
 on:
   schedule:
     - cron: '30 6 * * *' # 06:30 UTC, after goals-nightly at 06:00
   workflow_dispatch:
+    inputs:
+      plan:
+        description: "Rehearsal: a plan to implement now, skipping triage (one small task, e.g. 'add a unit test for X'). Leave empty for the real thing."
+        required: false
+        default: ""
 
 permissions:
-  contents: read
+  contents: write
   issues: write
+  pull-requests: write
   actions: read
 
 jobs:
@@ -30,8 +38,60 @@ jobs:
         with:
           node-version-file: .nvmrc
       - name: Triage
+        id: triage
         env:
           GH_TOKEN: ${{ github.token }}
           GITHUB_REPOSITORY: ${{ github.repository }}
           OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+          LOOP_REHEARSAL_PLAN: ${{ github.event.inputs.plan }}
         run: node scripts/agentic/loop.mjs
+      - if: steps.triage.outputs.attention == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: loop-plan
+          path: loop-plan.json
+          retention-days: 30
+    outputs:
+      attention: ${{ steps.triage.outputs.attention }}
+
+  implement:
+    name: Implement on a branch
+    needs: triage
+    if: needs.triage.outputs.attention == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+      - uses: actions/setup-node@v5
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - uses: actions/download-artifact@v4
+        with:
+          name: loop-plan
+      - run: npm i -g @anthropic-ai/claude-code@2.1.270
+      - name: Implement
+        id: implement
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: node scripts/agentic/implement.mjs
+      - name: Inspect
+        if: steps.implement.outputs.pr != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: node scripts/agentic/inspect.mjs
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: loop-implement-log
+          path: |
+            loop-implement.log
+            loop-pr.txt
+          retention-days: 30
+          if-no-files-found: ignore

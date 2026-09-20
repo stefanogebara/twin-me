@@ -50,4 +50,9 @@ Money is never automated on a streak: `autonomous_writes` is false and is not a 
 The loop (`.github/workflows/agentic-loop.yml`, `scripts/agentic/loop.mjs`) runs after the
 nightly: a cheap model reads what changed and the report card and says whether anything
 needs attention; a stronger model writes the plan; it is opened as an issue labelled `loop`.
-Implement and inspect stages arrive with the agent harness (slice 2).
+Since 2026-09-20 (slice 2) the implement job runs Claude Code headless on the plan on a
+`loop/<date>` branch with edits and tests only (`scripts/agentic/implement.mjs`, tools in
+`guard.mjs`, a dollar cap), refuses any change to the ledger's tables, the feed, the schema,
+the crons, the workflows or .env, and opens a PR labelled `loop`; the inspect job
+(`scripts/agentic/inspect.mjs`) has a fresh model read the diff against the plan and leaves
+its verdict as a comment and a label. The loop never merges; a person does, or not.
