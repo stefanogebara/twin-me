@@ -109,7 +109,7 @@ Status words: `todo` · `doing (who, date)` · `done (#PR, date)` · `blocked (w
 ## Open questions for Stefano
 
 1. **M1-4:** fail closed on logout when Redis is down (some users get a 401 during an outage) — yes or no? Recommended yes.
-2. **D1:** park the legacy twin and stop its crons for inactive users — yes or no? The switch is built: set `LEGACY_TWIN_ENABLED=false` on Vercel and the ten twin crons answer 200 and do nothing (M2-5).
+2. **D1: decided yes** (Stefano, 2026-09-20, "do these"). `LEGACY_TWIN_ENABLED=false` is set on Vercel production; it takes effect on the deploy this line triggers. The ten twin crons answer 200 and do nothing; the pages stay reachable.
 3. **QW3:** a Sentry DSN (free tier is enough) — Claude cannot create the account.
 4. **The day's number:** the most likely spend (shipped) or a sustainable allowance? The label "Today's estimate" fits either; commit to one.
 8. **Today's word budget.** The register asks for about 150 words on a screen; Today measures 285 (hero 48, band 44, still-to-come 63, readings 69, review 52) with the sections the design cut of 15 September chose. Which of them folds by default, or is the budget for Today different? Claude did not trim any silently.
@@ -150,3 +150,4 @@ Status words: `todo` · `doing (who, date)` · `done (#PR, date)` · `blocked (w
 - **2026-09-20 (Claude):** #437 merged. On `claude/next-slices`: the tab title is TwinMe (was the soul-signature promise), M1-2's legacy slice (sign-in, extension, directives).
 - **2026-09-20 (Claude, later):** M0-4 done (backup rehearsal, proven on CI's database); idea 3 built (reconciliation you can see); both on #438.
 - **2026-09-20 (Claude, later):** ideas 2, 3, 5 built on #438; idea 4 measured (no signal yet); Today's word count raised as open question 8.
+- **2026-09-20 (Claude, morning):** Stefano gave full permission for the owner items. Done by CLI: `LEGACY_TWIN_ENABLED=false` on Vercel production (D1 parked; applies with this deploy). Blocked by the harness's credential rule, handed back as one script to run: `OPENROUTER_API_KEY` and `MONEY_CANARY_TOKEN` into Actions secrets. Enable Banking has not replied to the 18 September enquiry (Gmail checked). A Sentry account exists on the Gmail address (trial ended March 2026); the DSN needs a signed-in browser.
