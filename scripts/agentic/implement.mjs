@@ -6,8 +6,8 @@
  *   2. claude -p with the plan, the repo's own rules (CLAUDE.md is read by the CLI), edits and
  *      tests only, a dollar cap, no git and no network
  *   3. refuse the result if any changed path is forbidden (guard.mjs) or nothing changed
- *   4. run the unit suite, the strict money typecheck and eslint on the change (a push made
- *      with GITHUB_TOKEN starts no CI of its own), refuse if any fails
+ *   4. run the unit suite, the strict money typecheck and eslint on the change, refuse if any
+ *      fails (the PR's own CI waits for a maintainer's approval, named in the summary)
  *   5. commit on loop/<date>, push, open a PR labelled loop, linking the issue
  *
  * It never merges; the inspect stage and a person do the reading. ANTHROPIC_API_KEY comes from
@@ -70,9 +70,16 @@ async function main() {
   let pr;
   try { pr = sh('gh', ['pr', 'create', '--base', 'main', '--head', branch, '--title', `Loop: ${(plan.tasks?.[0]?.title || plan.reason).slice(0, 60)}`, '--body', body, '--label', 'loop']); }
   catch { pr = sh('gh', ['pr', 'view', branch, '--json', 'url', '--jq', '.url']); }
-  /* CI for the branch, asked for by name: a push made with GITHUB_TOKEN starts none, and the
-     PR's required checks are these. */
-  try { sh('gh', ['workflow', 'run', 'ci.yml', '--ref', branch]); } catch (error) { say(`CI could not be dispatched for ${branch}: ${error.message}`); }
+  /* The PR's own CI does start (the pull_request event fires for a bot's PR) but waits for a
+     maintainer's approval, because github-actions[bot] counts as a first-time contributor
+     (seen on #448, 2026-09-20). A run dispatched by name does not count as the PR's checks.
+     So the stage names the one command a person runs; a LOOP_PUSH_TOKEN would remove it. */
+  /* Every workflow the PR starts waits (CI and the secret scan both), so the command approves
+     all of them, and the merge can be queued behind them with --auto. */
+  const repo = process.env.GITHUB_REPOSITORY;
+  say(`The PR's runs wait for a maintainer's approval. To release them and queue the merge:\n` +
+    `  for r in $(gh run list --branch ${branch} --json databaseId,conclusion --jq '.[] | select(.conclusion=="action_required") | .databaseId'); do gh api -X POST repos/${repo}/actions/runs/$r/approve; done\n` +
+    `  gh pr merge ${pr} --squash --auto --delete-branch`);
   fs.writeFileSync('loop-pr.txt', pr);
   if (process.env.GITHUB_OUTPUT) fs.appendFileSync(process.env.GITHUB_OUTPUT, `pr=${pr}\nbranch=${branch}\n`);
   say(`Implemented on ${branch}: ${changed.length} files; ${pr}`);
