@@ -53,5 +53,6 @@ describe('the implement stage checks before it pushes', () => {
     expect(src).toMatch(/'vitest', 'run', '--retry=0'/);
     expect(src).toMatch(/'tsc', '-p', 'tsconfig\.money\.json'/);
     expect(src).toMatch(/REFUSED: /);
+    expect(src).toMatch(/\['workflow', 'run', 'ci\.yml', '--ref', branch\]/);
   });
 });

@@ -70,6 +70,9 @@ async function main() {
   let pr;
   try { pr = sh('gh', ['pr', 'create', '--base', 'main', '--head', branch, '--title', `Loop: ${(plan.tasks?.[0]?.title || plan.reason).slice(0, 60)}`, '--body', body, '--label', 'loop']); }
   catch { pr = sh('gh', ['pr', 'view', branch, '--json', 'url', '--jq', '.url']); }
+  /* CI for the branch, asked for by name: a push made with GITHUB_TOKEN starts none, and the
+     PR's required checks are these. */
+  try { sh('gh', ['workflow', 'run', 'ci.yml', '--ref', branch]); } catch (error) { say(`CI could not be dispatched for ${branch}: ${error.message}`); }
   fs.writeFileSync('loop-pr.txt', pr);
   if (process.env.GITHUB_OUTPUT) fs.appendFileSync(process.env.GITHUB_OUTPUT, `pr=${pr}\nbranch=${branch}\n`);
   say(`Implemented on ${branch}: ${changed.length} files; ${pr}`);
