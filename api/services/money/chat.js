@@ -26,7 +26,7 @@
  */
 
 import { complete, stream as streamComplete, TIER_CHAT } from '../llmGateway.js';
-import { windowLines, spendWindows } from './windows.js';
+import { windowLines, spendWindows, breakdown, eur } from './windows.js';
 import { tripDays } from './when.js';
 import { balances, describeBetweenPeople, splitFindings, MIN_WAYS, MAX_WAYS } from './bizum.js';
 import crypto from 'node:crypto';
@@ -414,6 +414,21 @@ export function contextText(ctx) {
       .map((s) => `${monthLabel(s.month)} ${amountText(s.spent)} / ${amountText(s.received)} / ${s.lines}`).join('; ') + '.');
   }
 
+  /* Each place's month, totalled here: asked how many times and how much at Glovo, the model
+     listed three lines and said the ledger had no total (2026-09-20). Top places of this month
+     and of last, with the count. */
+  const monthKey = (ctx.forecast?.month || ctx.now.toISOString()).slice(0, 7);
+  const lastKey = (() => { const d = new Date(`${monthKey}-01T12:00:00Z`); d.setUTCMonth(d.getUTCMonth() - 1); return d.toISOString().slice(0, 7); })();
+  const spendingIn = (key) => (ctx.transactions || []).filter((t) => out(t) && t.verdict !== 'not_me' && String(t.occurred_at || '').slice(0, 7) === key);
+  const placeName = (t) => ctx.placeByKey.get(t.merchant_key)?.name || nameOf(t);
+  /* Forty places: the fifteenth cut Glovo off on the real ledger, and the model then composed a
+     count from other lines' numbers (2026-09-20). A place not here is one the ledger has not
+     seen this month, and the rule says so. */
+  const byPlace = breakdown(spendingIn(monthKey), placeName, 40);
+  if (byPlace.length) lines.push(`This month by place, total (payments): ${byPlace.map((b) => `${b.key} ${eur(b.total)} (${b.count})`).join('; ')}.`);
+  const lastByPlace = breakdown(spendingIn(lastKey), placeName, 20);
+  if (lastByPlace.length) lines.push(`${monthLabel(`${lastKey}-01`)} by place, total (payments): ${lastByPlace.map((b) => `${b.key} ${eur(b.total)} (${b.count})`).join('; ')}.`);
+
   const groups = ctx.categories?.groups || [];
   if (groups.length) {
     lines.push('This month by kind of place: ' + groups.slice(0, 8).map((g) => `${g.category} ${amountText(g.spent)} (${g.share}%)`).join('; ') + '.');
@@ -446,8 +461,15 @@ export function contextText(ctx) {
   lines.push(...calendarLines(ctx.facts, { now: ctx.now }));
   /* What today can carry, worked out from what is already here: no extra query, and the twin
      answers "can I afford tonight?" with the same number the month page shows. */
-  const todayLine = allowanceLine(safeToSpend({ cast: ctx.forecast, segments: ctx.segments, facts: ctx.facts, now: ctx.now }));
+  const allowance = safeToSpend({ cast: ctx.forecast, segments: ctx.segments, facts: ctx.facts, now: ctx.now });
+  const todayLine = allowanceLine(allowance);
   if (todayLine) lines.push(todayLine);
+  /* "How much do I have left this month" is one number, the same the day rests on: the budget
+     after what has gone and what is spoken for, and what it is left over (2026-09-20). */
+  if (allowance && allowance.free !== null && allowance.free !== undefined && allowance.horizon) {
+    const basis = allowance.basis === 'balance' ? 'the balance' : allowance.basis === 'income' ? 'what they said comes in' : 'a typical month';
+    lines.push(`Left for the ${allowance.horizon.days} days until ${allowance.horizon.source || 'the month ends'}, after what is spent and spoken for: ${allowance.free < 0 ? 'over by ' : ''}${amountText(allowance.free)} (from ${basis}${allowance.keep ? `, keeping ${amountText(allowance.keep)}` : ''}).`);
+  }
 
   if (ctx.questions.length) {
     lines.push('Open questions (id: question): ' + ctx.questions.slice(0, 8).map((q) => `${q.id}: ${q.ask}`).join(' | '));
@@ -478,7 +500,7 @@ export const RULES = [
   'Every number you write must appear in the context above. Never estimate, round differently, or add up numbers yourself; if the context does not hold the number, say the ledger cannot tell.',
   'Write amounts exactly as the context does, like 12,50 EUR.',
   'Do not say "always" for an amount that varies; say "usually" or "about".',
-  'Never add numbers up: if a total would need adding, give the parts and say the ledger has no total for that. Never work out a daily amount or a difference yourself. The totals for today, yesterday, last night, this week, last week and each of the last seven days are in the context, each with its kinds of place and its places: quote them when asked about those stretches, a kind of place in a stretch, or a place in a stretch.',
+  'Never add numbers up: if a total would need adding, give the parts and say the ledger has no total for that. Never work out a daily amount or a difference yourself. The totals for today, yesterday, last night, this week, last week and each of the last seven days are in the context, each with its kinds of place and its places, and each place has its total and count for this month and last: quote them when asked about a stretch, a kind of place, or a place; "how much is left" is the line that begins "Left for". A place missing from the by-place line had no payment that month: say so, never assemble a count or a total from other lines. The biggest or largest payment is one line of the recent payments, never a place\'s total over several.',
   'On a greeting, a thanks, an "ok" or a message with no question in it, answer in one short line with no numbers and no figure.',
   'When the person tells you something, begin by saying back in a few words what they told you, in their terms ("Spotify is your flatmate\'s, not yours"), then say what the ledger will do with it, then the offer. Never answer a statement with what the ledger currently thinks as if they had asked.',
   'A plan, a trip, a visit, an exam, a change in their life, even with no money in it: propose remember with their words, and say the ledger will read those days with it in mind.',
