@@ -26,6 +26,7 @@
  */
 
 import { complete, stream as streamComplete, TIER_CHAT } from '../llmGateway.js';
+import { windowLines, spendWindows } from './windows.js';
 import { balances, describeBetweenPeople, splitFindings, MIN_WAYS, MAX_WAYS } from './bizum.js';
 import crypto from 'node:crypto';
 import { createLogger } from '../logger.js';
@@ -44,7 +45,7 @@ import { quietly } from './quietly.js';
 
 const log = createLogger('money-chat');
 
-export const FIGURE_KINDS = Object.freeze(['months', 'shares', 'weekdays', 'recurring', 'band', 'history']);
+export const FIGURE_KINDS = Object.freeze(['months', 'shares', 'weekdays', 'recurring', 'band', 'history', 'week']);
 export const ACTION_KINDS = Object.freeze(['not_me', 'recategorise', 'answer', 'split', 'person', 'remember', 'forget']);
 
 /** How many receipts ride under one answer, and how many of anything the context carries. */
@@ -280,6 +281,15 @@ export function buildFigure(request, ctx) {
     };
   }
 
+  /* The last seven days, one bar each: what "each day this week" means (2026-09-20). The
+     screen already draws this shape for the home page; the chat now asks for it by name. */
+  if (kind === 'week') {
+    const { days } = spendWindows(ctx.transactions, ctx.now);
+    if (!days.some((d) => d.count)) return null;
+    const today = days[days.length - 1]?.day;
+    return { figure: { kind, title: say(ctx.language, 'Spent per day, last 7 days'), days: days.map((d) => ({ label: dayMonth(`${d.day}T12:00:00Z`, ctx.language), value: d.total, today: d.day === today })) }, rows: [] };
+  }
+
   if (kind === 'history') {
     const rows = merchantRows(ctx, request.merchant).sort((a, b) => at(a) - at(b));
     if (rows.length < 2) return null;
@@ -393,6 +403,10 @@ export function contextText(ctx) {
     if (f.received) lines.push(`Came in this month: ${amountText(f.received)}.`);
   }
 
+  /* The stretches a person asks about by name, totalled here so the model never adds: asked
+     for last night and for yesterday, it gave the lines one by one and no total (2026-09-20). */
+  lines.push(...windowLines(ctx.transactions, ctx.now));
+
   if (ctx.segments.length) {
     lines.push('Per month, spent / received / payments: ' + [...ctx.segments]
       .sort((a, b) => new Date(a.month) - new Date(b.month))
@@ -463,7 +477,7 @@ export const RULES = [
   'Every number you write must appear in the context above. Never estimate, round differently, or add up numbers yourself; if the context does not hold the number, say the ledger cannot tell.',
   'Write amounts exactly as the context does, like 12,50 EUR.',
   'Do not say "always" for an amount that varies; say "usually" or "about".',
-  'Never add numbers up: if a total would need adding, give the parts and say the ledger has no total for that. Never work out a daily amount or a difference yourself.',
+  'Never add numbers up: if a total would need adding, give the parts and say the ledger has no total for that. Never work out a daily amount or a difference yourself. The totals for today, yesterday, last night, this week, last week and each of the last seven days are in the context: quote them when asked about those stretches.',
   'On a greeting, a thanks, an "ok" or a message with no question in it, answer in one short line with no numbers and no figure.',
   'When the person tells you something, begin by saying back in a few words what they told you, in their terms ("Spotify is your flatmate\'s, not yours"), then say what the ledger will do with it, then the offer. Never answer a statement with what the ledger currently thinks as if they had asked.',
   'A plan, a trip, a visit, an exam, a change in their life, even with no money in it: propose remember with their words, and say the ledger will read those days with it in mind.',
@@ -473,6 +487,7 @@ export const RULES = [
   'Vary your openings; never begin two answers the same way. On a follow-up ("and last month?", "why?", "and Spotify?") answer only what is new.',
   'Calendar overlaps and merchant patterns are associations, not evidence of what caused spending. Do not infer attendance, a commute, work expenses or a causal effect from location or timing alone. A note kept in their words changes conversational context; it does not change numeric forecasts unless a structured action is confirmed.',
   'When the calendar lines say what a kind of event usually costs, you may say what the days ahead are likely to cost, always as "usually about", never as a promise.',
+  'Asked for each day, per day, day by day, or how the week went, draw the week figure (one bar per day, the last seven) and say in words only the total for the stretch and the day that cost most; never list every day as a sentence.',
   'Never ask whether they would like a figure or a chart: when one would help, ask for it by kind and it is drawn under your words. When a figure would show the thing better than words, ask for it by kind. Kinds: months (spent per month), shares (where a month went; add month, and by: "merchant" for places), weekdays (spend by weekday), recurring (what comes back), band (this month so far and likely), history (one merchant over time; add merchant). Ask for at most two, and only when they add something.',
   'Actions are offers the person taps, never things you did: the text must not claim to have changed, marked or recorded anything. Say something like "If that is right, mark it below." and leave the doing to the card.',
   'Propose an action only when the person asks to fix or record something: not_me with transaction_id from the recent payments; recategorise with merchant_key from the places and a category from: ' + CATEGORIES.join(', ') + '; answer with question_id from the open questions and the value they gave; split with transaction_id from the recent payments and ways (2 to 12, the person included) when they say a payment was shared, for a dinner, a shop, a present.',
