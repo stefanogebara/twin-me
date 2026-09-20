@@ -385,3 +385,36 @@ describe('the link rests sealed', () => {
     expect(feeds.map((f) => [f.id, f.url])).toEqual([['a', url], ['b', 'https://example.edu/c.ics']]);
   });
 });
+
+describe('the week ahead without a calendar', () => {
+  it('still lists the days the person wrote on, as away when their words say so', async () => {
+    const { ahead } = await import('../../../../api/services/money/calendar.js');
+    /* The status reads the facts once for the feeds and the week reads them again: the same rows both times. */
+    token.mockResolvedValue({ accessToken: null, needsReconnect: false });
+    store.listFacts.mockResolvedValue([
+      { kind: 'note', subject: 'day-2026-09-25', value: 'Trip: I am going to Bilbao next Friday to Sunday' },
+      { kind: 'note', subject: 'day-2026-09-26', value: 'Trip: I am going to Bilbao next Friday to Sunday' },
+      { kind: 'note', subject: 'i-am-going-to-bilbao-abc', value: 'I am going to Bilbao next Friday to Sunday' },
+    ]);
+    const r = await ahead('u1', 7, { now: new Date('2026-09-21T10:00:00Z') });
+    expect(r.connected).toBe(false);
+    expect(r.ahead.map((e) => e.start.slice(0, 10))).toEqual(['2026-09-25', '2026-09-26']);
+    expect(r.ahead[0].title).toMatch(/^Trip:/);
+    expect(r.free_days).not.toContain('2026-09-25');
+  });
+});
+
+describe('the week ahead with a calendar', () => {
+  it('lists the days the person wrote on beside the calendar\'s own events', async () => {
+    const { ahead } = await import('../../../../api/services/money/calendar.js');
+    token.mockResolvedValue({ success: true, accessToken: 'tok' });
+    get.mockResolvedValue({ items: [{ id: 'g1', summary: 'Class', start: { dateTime: '2026-09-22T09:00:00Z' }, end: { dateTime: '2026-09-22T11:00:00Z' } }] });
+    store.listFacts.mockResolvedValue([
+      { kind: 'event_spend_meta', subject: 'meta', value: JSON.stringify({ learned_at: new Date().toISOString(), snapshot: [], past: [] }) },
+      { kind: 'note', subject: 'day-2026-09-25', value: 'Trip: Bilbao with two friends' },
+    ]);
+    const r = await ahead('u1', 7, { now: new Date('2026-09-21T10:00:00Z') });
+    expect(r.connected).toBe(true);
+    expect(r.ahead.map((e) => `${e.start.slice(0, 10)} ${e.title}`)).toEqual(['2026-09-22 Class', '2026-09-25 Trip: Bilbao with two friends']);
+  });
+});

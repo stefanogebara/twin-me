@@ -27,6 +27,7 @@
 
 import { complete, stream as streamComplete, TIER_CHAT } from '../llmGateway.js';
 import { windowLines, spendWindows } from './windows.js';
+import { tripDays } from './when.js';
 import { balances, describeBetweenPeople, splitFindings, MIN_WAYS, MAX_WAYS } from './bizum.js';
 import crypto from 'node:crypto';
 import { createLogger } from '../logger.js';
@@ -594,6 +595,8 @@ const PHRASES = {
     '{here} is at {spent} so far. {before} closed at {closed}.': '{here} va en {spent} hasta ahora. {before} cerr\u00f3 en {closed}.',
     '{here} is at {spent} so far.': '{here} va en {spent} hasta ahora.',
     'Remember this': 'Recordar esto',
+    'Kept, in your words, and that day is marked as away.': 'Guardado, con tus palabras, y ese d\u00eda queda marcado como fuera.',
+    'Kept, in your words, and those {n} days are marked as away.': 'Guardado, con tus palabras, y esos {n} d\u00edas quedan marcados como fuera.',
     'Hi. Ask me about your money: what today can carry, where the month went, what comes back.': 'Hola. Preg\u00fantame por tu dinero: lo que aguanta hoy, ad\u00f3nde fue el mes, lo que vuelve.',
     'You are welcome.': 'De nada.',
     'All right.': 'Vale.',
@@ -660,6 +663,8 @@ const PHRASES = {
     '{here} is at {spent} so far. {before} closed at {closed}.': '{here} est\u00e1 em {spent} at\u00e9 agora. {before} fechou em {closed}.',
     '{here} is at {spent} so far.': '{here} est\u00e1 em {spent} at\u00e9 agora.',
     'Remember this': 'Lembrar disso',
+    'Kept, in your words, and that day is marked as away.': 'Guardado, nas suas palavras, e esse dia fica marcado como fora.',
+    'Kept, in your words, and those {n} days are marked as away.': 'Guardado, nas suas palavras, e esses {n} dias ficam marcados como fora.',
     'Hi. Ask me about your money: what today can carry, where the month went, what comes back.': 'Oi. Pergunte sobre o seu dinheiro: o que o dia aguenta, para onde o m\u00eas foi, o que volta.',
     'You are welcome.': 'De nada.',
     'All right.': 'Tudo bem.',
@@ -1354,6 +1359,14 @@ export async function act(userId, action, { now = new Date() } = {}) {
     const hash = crypto.createHash('sha256').update(checked.text).digest('hex').slice(0, 8);
     const subject = `${checked.text.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 50) || 'note'}-${hash}`;
     await answerQuestion(userId, { questionId: null, kind: 'note', subject, subjectLabel: null, value: checked.text });
+    /* A trip with days in it is also a note on each of those days, titled so the calendar's
+       away rule reads them: the week's reading moves before any payment arrives, which is
+       what the reply promised and the note alone did not do (2026-09-20). */
+    const trip = tripDays(checked.text, now);
+    if (trip) {
+      for (const day of trip.days) await answerQuestion(userId, { questionId: null, kind: 'note', subject: `day-${day}`, subjectLabel: null, value: trip.title });
+      return { done: true, said: say(ctx.language, trip.days.length === 1 ? 'Kept, in your words, and that day is marked as away.' : 'Kept, in your words, and those {n} days are marked as away.', { n: trip.days.length }) };
+    }
     return { done: true, said: say(ctx.language, 'Kept, in your words. It reads with that from now on.') };
   }
   if (checked.kind === 'forget') {
