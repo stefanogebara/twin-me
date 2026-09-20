@@ -67,3 +67,13 @@ describe('weekAverageLine', () => {
     expect(lines[0]).toBe('Today so far: spent 3,00 EUR in 1 payment, the largest a payment without a name 3,00 EUR.');
   });
 });
+
+describe('dayTotals', () => {
+  it('clips the first and last day to the instants given', async () => {
+    const { dayTotals } = await import('../../../../api/services/money/windows.js');
+    const from = new Date('2026-09-18T16:00:00Z').getTime(); // Friday 18:00 Madrid
+    const to = new Date('2026-09-19T04:00:00Z').getTime();   // Saturday 06:00 Madrid
+    const days = dayTotals(ledger, from, to);
+    expect(days.map((d) => `${d.day.slice(8)}:${d.total}`)).toEqual(['18:34', '19:12']); // dinner at 21:30; the bar at 02:30; not lunch, not the coffee at 08:30
+  });
+});

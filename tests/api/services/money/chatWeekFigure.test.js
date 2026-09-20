@@ -35,3 +35,41 @@ describe('a per-day ask', () => {
     expect(added.figures.map((f) => f.kind)).toEqual(['week']);
   });
 });
+
+describe('the week figure over an asked stretch', () => {
+  it('draws the days the question names when the context was built for that question', () => {
+    const ctx = assemble({ transactions: [tx('a', '2026-09-08T10:00:00Z', -10), tx('b', '2026-09-12T10:00:00Z', -20)], now, language: 'en' });
+    ctx.asked = 'a graph of what I spent between the 8th and the 12th';
+    const built = buildFigure({ kind: 'week' }, ctx);
+    expect(built.figure.title).toBe('Spent per day, 8 to 12 September');
+    expect(built.figure.days).toHaveLength(5);
+    expect(built.figure.days.map((d) => d.value)).toEqual([10, 0, 0, 0, 20]);
+    expect(built.figure.days.some((d) => d.today)).toBe(false);
+  });
+  it('asks for the week figure itself when a graph of a named stretch is wanted', async () => {
+    const { assembleReply } = await import('../../../../api/services/money/chat.js');
+    const ctx = assemble({ transactions: [tx('a', '2026-09-08T10:00:00Z', -10), tx('b', '2026-09-12T10:00:00Z', -20)], now, language: 'en' });
+    const message = 'a chart of what I spent between the 8th and the 12th';
+    ctx.asked = message;
+    const reply = assembleReply({ text: 'Here it is.', figures: [{ kind: 'weekdays' }], actions: [], cites: [] }, ctx, message);
+    expect(reply.figures.map((f) => f.kind)).toEqual(['week']);
+  });
+});
+
+describe('a question is answered, not remembered', () => {
+  it('drops a remember offer on a plain ask and a closing chart question when the chart is drawn', async () => {
+    const { assembleReply, withoutChartQuestion } = await import('../../../../api/services/money/chat.js');
+    const ctx = assemble({ transactions: [tx('a', '2026-09-08T10:00:00Z', -10), tx('b', '2026-09-12T10:00:00Z', -20)], now, language: 'en' });
+    const message = 'Give me a graph of what I spent between the 8th and the 12th';
+    ctx.asked = message;
+    const reply = assembleReply({ text: 'From the 8th to the 12th you spent 30,00 EUR. Want to see a bar chart of each day?', figures: [{ kind: 'week' }], actions: [{ kind: 'remember', text: message, label: 'Remember this' }], cites: [] }, ctx, message);
+    expect(reply.actions).toEqual([]);
+    expect(reply.text).toBe('From the 8th to the 12th you spent 30,00 \u20ac.');
+    expect(withoutChartQuestion('Only a question about a graph?', true)).toBe('Only a question about a graph?');
+    expect(withoutChartQuestion('Spent 538,21 EUR. Quer ver como foi dia a dia? Peca a figura da semana.', true)).toBe('Spent 538,21 EUR.');
+    expect(withoutChartQuestion('Spent 538,21 EUR. Want a graph? The largest was 200,00 EUR.', true)).toBe('Spent 538,21 EUR. The largest was 200,00 EUR.');
+    expect(withoutChartQuestion('Spent 30,00 EUR. Is that right?', true)).toBe('Spent 30,00 EUR. Is that right?');
+    const taught = assembleReply({ text: 'Noted.', figures: [], actions: [{ kind: 'remember', text: 'I am going to Bilbao on the 25th', label: 'Remember this' }], cites: [] }, ctx, 'I am going to Bilbao on the 25th');
+    expect(taught.actions.map((a) => a.kind)).toEqual(['remember']);
+  });
+});

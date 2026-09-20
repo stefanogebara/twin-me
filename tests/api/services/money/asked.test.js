@@ -1,6 +1,6 @@
 /** The stretch of time a question names, in the past: a weekday, a night, a weekend, a date, a range, since a date. */
 import { describe, expect, it } from 'vitest';
-import { askedWindows, askedLines } from '../../../../api/services/money/asked.js';
+import { askedWindows, askedLines, askedDays } from '../../../../api/services/money/asked.js';
 
 /* Sunday 2026-09-20 at 12:00 in Madrid (10:00 UTC). */
 const sun = new Date('2026-09-20T10:00:00Z');
@@ -67,5 +67,22 @@ describe('askedLines', () => {
     expect(askedLines(ledger, 'what did I spend on the 16th', sun)).toEqual(['Asked stretch, 16 September: nothing spent.']);
     expect(askedLines(ledger, 'how much did I spend last Friday night', sun)[0]).toMatch(/^Asked stretch, Friday 18 September night \(18:00 to 06:00\): spent 29,46 EUR in 2 payments, the largest bar 22,36 EUR\./);
     expect(askedLines(ledger, 'am I on track', sun)).toEqual([]);
+  });
+});
+
+describe('askedDays', () => {
+  const tx = (id, iso, amount) => ({ id, occurred_at: iso, amount, currency: 'EUR', merchant_raw: id, merchant_key: id });
+  const ledger = [tx('a', '2026-09-08T10:00:00Z', -10), tx('b', '2026-09-12T10:00:00Z', -20), tx('c', '2026-09-13T23:30:00Z', -5) /* 01:30 Monday in Madrid */, tx('d', '2026-09-14T02:00:00Z', -7), tx('e', '2026-09-14T10:00:00Z', -99)];
+  it('draws a range a bar per day, and a weekend clipped to Monday 06:00', () => {
+    const range = askedDays(ledger, 'graph what I spent between the 8th and the 14th', sun);
+    expect(range.label).toBe('8 to 14 September');
+    expect(range.days.map((d) => `${d.day.slice(8)}:${d.total}`)).toEqual(['08:10', '09:0', '10:0', '11:0', '12:20', '13:0', '14:111']);
+    const weekend = askedDays(ledger, 'a chart of last weekend', sun);
+    expect(weekend.days.map((d) => `${d.day.slice(8)}:${d.total}`)).toEqual(['12:20', '13:0', '14:12']); // Monday: the 01:30 and 04:00 payments, before 06:00
+  });
+  it('is nothing for a single day or a night', () => {
+    expect(askedDays(ledger, 'what did I spend on the 12th', sun)).toBeNull();
+    expect(askedDays(ledger, 'last friday night', sun)).toBeNull();
+    expect(askedDays(ledger, 'am I on track', sun)).toBeNull();
   });
 });
