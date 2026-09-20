@@ -7,11 +7,11 @@
 import { useState } from 'react';
 import { euro, shortDay, moneyAPI, type MoneySighting } from '../../../../services/api/moneyAPI';
 import Chevron from '../../Chevron';
-import { merchantLabel, monthYear, ordinalDay, SOURCE } from '../../words';
+import { merchantLabel, monthYear, ordinalDay, seenWords, SOURCE } from '../../words';
 import type { MoneyAccount } from '../../useMoneyAccount';
 
 export default function Ledger({ m }: { m: MoneyAccount }) {
-  const { t, locale, ledger, byMonth, pairMax, todayDay, verdict } = m;
+  const { t, locale, ledger, byMonth, pairMax, todayDay, verdict, seen } = m;
   const [monthOpen, setMonthOpen] = useState<Record<string, boolean>>({});
   const [open, setOpen] = useState<string | null>(null);
   const [receipts, setReceipts] = useState<Record<string, MoneySighting[]>>({});
@@ -64,7 +64,7 @@ export default function Ledger({ m }: { m: MoneyAccount }) {
                                   <span className="mv-item-text">
                                     <span className="mv-item-title">{merchantLabel(row)}</span>
                                     <span className="mv-item-sub">
-                                      {[shortDay(row.occurred_at, locale), row.posted_at ? '' : t('pending'), row.is_recurring ? t('recurring') : '', row.verdict ? t(row.verdict === 'worth_it' ? 'worth it' : 'not me') : ''].filter(Boolean).join(', ')}
+                                      {[shortDay(row.occurred_at, locale), seenWords(t, seen[row.id], Boolean(row.posted_at)) || (row.posted_at ? '' : t('pending')), row.is_recurring ? t('recurring') : '', row.verdict ? t(row.verdict === 'worth_it' ? 'worth it' : 'not me') : ''].filter(Boolean).join(', ')}
                                     </span>
                                   </span>
                                   <span className="mv-item-end mv-amount">{Number(row.amount) > 0 ? '+' : ''}{euro(row.amount, row.currency)}</span>

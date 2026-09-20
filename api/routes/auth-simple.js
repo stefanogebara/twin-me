@@ -10,6 +10,8 @@ import { inngest, EVENTS } from '../services/inngestClient.js';
 import { sendWelcomeEmail, sendMagicLink } from '../services/emailService.js';
 import { getRedisClient, isRedisAvailable } from '../services/redisClient.js';
 import { createLogger } from '../services/logger.js';
+import { validate } from '../middleware/validate.js';
+import * as AS from './authSchemas.js';
 import { authenticateUser } from '../middleware/auth.js';
 import { computeIsAdmin } from '../services/adminAccess.js';
 
@@ -381,7 +383,7 @@ function buildAuthUser(user) {
 }
 
 // Sign up
-router.post('/signup', authLimiter, async (req, res) => {
+router.post('/signup', authLimiter, validate({ body: AS.SIGNUP }), async (req, res) => {
   try {
     const { email, password, firstName, lastName } = req.body;
 
@@ -540,7 +542,7 @@ router.post('/signup', authLimiter, async (req, res) => {
 });
 
 // Sign in
-router.post('/signin', authLimiter, async (req, res) => {
+router.post('/signin', authLimiter, validate({ body: AS.SIGNIN }), async (req, res) => {
   try {
     const { email, password } = req.body;
 
@@ -656,7 +658,7 @@ router.get('/verify', authenticateUser, async (req, res) => {
 });
 
 // Refresh access token
-router.post('/refresh', refreshLimiter, async (req, res) => {
+router.post('/refresh', refreshLimiter, validate({ body: AS.REFRESH }), async (req, res) => {
   try {
     // Read refresh token from httpOnly cookie first, fall back to body for backward compat
     const refreshToken = req.cookies?.refresh_token || req.body?.refreshToken;
@@ -800,7 +802,7 @@ router.post('/refresh', refreshLimiter, async (req, res) => {
 
 const MAGIC_LINK_TTL_MS = 15 * 60 * 1000; // 15 minutes
 
-router.post('/magic-link/request', authLimiter, async (req, res) => {
+router.post('/magic-link/request', authLimiter, validate({ body: AS.MAGIC_LINK }), async (req, res) => {
   const startedAt = Date.now();
   try {
     const emailRaw = (req.body?.email || '').trim().toLowerCase();
@@ -1055,7 +1057,7 @@ router.get('/magic-link/verify', async (req, res) => {
 });
 
 // Logout - invalidate refresh token + blacklist JWT
-router.post('/logout', async (req, res) => {
+router.post('/logout', validate({ body: AS.LOGOUT }), async (req, res) => {
   try {
     const token = req.headers.authorization?.split(' ')[1];
     // Read the current device's refresh token from the cookie (or body for mobile).
@@ -1526,7 +1528,7 @@ router.get('/oauth/callback', async (req, res) => {
 });
 
 // OAuth callback handler (POST for API calls)
-router.post('/oauth/callback', async (req, res) => {
+router.post('/oauth/callback', validate({ body: AS.OAUTH_CALLBACK }), async (req, res) => {
   log.info('POST /oauth/callback received');
 
   try {

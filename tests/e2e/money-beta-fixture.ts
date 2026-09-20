@@ -62,7 +62,7 @@ export async function moneyFixture(page: Page, { firstVisit = false } = {}) {
       forecast, today: state.changed ? {...today,amount:29.99} : today,
       ledger: state.empty ? [] : state.paginated ? [...Array.from({length:200},(_,i)=>({...ledger[0],id:`tx${i}`})),{...ledger[0],id:'tx201',merchant_raw:'Last page cafe',merchant_name:'Last page cafe'}] : ledger,
       recurring: [], accounts: accountsNow(), months: data['/money/months'], readings: data['/money/readings'], categories: data['/money/categories'], usage: data['/money/usage'],
-      capabilities: state.capabilitiesFailed ? null : {bank:state.advanced,capture:state.advanced}, inbox: data['/money/inbox'], facts: data['/money/facts'], failed: state.capabilitiesFailed ? ['capabilities'] : [],
+      capabilities: state.capabilitiesFailed ? null : {bank:state.advanced,capture:state.advanced}, inbox: data['/money/inbox'], facts: data['/money/facts'], seen: { tx1: ['bankfeed'] }, failed: state.capabilitiesFailed ? ['capabilities'] : [],
     }});
     if (/^\/money\/bank\/accounts\/[^/]+\/cards\/\d{4}\/type$/.test(path)) {
       const parts=path.split('/'); const body=route.request().postDataJSON();

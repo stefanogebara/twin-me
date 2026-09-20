@@ -22,7 +22,7 @@ import { CHANGE_BOUNDARY, readingRank, readingStake } from './readingOrder';
 type Snapshot = {
   userId: string | null; revision: number; at: number; forecast: MoneyForecast | null; today: MoneyToday | null; ledger: MoneyTransaction[]; recurring: MoneyRecurring[];
   accounts: MoneyBankAccount[]; months: MoneyMonth[]; readings: MoneyReading[]; categories: MoneyCategories | null; usage: MoneyUsage | null; unread: boolean;
-  capabilities: { bank: boolean; capture: boolean }; inbox: { address: string; receiving: boolean } | null; facts: MoneyFact[] | null;
+  capabilities: { bank: boolean; capture: boolean }; inbox: { address: string; receiving: boolean } | null; facts: MoneyFact[] | null; seen: Record<string, string[]>;
 };
 let SNAPSHOT: Snapshot | null = null;
 const SNAPSHOT_FRESH_MS = 30000;
@@ -68,6 +68,8 @@ export function useMoneyRead(userId: string | null, view: MoneyView) {
   const [inbox, setInbox] = useState<{ address: string; receiving: boolean } | null>(SNAPSHOT?.inbox ?? null);
   /* What it knows, in the person's words: the You page and the onboarding both read it. */
   const [facts, setFacts] = useState<MoneyFact[] | null>(SNAPSHOT?.facts ?? null);
+  /* Which sources saw each payment: what a row's grey line says about its reconciliation. */
+  const [seen, setSeen] = useState<Record<string, string[]>>(SNAPSHOT?.seen ?? {});
   /* The parts of the last read that could not be read, by name: a part that failed is not
      an empty part, and whoever paints it must know the difference. */
   const [failedParts, setFailedParts] = useState<Set<string>>(new Set());
@@ -114,6 +116,7 @@ export function useMoneyRead(userId: string | null, view: MoneyView) {
     const cap = got('capabilities'); if (cap !== undefined) setCapabilities(cap);
     const ib = got('inbox'); if (ib !== undefined) setInbox(ib); else if (page && failed.has('inbox')) setInbox(null);
     const fa = got('facts'); if (fa !== undefined) setFacts(fa);
+    const sn = got('seen'); if (sn !== undefined) setSeen(sn);
     setFailedParts(page ? failed : new Set(['forecast', 'today', 'ledger', 'recurring', 'accounts', 'months', 'readings', 'categories', 'usage', 'capabilities', 'inbox', 'facts']));
     /* A month that could not be read is not an empty month. Every rejection was dropped, so a
        server that was down told the person their ledger was empty and offered to connect the
@@ -138,6 +141,7 @@ export function useMoneyRead(userId: string | null, view: MoneyView) {
         capabilities: cap !== undefined ? cap : SNAPSHOT?.capabilities ?? { bank: false, capture: false },
         inbox: ib !== undefined ? ib : SNAPSHOT?.inbox ?? null,
         facts: fa !== undefined ? fa : SNAPSHOT?.facts ?? null,
+        seen: sn !== undefined ? sn : SNAPSHOT?.seen ?? {},
         unread: false,
       };
       SNAPSHOT = kept;
@@ -182,7 +186,7 @@ export function useMoneyRead(userId: string | null, view: MoneyView) {
       .catch(() => {});
     return () => { live = false; };
   }, [load]);
-  return { forecast, today, unread, ledger, setLedger, recurring, accounts, months, readings, categories, setCategories, usage, capabilities, inbox, facts, failedParts, loaded, needsReconnect, setNeedsReconnect, load };
+  return { forecast, today, unread, ledger, setLedger, recurring, accounts, months, readings, categories, setCategories, usage, capabilities, inbox, facts, seen, failedParts, loaded, needsReconnect, setNeedsReconnect, load };
 }
 
 /** What only You shows, read only there: the calendar, the questions, the patterns. */

@@ -20,6 +20,11 @@ import { authenticateUser } from '../middleware/auth.js';
 import { supabaseAdmin } from '../services/database.js';
 import { getCorrectionRate } from '../services/twinSelfImprovement.js';
 import { createLogger } from '../services/logger.js';
+import { validate, z } from '../middleware/validate.js';
+
+/* What may arrive at all (M1-2, 2026-09-20); the handler keeps its own checks and messages. */
+const ID = z.object({ id: z.string().min(1).max(64) });
+const PATCH = z.object({ content: z.string().max(4000).optional().nullable(), category: z.string().max(40).optional().nullable(), status: z.string().max(20).optional().nullable() }).passthrough();
 
 const log = createLogger('TwinDirectives');
 
@@ -96,7 +101,7 @@ router.get('/correction-rate', authenticateUser, async (req, res) => {
  * the merge step in twinSelfImprovement respects — manual edits are never
  * auto-overwritten by the extraction loop.
  */
-router.patch('/:id', authenticateUser, async (req, res) => {
+router.patch('/:id', authenticateUser, validate({ params: ID, body: PATCH }), async (req, res) => {
   try {
     const userId = req.user.id;
     const { id } = req.params;
@@ -176,7 +181,7 @@ router.patch('/:id', authenticateUser, async (req, res) => {
  * (so twin_corrections.resulting_directive_id never dangles). The active
  * directives query and the prompt-injection hot path both filter it out.
  */
-router.delete('/:id', authenticateUser, async (req, res) => {
+router.delete('/:id', authenticateUser, validate({ params: ID }), async (req, res) => {
   try {
     const userId = req.user.id;
     const { id } = req.params;

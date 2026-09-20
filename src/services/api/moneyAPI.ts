@@ -64,6 +64,8 @@ export type MoneyToday = {
   amount: number | null; basis: 'balance' | 'income' | 'typical' | 'student_prior' | null; base?: number | null; income?: number | null; keep?: number | null; budget: number | null; free: number | null; over: boolean;
   horizon?: { day: string | null; days: number; source: string | null } | null; balance?: { amount: number; banks: string[]; at: string } | null;
   days_left: number | null; today_events: { title: string; amount: number }[]; sentence: string | null; why: string | null;
+  /* The standing charges that land today or tomorrow, already inside the day's number. */
+  charges_soon?: { name: string | null; amount: number; when: 'today' | 'tomorrow' }[];
   /* What the screen needs to say the line itself, in the reader's own language. */
   basis_label?: string | null; spent?: number | null; committed?: number | null; calendar_ahead?: number | null;
   shape?: { weekday: number; ratio: number } | null;
@@ -170,6 +172,8 @@ export type MoneyPage = {
   accounts: MoneyAccount[] | null; months: MoneyMonth[] | null; readings: MoneyReading[] | null; categories: MoneyCategories | null;
   usage: MoneyUsage | null; capabilities: { bank: boolean; capture: boolean } | null; inbox: { address: string; receiving: boolean } | null;
   facts: MoneyFact[] | null;
+  /* Which sources saw each payment, by transaction id: the reconciliation, visible. */
+  seen: Record<string, string[]> | null;
   failed: string[];
 };
 

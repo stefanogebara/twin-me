@@ -1,4 +1,5 @@
 import { beforeAll, beforeEach, afterAll, describe, expect, it, vi } from 'vitest';
+import { execFileSync } from 'node:child_process';
 import { testPool, bootstrapMoney, postgresSupabase } from '../../../helpers/moneyDatabase.js';
 
 const state = vi.hoisted(() => ({ db: null }));
@@ -16,6 +17,7 @@ import { createStatementAccount, statementAccounts, ownedStatementAccount, check
 import { toSighting, distinctPending } from '../../../../api/services/money/feeds/enableBanking.js';
 import { toSightings } from '../../../../api/services/money/statements/importer.js';
 import { holdUndatedCapture } from '../../../../api/services/money/legacyCapture.js';
+import { seenBy } from '../../../../api/services/money/seen.js';
 let pool;
 beforeAll(async () => {
   pool = testPool();
@@ -35,6 +37,26 @@ describe('Money persisted invariants', () => {
      default, so it held full DML on money_transactions with row level security as the only
      barrier. No client reads these tables with it, so it is revoked, and a new money table
      must not inherit the default either (2026-09-19, audit S3). */
+  it('restores the ledger from its own dump, row for row (the backup rehearsal, M0-4)', async () => {
+    /* A ledger to prove: two payments seen, one settled by the bank. */
+    await ingestSighting(USER, phone);
+    await ingestSighting(USER, bank({ source_ref: 'bank-x', amount: 7, merchant_key: 'shop' }));
+    expect((await rows()).length).toBeGreaterThan(0);
+    /* dump -> a fresh database on the same server -> verify -> drop. Ubuntu's runner and the
+       laptop both have Postgres 16 client tools; a missing pg_dump fails here, never skips. */
+    const out = execFileSync('bash', ['scripts/money/backup-rehearsal.sh', 'rehearse', process.env.MONEY_TEST_DATABASE_URL], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'], timeout: 120000 });
+    expect(out).toMatch(/^money_transactions \d+$/m);
+    expect(out).toMatch(/^money_transactions md5 [0-9a-f]{32}$/m);
+  }, 150000);
+
+  it('says which sources saw a payment once the bank and the phone agree', async () => {
+    await ingestSighting(USER, phone);
+    await ingestSighting(USER, bank());
+    const [row] = await rows();
+    expect((await seenBy(USER))[row.id]).toEqual(['bankfeed', 'phone']);
+    expect(await seenBy(OTHER)).toEqual({});
+  });
+
   it('gives the public key no privilege on any money table', async () => {
     const { rows } = await pool.query(`
       SELECT table_name, string_agg(privilege_type, ',') AS privs

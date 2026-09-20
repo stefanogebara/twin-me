@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest';
+import * as allowanceModule from '../../../../api/services/money/allowance.js';
 import { safeToSpend, statedIncome, typicalMonth, eventsToday, allowanceLine, MIN_MONTHS_FOR_TYPICAL, weekdayShare, SHAPE_LIMIT, freshBalance, nextInflow, SHAPE_MIN_WEEKDAYS } from '../../../../api/services/money/allowance.js';
 
 const NOW = new Date('2026-09-09T12:00:00Z');
@@ -360,5 +361,28 @@ describe('balance evidence', () => {
     expect(freshBalance([{ ...account, balance_at: '2026-09-18T00:00:00Z' }], now)).toBeNull();
     expect(freshBalance([account, { ...account, id: 'b', balance_at: '2026-09-01T00:00:00Z' }], now)).toBeNull();
     expect(freshBalance([{ ...account, balance_observed_at: null }], now)).toBeNull();
+  });
+});
+
+describe('the charge before it lands', () => {
+  const { chargesSoon } = allowanceModule;
+  it('names the standing charges due today or tomorrow, in Madrid days, largest first', () => {
+    const now = new Date('2026-09-19T22:30:00Z'); // 00:30 on the 20th in Madrid
+    const items = [
+      { merchant_key: 'spotify', merchant_name: 'Spotify', typical_amount: -9.99, next_expected: '2026-09-21T00:00:00Z' },
+      { merchant_key: 'gym', merchant_name: null, typical_amount: 30, next_expected: '2026-09-20' },
+      { merchant_key: 'rent', merchant_name: 'Rent', typical_amount: 500, next_expected: '2026-09-25' },
+      { merchant_key: 'zero', merchant_name: 'Zero', typical_amount: 0, next_expected: '2026-09-20' },
+    ];
+    expect(chargesSoon(items, now)).toEqual([
+      { name: 'gym', amount: 30, when: 'today' },
+      { name: 'Spotify', amount: 9.99, when: 'tomorrow' },
+    ]);
+    expect(chargesSoon([], now)).toEqual([]);
+  });
+  it('travels with the day', () => {
+    const cast = { month: '2026-09-01', spent: 0, committed: 9.99, days_left: 10, calendar_ahead: 0, calendar_items: [], committed_items: [{ merchant_key: 'spotify', merchant_name: 'Spotify', typical_amount: 9.99, next_expected: '2026-09-16' }] };
+    const today = safeToSpend({ cast, facts: [{ kind: 'income', amount: 700 }], now: new Date('2026-09-15T12:00:00Z') });
+    expect(today.charges_soon).toEqual([{ name: 'Spotify', amount: 9.99, when: 'tomorrow' }]);
   });
 });

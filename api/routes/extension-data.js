@@ -14,6 +14,11 @@ import { authenticateUser } from '../middleware/auth.js';
 import { supabaseAdmin } from '../config/supabase.js';
 import { ingestWebObservations } from '../services/observationIngestion.js';
 import { createLogger } from '../services/logger.js';
+import { validate, z } from '../middleware/validate.js';
+
+/* What may arrive at all (M1-2, 2026-09-20); the handlers keep their own checks and messages. */
+const PLATFORM = z.object({ platform: z.string().min(1).max(40) });
+const BATCH = z.object({ platform: z.string().max(40).optional().nullable(), events: z.array(z.unknown()).max(2000).optional().nullable() }).passthrough();
 
 const log = createLogger('ExtensionData');
 
@@ -148,7 +153,7 @@ function mapEventType(eventType, platform = '') {
  * POST /api/extension/capture/:platform
  * Receive individual capture event from extension
  */
-router.post('/capture/:platform', authenticateUser, async (req, res) => {
+router.post('/capture/:platform', authenticateUser, validate({ params: PLATFORM }), async (req, res) => {
   const { platform } = req.params;
   const userId = req.user.id;
   const capturedData = req.body;
@@ -209,7 +214,7 @@ const MAX_LLM_INGEST_EVENTS = 200;
  * POST /api/extension/batch
  * Receive batch sync from extension (multiple events, possibly mixed platforms)
  */
-router.post('/batch', authenticateUser, async (req, res) => {
+router.post('/batch', authenticateUser, validate({ body: BATCH }), async (req, res) => {
   const userId = req.user.id;
   const { platform, events } = req.body;
 
@@ -714,7 +719,7 @@ router.get('/stats', authenticateUser, async (req, res) => {
  * DELETE /api/extension/clear/:platform
  * Clear all extension data for a specific platform
  */
-router.delete('/clear/:platform', authenticateUser, async (req, res) => {
+router.delete('/clear/:platform', authenticateUser, validate({ params: PLATFORM }), async (req, res) => {
   const userId = req.user.id;
   const { platform } = req.params;
 
@@ -751,7 +756,7 @@ router.delete('/clear/:platform', authenticateUser, async (req, res) => {
  * Trigger browsing data analysis and push insights to Brain/Mem0/Soul Signature
  * Called manually or periodically after enough data accumulates
  */
-router.post('/analyze', authenticateUser, async (req, res) => {
+router.post('/analyze', authenticateUser, validate({ body: z.object({}).passthrough() }), async (req, res) => {
   const userId = req.user.id;
 
   log.info(`Triggering browsing analysis for user ${userId}`);

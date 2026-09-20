@@ -21,7 +21,7 @@ vi.mock('@/services/api/moneyAPI', async (original) => {
     /* The page is one read now (M2-3); it is built from the same two fakes so every count below holds. */
     if (key === 'page') return async () => {
       const [forecast, today] = await Promise.all([f.forecast(), f.today()]);
-      return { forecast, today, ledger: [{ id: 't', amount: -5, currency: 'EUR', occurred_at: new Date().toISOString(), merchant_key: 'coffee' }], recurring: [], accounts: [], months: [], readings: [], categories: null, usage: null, capabilities: { bank: false, capture: false }, inbox: { receiving: false }, facts: [], failed: [] };
+      return { forecast, today, ledger: [{ id: 't', amount: -5, currency: 'EUR', occurred_at: new Date().toISOString(), merchant_key: 'coffee' }], recurring: [], accounts: [], months: [], readings: [], categories: null, usage: null, capabilities: { bank: false, capture: false }, inbox: { receiving: false }, facts: [], seen: {}, failed: [] };
     };
     if (key === 'forecast') return f.forecast;
     if (key === 'today') return f.today;

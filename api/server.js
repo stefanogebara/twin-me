@@ -325,6 +325,7 @@ app.use((req, res, next) => {
 
 // Structured request logging (before routes, after rate limiting)
 import { requestLogger } from './services/logger.js';
+import { legacyTwinGate } from './middleware/legacyTwin.js';
 app.use(requestLogger());
 
 // Billing webhook needs raw body — mount BEFORE express.json
@@ -729,11 +730,11 @@ app.use('/api/transactions', transactionsRoutes); // Financial-Emotional Twin �
 app.use('/api/imports', importsRoutes); // GDPR / platform data export ingestion
 app.use('/api/claude-sync', claudeSyncRoutes); // Claude Desktop conversation sync
 app.use('/api/cron/claude-sync', cronClaudeSyncRoutes); // Claude Desktop cron sync and AI analysis processing
-app.use('/api/cron/memory-archive', cronMemoryArchiveRoutes);    // Daily memory archival for large users
-app.use('/api/cron/memory-forgetting', cronMemoryForgettingRoutes); // Weekly multi-tier quality maintenance
+app.use('/api/cron/memory-archive', legacyTwinGate, cronMemoryArchiveRoutes);    // Daily memory archival for large users
+app.use('/api/cron/memory-forgetting', legacyTwinGate, cronMemoryForgettingRoutes); // Weekly multi-tier quality maintenance
 app.use('/api/cron/money-pull', cronMoneyPullRoutes); // Three bank reads a day, leaving one of the four for the person
 app.use('/api/cron/money-learn', cronMoneyLearnRoutes); // Once a day: the day written down and scored, for everyone with a ledger
-app.use('/api/cron/soul-signature-regen', cronSoulSignatureRegenRoutes); // Daily auto-regen of stale soul signatures (audit D-H2)
+app.use('/api/cron/soul-signature-regen', legacyTwinGate, cronSoulSignatureRegenRoutes); // Daily auto-regen of stale soul signatures (audit D-H2)
 app.use('/api/cron/presence-calls', cronPresenceCallsRoutes); // Hourly: dial the Presence elders whose local hour it is
 app.use('/api/webhooks/elevenlabs', webhooksElevenlabsRoutes); // Presence: post-call transcript (signed) and inbound-call initiation
 app.use('/api/cron/twin-self-improvement', cronTwinSelfImprovementRoutes); // Daily pi-reflect — extract directives from user corrections
@@ -785,11 +786,11 @@ app.use('/api/departments', departmentsRoutes); // SoulOS department management 
 app.use('/api/inbox', inboxRoutes); // Unified proposal stream (replaces /departments page in Phase 2)
 app.use('/api/inbox', inboxSummaryRoutes); // Inbox summary for Communications department
 app.use('/api/templates', templatesRoutes); // Life Operating System templates (one-click department setups)
-app.use('/api/cron/prospective-check', cronProspectiveCheckRoutes); // Prospective memory trigger check (*/5 min)
+app.use('/api/cron/prospective-check', legacyTwinGate, cronProspectiveCheckRoutes); // Prospective memory trigger check (*/5 min)
 app.use('/api/cron/evening-recap', cronEveningRecapRoutes); // Daily evening recap (11pm UTC)
-app.use('/api/cron/deliver-insights', cronDeliverInsightsRoutes); // Deliver insights to messaging channels (hourly)
+app.use('/api/cron/deliver-insights', legacyTwinGate, cronDeliverInsightsRoutes); // Deliver insights to messaging channels (hourly)
 app.use('/api/cron/intelligent-triggers', cronIntelligentTriggersRoutes); // Daily intelligent triggers (10am UTC)
-app.use('/api/cron/morning-briefing', cronMorningBriefingRoutes); // Daily morning briefing (10am UTC / 7am São Paulo)
+app.use('/api/cron/morning-briefing', legacyTwinGate, cronMorningBriefingRoutes); // Daily morning briefing (10am UTC / 7am São Paulo)
 app.use('/api/cron/morning-briefing-email', cronMorningBriefingEmailRoutes); // Daily morning briefing email (11am UTC / 8am São Paulo)
 app.use('/api/cron/inbox-intelligence', cronInboxIntelligenceRoutes); // Daily inbox triage (10:05 UTC)
 app.use('/api/cron/relationships', cronRelationshipsRoutes); // Daily unanswered-thread scan (10:10 UTC)
@@ -797,9 +798,9 @@ app.use('/api/cron/action-reflection', cronActionReflectionRoutes); // Daily act
 app.use('/api/cron/statement-nag', cronStatementNagRoutes); // Monthly (1st, 12 UTC) WhatsApp ask for last month's bank statement
 app.use('/api/cron/future-simulation', cronFutureSimulationRoutes); // Weekly (Sun 18 UTC) Doctor Strange mode — personal swarm simulation
 app.use('/api/cron/nudge-retrospective', cronNudgeRetroRoutes); // Phase 3.4b — 24h after-nudge effectiveness check
-app.all('/api/cron/twin-summary-refresh', cronTwinSummaryRefreshHandler); // Daily summary pre-warm (6am UTC)
+app.all('/api/cron/twin-summary-refresh', legacyTwinGate, cronTwinSummaryRefreshHandler); // Daily summary pre-warm (6am UTC)
 app.use('/api/cron/calendar-optimization', cronCalendarOptimizationRoutes); // Weekday calendar optimization (8am UTC / 5am São Paulo)
-app.use('/api/cron/nudge-inactive', cronNudgeInactiveRoutes); // Daily nudge for users with 0 platforms connected
+app.use('/api/cron/nudge-inactive', legacyTwinGate, cronNudgeInactiveRoutes); // Daily nudge for users with 0 platforms connected
 app.use('/api/cron/department-execute', cronDepartmentExecuteRoutes); // Every 3h: auto-execute autonomous department proposals
 app.use('/api/cron/agent-actions-cleanup', cronAgentActionsCleanupRoutes); // Daily 2am UTC: soft-expire pending proposals older than 7 days
 app.use('/api/cron/nango-orphan-cleanup', cronNangoOrphanCleanupRoutes); // Weekly Sun 5am UTC: free Nango slots held by retired-platform connections
@@ -827,14 +828,14 @@ app.use('/api/twin', multimodalRoutes); // Multimodal personality fusion (TRIBE 
 app.use('/api/morning-briefing', morningBriefingRoutes); // On-demand morning briefing (GET /api/morning-briefing/generate)
 app.use('/api/meeting-briefings', meetingBriefingsRoutes); // Pre-meeting briefings (upcoming + past)
 app.use('/api/sidebar', sidebarContextRoutes); // Sidebar context: calendar events + recent emails
-app.use('/api/cron/email-digest', cronEmailDigestHandler); // Weekly email digest (Mondays 9am)
+app.use('/api/cron/email-digest', legacyTwinGate, cronEmailDigestHandler); // Weekly email digest (Mondays 9am)
 app.use('/api/email', emailUnsubscribeRoutes); // One-click unsubscribe for digest emails
 
 // Vercel Cron Job endpoints (production automation)
 // These are called by Vercel Cron Jobs on schedule (configured in vercel.json)
 // Token refresh is on-demand only (no cron) — see tokenRefreshService.js
 app.use('/api/cron/pattern-learning', cronPatternLearningHandler); // Every 6 hours
-app.use('/api/cron/ingest-observations', cronObservationIngestionHandler); // Every 30 minutes
+app.use('/api/cron/ingest-observations', legacyTwinGate, cronObservationIngestionHandler); // Every 30 minutes
 if (process.env.NODE_ENV === 'development') {
   const { default: debugPlatformFetchHandler } = await import('./routes/debug-platform-fetch.js');
   app.use('/api/debug/platform-fetch', debugPlatformFetchHandler);

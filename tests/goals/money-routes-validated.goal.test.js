@@ -5,14 +5,23 @@
 import { describe, expect, it } from 'vitest';
 import { readFileSync } from 'node:fs';
 
-const src = readFileSync(new URL('../../api/routes/money.js', import.meta.url), 'utf8');
-const EXEMPT = new Set(['/inbox/resend', '/chat/attach', '/bank/refresh-if-stale', '/calendar/learn', '/statement']);
+const FILES = {
+  'money.js': new Set(['/inbox/resend', '/chat/attach', '/bank/refresh-if-stale', '/calendar/learn', '/statement']),
+  /* The legacy slice (2026-09-20): sign-in, the extension and the directives. desktop-handoff reads no body. */
+  'auth-simple.js': new Set(['/desktop-handoff']),
+  'extension-data.js': new Set(),
+  'twin-directives.js': new Set(),
+};
+const read = (f) => readFileSync(new URL(`../../api/routes/${f}`, import.meta.url), 'utf8');
 
-describe('the money write routes are validated', () => {
-  it('runs validate() on every post, delete and patch that reads a body or a parameter', () => {
-    const routes = [...src.matchAll(/^router\.(post|delete|patch)\('([^']+)'([^\n]*)/gm)].map((m) => ({ path: m[2], rest: m[3] }));
-    expect(routes.length).toBeGreaterThan(15);
-    const bare = routes.filter((r) => !EXEMPT.has(r.path) && !/validate\(\{/.test(r.rest)).map((r) => r.path);
-    expect(bare).toEqual([]);
-  });
+describe('the write routes are validated', () => {
+  for (const [file, exempt] of Object.entries(FILES)) {
+    it(`${file}: validate() runs on every post, delete and patch that reads a body or a parameter`, () => {
+      const src = read(file);
+      const routes = [...src.matchAll(/^router\.(post|delete|patch|put)\('([^']+)'([^\n]*)/gm)].map((m) => ({ path: m[2], rest: m[3] }));
+      expect(routes.length).toBeGreaterThan(1);
+      const bare = routes.filter((r) => !exempt.has(r.path) && !/validate\(\{/.test(r.rest)).map((r) => r.path);
+      expect(bare).toEqual([]);
+    });
+  }
 });
