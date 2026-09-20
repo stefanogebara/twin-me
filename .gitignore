@@ -248,3 +248,8 @@ money-account-merge-backup*.json
 
 # A client's dependencies are installed, never committed.
 mobile/node_modules/
+
+# The loop's own files (scripts/agentic): artifacts, never committed
+loop-plan.json
+loop-implement.log
+loop-pr.txt

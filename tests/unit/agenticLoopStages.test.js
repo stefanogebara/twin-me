@@ -33,3 +33,13 @@ describe('the inspect verdict', () => {
     expect(inspectPrompt(plan, 'loop/2026-09-20')).toMatch(/You did not write this change/);
   });
 });
+
+describe('the implement stage and its own files', () => {
+  it('never commits the plan, the log or the PR note, and .gitignore agrees', async () => {
+    const { readFileSync } = await import('node:fs');
+    const src = readFileSync(new URL('../../scripts/agentic/implement.mjs', import.meta.url), 'utf8');
+    expect(src).toMatch(/OWN = new Set\(\['loop-plan\.json', 'loop-implement\.log', 'loop-pr\.txt'\]\)/);
+    const ignore = readFileSync(new URL('../../.gitignore', import.meta.url), 'utf8');
+    for (const f of ['loop-plan.json', 'loop-implement.log', 'loop-pr.txt']) expect(ignore).toMatch(new RegExp(`^${f.replace('.', '\\.')}$`, 'm'));
+  });
+});
