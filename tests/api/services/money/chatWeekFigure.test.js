@@ -20,3 +20,18 @@ describe('the week figure', () => {
     expect(buildFigure({ kind: 'week' }, assemble({ transactions: [], now, language: 'en' }))).toBeNull();
   });
 });
+
+describe('a per-day ask', () => {
+  it('draws the week figure whatever the model named', async () => {
+    const { assembleReply, asksPerDay } = await import('../../../../api/services/money/chat.js');
+    expect(asksPerDay('Show me what I spent each day this week')).toBe(true);
+    expect(asksPerDay('Give me a graph of this week')).toBe(true);
+    expect(asksPerDay('quanto gastei por dia?')).toBe(true);
+    expect(asksPerDay('What changed this week?')).toBe(false);
+    const ctx = assemble({ transactions: [tx('a', '2026-09-19T06:30:00Z', -2.5)], now, language: 'en' });
+    const swapped = assembleReply({ text: 'Here it is.', figures: [{ kind: 'weekdays' }], actions: [] }, ctx, 'Give me a graph of this week');
+    expect(swapped.figures.map((f) => f.kind)).toEqual(['week']);
+    const added = assembleReply({ text: 'Here it is.', figures: [], actions: [] }, ctx, 'what did I spend each day?');
+    expect(added.figures.map((f) => f.kind)).toEqual(['week']);
+  });
+});
