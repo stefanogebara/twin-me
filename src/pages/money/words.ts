@@ -82,9 +82,11 @@ export function pct(v: number, f: MoneyForecast, edge: number | null = null) {
  */
 export function seenWords(t: T, sources: string[] | undefined, posted: boolean): string {
   const s = new Set(sources || []);
-  const bank = s.has('bankfeed') || s.has('statement');
+  /* The names the sightings carry: the feed writes bankfeed, a statement upload or statement,
+     the phone phone or bizum, the receipts inbox email (measured 2026-09-20). */
+  const bank = s.has('bankfeed') || s.has('statement') || s.has('upload');
   const phone = s.has('phone') || s.has('bizum');
-  const receipt = s.has('gmail') || s.has('inbox');
+  const receipt = s.has('email') || s.has('gmail') || s.has('inbox');
   if (bank && phone) return t('seen by the bank and your phone');
   if (bank && receipt) return t('seen by the bank and a receipt');
   if (bank) return t('bank only');
