@@ -59,10 +59,10 @@ export const SCENARIOS = [
   { id: 'savings-transfer', kind: 'correction', message: 'Do not count the transfer to my savings account as spending.', route: 'model', figures: { only: [] }, actions: { some: ['remember', 'person', 'not_me'], optional: true }, maxSentences: 4 },
 
   /* small talk and the ambiguous */
-  { id: 'hi', kind: 'smalltalk', message: 'hi', route: 'model', figures: { only: [] }, actions: { none: true }, avoid: [/\d+,\d{2}/], maxSentences: 2 },
-  { id: 'thanks', kind: 'smalltalk', message: 'thanks!', route: 'model', figures: { only: [] }, actions: { none: true }, maxSentences: 2 },
+  { id: 'hi', kind: 'smalltalk', message: 'hi', route: 'short', figures: { only: [] }, actions: { none: true }, avoid: [/\d+,\d{2}/], maxSentences: 2 },
+  { id: 'thanks', kind: 'smalltalk', message: 'thanks!', route: 'short', figures: { only: [] }, actions: { none: true }, maxSentences: 2 },
   { id: 'who-are-you', kind: 'smalltalk', message: 'who are you?', route: 'model', figures: { only: [] }, actions: { none: true }, avoid: [/language model|openai|anthropic|deepseek/i], maxSentences: 3 },
-  { id: 'ok', kind: 'ambiguous', message: 'ok', route: 'model', figures: { only: [] }, actions: { none: true }, avoid: [/\d+,\d{2}/], maxSentences: 2 },
+  { id: 'ok', kind: 'ambiguous', message: 'ok', route: 'short', figures: { only: [] }, actions: { none: true }, avoid: [/\d+,\d{2}/], maxSentences: 2 },
   { id: 'food-q', kind: 'ambiguous', message: 'food?', route: 'model', figures: { only: ['shares', 'history'] }, actions: { none: true }, maxSentences: 4 },
 ];
 

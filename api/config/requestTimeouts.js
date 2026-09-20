@@ -45,6 +45,9 @@ const ROUTE_TIMEOUTS = [
   ['/whatsapp-evolution/webhook', 90_000],
   ['/telegram-webhook', 90_000],
   ['/chat/message', 60_000],
+  /* The money chat waits on the analysis model too; a greeting answered by the model took 30 s
+     and came back as a 504 on 2026-09-20. Greetings no longer reach the model, the rest may. */
+  ['/money/chat', 60_000],
   ['/discovery/scan', 55_000],
   ['/departments/heartbeat', 55_000],
 ];

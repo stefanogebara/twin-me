@@ -593,6 +593,9 @@ const PHRASES = {
     '{here} is at {spent} so far. {before} closed at {closed}.': '{here} va en {spent} hasta ahora. {before} cerr\u00f3 en {closed}.',
     '{here} is at {spent} so far.': '{here} va en {spent} hasta ahora.',
     'Remember this': 'Recordar esto',
+    'Hi. Ask me about your money: what today can carry, where the month went, what comes back.': 'Hola. Preg\u00fantame por tu dinero: lo que aguanta hoy, ad\u00f3nde fue el mes, lo que vuelve.',
+    'You are welcome.': 'De nada.',
+    'All right.': 'Vale.',
     'There is nothing in the ledger yet. Connect a bank or add a statement and ask again.': 'Todav\u00eda no hay nada en el libro. Conecta un banco o a\u00f1ade un extracto y pregunta otra vez.',
   },
   'pt-BR': {
@@ -655,6 +658,9 @@ const PHRASES = {
     '{here} is at {spent} so far. {before} closed at {closed}.': '{here} est\u00e1 em {spent} at\u00e9 agora. {before} fechou em {closed}.',
     '{here} is at {spent} so far.': '{here} est\u00e1 em {spent} at\u00e9 agora.',
     'Remember this': 'Lembrar disso',
+    'Hi. Ask me about your money: what today can carry, where the month went, what comes back.': 'Oi. Pergunte sobre o seu dinheiro: o que o dia aguenta, para onde o m\u00eas foi, o que volta.',
+    'You are welcome.': 'De nada.',
+    'All right.': 'Tudo bem.',
     'There is nothing in the ledger yet. Connect a bank or add a statement and ask again.': 'Ainda n\u00e3o h\u00e1 nada no livro. Conecte um banco ou adicione um extrato e pergunte de novo.',
   },
 };
@@ -687,8 +693,19 @@ export function isShortAsk(message) {
   return /\?$/.test(m) || /^(what|which|how|show|list|tell|do|does|can|any|give|draw|make|compare|plot|chart|graph|explain|why|when|where|who|que|qu\u00e9|cu\u00e1l|cual|cu\u00e1nto|cuanto|dime|muestra|dame|ens\u00e9\u00f1ame|ensename)\b/i.test(m) || words.length <= 6;
 }
 
+/** A greeting, a thanks or an ok: one short line of the ledger's own, no model, no numbers. Pure. */
+export function smalltalkReply(message, language) {
+  const m = String(message || '').trim().toLowerCase().replace(/[!.,\s]+$/g, '');
+  if (/^(hi|hello|hey|hola|oi|ol[a\u00e1]|ola|bom dia|boa tarde|boa noite|buenos d[i\u00ed]as|buenas|good (morning|afternoon|evening))( there| again)?$/.test(m)) return say(language, 'Hi. Ask me about your money: what today can carry, where the month went, what comes back.');
+  if (/^(thanks|thank you|thx|gracias|obrigad[oa]|valeu|muito obrigad[oa]|muchas gracias)( a lot| very much| mesmo)?$/.test(m)) return say(language, 'You are welcome.');
+  if (/^(ok|okay|vale|t[a\u00e1] bom|ta bom|beleza|entendido|perfecto|perfeito|got it|sure|alright)$/.test(m)) return say(language, 'All right.');
+  return null;
+}
+
 export function shortCircuit(message, ctx) {
   const m = String(message || '').toLowerCase();
+  const small = smalltalkReply(message, ctx.language);
+  if (small) return { text: small, figures: [], actions: [], receipts: [] };
   if (!isShortAsk(message)) return null;
   if (/\b(subscri|suscrip|recurring|comes? back|every month|cada mes)/.test(m) && !/\b(cancel|not mine|isn'?t mine|fix|wrong|change)\b/.test(m)) {
     const built = buildFigure({ kind: 'recurring' }, ctx);
