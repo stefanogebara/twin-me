@@ -77,3 +77,17 @@ describe('dayTotals', () => {
     expect(days.map((d) => `${d.day.slice(8)}:${d.total}`)).toEqual(['18:34', '19:12']); // dinner at 21:30; the bar at 02:30; not lunch, not the coffee at 08:30
   });
 });
+
+describe('costliestDayLine and weekdayLine', () => {
+  it('names the costliest day of the month with its largest payment', async () => {
+    const { costliestDayLine } = await import('../../../../api/services/money/windows.js');
+    expect(costliestDayLine(ledger, now)).toBe('Costliest day this month: Thursday 10 Sep 500,00 EUR (1), the largest rent 500,00 EUR.');
+    expect(costliestDayLine([], now)).toBe('Costliest day this month: nothing spent yet.');
+  });
+  it('totals the last full weeks by day of the week, costliest first', async () => {
+    const { weekdayLine } = await import('../../../../api/services/money/windows.js');
+    const rows = [tx('m1', '2026-09-07T10:00:00Z', -30), tx('m2', '2026-08-31T10:00:00Z', -20), tx('f1', '2026-09-11T20:00:00Z', -60), tx('this', '2026-09-15T10:00:00Z', -999)];
+    expect(weekdayLine(rows, now, 8)).toBe('Spent by day of the week, last 8 full weeks, costliest first: Friday 60,00 EUR; Monday 50,00 EUR; Tuesday 0,00 EUR; Wednesday 0,00 EUR; Thursday 0,00 EUR; Saturday 0,00 EUR; Sunday 0,00 EUR.');
+    expect(weekdayLine([], now)).toBe('Spent by day of the week, last 8 full weeks: nothing.');
+  });
+});
