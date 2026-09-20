@@ -59,6 +59,22 @@ export function spendWindows(transactions = [], now = new Date()) {
   return { windows, days };
 }
 
+/**
+ * Each local day between two instants, totalled and clipped to them: [{ day, weekday, total,
+ * count }]. The bars of a figure for a stretch a question names.
+ */
+export function dayTotals(transactions = [], from, to, max = 31) {
+  const rows = (transactions || []).filter(spending);
+  const out = [];
+  for (let key = dayIn(new Date(from)); out.length < max; key = shiftDay(key, 1)) {
+    const start = Math.max(startOfDayIn(key).getTime(), from);
+    const end = Math.min(startOfDayIn(shiftDay(key, 1)).getTime(), to);
+    if (start >= to) break;
+    out.push({ day: key, weekday: WEEKDAY[partsIn(new Date(start))?.weekday ?? 0], ...sum(rows.filter((t) => at(t) >= start && at(t) < end)) });
+  }
+  return out;
+}
+
 /** A window's spending by a key (a kind of place, a place), largest first: [{ key, total, count }]. */
 export function breakdown(rows, keyOf, max = 4) {
   const by = new Map();

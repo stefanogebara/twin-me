@@ -92,3 +92,27 @@ describe('what it says', () => {
     expect(describeBetweenPeople(rows)[0]).toBe('Mauad G. (family): sent you 100,00\u00a0\u20ac in 90 days.');
   });
 });
+
+describe('monthBetweenPeople', async () => {
+  const { monthBetweenPeople, describeMonthBetweenPeople } = await import('../../../../api/services/money/bizum.js');
+  const now = new Date('2026-09-20T10:00:00Z');
+  const rows = [
+    tx('r1', '2026-09-02T10:00:00Z', -200, 'Maria Dolores Tomas Obon', 'bizum'),
+    tx('r2', '2026-09-12T10:00:00Z', -50, 'Achref Safraou', 'bizum'),
+    tx('r3', '2026-09-15T10:00:00Z', 25, 'Achref Safraou', 'bizum'),
+    tx('r4', '2026-09-18T10:00:00Z', -12, 'Sofia Celaa', 'transfer'),
+    tx('old', '2026-08-28T10:00:00Z', -80, 'Sofia Celaa', 'bizum'),
+    tx('shop', '2026-09-18T11:00:00Z', -30, 'Mercadona', 'card'),
+  ];
+  it('totals the month to and from people, by person, this month only', () => {
+    const m = monthBetweenPeople(rows, now);
+    expect(m).toMatchObject({ month: '2026-09', sent: 262, received: 25 });
+    expect(m.people.map((p) => `${p.name} ${p.sent}/${p.received}`)).toEqual(['Maria D. 200/0', 'Achref S. 50/25', 'Sofia C. 12/0']);
+  });
+  it('writes the two lines the chat quotes, and none for a month without people', () => {
+    const lines = describeMonthBetweenPeople(monthBetweenPeople(rows, now)).map((l) => l.replace(/\u00a0/g, ' ').replace(/\u20ac/g, 'EUR'));
+    expect(lines[0]).toBe('To people this month (Bizum and transfers): 262,00 EUR to 3 people: Maria D. 200,00 EUR (1); Achref S. 50,00 EUR (1); Sofia C. 12,00 EUR (1).');
+    expect(lines[1]).toBe('From people this month: 25,00 EUR from 1 person: Achref S. 25,00 EUR (1).');
+    expect(describeMonthBetweenPeople(monthBetweenPeople([rows[5]], now))).toEqual([]);
+  });
+});

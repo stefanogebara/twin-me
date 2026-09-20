@@ -22,7 +22,7 @@
  *
  * Pure: rows and facts in, questions, findings and functions out.
  */
-import { dayIn, startOfDayIn } from './zone.js';
+import { dayIn, startOfDayIn, monthIn } from './zone.js';
 import { money } from './currency.js';
 
 /** Days after a payment within which an incoming person movement can settle it. */
@@ -74,6 +74,39 @@ export function personMovements(transactions = []) {
   return (transactions || [])
     .filter((t) => t && t.occurred_at && PERSON_CHANNELS.has(t.channel) && Number.isFinite(Number(t.amount)))
     .map((t) => ({ ...t, person: nameOf(t), direction: Number(t.amount) > 0 ? 'in' : 'out' }));
+}
+
+/**
+ * This month between people, by person: what "how much did I send by Bizum this month"
+ * means. The 90-day balances answer who owes whom; this answers the month (2026-09-20).
+ */
+export function monthBetweenPeople(transactions = [], now = new Date()) {
+  const month = monthIn(now);
+  const by = new Map();
+  let sent = 0; let received = 0;
+  for (const m of personMovements(transactions)) {
+    if (monthIn(m.occurred_at) !== month || m.verdict === 'not_me') continue;
+    const key = m.merchant_key || m.person;
+    if (!by.has(key)) by.set(key, { key, name: shortName(m.person), sent: 0, sentCount: 0, received: 0, receivedCount: 0 });
+    const b = by.get(key);
+    if (m.direction === 'out') { b.sent = r2(b.sent + abs(m)); b.sentCount += 1; sent += abs(m); } else { b.received = r2(b.received + abs(m)); b.receivedCount += 1; received += abs(m); }
+  }
+  return { month, sent: r2(sent), received: r2(received), people: [...by.values()].sort((a, b) => (b.sent + b.received) - (a.sent + a.received)) };
+}
+
+/** The same as two lines the twin can quote, or none when nobody moved money this month. */
+export function describeMonthBetweenPeople(m) {
+  if (!m || !m.people.length) return [];
+  const to = m.people.filter((p) => p.sent);
+  const from = m.people.filter((p) => p.received);
+  const lines = [];
+  lines.push(to.length
+    ? `To people this month (Bizum and transfers): ${euro(m.sent)} to ${to.length} ${to.length === 1 ? 'person' : 'people'}: ${to.map((p) => `${p.name} ${euro(p.sent)} (${p.sentCount})`).join('; ')}.`
+    : 'To people this month (Bizum and transfers): nothing sent.');
+  lines.push(from.length
+    ? `From people this month: ${euro(m.received)} from ${from.length} ${from.length === 1 ? 'person' : 'people'}: ${from.map((p) => `${p.name} ${euro(p.received)} (${p.receivedCount})`).join('; ')}.`
+    : 'From people this month: nothing received.');
+  return lines;
 }
 
 /* ------------------------------------------------------------------ splits as facts */

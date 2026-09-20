@@ -27,9 +27,9 @@
 
 import { complete, stream as streamComplete, TIER_CHAT } from '../llmGateway.js';
 import { windowLines, weekAverageLine, spendWindows, breakdown, eur, NO_NAME } from './windows.js';
-import { askedLines } from './asked.js';
+import { askedLines, askedDays, askedWindows } from './asked.js';
 import { tripDays } from './when.js';
-import { balances, describeBetweenPeople, splitFindings, MIN_WAYS, MAX_WAYS } from './bizum.js';
+import { balances, describeBetweenPeople, monthBetweenPeople, describeMonthBetweenPeople, splitFindings, MIN_WAYS, MAX_WAYS } from './bizum.js';
 import crypto from 'node:crypto';
 import { createLogger } from '../logger.js';
 import {
@@ -42,7 +42,7 @@ import { CATEGORIES } from './places.js';
 import { markCounted, personRoles } from './spending.js';
 import { calendarLines } from './calendar.js';
 import { safeToSpend, allowanceLine } from './allowance.js';
-import { partsIn, weekdayIn } from './zone.js';
+import { partsIn, weekdayIn, dayIn } from './zone.js';
 import { quietly } from './quietly.js';
 
 const log = createLogger('money-chat');
@@ -290,10 +290,14 @@ export function buildFigure(request, ctx) {
   /* The last seven days, one bar each: what "each day this week" means (2026-09-20). The
      screen already draws this shape for the home page; the chat now asks for it by name. */
   if (kind === 'week') {
-    const { days } = spendWindows(ctx.transactions, ctx.now);
+    /* Asked for a stretch by name (the 8th to the 14th, last weekend), the bars are that
+       stretch's days rather than the last seven (2026-09-20). */
+    const asked = ctx.asked ? askedDays(ctx.transactions, ctx.asked, ctx.now) : null;
+    const days = asked ? asked.days : spendWindows(ctx.transactions, ctx.now).days;
     if (!days.some((d) => d.count)) return null;
-    const today = days[days.length - 1]?.day;
-    return { figure: { kind, title: say(ctx.language, 'Spent per day, last 7 days'), days: days.map((d) => ({ label: dayMonth(`${d.day}T12:00:00Z`, ctx.language), value: d.total, today: d.day === today })) }, rows: [] };
+    const today = dayIn(ctx.now);
+    const title = asked ? say(ctx.language, 'Spent per day, {stretch}', { stretch: asked.label }) : say(ctx.language, 'Spent per day, last 7 days');
+    return { figure: { kind, title, days: days.map((d) => ({ label: dayMonth(`${d.day}T12:00:00Z`, ctx.language), value: d.total, today: d.day === today })) }, rows: [] };
   }
 
   if (kind === 'history') {
@@ -466,6 +470,9 @@ export function contextText(ctx) {
   /* Money between people: who sent what, who paid back, what is still open (bizum.js). */
   const between = describeBetweenPeople(balances(ctx.transactions, ctx.facts, { now: ctx.now }));
   if (between.length) lines.push('Between people, 90 days: ' + between.join(' '));
+  /* The month to and from people, totalled: asked who got Bizums this month, the model
+     listed five people and said the ledger had no total (2026-09-20). */
+  lines.push(...describeMonthBetweenPeople(monthBetweenPeople(ctx.transactions, ctx.now)));
   for (const f of splitFindings(ctx.facts, ctx.transactions, { now: ctx.now }).slice(0, 3)) lines.push(`Shared payment still open: ${f.sentence.replace(/\u20ac/g, 'EUR')}`);
 
   lines.push(...calendarLines(ctx.facts, { now: ctx.now }));
@@ -512,6 +519,7 @@ export const RULES = [
   'Do not say "always" for an amount that varies; say "usually" or "about".',
   'Never add numbers up: if a total would need adding, give the parts and say the ledger has no total for that. Never work out a daily amount or a difference yourself. The totals for today, yesterday, last night, this week, last week and each of the last seven days are in the context, each with its kinds of place and its places, and each place has its total and count for this month and last: quote them when asked about a stretch, a kind of place, or a place; "how much is left" is the line that begins "Left for". A place missing from the by-place line had no payment that month: say so, never assemble a count or a total from other lines. The biggest or largest payment is one line of the recent payments, never a place\'s total over several.',
   'When the question names a weekday, a night, a weekend, a date, a stretch between two dates or "since" a date, the line beginning "Asked stretch" holds exactly that stretch: quote its total, count and largest, and its kinds and places. Asked what a week costs on average, quote the line beginning "Average week", never the last seven days. A comparison of two stretches is the two lines side by side; never work out the difference.',
+  'Asked how much went to people, by Bizum or by transfer, this month, or what came from them, quote the lines beginning "To people this month" and "From people this month": they hold the totals and each person. Asked for a graph of a stretch named in the question, ask for the week figure: it draws that stretch, a bar per day.',
   'Asked whether they can afford an amount, answer yes or no in the first sentence against today\'s number (the line for today, or the one beginning "Left for"), then give those numbers; repeat the amount they named as they wrote it.',
   'A place is only ever itself: never say one place is, looks like or counts as another (a Lidl is not a Mercadona). Asked about a place none of the lines hold, say nothing was seen there. "A payment without a name" is a payment the bank sent without a name: say so in those words, never as a place called unknown.',
   'On a greeting, a thanks, an "ok" or a message with no question in it, answer in one short line with no numbers and no figure.',
@@ -524,6 +532,7 @@ export const RULES = [
   'Calendar overlaps and merchant patterns are associations, not evidence of what caused spending. Do not infer attendance, a commute, work expenses or a causal effect from location or timing alone. A note kept in their words changes conversational context; it does not change numeric forecasts unless a structured action is confirmed.',
   'When the calendar lines say what a kind of event usually costs, you may say what the days ahead are likely to cost, always as "usually about", never as a promise.',
   'Asked for each day, per day, day by day, or how the week went, draw the week figure (one bar per day, the last seven) and say in words only the total for the stretch and the day that cost most; never list every day as a sentence.',
+  'A figure you ask for is drawn under your words before the person reads them: never ask whether they want it, never tell them to ask for it, never say "here is the graph"; say what it shows.',
   'Never ask whether they would like a figure or a chart: when one would help, ask for it by kind and it is drawn under your words. When a figure would show the thing better than words, ask for it by kind. Kinds: months (spent per month), shares (where a month went; add month, and by: "merchant" for places), weekdays (spend by weekday), recurring (what comes back), band (this month so far and likely), history (one merchant over time; add merchant). Ask for at most two, and only when they add something.',
   'Actions are offers the person taps, never things you did: the text must not claim to have changed, marked or recorded anything. Say something like "If that is right, mark it below." and leave the doing to the card.',
   'Propose an action only when the person asks to fix or record something: not_me with transaction_id from the recent payments; recategorise with merchant_key from the places and a category from: ' + CATEGORIES.join(', ') + '; answer with question_id from the open questions and the value they gave; split with transaction_id from the recent payments and ways (2 to 12, the person included) when they say a payment was shared, for a dinner, a shop, a present.',
@@ -780,9 +789,29 @@ export function shortCircuit(message, ctx) {
 const LEARNING_KINDS = Object.freeze(['remember', 'person', 'answer', 'not_me', 'recategorise', 'split']);
 
 /** A message that tells the ledger something rather than asking it: not a short ask, no question mark, at least four words. Pure. */
+/**
+ * A closing question about a chart, when the chart is already under the words: "Quer ver um
+ * grafico de barras?" came with the bars it asked about (2026-09-20). Pure.
+ */
+export function withoutChartQuestion(text, figuresDrawn) {
+  if (!figuresDrawn) return text;
+  const parts = String(text || '').split(/(?<=[.!?])(?<!\b[A-Z]\.)\s+(?=[A-Z0-9\u00c0-\u024f"'(])/);
+  const chart = /\b(graph|chart|grafic[oa]|diagrama|bars?|barras|figure|figura|dia a dia|day by day|per day|por dia)\b/;
+  const aboutTheChart = (p) => {
+    const n = p.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    return chart.test(n) && (/\?\s*$/.test(p) || /\b(ask for|ask me for|peca|peda|pide|pida|pidele|solicite)\b/.test(n));
+  };
+  const kept = parts.filter((p) => !aboutTheChart(p));
+  return kept.length && kept.length < parts.length ? kept.join(' ') : text;
+}
+
+const ASK_OPENERS = /^(what|which|how|show|list|tell|give|draw|make|compare|plot|chart|graph|explain|why|when|where|who|que|qu\u00e9|cu\u00e1l|cual|cu\u00e1nto|cuanto|cu\u00e1ntos|cuantos|dime|muestra|dame|ens\u00e9\u00f1ame|ensename|quanto|quantos|qual|quais|como|quem|quando|onde|mostra|mostre|me mostra|me d\u00e1|me da|diga|me diga)\b/i;
+
 export function isStatement(message) {
   const m = String(message || '').trim();
-  return !isShortAsk(m) && !/\?/.test(m) && m.split(/\s+/).filter(Boolean).length >= 4;
+  /* A long ask is still an ask: "give me a graph of what I spent between the 8th and the
+     14th" is thirteen words and a request, not a lesson (2026-09-20). */
+  return !isShortAsk(m) && !/\?/.test(m) && !ASK_OPENERS.test(m) && m.split(/\s+/).filter(Boolean).length >= 4;
 }
 
 /** Does a message ask where the money went, or speak in categories? */
@@ -825,6 +854,11 @@ export function notMineOffer(message, ctx) {
 }
 
 /** "Each day", "per day", "day by day", "a graph of the week", "the last seven days": the week figure, a bar per day. Pure. */
+export function asksGraph(message) {
+  const m = String(message || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  return /\b(graph|chart|plot|grafico|grafica|diagrama)\b/.test(m);
+}
+
 export function asksPerDay(message) {
   const m = String(message || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
   return /\b(each day|every day|per day|day by day|daily|by day|cada dia|por dia|dia a dia|dia por dia|graph of (this|the|my) week|chart of (this|the|my) week|grafico (da|de la|de esta|desta) semana|last (seven|7) days|ultimos (sete|7) dias|ultimos (siete|7) dias)\b/.test(m);
@@ -834,7 +868,9 @@ export function assembleReply(parsed, ctx, message = '') {
   const requests = (parsed.figures || []).slice(0, 2);
   /* Asked for each day, the figure is the week (a bar per day), whatever the model named: it
      drew the weekday shape for "a graph of this week" one run in two (2026-09-20). */
-  if (asksPerDay(message) && !requests.some((r) => r?.kind === 'week')) {
+  /* A graph of a stretch named in the question is the week figure over that stretch. */
+  const stretchGraph = asksGraph(message) && askedWindows(message, ctx.now).length > 0;
+  if ((asksPerDay(message) || stretchGraph) && !requests.some((r) => r?.kind === 'week')) {
     const i = requests.findIndex((r) => r?.kind === 'weekdays' || r?.kind === 'history');
     if (i >= 0) requests[i] = { kind: 'week' }; else requests.unshift({ kind: 'week' });
   }
@@ -848,7 +884,10 @@ export function assembleReply(parsed, ctx, message = '') {
     requests.unshift({ kind: 'shares', ...(month ? { month } : {}) });
   }
   const built = requests.slice(0, 2).map((r) => buildFigure(r, ctx)).filter(Boolean);
-  const actions = (parsed.actions || []).slice(0, 3).map((a) => validateAction(a, ctx)).filter(Boolean);
+  /* A remember rides only on a statement: on "give me a graph of the 8th to the 14th" the
+     model offered to remember the question (2026-09-20). */
+  const teaches = isStatement(message) || /\b(remember|note|keep in mind|recuerda|anota|lembra|anote|lembre)\b/i.test(message);
+  const actions = (parsed.actions || []).slice(0, 3).filter((a) => teaches || a?.kind !== 'remember').map((a) => validateAction(a, ctx)).filter(Boolean);
   if (!actions.some((a) => a.kind === 'not_me')) {
     const mine = notMineOffer(message, ctx);
     const offer = mine ? validateAction(mine, ctx) : null;
@@ -863,7 +902,7 @@ export function assembleReply(parsed, ctx, message = '') {
     if (note) actions.push(note);
   }
   return {
-    text: euroGlyphs(parsed.text),
+    text: euroGlyphs(withoutChartQuestion(parsed.text, built.length > 0)),
     figures: built.map((b) => b.figure),
     actions,
     receipts: receiptsFor(built, ctx, parsed.cites || []),

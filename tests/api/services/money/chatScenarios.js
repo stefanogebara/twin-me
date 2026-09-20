@@ -72,6 +72,12 @@ export const SCENARIOS = [
   { id: 'friday-night', kind: 'ask', message: 'How much did I spend last Friday night?', route: 'model', figures: { only: ['shares', 'week', 'weekdays', 'history'] }, actions: { none: true }, mention: [/\d+,\d{2}\s?(EUR|€)|nothing|nada/i], avoid: [/unknown|desconhecid|desconocid/i], maxSentences: 3 },
   { id: 'mercadona-none', kind: 'ask', message: 'What did I buy at Mercadona this week?', route: 'model', figures: { only: ['shares', 'week', 'history'] }, actions: { none: true }, mention: [/mercadona/i], avoid: [/(parece|looks like|seems|seems to be|é um|es un|is a) (ser )?(um |un |a )?mercadona/i], maxSentences: 3 },
 
+  /* round 7 (2026-09-20): people, and a graph of a named stretch */
+  { id: 'bizum-month', kind: 'ask', message: 'How much did I send by Bizum this month and to whom?', route: 'model', figures: { only: ['shares', 'history'] }, actions: { none: true }, mention: [/\d+,\d{2}\s?(EUR|€)/], avoid: [/(has|holds|have|is) no (single )?total|não tem (o|um) total|no tiene (el|un) total/i], maxSentences: 4 },
+  { id: 'who-sent-me', kind: 'ask', message: 'Who sent me money this month?', route: 'model', figures: { only: ['shares', 'history'] }, actions: { none: true }, mention: [/\d+,\d{2}\s?(EUR|€)|nobody|ningu[eé]m|nadie/i], maxSentences: 4 },
+  { id: 'graph-range', kind: 'ask', message: 'Give me a graph of what I spent between the 8th and the 14th', route: 'model', figures: { some: ['week'] }, actions: { none: true }, mention: [/\d+,\d{2}\s?(EUR|€)/], avoid: [/\?\s*$/], maxSentences: 3 },
+  { id: 'weekend-by-day', kind: 'ask', message: 'Show me last weekend day by day', route: 'model', figures: { some: ['week'] }, actions: { none: true }, mention: [/\d+,\d{2}\s?(EUR|€)|nothing|nada/i], maxSentences: 3 },
+
   /* statements: the person is teaching, not asking */
   { id: 'maria-dolores', kind: 'statement', message: 'maria dolores is the woman who gets me the real madrid tickets for 50 euros per person, so many times see if money comes back from 50 euro transfers or 200 euro to me as friends sometimes buy from me or my friends pay their ticket to me as i do the bridging w maria dolores.', route: 'model', figures: { only: [] }, actions: { some: ['person', 'remember'] }, mention: [/maria dolores/i], avoid: [/charges? comes? back every month/i, /subscription/i], maxSentences: 4 },
   { id: 'landlord', kind: 'statement', message: 'The 200 euro transfer to Maria Dolores Tomas Obon is my rent, she is my landlord.', route: 'model', figures: { only: [] }, actions: { some: ['person'] }, mention: [/rent|landlord|aluguel|alquiler|propriet|casero/i], maxSentences: 4 },
@@ -96,7 +102,8 @@ export const SCENARIOS = [
 
 /** Sentences in a reply, the way a person counts them. */
 export function sentenceCount(text) {
-  return String(text || '').split(/(?<=[.!?])\s+(?=[A-Z0-9\u00c0-\u024f"'(])/).map((s) => s.trim()).filter(Boolean).length;
+  /* "Maria D. 200,00 EUR" is a name with an initial, not a sentence end. */
+  return String(text || '').split(/(?<=[.!?])(?<!\b[A-Z]\.)\s+(?=[A-Z0-9\u00c0-\u024f"'(])/).map((s) => s.trim()).filter(Boolean).length;
 }
 /** Amounts written in a reply, as numbers: "12,50" -> 12.5, "1.011,02" -> 1011.02. */
 export function amountsInText(text) {

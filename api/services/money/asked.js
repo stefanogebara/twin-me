@@ -9,7 +9,7 @@
  * windows (today, yesterday, last night, the weeks) stay in windows.js. Pure.
  */
 import { dayIn, startOfDayIn, partsIn } from './zone.js';
-import { stretchLine, shiftDay } from './windows.js';
+import { stretchLine, shiftDay, dayTotals } from './windows.js';
 
 const HOUR = 3600000;
 const norm = (s) => String(s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
@@ -135,6 +135,18 @@ export function askedWindows(text, now = new Date()) {
     break;
   }
   return out;
+}
+
+/**
+ * The asked stretch as bars, one per day, for the week figure: { label, days } when the
+ * question names two days or more (a range, a weekend, since a date), else null.
+ */
+export function askedDays(transactions = [], text, now = new Date()) {
+  const [w] = askedWindows(text, now);
+  if (!w || w.to - w.from < 36 * HOUR) return null; // a day or a night is a line, not bars
+  const days = dayTotals(transactions, w.from, w.to);
+  if (days.length < 2 || days.length > 31) return null;
+  return { label: w.label, days };
 }
 
 /** The asked stretches as lines the model may quote: "Asked stretch, Saturday 19 September: spent ...". */

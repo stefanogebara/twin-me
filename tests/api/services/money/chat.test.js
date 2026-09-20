@@ -611,3 +611,10 @@ describe('plainWords', () => {
     expect(plainWords('ok \u2705 12,50 \u20ac \u{1F389}')).toBe('ok 12,50 \u20ac ');
   });
 });
+
+describe('sentenceCount', () => {
+  it('does not end a sentence at a name\'s initial', async () => {
+    const { sentenceCount } = await import('./chatScenarios.js');
+    expect(sentenceCount('You sent 262,00 EUR to 3 people: Maria D. 200,00 EUR; Achref S. 50,00 EUR. That is all.')).toBe(2);
+  });
+});
