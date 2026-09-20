@@ -52,7 +52,28 @@ export async function wasRecentlyRun(jobName, cooldownMs = 20 * 60 * 60 * 1000) 
   }
 }
 
+/**
+ * A failed run reaches Sentry as well as the table, tagged by job, so an alert rule on it is
+ * the whole of QW3 (2026-09-20). Only when a DSN is configured; never throws; never blocks.
+ */
+export async function reportCronFailure(jobName, status, errorMessage = null, resultData = null) {
+  if (!process.env.SENTRY_DSN || status === 'success') return false;
+  try {
+    const Sentry = await import('@sentry/node');
+    Sentry.captureMessage(`cron ${jobName} ${status}${errorMessage ? `: ${String(errorMessage).slice(0, 200)}` : ''}`, {
+      level: 'error',
+      tags: { cron: jobName, status },
+      extra: { result: resultData || null },
+    });
+    return true;
+  } catch (err) {
+    log.warn('Cron failure could not be reported', { jobName, error: err.message });
+    return false;
+  }
+}
+
 export async function logCronExecution(jobName, status, executionTimeMs, resultData = null, errorMessage = null) {
+  await reportCronFailure(jobName, status, errorMessage, resultData);
   try {
     const { error } = await supabaseAdmin
       .from('cron_executions')
