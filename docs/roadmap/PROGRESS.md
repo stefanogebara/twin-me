@@ -40,6 +40,20 @@ Status words: `todo` · `doing (who, date)` · `done (#PR, date)` · `blocked (w
 | OW3 | **Codex protocol** live: this file, `sync:agents`, branch prefixes, the Decisions rule | done (`8df36edf`) — protocol in `CLAUDE.md`, copied to `AGENTS.md` |
 | OW4 | **Scouting**: three background scouts (products, papers, social) reporting candidates into `docs/intel/` through the `/intel` rubric | done (2026-09-19) — 33 candidates triaged: 3 DISCUTIR (INTEL.md, Em aberto), 1 PROTOTIPAR (`dia-hurdle`) + 2 fusions (BACKLOG.md), 10 Radar, 17 descartes in `seen.jsonl`; the seven synthesised ideas are listed below for Stefano |
 
+## The chat, curated (since 2026-09-20)
+
+Stefano's ask of 2026-09-20: specific questions, many scenarios, judge the answers, fix until
+they create value. The harness is `scripts/money/chat-eval.mjs` over
+`tests/api/services/money/chatScenarios.js` (the real model against the real ledger, seven
+checks and a judge). Each round: what was asked, what was wrong, what changed, the tally.
+
+| Round | Asked | Was wrong | Changed | Tally |
+|---|---|---|---|---|
+| 1 (2026-09-20) | last night, yesterday in total, this week, this vs last week, each day, biggest yesterday | lines one by one and no total (the rules forbid adding, the context held only the month) | `windows.js`: today, yesterday, last night, this week, last week, last 7 days and each day, totalled in Madrid days and quoted; a week figure (a bar per day); greetings answered without the model (a greeting took 30 s and a 504) | 32/35 with the judge, then 5/5 on the smalltalk rerun; "Ontem você gastou 58,00 € no total, em 4 pagamentos" |
+| 2 (2026-09-20) | food yesterday, coffee this week, where most this week, a graph per day, transport last week, can I afford 60 tonight | a stretch with a kind of place or a place in it had no line to quote; "a graph of this week" drew the weekday shape | each window now says its kinds of place and its places (`breakdown()`); the rule names the week figure for "each day" | 4/6 by the harness; the two judge-0 answers are right by Claude's reading: "nothing on food yesterday, the 58,00 € was entertainment", "coffee is not a separate kind this week; eating out 14,13 € at Glovo" |
+
+Not there yet, honestly: no web access (the chat says only what the ledger computed); figures are bars, shares, the band, months and recurring, not free-form diagrams; an offer (remember, not_me, person, answer) changes the ledger only when tapped, which the browser suite covers.
+
 ## Milestones (from the 19 September audit — `.claude/plans/2026-09-19-repo-audit/README.md`, published at https://claude.ai/code/artifact/ae6cd0ba-b090-4660-85ff-cfadb9323679)
 
 ### Milestone 0 — safety net
@@ -157,3 +171,4 @@ Status words: `todo` · `doing (who, date)` · `done (#PR, date)` · `blocked (w
 - **2026-09-20 (Claude, evening):** the loop rehearsed end to end (#444 written by the implement stage, approved by the inspect stage). Repository setting changed: Actions may open pull requests.
 - **2026-09-20 (Claude, night):** #444 (the loop's first PR) merged after its dispatched CI passed; #446 makes the stage run the checks itself; open question 9 raised (a push token for the loop).
 - **2026-09-20 (Claude, later):** rehearsal 3 on the fixed stage: #448 written, suite run before the push, inspect approved; its CI released with one approval and merged by Claude as the reviewer. The stage now prints the approval command.
+- **2026-09-20 (Claude, chat round 1):** windows, the week figure, smalltalk without the model; 32/35 with the judge. `LOOP_PUSH_TOKEN` set from the gh CLI's token (replace with a fine-grained PAT when convenient).

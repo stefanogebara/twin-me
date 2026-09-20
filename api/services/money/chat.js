@@ -26,6 +26,7 @@
  */
 
 import { complete, stream as streamComplete, TIER_CHAT } from '../llmGateway.js';
+import { windowLines, spendWindows } from './windows.js';
 import { balances, describeBetweenPeople, splitFindings, MIN_WAYS, MAX_WAYS } from './bizum.js';
 import crypto from 'node:crypto';
 import { createLogger } from '../logger.js';
@@ -44,7 +45,7 @@ import { quietly } from './quietly.js';
 
 const log = createLogger('money-chat');
 
-export const FIGURE_KINDS = Object.freeze(['months', 'shares', 'weekdays', 'recurring', 'band', 'history']);
+export const FIGURE_KINDS = Object.freeze(['months', 'shares', 'weekdays', 'recurring', 'band', 'history', 'week']);
 export const ACTION_KINDS = Object.freeze(['not_me', 'recategorise', 'answer', 'split', 'person', 'remember', 'forget']);
 
 /** How many receipts ride under one answer, and how many of anything the context carries. */
@@ -163,7 +164,7 @@ export function assemble({ transactions: rawTransactions = [], segments = [], fo
   const open = [...(questions?.opening || []), ...(questions?.fromLedger || [])];
   return {
     now, transactions, byId, segments, forecast: cast, recurring, readings, facts,
-    questions: open, places: places || [], placeByKey, categories, lastCategories, accounts: accounts || [], language: language || null, profiles, patterns, predictions,
+    questions: open, places: places || [], placeByKey, categoryOf, categories, lastCategories, accounts: accounts || [], language: language || null, profiles, patterns, predictions,
   };
 }
 
@@ -280,6 +281,15 @@ export function buildFigure(request, ctx) {
     };
   }
 
+  /* The last seven days, one bar each: what "each day this week" means (2026-09-20). The
+     screen already draws this shape for the home page; the chat now asks for it by name. */
+  if (kind === 'week') {
+    const { days } = spendWindows(ctx.transactions, ctx.now);
+    if (!days.some((d) => d.count)) return null;
+    const today = days[days.length - 1]?.day;
+    return { figure: { kind, title: say(ctx.language, 'Spent per day, last 7 days'), days: days.map((d) => ({ label: dayMonth(`${d.day}T12:00:00Z`, ctx.language), value: d.total, today: d.day === today })) }, rows: [] };
+  }
+
   if (kind === 'history') {
     const rows = merchantRows(ctx, request.merchant).sort((a, b) => at(a) - at(b));
     if (rows.length < 2) return null;
@@ -393,6 +403,10 @@ export function contextText(ctx) {
     if (f.received) lines.push(`Came in this month: ${amountText(f.received)}.`);
   }
 
+  /* The stretches a person asks about by name, totalled here so the model never adds: asked
+     for last night and for yesterday, it gave the lines one by one and no total (2026-09-20). */
+  lines.push(...windowLines(ctx.transactions, ctx.now, { categoryOf: ctx.categoryOf, nameOf: (t) => ctx.placeByKey.get(t.merchant_key)?.name || nameOf(t) }));
+
   if (ctx.segments.length) {
     lines.push('Per month, spent / received / payments: ' + [...ctx.segments]
       .sort((a, b) => new Date(a.month) - new Date(b.month))
@@ -463,7 +477,7 @@ export const RULES = [
   'Every number you write must appear in the context above. Never estimate, round differently, or add up numbers yourself; if the context does not hold the number, say the ledger cannot tell.',
   'Write amounts exactly as the context does, like 12,50 EUR.',
   'Do not say "always" for an amount that varies; say "usually" or "about".',
-  'Never add numbers up: if a total would need adding, give the parts and say the ledger has no total for that. Never work out a daily amount or a difference yourself.',
+  'Never add numbers up: if a total would need adding, give the parts and say the ledger has no total for that. Never work out a daily amount or a difference yourself. The totals for today, yesterday, last night, this week, last week and each of the last seven days are in the context, each with its kinds of place and its places: quote them when asked about those stretches, a kind of place in a stretch, or a place in a stretch.',
   'On a greeting, a thanks, an "ok" or a message with no question in it, answer in one short line with no numbers and no figure.',
   'When the person tells you something, begin by saying back in a few words what they told you, in their terms ("Spotify is your flatmate\'s, not yours"), then say what the ledger will do with it, then the offer. Never answer a statement with what the ledger currently thinks as if they had asked.',
   'A plan, a trip, a visit, an exam, a change in their life, even with no money in it: propose remember with their words, and say the ledger will read those days with it in mind.',
@@ -473,6 +487,7 @@ export const RULES = [
   'Vary your openings; never begin two answers the same way. On a follow-up ("and last month?", "why?", "and Spotify?") answer only what is new.',
   'Calendar overlaps and merchant patterns are associations, not evidence of what caused spending. Do not infer attendance, a commute, work expenses or a causal effect from location or timing alone. A note kept in their words changes conversational context; it does not change numeric forecasts unless a structured action is confirmed.',
   'When the calendar lines say what a kind of event usually costs, you may say what the days ahead are likely to cost, always as "usually about", never as a promise.',
+  'Asked for each day, per day, day by day, or how the week went, draw the week figure (one bar per day, the last seven) and say in words only the total for the stretch and the day that cost most; never list every day as a sentence.',
   'Never ask whether they would like a figure or a chart: when one would help, ask for it by kind and it is drawn under your words. When a figure would show the thing better than words, ask for it by kind. Kinds: months (spent per month), shares (where a month went; add month, and by: "merchant" for places), weekdays (spend by weekday), recurring (what comes back), band (this month so far and likely), history (one merchant over time; add merchant). Ask for at most two, and only when they add something.',
   'Actions are offers the person taps, never things you did: the text must not claim to have changed, marked or recorded anything. Say something like "If that is right, mark it below." and leave the doing to the card.',
   'Propose an action only when the person asks to fix or record something: not_me with transaction_id from the recent payments; recategorise with merchant_key from the places and a category from: ' + CATEGORIES.join(', ') + '; answer with question_id from the open questions and the value they gave; split with transaction_id from the recent payments and ways (2 to 12, the person included) when they say a payment was shared, for a dinner, a shop, a present.',
@@ -578,6 +593,9 @@ const PHRASES = {
     '{here} is at {spent} so far. {before} closed at {closed}.': '{here} va en {spent} hasta ahora. {before} cerr\u00f3 en {closed}.',
     '{here} is at {spent} so far.': '{here} va en {spent} hasta ahora.',
     'Remember this': 'Recordar esto',
+    'Hi. Ask me about your money: what today can carry, where the month went, what comes back.': 'Hola. Preg\u00fantame por tu dinero: lo que aguanta hoy, ad\u00f3nde fue el mes, lo que vuelve.',
+    'You are welcome.': 'De nada.',
+    'All right.': 'Vale.',
     'There is nothing in the ledger yet. Connect a bank or add a statement and ask again.': 'Todav\u00eda no hay nada en el libro. Conecta un banco o a\u00f1ade un extracto y pregunta otra vez.',
   },
   'pt-BR': {
@@ -640,6 +658,9 @@ const PHRASES = {
     '{here} is at {spent} so far. {before} closed at {closed}.': '{here} est\u00e1 em {spent} at\u00e9 agora. {before} fechou em {closed}.',
     '{here} is at {spent} so far.': '{here} est\u00e1 em {spent} at\u00e9 agora.',
     'Remember this': 'Lembrar disso',
+    'Hi. Ask me about your money: what today can carry, where the month went, what comes back.': 'Oi. Pergunte sobre o seu dinheiro: o que o dia aguenta, para onde o m\u00eas foi, o que volta.',
+    'You are welcome.': 'De nada.',
+    'All right.': 'Tudo bem.',
     'There is nothing in the ledger yet. Connect a bank or add a statement and ask again.': 'Ainda n\u00e3o h\u00e1 nada no livro. Conecte um banco ou adicione um extrato e pergunte de novo.',
   },
 };
@@ -672,8 +693,19 @@ export function isShortAsk(message) {
   return /\?$/.test(m) || /^(what|which|how|show|list|tell|do|does|can|any|give|draw|make|compare|plot|chart|graph|explain|why|when|where|who|que|qu\u00e9|cu\u00e1l|cual|cu\u00e1nto|cuanto|dime|muestra|dame|ens\u00e9\u00f1ame|ensename)\b/i.test(m) || words.length <= 6;
 }
 
+/** A greeting, a thanks or an ok: one short line of the ledger's own, no model, no numbers. Pure. */
+export function smalltalkReply(message, language) {
+  const m = String(message || '').trim().toLowerCase().replace(/[!.,\s]+$/g, '');
+  if (/^(hi|hello|hey|hola|oi|ol[a\u00e1]|ola|bom dia|boa tarde|boa noite|buenos d[i\u00ed]as|buenas|good (morning|afternoon|evening))( there| again)?$/.test(m)) return say(language, 'Hi. Ask me about your money: what today can carry, where the month went, what comes back.');
+  if (/^(thanks|thank you|thx|gracias|obrigad[oa]|valeu|muito obrigad[oa]|muchas gracias)( a lot| very much| mesmo)?$/.test(m)) return say(language, 'You are welcome.');
+  if (/^(ok|okay|vale|t[a\u00e1] bom|ta bom|beleza|entendido|perfecto|perfeito|got it|sure|alright)$/.test(m)) return say(language, 'All right.');
+  return null;
+}
+
 export function shortCircuit(message, ctx) {
   const m = String(message || '').toLowerCase();
+  const small = smalltalkReply(message, ctx.language);
+  if (small) return { text: small, figures: [], actions: [], receipts: [] };
   if (!isShortAsk(message)) return null;
   if (/\b(subscri|suscrip|recurring|comes? back|every month|cada mes)/.test(m) && !/\b(cancel|not mine|isn'?t mine|fix|wrong|change)\b/.test(m)) {
     const built = buildFigure({ kind: 'recurring' }, ctx);
