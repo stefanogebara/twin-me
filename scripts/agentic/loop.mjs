@@ -10,8 +10,10 @@
  *                and answers one question: does anything need attention, and what.
  *   2. manager   only if so: a stronger model writes the plan -- files, acceptance, risk --
  *                and does not edit anything.
- *   3. implement  not enabled yet: needs the agent harness and its key (slice 2).
- *   4. inspect    not enabled yet.
+ *   3. implement  (slice 2, 2026-09-20) a second job runs Claude Code headless on the plan, on a
+ *                branch, with edits and tests only; the shadow rule (guard.mjs) refuses any
+ *                change to the ledger's tables, the feed or the schema; it opens a PR, never merges.
+ *   4. inspect    a fresh model reads the diff against the plan and leaves its verdict on the PR.
  *
  * The plan is opened (or appended) as a GitHub issue for a person or the harness to take.
  * Three rules the owner named: a refusal comes back as HTTP 200, so the answer is checked
@@ -129,11 +131,14 @@ async function main() {
         `You are the manager of a maintenance loop. Do not write code. From this triage, write a plan: for each task, the files, the acceptance criteria (a test that fails without the change), the risk, and the order. Under 500 words, plain prose, no emojis.\n\n${JSON.stringify(verdict, null, 2)}\n\nEvidence:\n${prompt}`,
         { key, maxTokens: 1500 });
       summary.push('', '### Plan', plan);
-      const url = await upsertIssue(`Loop: attention needed (${new Date().toISOString().slice(0, 10)})`, `${verdict.reason}\n\n${plan}\n\n_Implement and inspect stages are not enabled yet (slice 2)._`).catch((e) => `issue not opened: ${e.message}`);
+      const url = await upsertIssue(`Loop: attention needed (${new Date().toISOString().slice(0, 10)})`, `${verdict.reason}\n\n${plan}\n\n_The implement stage takes this from here; its PR links back._`).catch((e) => `issue not opened: ${e.message}`);
       summary.push('', `Issue: ${url}`);
+      /* Handed to the implement job: the plan as a file, and the fact of it as an output. */
+      fs.writeFileSync('loop-plan.json', JSON.stringify({ reason: verdict.reason, tasks: verdict.tasks, plan, issue: url }, null, 2));
+      if (process.env.GITHUB_OUTPUT) fs.appendFileSync(process.env.GITHUB_OUTPUT, 'attention=true\n');
     }
   }
-  summary.push('', 'Implement and inspect stages: not enabled (slice 2 needs the agent harness and its key). Money is never written to by this loop.');
+  summary.push('', 'Implement and inspect run as their own jobs when attention is needed; the loop opens a PR and never merges. Money is never written to by this loop.');
   const out = summary.join('\n');
   console.log(out);
   if (process.env.GITHUB_STEP_SUMMARY) fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, `## Loop\n\n${out}\n`);
