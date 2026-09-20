@@ -50,6 +50,7 @@ checks and a judge). Each round: what was asked, what was wrong, what changed, t
 | Round | Asked | Was wrong | Changed | Tally |
 |---|---|---|---|---|
 | 1 (2026-09-20) | last night, yesterday in total, this week, this vs last week, each day, biggest yesterday | lines one by one and no total (the rules forbid adding, the context held only the month) | `windows.js`: today, yesterday, last night, this week, last week, last 7 days and each day, totalled in Madrid days and quoted; a week figure (a bar per day); greetings answered without the model (a greeting took 30 s and a 504) | 32/35 with the judge, then 5/5 on the smalltalk rerun; "Ontem você gastou 58,00 € no total, em 4 pagamentos" |
+| 2 (2026-09-20) | food yesterday, coffee this week, where most this week, a graph per day, transport last week, can I afford 60 tonight | a stretch with a kind of place or a place in it had no line to quote; "a graph of this week" drew the weekday shape | each window now says its kinds of place and its places (`breakdown()`); the rule names the week figure for "each day" | 4/6 by the harness; the two judge-0 answers are right by Claude's reading: "nothing on food yesterday, the 58,00 € was entertainment", "coffee is not a separate kind this week; eating out 14,13 € at Glovo" |
 
 Not there yet, honestly: no web access (the chat says only what the ledger computed); figures are bars, shares, the band, months and recurring, not free-form diagrams; an offer (remember, not_me, person, answer) changes the ledger only when tapped, which the browser suite covers.
 

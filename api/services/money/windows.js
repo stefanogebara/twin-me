@@ -54,13 +54,32 @@ export function spendWindows(transactions = [], now = new Date()) {
   return { windows, days };
 }
 
-/** The same, as lines for the model: totals it may quote and never has to add. */
-export function windowLines(transactions = [], now = new Date()) {
+/** A window's spending by a key (a kind of place, a place), largest first: [{ key, total, count }]. */
+export function breakdown(rows, keyOf, max = 4) {
+  const by = new Map();
+  for (const t of rows) { const k = keyOf(t) || 'not read yet'; const b = by.get(k) || { key: k, total: 0, count: 0 }; b.total = r2(b.total + Math.abs(Number(t.amount))); b.count += 1; by.set(k, b); }
+  return [...by.values()].sort((a, b) => b.total - a.total).slice(0, max);
+}
+
+/**
+ * The same, as lines for the model: totals it may quote and never has to add. With a
+ * categoryOf, each window also says its kinds of place and its places, so "how much on food
+ * yesterday" and "how much at that bar this week" are answered from a line, not a sum.
+ */
+export function windowLines(transactions = [], now = new Date(), { categoryOf = null, nameOf = null } = {}) {
   const { windows, days } = spendWindows(transactions, now);
+  const rows = (transactions || []).filter(spending);
   const lines = [];
   for (const w of windows) {
     if (!w.count) { lines.push(`${w.label}: nothing spent.`); continue; }
-    lines.push(`${w.label}: spent ${eur(w.total)} in ${w.count} payment${w.count === 1 ? '' : 's'}${w.biggest ? `, the largest ${w.biggest.name} ${eur(w.biggest.amount)}` : ''}.`);
+    let line = `${w.label}: spent ${eur(w.total)} in ${w.count} payment${w.count === 1 ? '' : 's'}${w.biggest ? `, the largest ${w.biggest.name} ${eur(w.biggest.amount)}` : ''}.`;
+    const inWindow = rows.filter((t) => at(t) >= w.from && at(t) < w.to);
+    if (categoryOf && inWindow.length > 1) {
+      const kinds = breakdown(inWindow, categoryOf).map((b) => `${b.key} ${eur(b.total)} (${b.count})`).join('; ');
+      const places = breakdown(inWindow, nameOf || name, 3).map((b) => `${b.key} ${eur(b.total)} (${b.count})`).join('; ');
+      line += ` By kind: ${kinds}. By place: ${places}.`;
+    }
+    lines.push(line);
   }
   lines.push('Spent per day, last 7 days: ' + days.map((d) => `${d.weekday} ${d.day.slice(5)} ${d.count ? `${eur(d.total)} (${d.count})` : 'nothing'}`).join('; ') + '.');
   return lines;

@@ -164,7 +164,7 @@ export function assemble({ transactions: rawTransactions = [], segments = [], fo
   const open = [...(questions?.opening || []), ...(questions?.fromLedger || [])];
   return {
     now, transactions, byId, segments, forecast: cast, recurring, readings, facts,
-    questions: open, places: places || [], placeByKey, categories, lastCategories, accounts: accounts || [], language: language || null, profiles, patterns, predictions,
+    questions: open, places: places || [], placeByKey, categoryOf, categories, lastCategories, accounts: accounts || [], language: language || null, profiles, patterns, predictions,
   };
 }
 
@@ -405,7 +405,7 @@ export function contextText(ctx) {
 
   /* The stretches a person asks about by name, totalled here so the model never adds: asked
      for last night and for yesterday, it gave the lines one by one and no total (2026-09-20). */
-  lines.push(...windowLines(ctx.transactions, ctx.now));
+  lines.push(...windowLines(ctx.transactions, ctx.now, { categoryOf: ctx.categoryOf, nameOf: (t) => ctx.placeByKey.get(t.merchant_key)?.name || nameOf(t) }));
 
   if (ctx.segments.length) {
     lines.push('Per month, spent / received / payments: ' + [...ctx.segments]
@@ -477,7 +477,7 @@ export const RULES = [
   'Every number you write must appear in the context above. Never estimate, round differently, or add up numbers yourself; if the context does not hold the number, say the ledger cannot tell.',
   'Write amounts exactly as the context does, like 12,50 EUR.',
   'Do not say "always" for an amount that varies; say "usually" or "about".',
-  'Never add numbers up: if a total would need adding, give the parts and say the ledger has no total for that. Never work out a daily amount or a difference yourself. The totals for today, yesterday, last night, this week, last week and each of the last seven days are in the context: quote them when asked about those stretches.',
+  'Never add numbers up: if a total would need adding, give the parts and say the ledger has no total for that. Never work out a daily amount or a difference yourself. The totals for today, yesterday, last night, this week, last week and each of the last seven days are in the context, each with its kinds of place and its places: quote them when asked about those stretches, a kind of place in a stretch, or a place in a stretch.',
   'On a greeting, a thanks, an "ok" or a message with no question in it, answer in one short line with no numbers and no figure.',
   'When the person tells you something, begin by saying back in a few words what they told you, in their terms ("Spotify is your flatmate\'s, not yours"), then say what the ledger will do with it, then the offer. Never answer a statement with what the ledger currently thinks as if they had asked.',
   'A plan, a trip, a visit, an exam, a change in their life, even with no money in it: propose remember with their words, and say the ledger will read those days with it in mind.',
