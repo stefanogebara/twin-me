@@ -36,7 +36,9 @@ async function main() {
   sh('git', ['checkout', '-B', branch]);
   const out = sh('claude', ['-p', buildPrompt(plan), '--model', process.env.LOOP_IMPLEMENT_MODEL || 'claude-sonnet-5', '--allowedTools', ...IMPLEMENT_TOOLS, '--max-budget-usd', process.env.LOOP_IMPLEMENT_BUDGET_USD || '5', '--output-format', 'text'], { maxBuffer: 16 * 1024 * 1024 });
   fs.writeFileSync('loop-implement.log', out);
-  const changed = sh('git', ['status', '--porcelain']).split('\n').filter(Boolean).map((l) => l.slice(3).trim());
+  /* The stage's own files travel as artifacts, never as part of the change. */
+  const OWN = new Set(['loop-plan.json', 'loop-implement.log', 'loop-pr.txt']);
+  const changed = sh('git', ['status', '--porcelain']).split('\n').filter(Boolean).map((l) => l.slice(3).trim()).filter((p) => !OWN.has(p));
   if (!changed.length) { say('The implement stage changed nothing.'); return; }
   const forbidden = forbiddenPaths(changed);
   if (forbidden.length) { sh('git', ['checkout', '--', '.']); sh('git', ['clean', '-fdq']); say(`REFUSED: the change touched ${forbidden.join(', ')}; the shadow rule stands. Nothing was committed.`); process.exitCode = 1; return; }
