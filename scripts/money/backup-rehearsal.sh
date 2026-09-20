@@ -96,7 +96,7 @@ cmd_rehearse() {
   local stamp; stamp="$(date -u +%Y%m%dT%H%M%SZ)"
   local srcdb="${src##*/}"; srcdb="${srcdb%%\?*}"
   local newdb="${srcdb}_rehearsal_${stamp}"
-  local file; file="$(mktemp -t money-rehearsal).dump"
+  local file; file="$(mktemp "${TMPDIR:-/tmp}/money-rehearsal.XXXXXX").dump" # GNU mktemp wants the Xs
   cmd_dump "$src" "$file"
   cmd_restore "$file" "$admin" "$newdb"
   if cmd_verify "$src" "$(db_url "$admin" "$newdb")"; then
