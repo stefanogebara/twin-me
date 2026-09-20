@@ -6,7 +6,9 @@
  *   2. claude -p with the plan, the repo's own rules (CLAUDE.md is read by the CLI), edits and
  *      tests only, a dollar cap, no git and no network
  *   3. refuse the result if any changed path is forbidden (guard.mjs) or nothing changed
- *   4. commit on loop/<date>, push, open a PR labelled loop, linking the issue
+ *   4. run the unit suite, the strict money typecheck and eslint on the change (a push made
+ *      with GITHUB_TOKEN starts no CI of its own), refuse if any fails
+ *   5. commit on loop/<date>, push, open a PR labelled loop, linking the issue
  *
  * It never merges; the inspect stage and a person do the reading. ANTHROPIC_API_KEY comes from
  * the repository's secrets; without it the stage says so and exits 0.
@@ -42,6 +44,24 @@ async function main() {
   if (!changed.length) { say('The implement stage changed nothing.'); return; }
   const forbidden = forbiddenPaths(changed);
   if (forbidden.length) { sh('git', ['checkout', '--', '.']); sh('git', ['clean', '-fdq']); say(`REFUSED: the change touched ${forbidden.join(', ')}; the shadow rule stands. Nothing was committed.`); process.exitCode = 1; return; }
+  /* A push made with GITHUB_TOKEN starts no workflow, so the loop's PR gets no CI of its own
+     (seen on #444, 2026-09-20). The stage runs the checks here, before anything is pushed:
+     the unit suite without retries, the strict money typecheck, and eslint on what changed. */
+  const checks = [
+    ['npx', ['vitest', 'run', '--retry=0', '--exclude', '**/*.integration.test.js']],
+    ['npx', ['tsc', '-p', 'tsconfig.money.json']],
+    ['npx', ['eslint', '--no-warn-ignored', ...changed.filter((p) => /\.(js|mjs|ts|tsx)$/.test(p))]],
+  ];
+  for (const [cmd, args] of checks) {
+    try { sh(cmd, args, { stdio: ['ignore', 'pipe', 'pipe'], maxBuffer: 32 * 1024 * 1024 }); }
+    catch (error) {
+      const tail = String(error.stdout || error.stderr || error.message).split('\n').slice(-25).join('\n');
+      fs.writeFileSync('loop-implement.log', `${out}\n\n--- ${cmd} ${args.join(' ')} failed ---\n${tail}`);
+      sh('git', ['checkout', '--', '.']); sh('git', ['clean', '-fdq']);
+      say(`REFUSED: \`${cmd} ${args.slice(0, 2).join(' ')}\` failed on the change; nothing was pushed. The tail is in the log artifact.`);
+      process.exitCode = 1; return;
+    }
+  }
   sh('git', ['config', 'user.name', 'twinme-loop']); sh('git', ['config', 'user.email', 'loop@twinme.me']);
   sh('git', ['add', '--', ...changed]);
   sh('git', ['commit', '-q', '-m', `loop: ${plan.tasks?.[0]?.title || plan.reason}`.slice(0, 72) + `\n\nWritten by the loop's implement stage from the plan in ${plan.issue || 'the triage issue'}.\nInspect stage and a person read before anything merges.`]);
@@ -50,6 +70,9 @@ async function main() {
   let pr;
   try { pr = sh('gh', ['pr', 'create', '--base', 'main', '--head', branch, '--title', `Loop: ${(plan.tasks?.[0]?.title || plan.reason).slice(0, 60)}`, '--body', body, '--label', 'loop']); }
   catch { pr = sh('gh', ['pr', 'view', branch, '--json', 'url', '--jq', '.url']); }
+  /* CI for the branch, asked for by name: a push made with GITHUB_TOKEN starts none, and the
+     PR's required checks are these. */
+  try { sh('gh', ['workflow', 'run', 'ci.yml', '--ref', branch]); } catch (error) { say(`CI could not be dispatched for ${branch}: ${error.message}`); }
   fs.writeFileSync('loop-pr.txt', pr);
   if (process.env.GITHUB_OUTPUT) fs.appendFileSync(process.env.GITHUB_OUTPUT, `pr=${pr}\nbranch=${branch}\n`);
   say(`Implemented on ${branch}: ${changed.length} files; ${pr}`);
