@@ -50,7 +50,7 @@ async function signIn() {
   return { token: j.accessToken, userId: u.id };
 }
 
-const STYLE_BAD = [/[*#_`]{1,}/, /[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}]/u, /\b(language model|as an ai|openai|anthropic|deepseek|llm)\b/i];
+const STYLE_BAD = [/[*#_`]{1,}/, /[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}]/u, /\b(language model|as an ai|i am an ai|sou uma ia|soy una ia|llm)\b/i] /* OpenAI is a merchant in the ledger: never a style fault (2026-09-21) */;
 function score(s, reply) {
   const text = String(reply.text || '');
   const kinds = (reply.figures || []).map((f) => f.kind);

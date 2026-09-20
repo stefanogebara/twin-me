@@ -26,7 +26,7 @@
  */
 
 import { complete, stream as streamComplete, TIER_CHAT } from '../llmGateway.js';
-import { windowLines, weekAverageLine, spendWindows, breakdown, eur, NO_NAME } from './windows.js';
+import { windowLines, weekAverageLine, costliestDayLine, weekdayLine, spendWindows, breakdown, eur, NO_NAME } from './windows.js';
 import { askedLines, askedDays, askedWindows } from './asked.js';
 import { tripDays } from './when.js';
 import { balances, describeBetweenPeople, monthBetweenPeople, describeMonthBetweenPeople, splitFindings, MIN_WAYS, MAX_WAYS } from './bizum.js';
@@ -418,6 +418,8 @@ export function contextText(ctx) {
   const windowOpts = { categoryOf: ctx.categoryOf, nameOf: (t) => ctx.placeByKey.get(t.merchant_key)?.name || nameOf(t) };
   lines.push(...windowLines(ctx.transactions, ctx.now, windowOpts));
   lines.push(weekAverageLine(ctx.transactions, ctx.now));
+  lines.push(costliestDayLine(ctx.transactions, ctx.now));
+  lines.push(weekdayLine(ctx.transactions, ctx.now));
   /* The stretch this question names (a weekday, a night, a weekend, a date, a range, since a
      date), totalled here: asked about the 8th to the 14th, the chat gave one day of it (2026-09-20). */
   if (ctx.asked) lines.push(...askedLines(ctx.transactions, ctx.asked, ctx.now, windowOpts));
@@ -519,6 +521,7 @@ export const RULES = [
   'Do not say "always" for an amount that varies; say "usually" or "about".',
   'Never add numbers up: if a total would need adding, give the parts and say the ledger has no total for that. Never work out a daily amount or a difference yourself. The totals for today, yesterday, last night, this week, last week and each of the last seven days are in the context, each with its kinds of place and its places, and each place has its total and count for this month and last: quote them when asked about a stretch, a kind of place, or a place; "how much is left" is the line that begins "Left for". A place missing from the by-place line had no payment that month: say so, never assemble a count or a total from other lines. The biggest or largest payment is one line of the recent payments, never a place\'s total over several.',
   'When the question names a weekday, a night, a weekend, a date, a stretch between two dates or "since" a date, the line beginning "Asked stretch" holds exactly that stretch: quote its total, count and largest, and its kinds and places. Asked what a week costs on average, quote the line beginning "Average week", never the last seven days. A comparison of two stretches is the two lines side by side; never work out the difference.',
+  'A line is about the days it names and no others: never give a line\'s numbers for a different day, weekend or stretch. When the stretch asked about has no line, say the ledger cannot tell for those days. The month\'s costliest day and the spend by day of the week over the last full weeks are lines of their own: quote them for "which day" questions, never the per-day line of the last seven.',
   'Asked how much went to people, by Bizum or by transfer, this month, or what came from them, quote the lines beginning "To people this month" and "From people this month": they hold the totals and each person. Asked for a graph of a stretch named in the question, ask for the week figure: it draws that stretch, a bar per day.',
   'Asked whether they can afford an amount, answer yes or no in the first sentence against today\'s number (the line for today, or the one beginning "Left for"), then give those numbers; repeat the amount they named as they wrote it.',
   'A place is only ever itself: never say one place is, looks like or counts as another (a Lidl is not a Mercadona). Asked about a place none of the lines hold, say nothing was seen there. "A payment without a name" is a payment the bank sent without a name: say so in those words, never as a place called unknown.',
@@ -579,6 +582,7 @@ function plainProse(raw) {
    English is the source; a language with no line falls back to it. ASCII, \u for accents. */
 const PHRASES = {
   es: {
+    'The largest is {name}, {amount} a month.': 'La mayor es {name}, {amount} al mes.',
     'Upload this statement in Sources and choose the account it belongs to.': 'Sube este extracto en Fuentes y elige la cuenta a la que pertenece.',
     '{what} on {day}, is marked as not yours and leaves the month.': '{what} el {day} queda marcado como no tuyo y sale del mes.',
     '{place} now counts as {kind}, here and from now on.': '{place} cuenta ahora como {kind}, aqu\u00ed y a partir de ahora.',
@@ -647,6 +651,7 @@ const PHRASES = {
     'There is nothing in the ledger yet. Connect a bank or add a statement and ask again.': 'Todav\u00eda no hay nada en el libro. Conecta un banco o a\u00f1ade un extracto y pregunta otra vez.',
   },
   'pt-BR': {
+    'The largest is {name}, {amount} a month.': 'A maior \u00e9 {name}, {amount} por m\u00eas.',
     'Upload this statement in Sources and choose the account it belongs to.': 'Envie este extrato em Fontes e escolha a conta à qual ele pertence.',
     '{what} on {day}, is marked as not yours and leaves the month.': '{what} em {day} fica marcado como n\u00e3o seu e sai do m\u00eas.',
     '{place} now counts as {kind}, here and from now on.': '{place} agora conta como {kind}, aqui e daqui em diante.',
@@ -758,11 +763,17 @@ export function shortCircuit(message, ctx) {
   const small = smalltalkReply(message, ctx.language);
   if (small) return { text: small, figures: [], actions: [], receipts: [] };
   if (!isShortAsk(message)) return null;
-  if (/\b(subscri|suscrip|recurring|comes? back|every month|cada mes)/.test(m) && !/\b(cancel|not mine|isn'?t mine|fix|wrong|change)\b/.test(m)) {
+  if (/\b(subscri|suscrip|assinatura|recurring|comes? back|every month|cada mes|todo mes|todos os meses)/.test(m) && !/\b(cancel|not mine|isn'?t mine|fix|wrong|change)\b/.test(m)) {
     const built = buildFigure({ kind: 'recurring' }, ctx);
     const L = ctx.language;
     if (!built) return { text: say(L, 'Nothing comes back regularly yet. The ledger needs to see a charge at least twice to call it that.'), figures: [], actions: [], receipts: [] };
     const monthly = ctx.recurring.filter((s) => s.cadence === 'monthly');
+    /* "my biggest subscription" is one of them, named: the list came back instead (2026-09-20). */
+    if (/\b(biggest|largest|most expensive|dearest|mayor|m[a\u00e1]s car[oa]|maior|mais car[oa])\b/.test(m) && monthly.length) {
+      const top = monthly.reduce((a, b) => (Number(b.typical_amount) > Number(a.typical_amount) ? b : a));
+      const text = say(L, 'The largest is {name}, {amount} a month.', { name: top.merchant_name || top.merchant_key, amount: amountText(top.typical_amount) });
+      return { text: euroGlyphs(text), figures: [built.figure], actions: [], receipts: receiptsFor([built], ctx) };
+    }
     const total = monthly.reduce((s, x) => s + Number(x.typical_amount || 0), 0);
     const names = monthly.slice(0, 3).map((s) => s.merchant_name || s.merchant_key);
     const text = monthly.length

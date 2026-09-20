@@ -25,6 +25,9 @@ describe('askedWindows', () => {
     expect(w.map((x) => x.label)).toEqual(['This weekend (19 and 20 September, so far)', 'Last weekend (12 and 13 September)']);
     expect(w[1]).toMatchObject({ from: madrid('2026-09-12'), to: madrid('2026-09-14', '06') });
     expect(w[0].to).toBe(sun.getTime() + 60000);
+    expect(askedWindows('and the weekend before?', sun)[0]).toMatchObject({ label: 'The weekend before last (5 and 6 September)', from: madrid('2026-09-05'), to: madrid('2026-09-07', '06') });
+    expect(askedWindows('two weekends ago', wed)[0].label).toBe('The weekend before last (5 and 6 September)');
+    expect(askedWindows('o fim de semana anterior', sun)[0].label).toBe('The weekend before last (5 and 6 September)');
     /* midweek, this weekend has not happened: only last weekend is a stretch */
     expect(askedWindows('what did this weekend cost', wed)).toEqual([]);
     expect(askedWindows('what did last weekend cost', wed)[0].label).toBe('Last weekend (12 and 13 September)');

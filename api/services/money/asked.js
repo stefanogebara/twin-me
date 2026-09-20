@@ -75,11 +75,15 @@ export function askedWindows(text, now = new Date()) {
   /* weekends: on Saturday, Sunday or Monday "this weekend" is the one just here; midweek it has not happened */
   const thisWeekend = /\b(this weekend|este fin de semana|este fim de semana|neste fim de semana|esse fim de semana)\b/.test(t);
   const lastWeekend = /\b(last weekend|el fin de semana pasado|fin de semana pasado|o fim de semana passado|fim de semana passado|no fim de semana passado)\b/.test(t);
-  if (thisWeekend || lastWeekend) {
+  /* "the weekend before", "two weekends ago": the model re-dated Saturday's line for it (2026-09-20) */
+  const weekendBefore = /\b(the weekend before|two weekends ago|el fin de semana anterior|hace dos fines de semana|el fin de semana antes|o fim de semana anterior|o fim de semana retrasado|ha dois fins de semana|dois fins de semana atras)\b/.test(t);
+  if (thisWeekend || lastWeekend || weekendBefore) {
     const sat = weekday === 1 ? shiftDay(monday, -2) : shiftDay(monday, 5);
     const here = weekday === 0 || weekday === 6 || weekday === 1;
+    const last = here ? shiftDay(sat, -7) : shiftDay(monday, -2);
     if (thisWeekend && here) weekendOf(sat, 'This weekend');
-    if (lastWeekend) weekendOf(here ? shiftDay(sat, -7) : shiftDay(monday, -2), 'Last weekend');
+    if (lastWeekend && !weekendBefore) weekendOf(last, 'Last weekend');
+    if (weekendBefore) weekendOf(shiftDay(last, -7), 'The weekend before last');
     return out;
   }
 

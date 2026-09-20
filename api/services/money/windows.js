@@ -60,6 +60,39 @@ export function spendWindows(transactions = [], now = new Date()) {
 }
 
 /**
+ * The day this month that cost most, as a line: asked for it, the model picked one of the
+ * last seven days because those were the only days it had (2026-09-20).
+ */
+export function costliestDayLine(transactions = [], now = new Date()) {
+  const month = dayIn(now).slice(0, 7);
+  const from = startOfDayIn(`${month}-01`).getTime();
+  const days = dayTotals(transactions, from, new Date(now).getTime() + 60000).filter((d) => d.count);
+  if (!days.length) return `Costliest day this month: nothing spent yet.`;
+  const top = days.reduce((a, b) => (b.total > a.total ? b : a));
+  const p = partsIn(new Date(startOfDayIn(top.day).getTime() + 12 * 3600000));
+  return `Costliest day this month: ${top.weekday} ${p.day} ${MONTH_SHORT[p.month - 1]} ${eur(top.total)} (${top.count})${top.biggest ? `, the largest ${top.biggest.name} ${eur(top.biggest.amount)}` : ''}.`;
+}
+
+/**
+ * Spending by day of the week over the last full weeks, each weekday's total, the costliest
+ * first: "which day do I spend most on" was answered with one week's Monday (2026-09-20).
+ */
+export function weekdayLine(transactions = [], now = new Date(), weeks = 8) {
+  const rows = (transactions || []).filter(spending);
+  const today = dayIn(now);
+  const weekday = partsIn(now)?.weekday ?? new Date(now).getUTCDay();
+  const monday = shiftDay(today, -((weekday + 6) % 7));
+  const from = startOfDayIn(shiftDay(monday, -7 * weeks)).getTime();
+  const to = startOfDayIn(monday).getTime();
+  const totals = [0, 0, 0, 0, 0, 0, 0];
+  let count = 0;
+  for (const t of rows) { const at_ = at(t); if (at_ < from || at_ >= to) continue; totals[partsIn(new Date(at_))?.weekday ?? 0] += Math.abs(Number(t.amount)); count += 1; }
+  if (!count) return `Spent by day of the week, last ${weeks} full weeks: nothing.`;
+  const order = [1, 2, 3, 4, 5, 6, 0].map((i) => ({ name: WEEKDAY[i], total: r2(totals[i]) })).sort((a, b) => b.total - a.total);
+  return `Spent by day of the week, last ${weeks} full weeks, costliest first: ${order.map((d) => `${d.name} ${eur(d.total)}`).join('; ')}.`;
+}
+
+/**
  * Each local day between two instants, totalled and clipped to them: [{ day, weekday, total,
  * count }]. The bars of a figure for a stretch a question names.
  */

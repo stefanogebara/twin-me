@@ -618,3 +618,14 @@ describe('sentenceCount', () => {
     expect(sentenceCount('You sent 262,00 EUR to 3 people: Maria D. 200,00 EUR; Achref S. 50,00 EUR. That is all.')).toBe(2);
   });
 });
+
+describe('the largest subscription', () => {
+  it('is named by the short circuit instead of the whole list', async () => {
+    const { shortCircuit } = await import('../../../../api/services/money/chat.js');
+    const c = ctx();
+    c.recurring = [...recurring, { merchant_key: 'gym', merchant_name: 'Gym', cadence: 'monthly', typical_amount: 39.9, next_expected: '2026-10-01', charges: [] }];
+    const r = shortCircuit('What is my biggest subscription?', c);
+    expect(r.text).toBe('The largest is Gym, 39,90 \u20ac a month.');
+    expect(r.figures.map((f) => f.kind)).toEqual(['recurring']);
+  });
+});
