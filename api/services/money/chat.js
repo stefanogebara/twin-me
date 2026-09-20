@@ -26,7 +26,8 @@
  */
 
 import { complete, stream as streamComplete, TIER_CHAT } from '../llmGateway.js';
-import { windowLines, spendWindows, breakdown, eur } from './windows.js';
+import { windowLines, weekAverageLine, spendWindows, breakdown, eur, NO_NAME } from './windows.js';
+import { askedLines } from './asked.js';
 import { tripDays } from './when.js';
 import { balances, describeBetweenPeople, splitFindings, MIN_WAYS, MAX_WAYS } from './bizum.js';
 import crypto from 'node:crypto';
@@ -101,12 +102,16 @@ const monthLabel = (iso, language = null) => {
   return Number.isNaN(d.getTime()) ? '' : monthNames(language)[d.getUTCMonth()];
 };
 const monthKeyOf = (iso) => String(iso).slice(0, 7);
-const nameOf = (t) => t.merchant_raw || t.merchant_key || 'unknown';
+const nameOf = (t) => t.merchant_raw || t.merchant_key || NO_NAME;
 
 /**
  * The model writes amounts as "12,50 EUR" so its prompt stays ASCII; the person reads
  * "12,50" with the euro glyph like everywhere else in the app.
  */
+/* The rules say no emojis; the model drew one anyway ("\u{1F4CA} Esta semana", 2026-09-20). Every
+   piece of text on its way to the screen passes here, so the rule holds without the model. */
+export const plainWords = (text) => String(text || '').replace(/\p{Extended_Pictographic}|\u{FE0F}|\u{200D}|\u{20E3}/gu, '').replace(/ {2,}/g, ' ');
+
 export function euroGlyphs(text) {
   return String(text || '').replace(/(\d),(\d{2}) EUR\b/g, '$1,$2 \u20ac').replace(/(\d) EUR\b/g, '$1 \u20ac');
 }
@@ -406,7 +411,12 @@ export function contextText(ctx) {
 
   /* The stretches a person asks about by name, totalled here so the model never adds: asked
      for last night and for yesterday, it gave the lines one by one and no total (2026-09-20). */
-  lines.push(...windowLines(ctx.transactions, ctx.now, { categoryOf: ctx.categoryOf, nameOf: (t) => ctx.placeByKey.get(t.merchant_key)?.name || nameOf(t) }));
+  const windowOpts = { categoryOf: ctx.categoryOf, nameOf: (t) => ctx.placeByKey.get(t.merchant_key)?.name || nameOf(t) };
+  lines.push(...windowLines(ctx.transactions, ctx.now, windowOpts));
+  lines.push(weekAverageLine(ctx.transactions, ctx.now));
+  /* The stretch this question names (a weekday, a night, a weekend, a date, a range, since a
+     date), totalled here: asked about the 8th to the 14th, the chat gave one day of it (2026-09-20). */
+  if (ctx.asked) lines.push(...askedLines(ctx.transactions, ctx.asked, ctx.now, windowOpts));
 
   if (ctx.segments.length) {
     lines.push('Per month, spent / received / payments: ' + [...ctx.segments]
@@ -501,6 +511,9 @@ export const RULES = [
   'Write amounts exactly as the context does, like 12,50 EUR.',
   'Do not say "always" for an amount that varies; say "usually" or "about".',
   'Never add numbers up: if a total would need adding, give the parts and say the ledger has no total for that. Never work out a daily amount or a difference yourself. The totals for today, yesterday, last night, this week, last week and each of the last seven days are in the context, each with its kinds of place and its places, and each place has its total and count for this month and last: quote them when asked about a stretch, a kind of place, or a place; "how much is left" is the line that begins "Left for". A place missing from the by-place line had no payment that month: say so, never assemble a count or a total from other lines. The biggest or largest payment is one line of the recent payments, never a place\'s total over several.',
+  'When the question names a weekday, a night, a weekend, a date, a stretch between two dates or "since" a date, the line beginning "Asked stretch" holds exactly that stretch: quote its total, count and largest, and its kinds and places. Asked what a week costs on average, quote the line beginning "Average week", never the last seven days. A comparison of two stretches is the two lines side by side; never work out the difference.',
+  'Asked whether they can afford an amount, answer yes or no in the first sentence against today\'s number (the line for today, or the one beginning "Left for"), then give those numbers; repeat the amount they named as they wrote it.',
+  'A place is only ever itself: never say one place is, looks like or counts as another (a Lidl is not a Mercadona). Asked about a place none of the lines hold, say nothing was seen there. "A payment without a name" is a payment the bank sent without a name: say so in those words, never as a place called unknown.',
   'On a greeting, a thanks, an "ok" or a message with no question in it, answer in one short line with no numbers and no figure.',
   'When the person tells you something, begin by saying back in a few words what they told you, in their terms ("Spotify is your flatmate\'s, not yours"), then say what the ledger will do with it, then the offer. Never answer a statement with what the ledger currently thinks as if they had asked.',
   'A plan, a trip, a visit, an exam, a change in their life, even with no money in it: propose remember with their words, and say the ledger will read those days with it in mind.',
@@ -533,7 +546,7 @@ export function parseReply(raw) {
     const obj = JSON.parse(raw.slice(start, end + 1));
     if (!obj || typeof obj !== 'object' || typeof obj.text !== 'string') return null;
     return {
-      text: obj.text.trim(),
+      text: plainWords(obj.text).trim(),
       figures: Array.isArray(obj.figures) ? obj.figures.filter((x) => x && typeof x === 'object') : [],
       actions: Array.isArray(obj.actions) ? obj.actions.filter((x) => x && typeof x === 'object') : [],
       cites: Array.isArray(obj.cites) ? obj.cites.filter((x) => typeof x === 'string') : [],
@@ -546,7 +559,7 @@ export function parseReply(raw) {
 /** Prose that came back where JSON was asked for, kept readable: no markdown glyphs. */
 function plainProse(raw) {
   /* Prose followed by an object it could not finish: the object's start is where the prose ends. */
-  const cut = String(raw || '').split(/\{\s*"text"/)[0];
+  const cut = plainWords(String(raw || '').split(/\{\s*"text"/)[0]);
   return cut.replace(/[*_`#>]/g, '').replace(/\n{2,}/g, ' ').replace(/\s+/g, ' ').trim();
 }
 
@@ -910,6 +923,7 @@ export async function answer(userId, message, history = [], { now = new Date() }
   const quick = shortCircuit(text, ctx);
   if (quick) return keep(quick);
 
+  ctx.asked = text;
   const system = `${RULES}\n\nWhat the ledger knows:\n${contextText(ctx)}`;
   const turns = (Array.isArray(history) ? history : []).slice(-MAX_HISTORY_TURNS)
     .filter((h) => h && typeof h.text === 'string' && h.text.trim())
@@ -1130,6 +1144,7 @@ export async function answerStream(userId, message, history = [], { now = new Da
     return closeWith(quick);
   }
 
+  ctx.asked = asked;
   const system = `${RULES}\n\nWhat the ledger knows:\n${contextText(ctx)}`;
   const turns = (Array.isArray(history) ? history : []).slice(-MAX_HISTORY_TURNS)
     .filter((h) => h && typeof h.text === 'string' && h.text.trim())
@@ -1160,7 +1175,8 @@ export async function answerStream(userId, message, history = [], { now = new Da
   };
 
   /** `joined` continues the sentence already on the screen; anything else starts one. */
-  const put = (piece, joined) => {
+  const put = (raw, joined) => {
+    const piece = plainWords(raw);
     if (!piece) return;
     const delta = joined || !shown.length ? piece : ` ${piece}`;
     send({ phase: 'text', delta });

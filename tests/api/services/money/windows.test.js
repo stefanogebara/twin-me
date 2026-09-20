@@ -48,3 +48,22 @@ describe('spendWindows', () => {
     expect(breakdown(ledger.filter((t) => Number(t.amount) < 0 && !t.verdict && t.currency === 'EUR'), kind)).toEqual([{ key: 'home', total: 500, count: 1 }, { key: 'eating out', total: 57.4, count: 3 }, { key: 'groceries', total: 48.2, count: 1 }, { key: 'coffee', total: 2.5, count: 1 }]);
   });
 });
+
+describe('weekAverageLine', () => {
+  it('averages the last four full weeks, Monday to Sunday, and names each', async () => {
+    const { weekAverageLine } = await import('../../../../api/services/money/windows.js');
+    const rows = [
+      tx('w1', '2026-09-08T10:00:00Z', -100), // week of 7 Sep
+      tx('w2', '2026-09-02T10:00:00Z', -50),  // week of 31 Aug
+      tx('w3', '2026-08-26T10:00:00Z', -30),  // week of 24 Aug
+      tx('w4', '2026-08-18T10:00:00Z', -20),  // week of 17 Aug
+      tx('old', '2026-08-10T10:00:00Z', -999), // week of 10 Aug: outside
+      tx('this', '2026-09-15T10:00:00Z', -77), // this week: not full, outside
+    ];
+    expect(weekAverageLine(rows, now)).toBe('Average week, last 4 full weeks (Monday to Sunday): 50,00 EUR; the weeks: 17 Aug 20,00 EUR; 24 Aug 30,00 EUR; 31 Aug 50,00 EUR; 7 Sep 100,00 EUR.');
+  });
+  it('names a payment without a name honestly', () => {
+    const lines = windowLines([tx('x', '2026-09-19T06:30:00Z', -3, { merchant_raw: null, merchant_key: null })], now);
+    expect(lines[0]).toBe('Today so far: spent 3,00 EUR in 1 payment, the largest a payment without a name 3,00 EUR.');
+  });
+});

@@ -114,8 +114,11 @@ async function judge(s, reply, token) {
     console.log(`      ${String(reply?.text || '').replace(/\n/g, ' ').slice(0, 220)}`);
   }
   /* The turns this run wrote are not the person's conversation. */
-  const { data: turns } = await sb.from('money_chat_turns').select('id').eq('user_id', userId).gte('created_at', startedAt);
-  if (turns?.length) await sb.from('money_chat_turns').delete().in('id', turns.map((t) => t.id));
+  let cleaned = await sb.from('money_chat_turns').select('id').eq('user_id', userId).gte('created_at', startedAt);
+  if (cleaned.error) cleaned = await sb.from('money_chat_turns').select('id').eq('user_id', userId).gte('created_at', startedAt); // one more try: a run once reported 0 cleaned and left 35 (2026-09-20)
+  const turns = cleaned.data || [];
+  if (cleaned.error) console.log(`turns could not be read: ${cleaned.error.message}; delete them by hand since ${startedAt}`);
+  if (turns.length) { const { error } = await sb.from('money_chat_turns').delete().in('id', turns.map((t) => t.id)); if (error) console.log(`turns could not be deleted: ${error.message}`); }
   const passed = results.filter((r) => r.pass).length;
   const byCheck = {};
   for (const r of results) for (const [k, v] of Object.entries(r.checks)) { byCheck[k] = byCheck[k] || { pass: 0, fail: 0 }; byCheck[k][v ? 'pass' : 'fail'] += 1; }
