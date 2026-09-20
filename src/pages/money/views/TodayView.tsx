@@ -16,6 +16,7 @@ import { KindTile } from '../Carved';
 import { todayHere, localDay, allowanceWords } from '../readingWords';
 import { ordinalDay, pct, chargesSoonWords } from '../words';
 import Readings from './Readings';
+import Review from './Review';
 
 export default function TodayView({ m }: { m: MoneyAccount }) {
   const { t, locale, forecast, today, ledger, loaded, unread, empty, capabilities, busy, bankReady, connect, load, reconnect, balanceLine, incomeEdge, edge, projectable, last, ahead, monthLabel } = m;
@@ -161,6 +162,7 @@ export default function TodayView({ m }: { m: MoneyAccount }) {
             ) : null}
           </section>
       <Readings m={m} view="today" />
+      <Review m={m} />
     </>
   );
 }

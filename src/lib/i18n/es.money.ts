@@ -785,4 +785,7 @@ export const ES_MONEY: Record<string, string> = {
   "{name} lands {when}, {amount}, already off today's number.": "{name} se cobra {when}, {amount}, ya descontado del número de hoy.",
   "{names} land {when}, {amount} together, already off today's number.": "{names} se cobran {when}, {amount} en total, ya descontados del número de hoy.",
   "today and tomorrow": "hoy y mañana",
+  "Ninety seconds.": "Noventa segundos.",
+  "The payment that weighed most this week. Worth it, or not you?": "El pago que más pesó esta semana. ¿Valió la pena, o no fuiste tú?",
+  "The {n} payments that weighed most this week. Worth it, or not you?": "Los {n} pagos que más pesaron esta semana. ¿Valieron la pena, o no fuiste tú?",
 };

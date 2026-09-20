@@ -128,6 +128,8 @@ Status words: `todo` · `doing (who, date)` · `done (#PR, date)` · `blocked (w
 
 2 is built (#438, 2026-09-20): `chargesSoon()` in `allowance.js` names the standing charges due today or tomorrow (Madrid days), and Today says "Spotify lands tomorrow, 9,99 €, already off today's number", which is true because spokenBefore already took it off. Words in three languages.
 
+5 is built (#438, 2026-09-20): a "Ninety seconds" section on Today lists the five largest spending lines of the week without a verdict (`review.ts`, pure; recurring and other currencies excluded); a row opens to Worth it / Not me, the same verdicts Month keeps, and leaves the list once judged. Seen on real data: five rows, 40 to 135 EUR. Today is 291 words with it (the register asks for about 150; the hero's own lines were already over before today).
+
 7. **Calendar-conditioned band.** Widen the day's band on a trip or exam week. Measured 19 September: one away day in 75 — nothing to learn from yet. Last, not first.
 
 ## Session log
