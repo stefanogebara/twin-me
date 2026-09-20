@@ -4,7 +4,7 @@
  * useMoneyAccount and each view is its own file. The words on the page did not move.
  */
 
-import { shortDay, type MoneyForecast } from '../../services/api/moneyAPI';
+import { euro, shortDay, type MoneyForecast } from '../../services/api/moneyAPI';
 
 /* The English source strings; the page says them through t(), so the dictionaries hold them. */
 export type T = (source: string, holes?: Record<string, string | number>) => string;
@@ -91,4 +91,16 @@ export function seenWords(t: T, sources: string[] | undefined, posted: boolean):
   if (phone) return posted ? t('phone, booked by the bank') : t('phone only, not booked yet');
   if (receipt) return posted ? t('receipt, booked by the bank') : t('receipt only, not booked yet');
   return '';
+}
+
+/** The charge before it lands, said once: named, dated, and already off today's number. */
+export function chargesSoonWords(t: T, charges: { name: string | null; amount: number; when: 'today' | 'tomorrow' }[] | undefined): string | null {
+  const list = (charges || []).filter((c) => c.amount > 0);
+  if (!list.length) return null;
+  const when = list.every((c) => c.when === 'today') ? t('today') : list.every((c) => c.when === 'tomorrow') ? t('tomorrow') : t('today and tomorrow');
+  const name = (c: { name: string | null }) => (c.name ? merchantLabel({ merchant_key: c.name }) : t('A standing charge'));
+  if (list.length === 1) return t("{name} lands {when}, {amount}, already off today's number.", { name: name(list[0]), when, amount: euro(list[0].amount) });
+  const total = list.reduce((s, c) => s + c.amount, 0);
+  const names = list.length === 2 ? t('{a} and {b}', { a: name(list[0]), b: name(list[1]) }) : t('{a}, {b} and {n} more', { a: name(list[0]), b: name(list[1]), n: list.length - 2 });
+  return t("{names} land {when}, {amount} together, already off today's number.", { names, when, amount: euro(total) });
 }

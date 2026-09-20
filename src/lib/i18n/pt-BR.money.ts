@@ -782,4 +782,7 @@ export const PT_BR_MONEY: Record<string, string> = {
   "phone only, not booked yet": "só o celular, ainda não lançado",
   "receipt, booked by the bank": "recibo, lançado pelo banco",
   "receipt only, not booked yet": "só um recibo, ainda não lançado",
+  "{name} lands {when}, {amount}, already off today's number.": "{name} cai {when}, {amount}, já descontado do número de hoje.",
+  "{names} land {when}, {amount} together, already off today's number.": "{names} caem {when}, {amount} no total, já descontados do número de hoje.",
+  "today and tomorrow": "hoje e amanhã",
 };

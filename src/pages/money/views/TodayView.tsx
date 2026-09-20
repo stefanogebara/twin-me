@@ -14,7 +14,7 @@ import Fortnight from '../figures/Fortnight';
 import TotalRow from '../figures/TotalRow';
 import { KindTile } from '../Carved';
 import { todayHere, localDay, allowanceWords } from '../readingWords';
-import { ordinalDay, pct } from '../words';
+import { ordinalDay, pct, chargesSoonWords } from '../words';
 import Readings from './Readings';
 
 export default function TodayView({ m }: { m: MoneyAccount }) {
@@ -68,6 +68,9 @@ export default function TodayView({ m }: { m: MoneyAccount }) {
                     {balanceLine && today.basis !== 'balance' ? <p className="mv-sub">{balanceLine}</p> : null}
                     {/* What the diary already expects today. The allowance has taken it off the
                         number above; without this line it is taken off for no visible reason. */}
+                    {/* The charge before it lands: named the day before, and already taken off the
+                        number above, so nothing on the page contradicts it. */}
+                    {chargesSoonWords(t, today.charges_soon) ? <p className="mv-sub">{chargesSoonWords(t, today.charges_soon)}</p> : null}
                     {today.today_events?.length ? (
                       <p className="mv-sub">{t('The diary expects {what} today.', { what: today.today_events.map((e) => `${e.title}, ${euro(e.amount)}`).join('; ') })}</p>
                     ) : null}

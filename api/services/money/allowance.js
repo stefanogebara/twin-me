@@ -174,6 +174,22 @@ function spokenBefore(cast, horizonDay) {
   return { committed: r2(committed + stated), calendar: r2(calendar) };
 }
 
+/**
+ * The standing charges that land today or tomorrow (idea 2 of 2026-09-19: the charge before
+ * it lands). Copilot's most-loved moment is catching a forgotten subscription after the fact;
+ * the recurring series know it the day before. They are already inside the day's number
+ * (spokenBefore takes them off), so the line says so, and names them.
+ */
+export function chargesSoon(items = [], now = new Date()) {
+  const today = dayIn(now);
+  const tomorrow = dayIn(new Date(now.getTime() + 86400000));
+  return (items || [])
+    .map((c) => ({ name: c.merchant_name || c.merchant_key || null, amount: r2(Math.abs(Number(c.typical_amount) || 0)), day: String(c.next_expected || '').slice(0, 10) }))
+    .filter((c) => c.amount > 0 && (c.day === today || c.day === tomorrow))
+    .map((c) => ({ name: c.name, amount: c.amount, when: c.day === today ? 'today' : 'tomorrow' }))
+    .sort((a, b) => (a.when === b.when ? b.amount - a.amount : a.when === 'today' ? -1 : 1));
+}
+
 /** The events today that the calendar already expects to cost something. */
 export function eventsToday(items = [], now = new Date()) {
   const today = dayIn(now);
@@ -308,6 +324,7 @@ export function safeToSpend({ cast = null, segments = [], facts = [], accounts =
     calendar_ahead: r2(calendarAhead),
     shape: shape && Math.abs(shape.ratio - 1) >= 0.1 ? { weekday: shape.weekday, ratio: shape.ratio } : null,
     today_events: todays,
+    charges_soon: chargesSoon(cast.committed_items, now),
     sentence,
     why: null,
   };

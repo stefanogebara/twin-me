@@ -126,6 +126,8 @@ Status words: `todo` · `doing (who, date)` · `done (#PR, date)` · `blocked (w
 6. **Roast, but grounded.** Cleo's voice is loved and distrusted because it sits on numbers people doubt. TwinMe's chat only says computed numbers — the same dry, specific line ("four dinners out, 60% of the month's food gone") is provably right. A register question as much as a product one.
 3 is built (#438, 2026-09-20): the page carries which sources saw each payment (`seen.js`, computed from `money_sightings`), and the ledger row says it in one grey phrase: "seen by the bank and your phone", "bank only", "phone only, not booked yet". Words in three languages; proven on the real database by the persistence test.
 
+2 is built (#438, 2026-09-20): `chargesSoon()` in `allowance.js` names the standing charges due today or tomorrow (Madrid days), and Today says "Spotify lands tomorrow, 9,99 €, already off today's number", which is true because spokenBefore already took it off. Words in three languages.
+
 7. **Calendar-conditioned band.** Widen the day's band on a trip or exam week. Measured 19 September: one away day in 75 — nothing to learn from yet. Last, not first.
 
 ## Session log

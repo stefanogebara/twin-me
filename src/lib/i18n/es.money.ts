@@ -782,4 +782,7 @@ export const ES_MONEY: Record<string, string> = {
   "phone only, not booked yet": "solo el móvil, aún sin contabilizar",
   "receipt, booked by the bank": "recibo, contabilizado por el banco",
   "receipt only, not booked yet": "solo un recibo, aún sin contabilizar",
+  "{name} lands {when}, {amount}, already off today's number.": "{name} se cobra {when}, {amount}, ya descontado del número de hoy.",
+  "{names} land {when}, {amount} together, already off today's number.": "{names} se cobran {when}, {amount} en total, ya descontados del número de hoy.",
+  "today and tomorrow": "hoy y mañana",
 };
