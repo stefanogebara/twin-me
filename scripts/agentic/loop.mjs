@@ -111,6 +111,17 @@ async function upsertIssue(title, body) {
 }
 
 async function main() {
+  /* A rehearsal: a plan handed in by hand (workflow_dispatch input) goes straight to the
+     implement stage, so the stages after triage can be proven without waiting for a night
+     that needs attention. It is written down as such. */
+  const rehearsal = String(process.env.LOOP_REHEARSAL_PLAN || '').trim();
+  if (rehearsal) {
+    fs.writeFileSync('loop-plan.json', JSON.stringify({ reason: 'Rehearsal: a plan handed in by hand.', tasks: [{ title: rehearsal.slice(0, 120), files: [], acceptance: 'a test that fails without the change' }], plan: rehearsal, issue: null, rehearsal: true }, null, 2));
+    if (process.env.GITHUB_OUTPUT) fs.appendFileSync(process.env.GITHUB_OUTPUT, 'attention=true\n');
+    const line = `Rehearsal: the implement stage takes this plan directly: ${rehearsal.slice(0, 200)}`;
+    console.log(line); if (process.env.GITHUB_STEP_SUMMARY) fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, `## Loop\n\n${line}\n`);
+    return;
+  }
   const dry = process.env.LOOP_DRY_RUN === '1';
   const key = process.env.OPENROUTER_API_KEY;
   const since = process.env.LOOP_SINCE || '26 hours ago';

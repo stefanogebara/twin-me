@@ -13,6 +13,11 @@ on:
   schedule:
     - cron: '30 6 * * *' # 06:30 UTC, after goals-nightly at 06:00
   workflow_dispatch:
+    inputs:
+      plan:
+        description: "Rehearsal: a plan to implement now, skipping triage (one small task, e.g. 'add a unit test for X'). Leave empty for the real thing."
+        required: false
+        default: ""
 
 permissions:
   contents: write
@@ -38,6 +43,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           GITHUB_REPOSITORY: ${{ github.repository }}
           OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+          LOOP_REHEARSAL_PLAN: ${{ github.event.inputs.plan }}
         run: node scripts/agentic/loop.mjs
       - if: steps.triage.outputs.attention == 'true'
         uses: actions/upload-artifact@v4

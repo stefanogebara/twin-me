@@ -29,3 +29,19 @@ describe('the loop reads a model honestly', () => {
     expect(MAX_OUTPUT_TOKENS).toBeLessThanOrEqual(2000);
   });
 });
+
+describe('a rehearsal plan', () => {
+  it('goes straight to the implement stage, marked as a rehearsal', async () => {
+    const fs = await import('node:fs'); const os = await import('node:os'); const path = await import('node:path');
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'loop-')); const cwd = process.cwd(); process.chdir(dir);
+    const out = path.join(dir, 'out.txt'); fs.writeFileSync(out, '');
+    process.env.LOOP_REHEARSAL_PLAN = 'add a unit test for words.ts cap()'; process.env.GITHUB_OUTPUT = out;
+    try {
+      const { execFileSync } = await import('node:child_process');
+      execFileSync('node', [path.join(cwd, 'scripts/agentic/loop.mjs')], { env: { ...process.env }, encoding: 'utf8' });
+      const plan = JSON.parse(fs.readFileSync('loop-plan.json', 'utf8'));
+      expect(plan.rehearsal).toBe(true); expect(plan.tasks[0].title).toBe('add a unit test for words.ts cap()');
+      expect(fs.readFileSync(out, 'utf8')).toMatch(/attention=true/);
+    } finally { process.chdir(cwd); delete process.env.LOOP_REHEARSAL_PLAN; delete process.env.GITHUB_OUTPUT; }
+  });
+});
