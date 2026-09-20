@@ -63,6 +63,7 @@ export const SCENARIOS = [
   { id: 'gift-corte-ingles', kind: 'statement', message: 'El Corte Ingles was a gift for my sister, not something for me.', route: 'model', figures: { only: [] }, actions: { some: ['remember', 'recategorise', 'not_me'] }, maxSentences: 4 },
 
   /* corrections */
+  { id: 'not-mine-flatmate', kind: 'correction', message: 'The LIDL MAD MERCAD payment is not mine, my flatmate used my card', route: 'model', figures: { only: [] }, actions: { some: ['not_me'] }, maxSentences: 3 },
   { id: 'not-a-subscription', kind: 'correction', message: 'That is wrong, Higgsfield is not a subscription, I paid it once.', route: 'model', figures: { only: [] }, actions: { some: ['not_me', 'remember', 'recategorise'] }, avoid: [/you are right that it is a subscription/i], maxSentences: 4 },
   { id: 'savings-transfer', kind: 'correction', message: 'Do not count the transfer to my savings account as spending.', route: 'model', figures: { only: [] }, actions: { some: ['remember', 'person', 'not_me'], optional: true }, maxSentences: 4 },
 

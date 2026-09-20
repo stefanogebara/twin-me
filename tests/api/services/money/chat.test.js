@@ -347,10 +347,12 @@ describe('contextText, the bank', () => {
 
 describe('a statement always carries a way to keep it', () => {
   const ctx = assemble({ transactions, segments, recurring, places, questions, categories, now: NOW });
-  it('offers the person\'s own words as a note when the model attached no learning offer', () => {
+  it('offers not_me for "it is not mine" even when the model offered nothing (2026-09-20), and a note for any other statement', () => {
     const reply = assembleReply({ text: 'Spotify is your flatmate\'s, not yours. If that is right, mark it below.', figures: [], actions: [], cites: [] }, ctx, 'Spotify is my flatmate\'s, it is not mine.');
-    expect(reply.actions.map((a) => a.kind)).toEqual(['remember']);
-    expect(reply.actions[0].text).toBe('Spotify is my flatmate\'s, it is not mine.');
+    expect(reply.actions.map((a) => a.kind)).toEqual(['not_me']);
+    const note = assembleReply({ text: 'Noted.', figures: [], actions: [], cites: [] }, ctx, 'My sister pays me back for Spotify every month.');
+    expect(note.actions.map((a) => a.kind)).toEqual(['remember']);
+    expect(note.actions[0].text).toBe('My sister pays me back for Spotify every month.');
   });
   it('adds nothing to a question, and nothing when the model already offered a way to learn', () => {
     expect(assembleReply({ text: 'Clothing took 116,76 EUR.', figures: [], actions: [], cites: [] }, ctx, 'what was biggest?').actions).toEqual([]);
