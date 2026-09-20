@@ -49,7 +49,7 @@ Status words: `todo` · `doing (who, date)` · `done (#PR, date)` · `blocked (w
 | M0-1 | Coverage as a number for `api/services/money` and `src/pages/money`, threshold at today's value | CI fails below baseline | done (claude/loop-and-coverage) — `vitest.money.config.ts`: lines 65.19%, functions 58.78%, branches 52.41%, statements 61.52% over 67 files / 815 tests; floor 65/58/52/61 in CI |
 | M0-2 | Find the order-dependent flake behind `--retry=2`; remove the retry | ten green nightlies at `--retry=0` | doing (Claude, 2026-09-19): the full suite passed locally at `--retry=0` (457 files, 5 565 tests); the nightly now runs it without retries as a graded job ('Unit suite, no retries'), and the report card counts the nights. Drop `--retry=2` in ci.yml after ten greens |
 | M0-3 | Import-time canary: every `api/services/money/*.js` imports in < 2 s | fails today on `store.js` | done (claude/loadable-core, #432) — `tests/goals/money-imports.goal.test.js`, exception list empty |
-| M0-4 | Backup rehearsal before ledger-touching migrations | restore proven once | todo |
+| M0-4 | Backup rehearsal before ledger-touching migrations | restore proven once | done (#438, 2026-09-20): `scripts/money/backup-rehearsal.sh` (`dump`, `restore`, `verify`, `rehearse`): pg_dump of the public schema, restore into a fresh database with the roles and `auth.uid()` prepared, then every `money_*` count and an md5 of every ledger row compared. Proven locally (9 rows, identical) and on every CI run by the persistence test. For production: dump from the Supabase direct connection, restore into a local Postgres 16, verify; the runbook is the script's header |
 
 ### Milestone 1 — critical fixes
 

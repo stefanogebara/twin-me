@@ -23,6 +23,7 @@ Plan and rationale: `.claude/plans/2026-07-12-agentic-os/README.md`.
 | `money-quiet-failures.goal.test.js` | No error in the money code is swallowed without a name (M1-3, 2026-09-19) | no anonymous `.catch(() => [])` in the money services or routes; every `quietly('name')` is unique |
 | `env-example-in-sync.goal.test.js` | `.env.example` is what the code reads (M3-4, 2026-09-19) | the committed file equals `scripts/env-example.mjs`'s output; the server's required keys are first and uncommented |
 | `money-routes-validated.goal.test.js` | Every money write route runs `validate()` before its handler (M1-2, 2026-09-19) | a post, delete or patch on `api/routes/money.js` without `validate({` fails, except the raw and multipart two |
+| (persistence test) `persistence.integration.test.js` › the backup rehearsal | The ledger restores from its own dump, row for row (M0-4, 2026-09-20) | `scripts/money/backup-rehearsal.sh rehearse` against the CI database: dump, restore into a fresh database, every `money_*` count and an md5 of every ledger row identical |
 
 The nightly run also includes `tests/api/routes/whatsappZapiWebhookAuth.test.js`
 (webhook auth gate) by reference — reuse, don't duplicate.

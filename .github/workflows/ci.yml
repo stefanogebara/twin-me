@@ -112,6 +112,8 @@ jobs:
           node-version-file: .nvmrc
           cache: npm
       - run: npm ci
+      # The backup rehearsal (M0-4) dumps and restores with the server's own major version.
+      - run: sudo apt-get install -y -q postgresql-client-16 >/dev/null && pg_dump --version
       - name: Real database invariants (no production secrets)
         env:
           MONEY_TEST_DATABASE_URL: postgresql://postgres:money-test-only@127.0.0.1:5432/twinme_money_test
