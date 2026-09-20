@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 
-const BASE_TITLE = 'Twin Me';
+const BASE_TITLE = 'TwinMe';
 
 /**
  * Set the document title for the current page.
