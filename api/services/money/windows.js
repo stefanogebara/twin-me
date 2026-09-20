@@ -16,8 +16,13 @@ const r2 = (n) => Math.round(n * 100) / 100;
 const DAY_MS = 86400000;
 const spending = (t) => Number(t.amount) < 0 && t.counts !== false && t.verdict !== 'not_me' && (!t.currency || t.currency === 'EUR');
 const at = (t) => new Date(t.occurred_at).getTime();
-const name = (t) => t.merchant_name || t.merchant_raw || t.merchant_key || 'unknown';
+/* "unknown" read as a place called unknown (2026-09-20, "the largest was 22,36 EUR at unknown"). */
+export const NO_NAME = 'a payment without a name';
+const name = (t) => t.merchant_name || t.merchant_raw || t.merchant_key || NO_NAME;
 const WEEKDAY = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+const MONTH_SHORT = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+/** The key n days after a day key, through noon so a daylight-saving change never shifts it. */
+export const shiftDay = (key, n) => dayIn(new Date(startOfDayIn(key).getTime() + n * DAY_MS + 12 * 3600000));
 
 function sum(rows) {
   const total = r2(rows.reduce((s, t) => s + Math.abs(Number(t.amount)), 0));
@@ -62,25 +67,53 @@ export function breakdown(rows, keyOf, max = 4) {
 }
 
 /**
+ * One stretch as a line the model can quote: its total, count and largest payment, and with
+ * a categoryOf its kinds of place and its places, so the model never adds.
+ */
+export function stretchLine(label, transactions = [], from, to, { categoryOf = null, nameOf = null } = {}) {
+  const inWindow = (transactions || []).filter(spending).filter((t) => at(t) >= from && at(t) < to);
+  const w = sum(inWindow);
+  if (!w.count) return `${label}: nothing spent.`;
+  let line = `${label}: spent ${eur(w.total)} in ${w.count} payment${w.count === 1 ? '' : 's'}${w.biggest ? `, the largest ${w.biggest.name} ${eur(w.biggest.amount)}` : ''}.`;
+  if (categoryOf && inWindow.length > 1) {
+    const kinds = breakdown(inWindow, categoryOf).map((b) => `${b.key} ${eur(b.total)} (${b.count})`).join('; ');
+    const places = breakdown(inWindow, nameOf || name, 3).map((b) => `${b.key} ${eur(b.total)} (${b.count})`).join('; ');
+    line += ` By kind: ${kinds}. By place: ${places}.`;
+  }
+  return line;
+}
+
+/**
  * The same, as lines for the model: totals it may quote and never has to add. With a
  * categoryOf, each window also says its kinds of place and its places, so "how much on food
  * yesterday" and "how much at that bar this week" are answered from a line, not a sum.
  */
-export function windowLines(transactions = [], now = new Date(), { categoryOf = null, nameOf = null } = {}) {
+export function windowLines(transactions = [], now = new Date(), opts = {}) {
   const { windows, days } = spendWindows(transactions, now);
-  const rows = (transactions || []).filter(spending);
-  const lines = [];
-  for (const w of windows) {
-    if (!w.count) { lines.push(`${w.label}: nothing spent.`); continue; }
-    let line = `${w.label}: spent ${eur(w.total)} in ${w.count} payment${w.count === 1 ? '' : 's'}${w.biggest ? `, the largest ${w.biggest.name} ${eur(w.biggest.amount)}` : ''}.`;
-    const inWindow = rows.filter((t) => at(t) >= w.from && at(t) < w.to);
-    if (categoryOf && inWindow.length > 1) {
-      const kinds = breakdown(inWindow, categoryOf).map((b) => `${b.key} ${eur(b.total)} (${b.count})`).join('; ');
-      const places = breakdown(inWindow, nameOf || name, 3).map((b) => `${b.key} ${eur(b.total)} (${b.count})`).join('; ');
-      line += ` By kind: ${kinds}. By place: ${places}.`;
-    }
-    lines.push(line);
-  }
+  const lines = windows.map((w) => stretchLine(w.label, transactions, w.from, w.to, opts));
   lines.push('Spent per day, last 7 days: ' + days.map((d) => `${d.weekday} ${d.day.slice(5)} ${d.count ? `${eur(d.total)} (${d.count})` : 'nothing'}`).join('; ') + '.');
   return lines;
+}
+
+/**
+ * What a week usually costs: the mean of the last four full weeks, Monday to Sunday, each
+ * named. "Per week on average" was answered with the last seven days (2026-09-20).
+ */
+export function weekAverageLine(transactions = [], now = new Date(), weeks = 4) {
+  const rows = (transactions || []).filter(spending);
+  const today = dayIn(now);
+  const weekday = partsIn(now)?.weekday ?? new Date(now).getUTCDay();
+  const monday = shiftDay(today, -((weekday + 6) % 7));
+  const parts = [];
+  let total = 0;
+  for (let k = weeks; k >= 1; k -= 1) {
+    const startKey = shiftDay(monday, -7 * k);
+    const from = startOfDayIn(startKey).getTime();
+    const to = startOfDayIn(shiftDay(startKey, 7)).getTime();
+    const week = sum(rows.filter((t) => at(t) >= from && at(t) < to));
+    total += week.total;
+    const p = partsIn(new Date(from + 12 * 3600000));
+    parts.push(`${p.day} ${MONTH_SHORT[p.month - 1]} ${week.count ? eur(week.total) : 'nothing'}`);
+  }
+  return `Average week, last ${weeks} full weeks (Monday to Sunday): ${eur(r2(total / weeks))}; the weeks: ${parts.join('; ')}.`;
 }

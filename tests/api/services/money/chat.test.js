@@ -603,3 +603,11 @@ describe('a trip remembered', () => {
     expect(store.answerQuestion.mock.calls).toHaveLength(1);
   });
 });
+
+describe('plainWords', () => {
+  it('drops an emoji the model drew, in an object and in prose, and keeps the euro glyph', async () => {
+    const { parseReply, plainWords } = await import('../../../../api/services/money/chat.js');
+    expect(parseReply('{"text":"\u{1F4CA} Esta semana: 645,30 EUR"}').text).toBe('Esta semana: 645,30 EUR');
+    expect(plainWords('ok \u2705 12,50 \u20ac \u{1F389}')).toBe('ok 12,50 \u20ac ');
+  });
+});
