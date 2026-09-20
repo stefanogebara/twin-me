@@ -473,6 +473,14 @@ router.put('/:id/people', authenticateUser, async (req, res) => {
       .filter((p) => p.name.length > 0)
       .slice(0, MAX_PEOPLE);
 
+    // Clearing the whole map stays possible, but it has to be meant (2026-09-20).
+    // A stale or reset onboarding draft syncing its empty list retired every person
+    // on a live presence in one call, and the presence stopped knowing who anyone
+    // was — silently, because an empty list looked like a valid replacement.
+    if (rows.length === 0 && req.body?.confirm_clear !== true) {
+      return res.status(400).json({ success: false, error: 'Envie pelo menos uma pessoa, ou confirm_clear para apagar o mapa todo.' });
+    }
+
     // Replace-all sync in one transaction: the old map is retired only if the new one saves.
     const { data: people, error } = await replaceActivePeople(owned.id, rows);
     if (error) throw error;

@@ -380,11 +380,12 @@ export function PresenceOnboardingExperience({ persistDraft = false, onExit }: P
           case 'bond':
             await presenceAPI.patch(id, { cared_for_name: d.caredForName, relationship: d.relationship, caller_name: d.callerName, tone: d.tone });
             break;
-          case 'review':
-            await presenceAPI.savePeople(
-              id,
-              d.people.filter((p) => p.name.trim()).map((p) => ({ name: p.name.trim(), relation: p.relation.trim(), called_by: p.calledBy.trim() })),
-            );
+          case 'review': {
+            // Only send a map we actually have. An empty draft (a new draft key, a
+            // cleared browser) must never travel as "she knows nobody": the server
+            // refuses it too, and this keeps the step from failing on the way past.
+            const named = d.people.filter((p) => p.name.trim()).map((p) => ({ name: p.name.trim(), relation: p.relation.trim(), called_by: p.calledBy.trim() }));
+            if (named.length) await presenceAPI.savePeople(id, named);
             for (const anchor of ANCHORS) {
               const value = d.anchors[anchor.key]?.trim();
               if (value) await presenceAPI.saveFact(id, 'anchor', anchor.label, value);
@@ -394,6 +395,7 @@ export function PresenceOnboardingExperience({ persistDraft = false, onExit }: P
               if (text) await presenceAPI.saveFact(id, 'boundary', text.slice(0, 200), text);
             }
             break;
+          }
           case 'questions':
             for (const question of openQuestions({ tone: d.tone, people: d.people, anchors: d.anchors, boundaries: d.boundaries })) {
               const answer = (d.answers[question.id] || '').trim();
