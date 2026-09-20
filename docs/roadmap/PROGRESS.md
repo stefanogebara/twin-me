@@ -112,6 +112,7 @@ Status words: `todo` · `doing (who, date)` · `done (#PR, date)` · `blocked (w
 2. **D1:** park the legacy twin and stop its crons for inactive users — yes or no?
 3. **QW3:** a Sentry DSN (free tier is enough) — Claude cannot create the account.
 4. **The day's number:** the most likely spend (shipped) or a sustainable allowance? The label "Today's estimate" fits either; commit to one.
+8. **Today's word budget.** The register asks for about 150 words on a screen; Today measures 285 (hero 48, band 44, still-to-come 63, readings 69, review 52) with the sections the design cut of 15 September chose. Which of them folds by default, or is the budget for Today different? Claude did not trim any silently.
 5. **Enable Banking's reply** (sent 2026-09-18) and **Plaid eligibility** for the US friends.
 7. **`MONEY_CANARY_TOKEN`** (and optionally `MONEY_CANARY_URL`) in the repository's Actions secrets: an access token for a canary account with a small real ledger, so the nightly walks production as a person. Claude can mint one locally only with the production `JWT_SECRET`, which it does not have; a token minted by Stefano (90 days) is enough.
 6. **Actions secrets for the loop:** `OPENROUTER_API_KEY` in the repository's GitHub Actions secrets (the loop's triage runs without it but asks nothing), and later an agent-harness key for the implement/inspect stages. Claude cannot add secrets.
@@ -130,6 +131,8 @@ Status words: `todo` · `doing (who, date)` · `done (#PR, date)` · `blocked (w
 
 5 is built (#438, 2026-09-20): a "Ninety seconds" section on Today lists the five largest spending lines of the week without a verdict (`review.ts`, pure; recurring and other currencies excluded); a row opens to Worth it / Not me, the same verdicts Month keeps, and leaves the list once judged. Seen on real data: five rows, 40 to 135 EUR. Today is 291 words with it (the register asks for about 150; the hero's own lines were already over before today).
 
+4 measured (2026-09-20): the real ledger holds 9 Bizum lines to 7 people in one month, none repeating near the 1st. Nothing to learn from yet; like 7, last, not first.
+
 7. **Calendar-conditioned band.** Widen the day's band on a trip or exam week. Measured 19 September: one away day in 75 — nothing to learn from yet. Last, not first.
 
 ## Session log
@@ -144,3 +147,4 @@ Status words: `todo` · `doing (who, date)` · `done (#PR, date)` · `blocked (w
 - **2026-09-19 (Claude, close):** #436 merged; production probed after #434's deploy (numbers under M2-3); two API servers left running in this worktree since 13 and 16 September (2.8 GB each) were stopped. The sign-in tab still says "Discover Your Soul Signature" (`/auth` title) — a one-line fix for the next session.
 - **2026-09-20 (Claude):** #437 merged. On `claude/next-slices`: the tab title is TwinMe (was the soul-signature promise), M1-2's legacy slice (sign-in, extension, directives).
 - **2026-09-20 (Claude, later):** M0-4 done (backup rehearsal, proven on CI's database); idea 3 built (reconciliation you can see); both on #438.
+- **2026-09-20 (Claude, later):** ideas 2, 3, 5 built on #438; idea 4 measured (no signal yet); Today's word count raised as open question 8.
