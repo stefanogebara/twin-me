@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 vi.mock('../../../../api/services/logger.js', () => ({ createLogger: () => ({ warn() {}, error() {}, info() {}, debug() {} }) }));
 vi.mock('../../../../api/services/money/chat.js', () => ({ answer: vi.fn(), act: vi.fn(), looksLikeInstruction: () => false }));
 vi.mock('../../../../api/services/money/store.js', () => ({ listChatTurns: vi.fn(), userLanguage: vi.fn(), saveChatTurn: vi.fn() }));
-vi.mock('../../../../api/services/money/channelStore.js', () => ({ claimInbound: vi.fn(), markReplied: vi.fn(), setMorningMuted: vi.fn(), keepOffers: vi.fn(), takeOffer: vi.fn(), recentOffers: vi.fn(), offerSaid: vi.fn(), releaseOffer: vi.fn() }));
+vi.mock('../../../../api/services/money/channelStore.js', () => ({ claimInbound: vi.fn(), keepOffers: vi.fn(), takeOffer: vi.fn(), recentOffers: vi.fn(), offerSaid: vi.fn(), releaseOffer: vi.fn() }));
 vi.mock('../../../../api/services/whatsappService.js', () => ({ sendWhatsAppCtaButton: vi.fn(), sendWhatsAppButtons: vi.fn(), downloadWhatsAppMedia: vi.fn() }));
 vi.mock('../../../../api/services/money/attachments.js', () => ({ readAttachment: vi.fn(), acceptsAttachment: vi.fn(() => true), MAX_ATTACHMENT_BYTES: 4194304 }));
 vi.mock('../../../../api/services/money/attachmentDeps.js', () => ({ ATTACHMENT_DEPS: {} }));
@@ -14,8 +14,6 @@ beforeEach(() => {
   send = vi.fn().mockResolvedValue({ success: true });
   deps = {
     claimInbound: vi.fn().mockResolvedValue(true),
-    markReplied: vi.fn().mockResolvedValue(),
-    setMorningMuted: vi.fn().mockResolvedValue(),
     userLanguage: vi.fn().mockResolvedValue('en'),
     listChatTurns: vi.fn().mockResolvedValue([{ role: 'user', text: 'hi', figures: [] }, { role: 'twin', text: 'Hello.' }]),
     answer: vi.fn().mockResolvedValue({ text: '**Groceries** took 120,40 €.', figures: [], actions: [] }),
@@ -55,22 +53,6 @@ describe('a message on the channel', () => {
     deps.answer.mockResolvedValue({ text: 'Three months side by side.', figures: [{ kind: 'months' }], actions: [] });
     await handleMoneyInbound({ phone: '34600000000', text: 'compare months', messageId: 'wamid.2' }, { userId: 'u1', send, deps });
     expect(deps.sendCta).toHaveBeenCalledWith('34600000000', expect.objectContaining({ body: 'The chart is on the page.', buttonText: 'Open TwinMe', url: expect.stringMatching(/\/money$/) }));
-  });
-  it('mutes on stop and says so, without asking the ledger', async () => {
-    deps.userLanguage.mockResolvedValue('es');
-    const r = await handleMoneyInbound({ phone: '34600000000', text: 'para', messageId: 'wamid.3' }, { userId: 'u1', send, deps });
-    expect(deps.setMorningMuted).toHaveBeenCalledWith('u1', true);
-    expect(send).toHaveBeenCalledWith('34600000000', expect.stringMatching(/volver/));
-    expect(deps.answer).not.toHaveBeenCalled();
-    expect(r.kind).toBe('money_mute');
-  });
-  it('does not count stop or start as an answered morning line', async () => {
-    await handleMoneyInbound({ phone: '34600000000', text: 'para', messageId: 'wamid.3b' }, { userId: 'u1', send, deps });
-    expect(deps.markReplied).not.toHaveBeenCalled();
-  });
-  it('records that the person wrote, for the morning line\'s measure', async () => {
-    await handleMoneyInbound({ phone: '34600000000', text: 'hi', messageId: 'wamid.4' }, { userId: 'u1', send, deps });
-    expect(deps.markReplied).toHaveBeenCalledWith('u1');
   });
 });
 

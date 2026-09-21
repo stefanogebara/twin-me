@@ -18,21 +18,6 @@ CREATE TABLE IF NOT EXISTS public.money_channel_offers (
 );
 CREATE INDEX IF NOT EXISTS idx_money_channel_offers_user_time ON public.money_channel_offers (user_id, created_at DESC);
 
-CREATE TABLE IF NOT EXISTS public.money_channel_sends (
-  id                   UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id              UUID NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
-  day                  DATE NOT NULL,
-  kind                 TEXT NOT NULL,          -- morning
-  template             TEXT,
-  language             TEXT,
-  provider_message_id  TEXT,
-  sent_at              TIMESTAMPTZ,
-  replied_at           TIMESTAMPTZ,
-  error                TEXT,
-  created_at           TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  UNIQUE (user_id, day, kind)
-);
-
 CREATE TABLE IF NOT EXISTS public.money_facts_retired (
   id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id     UUID NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
@@ -44,6 +29,5 @@ CREATE INDEX IF NOT EXISTS idx_money_facts_retired_user ON public.money_facts_re
 
 ALTER TABLE public.money_channel_inbound ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.money_channel_offers  ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.money_channel_sends   ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.money_facts_retired   ENABLE ROW LEVEL SECURITY;
-REVOKE ALL ON public.money_channel_inbound, public.money_channel_offers, public.money_channel_sends, public.money_facts_retired FROM anon, authenticated;
+REVOKE ALL ON public.money_channel_inbound, public.money_channel_offers, public.money_facts_retired FROM anon, authenticated;

@@ -8,11 +8,11 @@
 import { createLogger } from '../logger.js';
 import { answer, act, looksLikeInstruction } from './chat.js';
 import { listChatTurns, userLanguage, saveChatTurn } from './store.js';
-import { claimInbound, markReplied, setMorningMuted, keepOffers, takeOffer, recentOffers, offerSaid, releaseOffer } from './channelStore.js';
+import { claimInbound, keepOffers, takeOffer, recentOffers, offerSaid, releaseOffer } from './channelStore.js';
 import { sendWhatsAppCtaButton, sendWhatsAppButtons, downloadWhatsAppMedia } from '../whatsappService.js';
 import { readAttachment, acceptsAttachment, MAX_ATTACHMENT_BYTES } from './attachments.js';
 import { ATTACHMENT_DEPS } from './attachmentDeps.js';
-import { renderReply, muteIntent, channelSay, offerMessage, offerIdFrom, numberedChoice, asForwarded, labelOf, CHANNEL_DEADLINE_MS } from './channel.js';
+import { renderReply, channelSay, offerMessage, offerIdFrom, numberedChoice, asForwarded, labelOf, CHANNEL_DEADLINE_MS } from './channel.js';
 import { quietly } from './quietly.js';
 
 const log = createLogger('MoneyChannel');
@@ -21,7 +21,7 @@ export const HISTORY_TURNS = 8;
 /** A private token: only the deadline timer resolves with this, never answer(). */
 const DEADLINE = Symbol('money_channel_deadline');
 
-const DEFAULT_DEPS = { answer, act, listChatTurns, userLanguage, claimInbound, markReplied, setMorningMuted, keepOffers, takeOffer, recentOffers, offerSaid, releaseOffer, sendCta: sendWhatsAppCtaButton, sendButtons: sendWhatsAppButtons, looksLikeInstruction, download: downloadWhatsAppMedia, readAttachment, saveChatTurn, attachmentDeps: ATTACHMENT_DEPS, deadlineMs: CHANNEL_DEADLINE_MS };
+const DEFAULT_DEPS = { answer, act, listChatTurns, userLanguage, claimInbound, keepOffers, takeOffer, recentOffers, offerSaid, releaseOffer, sendCta: sendWhatsAppCtaButton, sendButtons: sendWhatsAppButtons, looksLikeInstruction, download: downloadWhatsAppMedia, readAttachment, saveChatTurn, attachmentDeps: ATTACHMENT_DEPS, deadlineMs: CHANNEL_DEADLINE_MS };
 const APP_URL = () => String(process.env.APP_URL || process.env.VITE_APP_URL || 'https://twinme.me').replace(/\/+$/, '');
 
 export async function handleMoneyInbound(parsed, { userId, send, deps = {} }) {
@@ -31,15 +31,6 @@ export async function handleMoneyInbound(parsed, { userId, send, deps = {} }) {
 
   if (!(await d.claimInbound(messageId, userId))) return { handled: true, kind: 'money_duplicate', userId };
   const language = await Promise.resolve(d.userLanguage(userId)).catch(quietly('channel/user-language', null));
-
-  const mute = muteIntent(text);
-  if (mute) {
-    await d.setMorningMuted(userId, mute === 'mute');
-    await send(phone, channelSay(language, mute === 'mute' ? 'The morning line is off. Say start to bring it back.' : 'The morning line is back on.'));
-    return { handled: true, kind: 'money_mute', userId };
-  }
-  /* A "stop"/"start" is not an answer to the morning line — only what follows counts. */
-  await Promise.resolve(d.markReplied(userId)).catch((e) => log.warn(`reply not marked: ${e.message}`));
 
   /* A photo or a document: read in memory and dropped, as on the page. Only what it said is kept. */
   const file = parsed.document || parsed.image;

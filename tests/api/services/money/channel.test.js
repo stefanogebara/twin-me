@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { isMoneyChannelUser, moneyChannelUserIds, plainForChannel, cutAtSentence, renderReply, muteIntent, channelSay, CHANNEL_MAX_CHARS, offerMessage, offerIdFrom, numberedChoice, asForwarded, labelOf } from '../../../../api/services/money/channel.js';
+import { isMoneyChannelUser, moneyChannelUserIds, plainForChannel, cutAtSentence, renderReply, CHANNEL_MAX_CHARS, offerMessage, offerIdFrom, numberedChoice, asForwarded, labelOf } from '../../../../api/services/money/channel.js';
 
 describe('who is on the channel', () => {
   it('reads a comma-separated list and nothing else', () => {
@@ -27,19 +27,6 @@ describe('a reply as a message', () => {
     expect(renderReply({ text: 'Hello.', figures: [] }, { appUrl: 'https://x.test/' })).toEqual({ text: 'Hello.', link: null });
     expect(renderReply({ text: 'Hello.', figures: [{ kind: 'months' }] }, { appUrl: 'https://x.test/' })).toEqual({ text: 'Hello.', link: 'https://x.test/money' });
     expect(renderReply({ text: 'x'.repeat(5000) }).text.length).toBeLessThanOrEqual(CHANNEL_MAX_CHARS);
-  });
-});
-
-describe('stop and start', () => {
-  it('reads a whole-message stop or start in three languages', () => {
-    for (const w of ['stop', 'Stop.', 'PARA', 'parar', 'basta!']) expect(muteIntent(w)).toBe('mute');
-    for (const w of ['start', 'volver', 'Voltar']) expect(muteIntent(w)).toBe('unmute');
-    expect(muteIntent('para que sirve esto')).toBe(null);
-    expect(muteIntent('how do I stop Netflix')).toBe(null);
-  });
-  it('says its few sentences in the person\'s language, English when unknown', () => {
-    expect(channelSay('es', 'The morning line is off. Say start to bring it back.')).toMatch(/volver/);
-    expect(channelSay('xx', 'That was already done.')).toBe('That was already done.');
   });
 });
 

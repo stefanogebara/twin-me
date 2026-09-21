@@ -51,21 +51,10 @@ export function renderReply(reply, { appUrl = process.env.APP_URL || process.env
   return { text, link: drew ? `${String(appUrl).replace(/\/+$/, '')}/money` : null };
 }
 
-const MUTE_RE = /^(stop|para|parar|basta|silencio)[.! ]*$/i;
-const UNMUTE_RE = /^(start|volver|voltar|reanudar|retomar)[.! ]*$/i;
-export function muteIntent(text) {
-  const t = String(text || '').trim();
-  if (MUTE_RE.test(t)) return 'mute';
-  if (UNMUTE_RE.test(t)) return 'unmute';
-  return null;
-}
-
 /* The channel's own few sentences. chat.js keeps its phrases to itself and changes daily; these
    are the ones only a channel says. English is the key, as in chat.js. */
 const WORDS = {
   es: {
-    'The morning line is off. Say start to bring it back.': 'La línea de la mañana queda apagada. Di volver para recuperarla.',
-    'The morning line is back on.': 'La línea de la mañana vuelve mañana.',
     'That was already done.': 'Eso ya estaba hecho.',
     'That could not be done right now.': 'Eso no se pudo hacer ahora.',
     'That took too long to answer. Ask it again.': 'Eso tardó demasiado en responder. Pregunta de nuevo.',
@@ -77,8 +66,6 @@ const WORDS = {
     'That file could not be read. A photo of it would come through.': 'Ese archivo no se pudo leer. Una foto sí llegaría.',
   },
   'pt-BR': {
-    'The morning line is off. Say start to bring it back.': 'A linha da manhã fica desligada. Diga voltar para trazê-la de volta.',
-    'The morning line is back on.': 'A linha da manhã volta amanhã.',
     'That was already done.': 'Isso já estava feito.',
     'That could not be done right now.': 'Não deu para fazer isso agora.',
     'That took too long to answer. Ask it again.': 'Isso demorou demais para responder. Pergunte de novo.',

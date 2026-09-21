@@ -1,10 +1,10 @@
 /**
- * What the channel keeps: the messages it has seen, and whether the morning line is wanted.
- * Offers and sends are added beside these by the tasks that need them.
+ * What the channel keeps: the messages it has seen, and consent to answer on WhatsApp.
+ * Offers are added beside these by the tasks that need them.
  */
 import { supabaseAdmin } from '../database.js';
 import { createLogger } from '../logger.js';
-import { NUMBERED_REPLY_WINDOW_MS, MAX_BUTTONS, moneyChannelUserIds } from './channel.js';
+import { NUMBERED_REPLY_WINDOW_MS, MAX_BUTTONS } from './channel.js';
 
 const log = createLogger('MoneyChannelStore');
 
@@ -19,15 +19,7 @@ export async function claimInbound(messageId, userId) {
   return true;
 }
 
-/** The latest line sent in the last day, not yet answered, is now answered. */
-export async function markReplied(userId, now = new Date()) {
-  const since = new Date(now.getTime() - 24 * 3600 * 1000).toISOString();
-  const { data } = await supabaseAdmin.from('money_channel_sends').select('id').eq('user_id', userId).is('replied_at', null).gte('sent_at', since).order('sent_at', { ascending: false }).limit(1);
-  const id = data?.[0]?.id;
-  if (id) await supabaseAdmin.from('money_channel_sends').update({ replied_at: now.toISOString() }).eq('id', id);
-}
-
-/** When the person agreed to the morning line and to answers on WhatsApp. Kept once. */
+/** When the person agreed to answers on WhatsApp. Kept once. */
 export async function recordOptIn(userId, now = new Date()) {
   const { data } = await supabaseAdmin.from('messaging_channels').select('id, preferences').eq('user_id', userId).eq('channel', 'whatsapp').limit(1);
   const row = data?.[0];
@@ -35,14 +27,6 @@ export async function recordOptIn(userId, now = new Date()) {
   const { error } = await supabaseAdmin.from('messaging_channels').update({ preferences: { ...(row.preferences || {}), money_opt_in_at: now.toISOString() } }).eq('id', row.id);
   if (error) throw new Error(error.message);
   return true;
-}
-
-export async function setMorningMuted(userId, muted) {
-  const { data } = await supabaseAdmin.from('messaging_channels').select('id, preferences').eq('user_id', userId).eq('channel', 'whatsapp').limit(1);
-  const row = data?.[0];
-  if (!row) return;
-  const { error } = await supabaseAdmin.from('messaging_channels').update({ preferences: { ...(row.preferences || {}), money_morning_muted: Boolean(muted) } }).eq('id', row.id);
-  if (error) throw new Error(error.message);
 }
 
 /** The offers of one reply, kept so a tap can find them. The setup offer is a link, not an act. */
@@ -82,25 +66,4 @@ export async function offerSaid(userId, offerId, said) {
 export async function releaseOffer(userId, offerId) {
   const { error } = await supabaseAdmin.from('money_channel_offers').update({ taken_at: null }).eq('user_id', userId).eq('id', offerId);
   if (error) log.warn(`offer not released: ${error.message}`);
-}
-
-/** Beta people with a linked, enabled WhatsApp number who agreed to it on the You page and have not said stop. */
-export async function morningRecipients() {
-  const ids = moneyChannelUserIds();
-  if (!ids.length) return [];
-  const { data, error } = await supabaseAdmin.from('messaging_channels').select('user_id, channel_id, preferences').eq('channel', 'whatsapp').eq('is_enabled', true).in('user_id', ids);
-  if (error) throw new Error(error.message);
-  return (data || []).filter((r) => r.channel_id && (r.preferences || {}).money_opt_in_at && !(r.preferences || {}).money_morning_muted).map((r) => ({ userId: r.user_id, phone: r.channel_id }));
-}
-
-/** Claims today's line for one person. Null when it was already claimed: one line a day, whatever runs twice. */
-export async function claimMorningSend(userId, day, { template, language }) {
-  const { data, error } = await supabaseAdmin.from('money_channel_sends').insert({ user_id: userId, day, kind: 'morning', template, language }).select('id').maybeSingle();
-  if (!error) return data?.id || null;
-  if (error.code === '23505') return null;
-  throw new Error(error.message);
-}
-
-export async function finishMorningSend(id, { providerMessageId = null, error = null } = {}) {
-  await supabaseAdmin.from('money_channel_sends').update({ provider_message_id: providerMessageId, error: error ? String(error).slice(0, 500) : null, sent_at: error ? null : new Date().toISOString() }).eq('id', id);
 }

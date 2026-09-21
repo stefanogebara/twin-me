@@ -1,6 +1,6 @@
 /**
- * WhatsApp as a place the ledger answers and sends one line each morning. The sentence under
- * the title is the consent; linking is a number and the code sent to it. Shown to the beta only.
+ * WhatsApp as a place the ledger answers when the person writes, and nothing else. The sentence
+ * under the title is the consent; linking is a number and the code sent to it. Shown to the beta only.
  */
 
 import { useState } from 'react';
@@ -26,14 +26,14 @@ export default function WhatsAppSource({ m }: { m: MoneyAccount }) {
         <span className="mv-icon" aria-hidden="true"><MessageCircle size={16} /></span>
         <span className="mv-item-text">
           <span className="mv-item-title">{t('WhatsApp')}</span>
-          <span className="mv-item-sub">{link.step === 'linked' ? (link.linkedPhone || t('Linked.')) : t('One line each morning, and answers when you write.')}</span>
+          <span className="mv-item-sub">{link.step === 'linked' ? (link.linkedPhone || t('Linked.')) : t('It answers when you write. Nothing is sent unless you write first.')}</span>
         </span>
         <span className="mv-item-end">
           {link.step === 'linked' ? <button type="button" className="mv-pill mv-pill--ghost" onClick={() => void link.unlink()} disabled={link.busy}>{t('Remove')}</button> : null}
         </span>
       </div>
       <p className="mv-body mv-body--icon mv-quiet">
-        {link.step === 'linked' ? t('One line each morning, and answers when you write. Say stop to end it.') : t('Say stop to end it.')}
+        {t('Nothing is sent unless you write first. Remove the number here to disconnect it.')}
       </p>
       {link.step === 'phone' ? (
         <form className="mv-body mv-body--icon" onSubmit={(e) => { e.preventDefault(); void link.requestCode(phone); }}>

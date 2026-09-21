@@ -272,8 +272,8 @@ const PrivacyPolicy = () => {
                 information discovered during email enrichment.
               </li>
               <li>
-                <strong>WhatsApp:</strong> Say stop on WhatsApp to end the morning line, or
-                remove the number on the You page to end all of it.
+                <strong>WhatsApp:</strong> Nothing is sent unless you write first. Remove the
+                number on the You page to disconnect it.
               </li>
             </ul>
           </section>
