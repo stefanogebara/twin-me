@@ -812,6 +812,8 @@ export const PT_BR_MONEY: Record<string, string> = {
   "Where it reads from, the language, what it keeps.": "De onde ele l\u00ea, o idioma, o que ele guarda.",
   "What it worked out, and what it knows in your words.": "O que ele deduziu, e o que sabe nas suas palavras.",
   "Money, your account": "Dinheiro, sua conta",
+  "The days ahead.": "Os dias que v\u00eam.",
+  "What the diary and the standing charges hold for the rest of the month.": "O que a agenda e as cobran\u00e7as fixas guardam para o resto do m\u00eas.",
   "{name} lands {when}, {amount}, already off today's number.": "{name} cai {when}, {amount}, já descontado do número de hoje.",
   "{names} land {when}, {amount} together, already off today's number.": "{names} caem {when}, {amount} no total, já descontados do número de hoje.",
   "today and tomorrow": "hoje e amanhã",
