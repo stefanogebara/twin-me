@@ -18,7 +18,10 @@ import WhatsAppSource from './WhatsAppSource';
 import type { MoneyAccount } from '../../useMoneyAccount';
 
 export default function Sources({ m }: { m: MoneyAccount }) {
-  const { t, locale, accounts, capabilities, loaded, empty, busy, bankReady, connecting, bankLine, bookedLine, calendar, calendarFailed, inbox, copied, copyInbox, load, pull, connect, connectCalendar, addFeed, removeFeed } = m;
+  const { t, locale, accounts, capabilities, loaded, empty, busy, bankReady, connecting, bankLine, bookedLine, calendar, calendarFailed, inbox, copied, copyInbox, load, pull, connect, connectCalendar, addFeed, removeFeed, sources } = m;
+  /* What each source has given, and the half a status word hides (2026-09-21). */
+  const gave = sources?.by || {};
+  const month = sources?.month || null;
   const [feedUrl, setFeedUrl] = useState('');
   return (
           <section className="mv-section" id="sources">
@@ -26,6 +29,13 @@ export default function Sources({ m }: { m: MoneyAccount }) {
               <h2>{t('Read from a few places.')}</h2>
             </div>
             <p className="mv-sub">{t('Counts and amounts only. Remove a source and what it read goes too.')}</p>
+            {month && month.payments > 0 ? (
+              <ul className="mv-list mv-gave">
+                <li className="mv-item mv-item--tight"><span className="mv-item-text"><span className="mv-item-title">{t('Payments in thirty days')}</span><span className="mv-item-sub">{t('{n} from the bank, {e} from receipts', { n: gave.bankfeed || 0, e: gave.email || 0 })}</span></span><span className="mv-item-end mv-figures">{month.payments}</span></li>
+                <li className="mv-item mv-item--tight"><span className="mv-item-text"><span className="mv-item-title">{t('Named by the bank')}</span><span className="mv-item-sub">{t('the rest arrive without a name')}</span></span><span className="mv-item-end mv-figures">{month.named}</span></li>
+                <li className="mv-item mv-item--tight"><span className="mv-item-text"><span className="mv-item-title">{t('Carrying the hour they happened')}</span><span className="mv-item-sub">{month.timed < month.payments ? t('the other {n} carry the day the bank booked them', { n: month.payments - month.timed }) : t('all of them')}</span></span><span className="mv-item-end mv-figures">{month.timed}</span></li>
+              </ul>
+            ) : null}
             <ul className="mv-list">
               {capabilities.bank && BANKS.map((bank, i) => {
                 /* Rows from before the second bank carry no name; they were all Santander. */

@@ -7,7 +7,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLocale, useT } from '@/lib/i18n';
-import { moneyAPI, shortDay, BANKS, type MoneyAccount as MoneyBankAccount, type MoneyCalendar, type MoneyCategories, type MoneyFact, type MoneyForecast, type MoneyPattern, type MoneyQuestions, type MoneyToday, type MoneyMonth, type MoneyPage, type MoneyReading, type MoneyRecurring, type MoneyTransaction, type MoneyUsage } from '../../services/api/moneyAPI';
+import { moneyAPI, shortDay, BANKS, type MoneyAccount as MoneyBankAccount, type MoneyCalendar, type MoneyCategories, type MoneyFact, type MoneyForecast, type MoneyPattern, type MoneyQuestions, type MoneyToday, type MoneyMonth, type MoneyPage, type MoneyReading, type MoneyRecurring, type MoneyTransaction, type MoneyUsage, type MoneySourceCounts } from '../../services/api/moneyAPI';
 import { moneyRevision, MONEY_CHANGED } from '../../services/api/moneyChanges';
 import { todayHere, localDay } from './readingWords';
 import type { MoneyView } from './navLinks';
@@ -22,7 +22,7 @@ import { CHANGE_BOUNDARY, readingRank, readingStake } from './readingOrder';
 type Snapshot = {
   userId: string | null; revision: number; at: number; forecast: MoneyForecast | null; today: MoneyToday | null; ledger: MoneyTransaction[]; recurring: MoneyRecurring[];
   accounts: MoneyBankAccount[]; months: MoneyMonth[]; readings: MoneyReading[]; categories: MoneyCategories | null; usage: MoneyUsage | null; unread: boolean;
-  capabilities: { bank: boolean; capture: boolean; whatsapp?: boolean }; inbox: { address: string; receiving: boolean } | null; facts: MoneyFact[] | null; seen: Record<string, string[]>;
+  capabilities: { bank: boolean; capture: boolean; whatsapp?: boolean }; inbox: { address: string; receiving: boolean } | null; facts: MoneyFact[] | null; seen: Record<string, string[]>; sources: MoneySourceCounts | null;
 };
 let SNAPSHOT: Snapshot | null = null;
 const SNAPSHOT_FRESH_MS = 30000;
@@ -70,6 +70,8 @@ export function useMoneyRead(userId: string | null, view: MoneyView) {
   const [facts, setFacts] = useState<MoneyFact[] | null>(SNAPSHOT?.facts ?? null);
   /* Which sources saw each payment: what a row's grey line says about its reconciliation. */
   const [seen, setSeen] = useState<Record<string, string[]>>(SNAPSHOT?.seen ?? {});
+  /* What each source has given, and what it cannot (2026-09-21). */
+  const [sources, setSources] = useState<MoneySourceCounts | null>(SNAPSHOT?.sources ?? null);
   /* The parts of the last read that could not be read, by name: a part that failed is not
      an empty part, and whoever paints it must know the difference. */
   const [failedParts, setFailedParts] = useState<Set<string>>(new Set());
@@ -118,6 +120,7 @@ export function useMoneyRead(userId: string | null, view: MoneyView) {
     const ib = got('inbox'); if (ib !== undefined) setInbox(ib); else if (page && failed.has('inbox')) setInbox(null);
     const fa = got('facts'); if (fa !== undefined) setFacts(fa);
     const sn = got('seen'); if (sn !== undefined) setSeen(sn);
+    const sc = got('sources'); if (sc !== undefined) setSources(sc);
     setFailedParts(page ? failed : new Set(['forecast', 'today', 'ledger', 'recurring', 'accounts', 'months', 'readings', 'categories', 'usage', 'capabilities', 'inbox', 'facts']));
     /* A month that could not be read is not an empty month. Every rejection was dropped, so a
        server that was down told the person their ledger was empty and offered to connect the
@@ -143,6 +146,7 @@ export function useMoneyRead(userId: string | null, view: MoneyView) {
         inbox: ib !== undefined ? ib : SNAPSHOT?.inbox ?? null,
         facts: fa !== undefined ? fa : SNAPSHOT?.facts ?? null,
         seen: sn !== undefined ? sn : SNAPSHOT?.seen ?? {},
+        sources: sc !== undefined ? sc : SNAPSHOT?.sources ?? null,
         unread: false,
       };
       SNAPSHOT = kept;
@@ -187,7 +191,7 @@ export function useMoneyRead(userId: string | null, view: MoneyView) {
       .catch(() => {});
     return () => { live = false; };
   }, [load]);
-  return { forecast, today, unread, ledger, setLedger, recurring, accounts, months, readings, categories, setCategories, usage, capabilities, inbox, facts, seen, failedParts, loaded, needsReconnect, setNeedsReconnect, load };
+  return { forecast, today, unread, ledger, setLedger, recurring, accounts, months, readings, categories, setCategories, usage, capabilities, inbox, facts, seen, sources, failedParts, loaded, needsReconnect, setNeedsReconnect, load };
 }
 
 /** What only You shows, read only there: the calendar, the questions, the patterns. */

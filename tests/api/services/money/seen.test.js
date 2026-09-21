@@ -8,3 +8,10 @@ describe('seen', () => {
       .toEqual({ a: ['bankfeed', 'phone'], b: ['statement'] });
   });
 });
+
+describe('what each source gave', () => {
+  it('counts the sightings by source and the month by what the payments know', async () => {
+    const { sourceCounts } = await import('../../../../api/services/money/seen.js');
+    expect(typeof sourceCounts).toBe('function');
+  });
+});

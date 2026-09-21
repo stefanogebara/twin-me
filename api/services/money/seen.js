@@ -8,6 +8,7 @@
  * grey line. Computed from money_sightings, nothing guessed.
  */
 import { supabaseAdmin } from '../database.js';
+import { hasRealTime } from './clock.js';
 
 /** @returns {Promise<Record<string, string[]>>} transaction id -> sources, sorted, distinct */
 export async function seenBy(userId, { limit = 20000 } = {}) {
@@ -16,6 +17,28 @@ export async function seenBy(userId, { limit = 20000 } = {}) {
     .select('transaction_id, source').eq('user_id', userId).not('transaction_id', 'is', null).limit(limit);
   if (error) throw new Error(`Cannot read the sightings: ${error.message}`);
   return fold(data || []);
+}
+
+/**
+ * What each source has actually given, and what it cannot give (2026-09-21). A sources page
+ * that says "connected" hides the interesting half: the bank has sent 216 payments and the
+ * hour of none of them, the phone has sent nothing at all.
+ */
+export async function sourceCounts(userId, { now = new Date() } = {}) {
+  if (!userId) throw new Error('userId required');
+  const [sight, tx] = await Promise.all([
+    supabaseAdmin.from('money_sightings').select('source').eq('user_id', userId),
+    supabaseAdmin.from('money_transactions').select('occurred_at, merchant_raw').eq('user_id', userId).lt('amount', 0)
+      .gte('occurred_at', new Date(now.getTime() - 30 * 86400000).toISOString()),
+  ]);
+  if (sight.error) throw new Error(`Cannot read the sightings: ${sight.error.message}`);
+  const by = {};
+  for (const r of sight.data || []) if (r?.source) by[r.source] = (by[r.source] || 0) + 1;
+  const rows = tx.data || [];
+  return {
+    by,
+    month: { payments: rows.length, named: rows.filter((t) => t.merchant_raw).length, timed: rows.filter(hasRealTime).length },
+  };
 }
 
 /** Pure: rows of { transaction_id, source } to the per-transaction sorted source list. */

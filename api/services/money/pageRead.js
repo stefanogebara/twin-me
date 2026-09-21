@@ -17,7 +17,7 @@ import { accountsWithCards } from './instruments.js';
 import { moneyCapabilities } from './betaCapabilities.js';
 import { inboxAddress, inboxDomain, isInboxConfigured } from './inbox.js';
 import { firstOfMonthIn } from './zone.js';
-import { seenBy } from './seen.js';
+import { seenBy, sourceCounts } from './seen.js';
 import { quietly } from './quietly.js';
 
 export const PAGE_VIEWS = new Set(['today', 'month', 'you']);
@@ -57,6 +57,7 @@ export async function readPage(userId, { view = 'today', now = new Date() } = {}
     readings: listReadings(userId),
     facts: listFacts(userId),
     seen: seenBy(userId),
+    sources: sourceCounts(userId, { now }),
     categories: categorySpend(userId, { month: firstOfMonthIn(now) }),
     usage: subscriptionUsage(userId),
     capabilities: Promise.resolve(moneyCapabilities(userId)),

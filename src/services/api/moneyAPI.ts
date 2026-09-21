@@ -37,6 +37,7 @@ export type MoneyDayMark = {
 };
 export type MoneyDayStrip = { from: string; to: string; days: MoneyDayMark[]; total: number; days_with_spend: number; said_days: number; held: number };
 /** The month as a calendar (services/money/plan.js): every day a cell, computed. */
+export type MoneySourceCounts = { by: Record<string, number>; month: { payments: number; named: number; timed: number } };
 export type MoneyPlanItem = { kind: 'charge' | 'commitment' | 'income' | 'calendar'; label: string; amount: number; cadence?: string | null; said?: boolean; confidence?: number | null };
 export type MoneyPlanCell = {
   day: string; dom: number; weekday: number; past: boolean; today: boolean;
@@ -178,6 +179,8 @@ export type MoneyPage = {
   facts: MoneyFact[] | null;
   /* Which sources saw each payment, by transaction id: the reconciliation, visible. */
   seen: Record<string, string[]> | null;
+  /* What each source has given, and what it cannot give. */
+  sources: MoneySourceCounts | null;
   failed: string[];
 };
 
