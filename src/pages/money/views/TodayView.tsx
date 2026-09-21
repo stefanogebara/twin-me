@@ -45,7 +45,7 @@ export default function TodayView({ m }: { m: MoneyAccount }) {
                 <h1>{t('Nothing read yet.')}</h1>
                 <p className="mv-sub">{t('Start with a statement from your bank.')}</p>
                 <div className="mv-ctas">
-                  <Link to="/money/you#sources" className="mv-pill">{t('Add a statement')}</Link>
+                  <Link to="/money/account#sources" className="mv-pill">{t('Add a statement')}</Link>
                   {capabilities.bank && <button type="button" className="mv-pill mv-pill--ghost" onClick={() => void connect(BANKS[0].name)} disabled={busy === 'connect' || !bankReady}>{t('Connect Santander')}</button>}
                 </div>
               </>

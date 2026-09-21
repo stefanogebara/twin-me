@@ -4,7 +4,7 @@ import { moneyFixture } from './money-beta-fixture';
 for (const start of ['', '?start=banks', '?start=phone']) {
   test(`first-visit statement beta cannot open advanced onboarding ${start || 'automatically'}`, async ({page}) => {
     const state = await moneyFixture(page, {firstVisit:true}); state.advanced=false; state.empty=true;
-    await page.goto('/money/you'+start);
+    await page.goto('/money/account'+start);
     await page.getByRole('button',{name:/Add a statement/}).click();
     await expect(page.getByLabel('Statement account',{exact:true})).toBeVisible();
     await expect(page.getByRole('dialog')).toHaveCount(0);
@@ -15,7 +15,7 @@ for (const start of ['', '?start=banks', '?start=phone']) {
 for (const [start, title] of [['banks', 'Connect your bank.'], ['phone', 'A payment, the moment it happens.']]) {
   test(`owner retains ${start} setup`, async ({page}) => {
     await moneyFixture(page, {firstVisit:true});
-    await page.goto('/money/you?start='+start);
+    await page.goto('/money/account?start='+start);
     await expect(page.getByRole('dialog').getByRole('heading',{name:title,exact:true})).toBeVisible();
   });
 }
@@ -23,7 +23,7 @@ for (const [start, title] of [['banks', 'Connect your bank.'], ['phone', 'A paym
 test('failed capability lookup keeps advanced onboarding closed', async ({page}) => {
   /* The page carries the capabilities since M2-3; the failure is the part's, not the route's. */
   const state = await moneyFixture(page, {firstVisit:true}); state.empty=true; state.capabilitiesFailed=true;
-  await page.goto('/money/you?start=banks');
+  await page.goto('/money/account?start=banks');
   await page.getByRole('button',{name:/Add a statement/}).click();
   await expect(page.getByLabel('Statement account',{exact:true})).toBeVisible();
   await expect(page.getByRole('dialog')).toHaveCount(0);
@@ -44,7 +44,7 @@ test('student beta offers statements without bank or phone setup', async ({page}
 
 test('a statement requires an account and submits the chosen account with its file', async ({page}) => {
   const state = await moneyFixture(page);
-  await page.goto('/money/you');
+  await page.goto('/money/account');
   await page.getByRole('button', {name:/Add a statement/}).click();
   await page.getByLabel('Statement file').setInputFiles({name:'payments.csv',mimeType:'text/csv',buffer:Buffer.from('Fecha;Concepto;Importe\n17/09/2026;Cafe;-5,00')});
   await page.getByRole('button', {name:'Import statement',exact:true}).click();
@@ -60,7 +60,7 @@ test('a statement requires an account and submits the chosen account with its fi
 
 test('statement-only account and selected file survive a failed import for retry', async ({page}) => {
   const state = await moneyFixture(page); state.statementFailed=true;
-  await page.goto('/money/you');
+  await page.goto('/money/account');
   await page.getByRole('button', {name:/Add a statement/}).click();
   await page.getByLabel('Statement account', {exact:true}).selectOption('new');
   await page.getByLabel('Account name', {exact:true}).fill('Everyday');
@@ -75,7 +75,7 @@ test('statement-only account and selected file survive a failed import for retry
   expect(state.imports).toHaveLength(2);
 });
 
-for (const path of ['/money','/money/month','/money/you','/money/plan','/money/chat','/money/setup']) {
+for (const path of ['/money','/money/month','/money/you','/money/account','/money/plan','/money/chat','/money/setup']) {
   test(`Money route ${path} renders without browser errors or horizontal overflow`, async ({ page }) => {
     await moneyFixture(page);
     const errors: string[] = [];
@@ -158,7 +158,7 @@ test('confirmed chat correction refreshes Today even inside its 30-second cache'
 
 test('cards stay under their account and a confirmed type survives reload', async ({page}) => {
   const state=await moneyFixture(page); state.cards=true;
-  await page.goto('/money/you');
+  await page.goto('/money/account');
   const accounts=page.locator('.mv-bank-account');
   await expect(accounts).toHaveCount(2);
   await expect(accounts.nth(0).getByLabel('Card ending 1234',{exact:false})).toHaveValue('unknown');
@@ -175,7 +175,7 @@ test('Today exposes its figure and conversation without a decorative globe', asy
   await moneyFixture(page); await page.goto('/money');
   await expect(page.locator('.mv-day-value')).toBeVisible();
   await expect(page.getByRole('button',{name:'Open conversation'})).toBeInViewport();
-  expect(await page.locator('main.mv').evaluate(e=>getComputedStyle(e).getPropertyValue('--section').trim())).toBe((page.viewportSize()?.width || 1440) < 768 ? '96px' : '128px');
+  expect(await page.locator('main.mv').evaluate(e=>getComputedStyle(e).getPropertyValue('--section').trim())).toBe((page.viewportSize()?.width || 1440) < 768 ? '112px' : '160px');
   await page.screenshot({path:test.info().outputPath('today.png'),fullPage:true});
 });
 

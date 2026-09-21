@@ -119,11 +119,13 @@
 /* The frame: a 200px sidebar of plain text links sits 80px to the left of an 820px
    column. The current link is underlined; nothing is filled. */
 .mv-shell { display: grid; grid-template-columns: var(--side) minmax(0, var(--col)); column-gap: 80px; justify-content: center; padding: 0 var(--gutter); }
-.mv-col { min-width: 0; padding-top: 40px; }
+.mv-col { min-width: 0; padding-top: 56px; }
 .mv-side { position: sticky; top: 0; align-self: start; display: grid; gap: 24px; padding-top: 40px; }
 .mv-side-bar { display: flex; align-items: center; justify-content: space-between; min-height: 32px; }
 .mv .mv-side-toggle { display: none; }
 .mv-side-links { display: grid; }
+.mv-side-links a.is-apart { margin-top: 24px; color: var(--ink-3); }
+.mv-side-links a.is-apart[aria-current="page"] { color: var(--ink); }
 .mv .mv-side-links a { display: flex; align-items: center; min-height: 32px; color: var(--ink-2); }
 .mv .mv-side-links a:hover { color: var(--ink); }
 .mv .mv-side-links a.is-sub { padding-left: 12px; color: var(--ink-3); font-weight: 350; }
@@ -136,7 +138,7 @@
    rule 24px further down. Sections sit 72px apart. */
 .mv-section { margin-top: var(--section); }
 .mv-head { display: flex; align-items: center; justify-content: space-between; gap: 8px 16px; flex-wrap: wrap; }
-.mv-list { margin-top: 32px; border-top: 1px solid var(--ink); }
+.mv-list { margin-top: 40px; border-top: 1px solid var(--ink); }
 .mv-list > li { border-bottom: 1px solid var(--rule); }
 .mv-sublist > li { border-top: 1px solid var(--rule); }
 
@@ -144,7 +146,7 @@
    least. A sub-row sits under its parent, indented, about 57 tall. */
 .mv .mv-item {
   display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 16px; align-items: center;
-  box-sizing: border-box; width: 100%; min-height: 80px; padding: 20px 12px; text-align: left;
+  box-sizing: border-box; width: 100%; min-height: 88px; padding: 24px 12px; text-align: left;
 }
 .mv .mv-item--icon { grid-template-columns: 32px minmax(0, 1fr) auto; }
 .mv .mv-item--sub { min-height: 57px; padding: 12px 12px 12px 50px; }

@@ -482,6 +482,14 @@ const App = () => {
               </ProtectedRoute>
             } />
 
+            <Route path="/money/account" element={
+              <ProtectedRoute>
+                <ErrorBoundary>
+                  <Suspense fallback={<Wait line="" />}><MoneyV2Page view="account" /></Suspense>
+                </ErrorBoundary>
+              </ProtectedRoute>
+            } />
+
             {/* The questions the ledger cannot answer for itself: who a name is,
                 what leaves every month, what comes in. Asked once, then per line. */}
             <Route path="/money/setup" element={
