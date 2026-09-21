@@ -6,17 +6,17 @@
  * `deps` carries every side effect, as in attachments.js, so the tests hand in spies.
  */
 import { createLogger } from '../logger.js';
-import { answer, act } from './chat.js';
+import { answer, act, looksLikeInstruction } from './chat.js';
 import { listChatTurns, userLanguage } from './store.js';
 import { claimInbound, markReplied, setMorningMuted, keepOffers, takeOffer, recentOffers, offerSaid, releaseOffer } from './channelStore.js';
 import { sendWhatsAppCtaButton, sendWhatsAppButtons } from '../whatsappService.js';
-import { renderReply, muteIntent, channelSay, offerMessage, offerIdFrom, numberedChoice } from './channel.js';
+import { renderReply, muteIntent, channelSay, offerMessage, offerIdFrom, numberedChoice, asForwarded } from './channel.js';
 
 const log = createLogger('MoneyChannel');
 /** How many kept turns ride along as history. */
 export const HISTORY_TURNS = 8;
 
-const DEFAULT_DEPS = { answer, act, listChatTurns, userLanguage, claimInbound, markReplied, setMorningMuted, keepOffers, takeOffer, recentOffers, offerSaid, releaseOffer, sendCta: sendWhatsAppCtaButton, sendButtons: sendWhatsAppButtons };
+const DEFAULT_DEPS = { answer, act, listChatTurns, userLanguage, claimInbound, markReplied, setMorningMuted, keepOffers, takeOffer, recentOffers, offerSaid, releaseOffer, sendCta: sendWhatsAppCtaButton, sendButtons: sendWhatsAppButtons, looksLikeInstruction };
 const APP_URL = () => String(process.env.APP_URL || process.env.VITE_APP_URL || 'https://twinme.me').replace(/\/+$/, '');
 
 export async function handleMoneyInbound(parsed, { userId, send, deps = {} }) {
@@ -72,7 +72,17 @@ export async function handleMoneyInbound(parsed, { userId, send, deps = {} }) {
 
   const turns = await Promise.resolve(d.listChatTurns(userId, { limit: HISTORY_TURNS })).catch(() => []);
   const history = (turns || []).map((t) => ({ role: t.role, text: t.text }));
-  const reply = await d.answer(userId, text, history);
+
+  let message = text;
+  if (parsed.context?.forwarded) {
+    const f = asForwarded(text, d.looksLikeInstruction);
+    if (f.refused) {
+      await send(phone, channelSay(language, 'A forwarded message is read as data. That one reads like an instruction, so it was left alone.'));
+      return { handled: true, kind: 'money_forward_refused', userId };
+    }
+    message = f.message;
+  }
+  const reply = await d.answer(userId, message, history);
 
   const out = renderReply(reply);
   await send(phone, out.text);
