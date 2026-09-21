@@ -19,11 +19,18 @@ const PERSON_CHANNELS = new Set(['transfer', 'bizum']);
 
 /** Who each transfer counterparty is, from what the person said. */
 export function personRoles(facts = []) {
-  return new Map(
+  const roles = new Map(
     (facts || [])
       .filter((f) => f && f.kind === 'person' && f.value)
       .map((f) => [String(f.subject || '').toLowerCase(), String(f.value).toLowerCase()]),
   );
+  /* The person the rent goes to is the landlord as far as the money is concerned, whoever
+     else they are: a flatmate who collects the rent is not paid back, they are paid. The
+     rent question's "rent" answer says so (idea 4, 2026-09-21). */
+  for (const f of facts || []) {
+    if (f && f.kind === 'commitment' && String(f.value || '').toLowerCase() === 'rent' && f.subject) roles.set(String(f.subject).toLowerCase(), 'landlord');
+  }
+  return roles;
 }
 
 /** The predicate, bound to what the person said. */

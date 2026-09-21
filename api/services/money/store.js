@@ -27,7 +27,7 @@ import { tellTwin, tellTwinFacts, tellTwinPatterns, tellTwinTurn } from './twinB
 import { lookupPlace, providerFor, categoryFromBrand, PROVIDER_NONE } from './places.js';
 import { readUsage, unmeasurable, platformForMerchant } from './usage.js';
 import { learnMerchants, predictNext, learnPatterns, describeForTwin, TWIN_PREDICTION_CONFIDENCE } from './brain.js';
-import { openingQuestions, followUpQuestions, ledgerQuestions, checkCommitment, describeContext, FACT_KINDS } from './context.js';
+import { openingQuestions, followUpQuestions, ledgerQuestions, checkCommitment, describeContext, FACT_KINDS, RENT_SPLIT_FLOOR } from './context.js';
 import { calendarForecast, calendarFromFacts } from './calendar.js';
 import { dayIn, dayOfMonthIn } from './zone.js';
 
@@ -1014,7 +1014,7 @@ export async function answerQuestion(userId, { questionId, kind, subject, subjec
     if (String(value || '').toLowerCase() === 'not fixed') return skipQuestion(userId, questionId);
     if (!amount && subject) {
       const rows = (await listEuroTransactions(userId, { limit: 5000 }))
-        .filter((t) => t.merchant_key === subject && Number(t.amount) < 0 && Math.abs(Number(t.amount)) >= 200);
+        .filter((t) => t.merchant_key === subject && Number(t.amount) < 0 && Math.abs(Number(t.amount)) >= RENT_SPLIT_FLOOR);
       if (rows.length) {
         const amounts = rows.map((t) => Math.abs(Number(t.amount))).sort((a, b) => a - b);
         const days = rows.map((t) => dayOfMonthIn(t.occurred_at)).sort((a, b) => a - b);

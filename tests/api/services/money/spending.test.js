@@ -54,3 +54,16 @@ describe('the month, with the rule', () => {
     expect(segments[0].biggest.merchant).toBe('oakberry');
   });
 });
+
+describe('the person the rent goes to', () => {
+  it('reads as the landlord once the rent question was answered rent, and the transfer counts as spending', async () => {
+    const { personRoles, spendingRule } = await import('../../../../api/services/money/spending.js');
+    const facts = [
+      { kind: 'person', subject: 'ana lopez', value: 'flatmate' },
+      { kind: 'commitment', subject: 'ana lopez', value: 'rent', amount: 150, day: 1 },
+    ];
+    expect(personRoles(facts).get('ana lopez')).toBe('landlord');
+    expect(spendingRule(facts)({ merchant_key: 'ana lopez', channel: 'bizum', amount: -150, currency: 'EUR' })).toBe(true);
+    expect(spendingRule([facts[0]])({ merchant_key: 'ana lopez', channel: 'bizum', amount: -150, currency: 'EUR' })).toBe(false);
+  });
+});

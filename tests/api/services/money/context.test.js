@@ -233,3 +233,26 @@ describe('a split raised by the ledger', () => {
     expect(ledgerQuestions({ transactions: rows, facts: [{ kind: 'split', subject: 'd1', value: 'not split' }], now: NOW2 }).some((x) => x.id === 'split:d1')).toBe(false);
   });
 });
+
+describe('the rent split raised by the ledger (idea 4)', () => {
+  const split = [
+    tx('2026-06-02', -150, 'Ana Lopez', 'bizum'),
+    tx('2026-07-01', -150, 'Ana Lopez', 'bizum'),
+    tx('2026-08-03', -152, 'Ana Lopez', 'bizum'),
+  ];
+  it('asks once about a fixed Bizum to the same person near the 1st, even when they are a known flatmate', () => {
+    const facts = [{ kind: 'person', subject: 'ana lopez', value: 'flatmate' }];
+    const q = ledgerQuestions({ transactions: split, facts, now: NOW }).find((x) => x.id === 'rent:ana lopez');
+    expect(q).toBeDefined();
+    expect(q.kind).toBe('commitment');
+    expect(plain(q.ask)).toBe('Ana Lopez gets about 150,00 € from you around the 2nd, 3 months running. It looks like your share of the rent. Is it?');
+    expect(q.input).toBe('choice:rent,another fixed cost,not fixed');
+    expect(q.amount).toBe(150);
+  });
+  it('stays quiet for a known landlord, below 100, or when the sums wander', () => {
+    expect(ledgerQuestions({ transactions: split, facts: [{ kind: 'person', subject: 'ana lopez', value: 'landlord' }], now: NOW }).some((q) => q.id === 'rent:ana lopez')).toBe(false);
+    expect(ledgerQuestions({ transactions: split.map((t) => ({ ...t, amount: -60 })), now: NOW }).some((q) => q.id === 'rent:ana lopez')).toBe(false);
+    const dinners = [tx('2026-06-02', -110, 'Ana Lopez', 'bizum'), tx('2026-07-01', -180, 'Ana Lopez', 'bizum'), tx('2026-08-03', -140, 'Ana Lopez', 'bizum')];
+    expect(ledgerQuestions({ transactions: dinners, now: NOW }).some((q) => q.id === 'rent:ana lopez')).toBe(false);
+  });
+});
