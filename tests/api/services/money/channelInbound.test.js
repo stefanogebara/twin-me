@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 vi.mock('../../../../api/services/logger.js', () => ({ createLogger: () => ({ warn() {}, error() {}, info() {}, debug() {} }) }));
 vi.mock('../../../../api/services/money/chat.js', () => ({ answer: vi.fn(), act: vi.fn(), looksLikeInstruction: () => false }));
 vi.mock('../../../../api/services/money/store.js', () => ({ listChatTurns: vi.fn(), userLanguage: vi.fn() }));
-vi.mock('../../../../api/services/money/channelStore.js', () => ({ claimInbound: vi.fn(), markReplied: vi.fn(), setMorningMuted: vi.fn(), keepOffers: vi.fn(), takeOffer: vi.fn(), recentOffers: vi.fn(), offerSaid: vi.fn() }));
+vi.mock('../../../../api/services/money/channelStore.js', () => ({ claimInbound: vi.fn(), markReplied: vi.fn(), setMorningMuted: vi.fn(), keepOffers: vi.fn(), takeOffer: vi.fn(), recentOffers: vi.fn(), offerSaid: vi.fn(), releaseOffer: vi.fn() }));
 vi.mock('../../../../api/services/whatsappService.js', () => ({ sendWhatsAppCtaButton: vi.fn(), sendWhatsAppButtons: vi.fn() }));
 import { handleMoneyInbound } from '../../../../api/services/money/channelInbound.js';
 
@@ -22,6 +22,7 @@ beforeEach(() => {
     takeOffer: vi.fn(),
     recentOffers: vi.fn().mockResolvedValue([]),
     offerSaid: vi.fn().mockResolvedValue(),
+    releaseOffer: vi.fn().mockResolvedValue(),
     sendButtons: vi.fn().mockResolvedValue({ success: true }),
   };
 });
@@ -107,5 +108,14 @@ describe('offers on the channel', () => {
     deps.act.mockRejectedValue(Object.assign(new Error('That action does not match anything in the ledger.'), { status: 400 }));
     await handleMoneyInbound({ phone: '34600000000', text: 'x', replyId: `mo:${OFFER}`, messageId: 'wamid.11' }, { userId: 'u1', send, deps });
     expect(send).toHaveBeenCalledWith('34600000000', 'That action does not match anything in the ledger.');
+    expect(deps.releaseOffer).not.toHaveBeenCalled();
+  });
+  it('gives the offer back when act() fails for a reason that is not the ledger\'s', async () => {
+    deps.takeOffer.mockResolvedValue({ id: OFFER, action });
+    deps.act.mockRejectedValue(new Error('connection reset'));
+    await handleMoneyInbound({ phone: '34600000000', text: 'x', replyId: `mo:${OFFER}`, messageId: 'wamid.12' }, { userId: 'u1', send, deps });
+    expect(send).toHaveBeenCalledWith('34600000000', 'That could not be done right now.');
+    expect(deps.releaseOffer).toHaveBeenCalledWith('u1', OFFER);
+    expect(deps.offerSaid).not.toHaveBeenCalled();
   });
 });

@@ -8,7 +8,7 @@
 import { createLogger } from '../logger.js';
 import { answer, act } from './chat.js';
 import { listChatTurns, userLanguage } from './store.js';
-import { claimInbound, markReplied, setMorningMuted, keepOffers, takeOffer, recentOffers, offerSaid } from './channelStore.js';
+import { claimInbound, markReplied, setMorningMuted, keepOffers, takeOffer, recentOffers, offerSaid, releaseOffer } from './channelStore.js';
 import { sendWhatsAppCtaButton, sendWhatsAppButtons } from '../whatsappService.js';
 import { renderReply, muteIntent, channelSay, offerMessage, offerIdFrom, numberedChoice } from './channel.js';
 
@@ -16,7 +16,7 @@ const log = createLogger('MoneyChannel');
 /** How many kept turns ride along as history. */
 export const HISTORY_TURNS = 8;
 
-const DEFAULT_DEPS = { answer, act, listChatTurns, userLanguage, claimInbound, markReplied, setMorningMuted, keepOffers, takeOffer, recentOffers, offerSaid, sendCta: sendWhatsAppCtaButton, sendButtons: sendWhatsAppButtons };
+const DEFAULT_DEPS = { answer, act, listChatTurns, userLanguage, claimInbound, markReplied, setMorningMuted, keepOffers, takeOffer, recentOffers, offerSaid, releaseOffer, sendCta: sendWhatsAppCtaButton, sendButtons: sendWhatsAppButtons };
 const APP_URL = () => String(process.env.APP_URL || process.env.VITE_APP_URL || 'https://twinme.me').replace(/\/+$/, '');
 
 export async function handleMoneyInbound(parsed, { userId, send, deps = {} }) {
@@ -48,10 +48,23 @@ export async function handleMoneyInbound(parsed, { userId, send, deps = {} }) {
       return { handled: true, kind: 'money_act_stale', userId };
     }
     let said;
-    try { said = (await d.act(userId, row.action)).said; }
-    catch (e) { said = e.status === 400 ? e.message : channelSay(language, 'That could not be done right now.'); log.warn(`act failed: ${e.message}`); }
+    let released = false;
+    try {
+      said = (await d.act(userId, row.action)).said;
+    } catch (e) {
+      log.warn(`act failed: ${e.message}`);
+      if (e.status === 400) {
+        /* The ledger's own refusal: the offer stays taken, its own words are sent. */
+        said = e.message;
+      } else {
+        /* Not the ledger's refusal — a transient failure. Give the offer back so a retry tap works. */
+        await Promise.resolve(d.releaseOffer(userId, row.id)).catch(() => {});
+        released = true;
+        said = channelSay(language, 'That could not be done right now.');
+      }
+    }
     await send(phone, said);
-    await Promise.resolve(d.offerSaid(row.id, said)).catch(() => {});
+    if (!released) await Promise.resolve(d.offerSaid(row.id, said)).catch(() => {});
     return { handled: true, kind: 'money_act', userId };
   }
 

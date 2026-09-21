@@ -67,3 +67,9 @@ export async function recentOffers(userId, now = new Date()) {
 export async function offerSaid(offerId, said) {
   await supabaseAdmin.from('money_channel_offers').update({ said: String(said || '').slice(0, 1000) }).eq('id', offerId);
 }
+
+/** Gives an offer back after a failure that was not the ledger's own refusal, so it can be tapped again. */
+export async function releaseOffer(userId, offerId) {
+  const { error } = await supabaseAdmin.from('money_channel_offers').update({ taken_at: null }).eq('user_id', userId).eq('id', offerId);
+  if (error) log.warn(`offer not released: ${error.message}`);
+}
