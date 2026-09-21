@@ -70,7 +70,8 @@ describe('renderCallBrief', () => {
     expect(prompt).toMatch(/what she likes to be called/i);
     expect(prompt).not.toMatch(/NOTES FROM THE FAMILY/);
     expect(prompt).not.toMatch(/WHAT YOU REMEMBER FROM RECENT CONVERSATIONS/);
-    expect(firstMessage).toMatch(/uma inteligência artificial que Ana criou/);
+    expect(firstMessage).toMatch(/intelig[êe]ncia artificial/);
+    expect(firstMessage).toContain('Ana');
   });
 
   it('delivers family notes as coming from their author, never as its own words', () => {
@@ -206,5 +207,57 @@ describe('the family sets how much the presence does on its own', () => {
       const { prompt } = renderCallBrief({ presence: { ...presence, autonomy_initiative } });
       expect(prompt).toMatch(/Never ask about someone who has died/);
     }
+  });
+});
+
+/**
+ * Nobody says "como você está hoje?" to their grandmother. The register was
+ * written Portuguese — full sentences, no contractions, no particles — and no
+ * voice model rescues a sentence a person would not say out loud.
+ */
+describe('the Presence speaks, it does not read aloud', () => {
+  it('opens the way a person opens a phone call', () => {
+    const { firstMessage } = renderCallBrief({ presence });
+
+    expect(firstMessage).toContain('Sofia');
+    expect(firstMessage).toContain('Ana');
+    expect(firstMessage).not.toMatch(/Como você está hoje/);
+    expect(firstMessage).toMatch(/tudo bem|tudo bom/i);
+  });
+
+  it('still says plainly that it is an AI on the first call, in spoken words', () => {
+    const { firstMessage } = renderCallBrief({ presence, firstCall: true });
+
+    expect(firstMessage).toMatch(/intelig[êe]ncia artificial/i);
+    expect(firstMessage).not.toMatch(/Estou aqui para conversar/);
+  });
+
+  it('keeps the fallback greeting when no names are known', () => {
+    const { firstMessage } = renderCallBrief({ presence: { id: 'p2', cared_for_name: '', caller_name: '', tone: '' } });
+    expect(firstMessage).toMatch(/Oi, ela!/);
+  });
+
+  it('teaches the spoken register with the contractions people actually use', () => {
+    const { prompt } = renderCallBrief({ presence });
+
+    expect(prompt).toMatch(/COMO SE FALA/);
+    for (const word of ['cê', 'tá', 'tô', 'pra', 'né']) {
+      expect(prompt).toContain(word);
+    }
+  });
+
+  it('names the formal constructions to avoid, with a spoken replacement', () => {
+    const { prompt } = renderCallBrief({ presence });
+
+    expect(prompt).toMatch(/Como você está hoje/);          // quoted as the wrong way
+    expect(prompt).toMatch(/NUNCA|Nunca diga/);
+    expect(prompt).toMatch(/gostaria|Poderia/);
+  });
+
+  it('allows a fragment, and allows saying almost nothing', () => {
+    const { prompt } = renderCallBrief({ presence });
+
+    expect(prompt).toMatch(/pedaço de frase|frase pela metade|fragmento/i);
+    expect(prompt).toMatch(/"Ah, é\?"|"Que bom\."|"Hum-hum\."/);
   });
 });
