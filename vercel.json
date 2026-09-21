@@ -1,6 +1,16 @@
 {
   "version": 2,
   "buildCommand": "npm run build",
+  "rewrites": [
+    {
+      "source": "/api/(.*)",
+      "destination": "/api/index.js"
+    },
+    {
+      "source": "/((?!api/).*)",
+      "destination": "/index.html"
+    }
+  ],
   "headers": [
     {
       "source": "/(.*)",
@@ -105,32 +115,6 @@
       "maxDuration": 60
     }
   },
-  "routes": [
-    {
-      "src": "/api/(.*)",
-      "dest": "/api/index.js"
-    },
-    {
-      "src": "/assets/(.*)",
-      "dest": "/assets/$1"
-    },
-    {
-      "src": "/(.*\\.(js|css|png|jpg|jpeg|gif|svg|ico|woff|woff2|ttf|eot|json|webmanifest|webp|avif))",
-      "dest": "/$1"
-    },
-    {
-      "src": "/cinematic/(.*)",
-      "dest": "/cinematic/$1"
-    },
-    {
-      "src": "/downloads/(.*)",
-      "dest": "/downloads/$1"
-    },
-    {
-      "src": "/(.*)",
-      "dest": "/index.html"
-    }
-  ],
   "crons": [
     {
       "path": "/api/cron/ingest-observations",
