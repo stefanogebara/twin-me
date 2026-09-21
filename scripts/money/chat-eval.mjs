@@ -34,6 +34,9 @@ const ONLY = (arg('--only', '') || '').split(',').filter(Boolean);
 const JUDGE = process.argv.includes('--judge');
 /* pass^k (tau-bench, Yao et al. 2024): a scenario passes only when it passes all k runs; one pass is capability, k is reliability. */
 const RUNS = Math.max(1, Number(arg('--runs', '1')) || 1);
+/* --stream asks through POST /chat/stream, the path the app uses (reasoning, patience, sentence pieces); two of
+   Stefano's turns failed there while the plain path answered (2026-09-21). */
+const STREAM = process.argv.includes('--stream');
 /* The judge: DeepSeek flipped between 2 and 0 on the same reply across runs; a steadier reader by default. */
 const JUDGE_MODEL = arg('--judge-model', 'google/gemini-2.5-flash');
 const OUT = arg('--out', path.resolve(process.cwd(), '.claude/plans/2026-09-15-chat-evals/runs'));
@@ -101,9 +104,30 @@ async function judge(s, reply, token) {
     const t0 = Date.now();
     let reply = null, error = null;
     try {
-      const r = await fetch(`${API}/api/money/chat`, { method: 'POST', headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' }, body: JSON.stringify({ message: s.message, history: s.history || [] }) });
-      const j = await r.json();
-      reply = j.data || null; if (!j.success) error = j.error || `http ${r.status}`;
+      if (STREAM) {
+        const r = await fetch(`${API}/api/money/chat/stream`, { method: 'POST', headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json', accept: 'text/event-stream' }, body: JSON.stringify({ message: s.message, history: s.history || [] }) });
+        if (!r.ok) error = `http ${r.status}`;
+        else {
+          const got = { text: '', figures: [], actions: [], receipts: [], basis: [], thinking: '' }; let done = false; let failed = null;
+          for (const block of (await r.text()).split('\n\n')) {
+            const line = block.split('\n').find((l) => l.startsWith('data:')); if (!line) continue;
+            let ev; try { ev = JSON.parse(line.slice(5).trim()); } catch { continue; }
+            if (ev.phase === 'text') got.text += (got.text && !/\s$/.test(got.text) && !/^\s/.test(ev.delta) ? ' ' : '') + ev.delta;
+            else if (ev.phase === 'thinking') got.thinking += ev.delta;
+            else if (ev.phase === 'figures') got.figures = ev.figures || [];
+            else if (ev.phase === 'actions') { got.actions = ev.actions || []; got.receipts = ev.receipts || []; got.basis = ev.basis || []; }
+            else if (ev.phase === 'done') done = true;
+            else if (ev.phase === 'failed') failed = ev.detail || 'failed';
+          }
+          got.text = got.text.replace(/\s+/g, ' ').trim();
+          if (failed) error = failed; else if (!done) error = 'stream ended without done';
+          reply = got;
+        }
+      } else {
+        const r = await fetch(`${API}/api/money/chat`, { method: 'POST', headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' }, body: JSON.stringify({ message: s.message, history: s.history || [] }) });
+        const j = await r.json();
+        reply = j.data || null; if (!j.success) error = j.error || `http ${r.status}`;
+      }
     } catch (e) { error = e.message; }
     const ms = Date.now() - t0;
     const sc = reply ? score(s, reply) : { checks: {}, kinds: [], acts: [], sentences: 0, amounts: [] };

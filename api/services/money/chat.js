@@ -262,8 +262,11 @@ export function buildFigure(request, ctx) {
     const total = inMonth.reduce((s, t) => s + abs(t), 0);
     if (total <= 0) return null;
     const byMerchant = request.by === 'merchant' || request.by === 'merchants';
+    /* one kind only, ranked by place: the table a person asks for ("software, largest first") */
+    const onlyKind = request.category && CATEGORIES.includes(request.category) ? request.category : null;
     const groups = new Map();
     for (const t of inMonth) {
+      if (onlyKind && (categoryOfPayment(ctx.placeByKey.get(t.merchant_key), t.channel, ctx.roles?.get(String(t.merchant_key || '').toLowerCase()) || null) || 'not read yet') !== onlyKind) continue;
       /* The same resolver the month page uses, so a share the twin quotes is the share the
          page shows. Reading the place's category alone once folded every transfer into
          "not read yet" here while the page listed them as transfers. */
@@ -280,9 +283,12 @@ export function buildFigure(request, ctx) {
       .slice(0, MAX_SHARE_ITEMS)
       .map(([label, g]) => ({ label, value: round2(g.value), share: Math.round((g.value / total) * 1000) / 1000 }));
     const rows = [...groups.values()].flatMap((g) => g.rows).sort((a, b) => abs(b) - abs(a));
-    const title = byMerchant
-      ? say(ctx.language, 'Where {month} went, by place', { month: monthLabel(month, ctx.language) })
-      : say(ctx.language, 'Where {month} went', { month: monthLabel(month, ctx.language) });
+    if (onlyKind && !items.length) return null;
+    const title = onlyKind
+      ? say(ctx.language, 'Where {month} went in {kind}, by place', { month: monthLabel(month, ctx.language), kind: say(ctx.language, onlyKind) })
+      : byMerchant
+        ? say(ctx.language, 'Where {month} went, by place', { month: monthLabel(month, ctx.language) })
+        : say(ctx.language, 'Where {month} went', { month: monthLabel(month, ctx.language) });
     return { figure: { kind, title, items }, rows };
   }
 
@@ -601,6 +607,7 @@ export const RULES = [
   'When the calendar lines say what a kind of event usually costs, you may say what the days ahead are likely to cost, always as "usually about", never as a promise.',
   'Asked for each day, per day, day by day, or how the week went, draw the week figure (one bar per day, the last seven) and say in words only the total for the stretch and the day that cost most; never list every day as a sentence.',
   'A figure you ask for is drawn under your words before the person reads them: never ask whether they want it, never tell them to ask for it, never say "here is the graph"; say what it shows.',
+  'Asked for a table, a list or a ranking of one kind\'s payments, the shares figure by place within that kind is drawn under your words (it is the table, largest first): say the kind\'s total and its largest, never say you cannot make a table.',
   'Never ask whether they would like a figure or a chart: when one would help, ask for it by kind and it is drawn under your words. When a figure would show the thing better than words, ask for it by kind. Kinds: months (spent per month), shares (where a month went; add month, and by: "merchant" for places), weekdays (spend by weekday), recurring (what comes back), band (this month so far and likely), history (one merchant over time; add merchant). Ask for at most two, and only when they add something.',
   'Actions are offers the person taps, never things you did: the text must not claim to have changed, marked or recorded anything. Say something like "If that is right, mark it below." and leave the doing to the card.',
   'Propose an action only when the person asks to fix or record something: not_me with transaction_id from the recent payments; recategorise with merchant_key from the places and a category from: ' + CATEGORIES.join(', ') + '; answer with question_id from the open questions and the value they gave; split with transaction_id from the recent payments and ways (2 to 12, the person included) when they say a payment was shared, for a dinner, a shop, a present.',
@@ -647,6 +654,7 @@ function plainProse(raw) {
    English is the source; a language with no line falls back to it. ASCII, \u for accents. */
 const PHRASES = {
   es: {
+    'Where {month} went in {kind}, by place': 'A d\u00f3nde fue {month} en {kind}, por lugar',
     'Connect a bank': 'Conecta un banco',
     'Add a statement': 'A\u00f1ade un extracto',
     'Get an address for receipts': 'Consigue una direcci\u00f3n para los recibos',
@@ -720,6 +728,7 @@ const PHRASES = {
     'There is nothing in the ledger yet. Connect a bank or add a statement and ask again.': 'Todav\u00eda no hay nada en el libro. Conecta un banco o a\u00f1ade un extracto y pregunta otra vez.',
   },
   'pt-BR': {
+    'Where {month} went in {kind}, by place': 'Para onde foi {month} em {kind}, por lugar',
     'Connect a bank': 'Conecte um banco',
     'Add a statement': 'Adicione um extrato',
     'Get an address for receipts': 'Pegue um endere\u00e7o para os recibos',
@@ -836,7 +845,7 @@ export function shortCircuit(message, ctx) {
   const small = smalltalkReply(message, ctx.language);
   if (small) return { text: small, figures: [], actions: [], receipts: [] };
   if (!isShortAsk(message)) return null;
-  if (/\b(subscri|suscrip|assinatura|recurring|comes? back|every month|cada mes|todo mes|todos os meses)/.test(m) && !/\b(cancel|not mine|isn'?t mine|fix|wrong|change)\b/.test(m)) {
+  if (/\b(subscri|suscrip|assinatura|recurring|comes? back)/.test(m) || (/\b(every month|cada mes|todo mes|todos os meses)\b/.test(m) && !/\b(software|groceries|food|transport|eating|comida|supermercado|transporte|bares?|restaurantes?|em |en |on |at )\b/.test(m)) && !/\b(cancel|not mine|isn'?t mine|fix|wrong|change)\b/.test(m)) {
     const built = buildFigure({ kind: 'recurring' }, ctx);
     const L = ctx.language;
     if (!built) return { text: say(L, 'Nothing comes back regularly yet. The ledger needs to see a charge at least twice to call it that.'), figures: [], actions: [], receipts: [] };
@@ -893,7 +902,7 @@ export function withoutChartQuestion(text, figuresDrawn) {
   return kept.length && kept.length < parts.length ? kept.join(' ') : text;
 }
 
-const ASK_OPENERS = /^(what|which|how|show|list|tell|give|draw|make|compare|plot|chart|graph|explain|why|when|where|who|que|qu\u00e9|cu\u00e1l|cual|cu\u00e1nto|cuanto|cu\u00e1ntos|cuantos|dime|muestra|dame|ens\u00e9\u00f1ame|ensename|quanto|quantos|qual|quais|como|quem|quando|onde|mostra|mostre|me mostra|me d\u00e1|me da|diga|me diga)\b/i;
+const ASK_OPENERS = /^(what|which|how|show|list|tell|give|draw|make|create|build|rank|sort|i want to know|i'd like to know|que|qu\u00e9|cu\u00e1l|cual|cu\u00e1nto|cuanto|cu\u00e1ntos|cuantos|dime|muestra|dame|ens\u00e9\u00f1ame|ensename|quanto|quantos|qual|quais|como|quem|quando|onde|mostra|mostre|me mostra|me d\u00e1|me da|diga|me diga|me crie|me cria|crie|cria|faz|fa\u00e7a|faca|me faz|me fa\u00e7a|monta|monte|gera|gere|lista|liste|quero saber|queria saber|quiero saber|quisiera saber|hazme|haz|crea|cr\u00e9ame|creame|mu\u00e9strame|muestrame|dame|l\u00edstame|listame|ordena|ordene)\b/i;
 
 /**
  * The language a message is written in, from its small words: en, es, pt or null when it
@@ -934,7 +943,9 @@ export function isStatement(message) {
   const m = String(message || '').trim();
   /* A long ask is still an ask: "give me a graph of what I spent between the 8th and the
      14th" is thirteen words and a request, not a lesson (2026-09-20). */
-  return !isShortAsk(m) && !/\?/.test(m) && !ASK_OPENERS.test(m) && m.split(/\s+/).filter(Boolean).length >= 4;
+  /* "software. outra coisa quero saber quanto..." opens with a fragment; the ask is mid-sentence (2026-09-21) */
+  const askAnywhere = /\b(quero saber|queria saber|quiero saber|quisiera saber|i want to know|i'd like to know|tell me|me diga|me conta|dime|cuentame|me crie|me cria|me faz|me mostra|hazme|muestrame|dame)\b/i.test(m.normalize('NFD').replace(/[\u0300-\u036f]/g, ''));
+  return !isShortAsk(m) && !/\?/.test(m) && !ASK_OPENERS.test(m) && !askAnywhere && m.split(/\s+/).filter(Boolean).length >= 4;
 }
 
 /** Does a message ask where the money went, or speak in categories? */
@@ -977,6 +988,33 @@ export function notMineOffer(message, ctx) {
 }
 
 /** "Each day", "per day", "day by day", "a graph of the week", "the last seven days": the week figure, a bar per day. Pure. */
+/** The kind a question names, in the words people use (a subset of the vocabulary line), or null. */
+const KIND_WORDS = [
+  ['software', /\b(software|apps?|subscri\w*|suscripci\w*|assinaturas?|saas)\b/],
+  ['eating out', /\b(bars?|bares|cafes?|caf\u00e9s?|restaurants?|restaurantes?|pubs?|comer fora|comida fuera|eating out|night out|terraza|terra\u00e7o)\b/],
+  ['groceries', /\b(groceries|supermarkets?|supermercados?|mantimentos|mercado|compras de casa)\b/],
+  ['transport', /\b(transport\w*|metro|bus|renfe|cercanias|trains?|trens?|autob\u00fas)\b/],
+  ['taxi', /\b(taxis?|uber|cabify|bolt)\b/],
+  ['entertainment', /\b(entertainment|entretenimento|entretenimiento|cinema|concerts?|shows?|tickets?|entradas)\b/],
+  ['clothing', /\b(clothing|clothes|roupas?|ropa)\b/],
+  ['health', /\b(health|sa\u00fade|saude|salud|doctor|m\u00e9dico|medico)\b/],
+  ['pharmacy', /\b(pharmacy|farm\u00e1cia|farmacia)\b/],
+  ['sport', /\b(sport|gym|academia|gimnasio|deporte|esporte)\b/],
+  ['travel', /\b(travel|viagens?|viajes?|flights?|voos?|vuelos?)\b/],
+  ['lodging', /\b(lodging|hotel|hostel|airbnb|alojamiento|alojamento)\b/],
+  ['bills', /\b(bills|contas de casa|facturas del hogar|utilities|luz|agua|internet)\b/],
+];
+export function kindInMessage(message) {
+  const m = String(message || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  const hit = KIND_WORDS.find(([, re]) => re.test(m));
+  return hit ? hit[0] : null;
+}
+/** "a table", "ranked", "largest first": the shares figure by place is that table. */
+export function asksTable(message) {
+  const m = String(message || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  return /\b(table|tabela|tabla|ranking|rank|list(a|e|ame)?|largest first|biggest first|mais caro pr[ao] baixo|do mais caro|del mas caro|de mayor a menor|do maior pro menor|do maior para o menor|ordena\w*|sorted)\b/.test(m);
+}
+
 export function asksGraph(message) {
   const m = String(message || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
   return /\b(graph|chart|plot|grafico|grafica|diagrama)\b/.test(m);
@@ -996,6 +1034,14 @@ export function assembleReply(parsed, ctx, message = '') {
   if ((asksPerDay(message) || stretchGraph) && !requests.some((r) => r?.kind === 'week')) {
     const i = requests.findIndex((r) => r?.kind === 'weekdays' || r?.kind === 'history');
     if (i >= 0) requests[i] = { kind: 'week' }; else requests.unshift({ kind: 'week' });
+  }
+  /* A table of one kind's payments, largest first, is the shares figure by place within that kind. */
+  const tableKind = asksTable(message) ? kindInMessage(message) : null;
+  if (tableKind) {
+    const i = requests.findIndex((r) => r?.kind === 'shares');
+    const named = monthInMessage(message);
+    const want = { kind: 'shares', by: 'merchant', category: tableKind, ...(named ? { month: named } : {}) };
+    if (i >= 0) requests[i] = want; else requests.unshift(want);
   }
   if (asksWhereItWent(message) && !requests.some((r) => r?.kind === 'shares')) {
     const named = monthInMessage(message);
@@ -1439,6 +1485,13 @@ export async function answerStream(userId, message, history = [], { now = new Da
          plainly, so the person gets an answer inside the time the host allows. What was
          thought so far stays on the screen under How it got there. */
       log.info('chat reasoning outlived its patience; answering without it', { patienceMs: reasoningPatienceMs() });
+      result = await run(false);
+    }
+    /* The same patience case, seen the way production sees it: the gateway ends an aborted
+       stream quietly, "stream complete, 0 tokens", and resolves with nothing. Two of
+       Stefano's turns became "the ledger cannot answer that" this way (2026-09-21, 22 s each). */
+    if (REASONING_ON && outOfPatience && !firstWord && !(result?.content || '').trim()) {
+      log.info('chat reasoning outlived its patience and ended empty; answering without it', { patienceMs: reasoningPatienceMs() });
       result = await run(false);
     }
     raw = result?.content || '';

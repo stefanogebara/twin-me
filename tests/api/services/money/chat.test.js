@@ -698,3 +698,24 @@ describe('the largest per kind', () => {
     expect(text).toMatch(/Words people use for the kinds: eating out is a bar/);
   });
 });
+
+describe('a table of one kind, largest first', () => {
+  it('is the shares figure by place within that kind, and an imperative in Portuguese is an ask', async () => {
+    const { kindInMessage, asksTable, assembleReply, buildFigure, isStatement, shortCircuit } = await import('../../../../api/services/money/chat.js');
+    expect(kindInMessage('me crie uma tabela com os gastos de software com o mais caro pra baixo')).toBe('software');
+    expect(kindInMessage('quanto gastei em bares?')).toBe('eating out');
+    expect(kindInMessage('how much is left?')).toBeNull();
+    expect(asksTable('me crie uma tabela com os gastos de software com o mais caro pra baixo')).toBe(true);
+    expect(asksTable('how much did I spend on software?')).toBe(false);
+    expect(isStatement('me crie uma tabela com os gastos de software com o mais caro pra baixo')).toBe(false);
+    expect(isStatement('software. outra coisa quero saber quanto sao gastos em software todo mes')).toBe(false);
+    const c = ctx();
+    expect(shortCircuit('quanto gasto em software todo mes?', c)).toBeNull();
+    const reply = assembleReply({ text: 'Software this month: Spotify 11,99 EUR.', figures: [], actions: [], cites: [] }, c, 'me crie uma tabela com os gastos de software com o mais caro pra baixo');
+    expect(reply.figures.map((f) => f.kind)).toEqual(['shares']);
+    expect(reply.figures[0].title).toMatch(/in software, by place/);
+    expect(reply.figures[0].items.map((i) => i.label)).toEqual(['Spotify']);
+    expect(reply.actions).toEqual([]);
+    expect(buildFigure({ kind: 'shares', by: 'merchant', category: 'travel' }, c)).toBeNull();
+  });
+});
