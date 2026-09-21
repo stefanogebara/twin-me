@@ -246,3 +246,14 @@ describe('money coming back is not income', () => {
     expect(projectMonth({ transactions, recurring: [], now, isIncome: (t) => t.id !== 'b' }).received).toBe(100);
   });
 });
+
+describe('a series the person ended', async () => {
+  const { withoutCancelled, cancelledKeys } = await import('../../../../api/services/money/recurring.js');
+  it('is dropped by a merchant_kind fact valued cancelled, and nothing else drops anything', () => {
+    const series = [{ merchant_key: 'spotify', typical_amount: 11.99 }, { merchant_key: 'higgsfield', typical_amount: 53.96 }];
+    const facts = [{ kind: 'merchant_kind', subject: 'Spotify', value: 'cancelled' }, { kind: 'merchant_kind', subject: 'higgsfield', value: 'still active' }];
+    expect([...cancelledKeys(facts)]).toEqual(['spotify']);
+    expect(withoutCancelled(series, facts).map((s) => s.merchant_key)).toEqual(['higgsfield']);
+    expect(withoutCancelled(series, [])).toHaveLength(2);
+  });
+});

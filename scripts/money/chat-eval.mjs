@@ -67,8 +67,10 @@ function score(s, reply) {
   const restates = s.message.split(/\s+/).length > 3 && text.toLowerCase().startsWith(s.message.toLowerCase().slice(0, 24));
   checks.style = !STYLE_BAD.some((re) => re.test(text)) && !restates;
   const amounts = amountsInText(text);
+  /* the amounts the person typed are theirs to hear back (2026-09-21) */
+  const typed = [...String(s.message || '').matchAll(/\b(\d{1,3}(?:\.\d{3})+|\d+)(?:,(\d{1,2}))?\b/g)].map((m) => Number(`${m[1].replace(/\./g, '')}.${(m[2] || '00').padEnd(2, '0')}`));
   const basis = (reply.basis || []).join('\n');
-  checks.grounded = amounts.every((a) => amountsInText(basis).some((b) => Math.abs(a - b) < 0.005)) || (amounts.length > 0 && !reply.basis && kinds.length > 0);
+  checks.grounded = amounts.every((a) => amountsInText(basis).some((b) => Math.abs(a - b) < 0.005) || typed.some((b) => Math.abs(a - b) < 0.005)) || (amounts.length > 0 && !reply.basis && kinds.length > 0);
   checks.mention = (s.mention || []).every((re) => re.test(text)) && !(s.avoid || []).some((re) => re.test(text));
   return { checks, kinds, acts, sentences: sentenceCount(text), amounts };
 }

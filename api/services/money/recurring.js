@@ -20,6 +20,19 @@
 import { dayIn } from './zone.js';
 
 export const MIN_OCCURRENCES = 3;
+
+/**
+ * The series minus the ones the person said they ended: a merchant_kind fact with the value
+ * "cancelled" on the merchant key. Answered on You or in the chat since 2026-09-16, the
+ * answer changed nothing until 2026-09-21.
+ */
+export function cancelledKeys(facts = []) {
+  return new Set((facts || []).filter((f) => f && f.kind === 'merchant_kind' && String(f.value || '').toLowerCase() === 'cancelled').map((f) => String(f.subject || '').toLowerCase()));
+}
+export function withoutCancelled(series = [], facts = []) {
+  const gone = cancelledKeys(facts);
+  return gone.size ? (series || []).filter((s) => !gone.has(String(s.merchant_key || '').toLowerCase())) : (series || []);
+}
 export const AMOUNT_CV = 0.2;
 export const INTERVAL_CV = 0.4;
 const DAY = 86400000;

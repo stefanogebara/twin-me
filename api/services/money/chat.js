@@ -28,6 +28,7 @@
 import { complete, stream as streamComplete, TIER_CHAT } from '../llmGateway.js';
 import { windowLines, weekAverageLine, costliestDayLine, cheapestDayLine, monthPaceLine, weekdayLine, spendWindows, breakdown, eur, NO_NAME } from './windows.js';
 import { askedLines, askedDays, askedWindows } from './asked.js';
+import { incomeStatement, subscriptionStatement, cancelStatement } from './statements.js';
 import { listReturnsClosing } from './returns.js';
 import { tripDays } from './when.js';
 import { balances, describeBetweenPeople, monthBetweenPeople, describeMonthBetweenPeople, splitFindings, MIN_WAYS, MAX_WAYS } from './bizum.js';
@@ -49,7 +50,56 @@ import { quietly } from './quietly.js';
 const log = createLogger('money-chat');
 
 export const FIGURE_KINDS = Object.freeze(['months', 'shares', 'weekdays', 'recurring', 'band', 'history', 'week']);
-export const ACTION_KINDS = Object.freeze(['not_me', 'recategorise', 'answer', 'split', 'person', 'remember', 'forget', 'setup']);
+export const ACTION_KINDS = Object.freeze(['not_me', 'recategorise', 'answer', 'split', 'person', 'remember', 'forget', 'setup', 'fact']);
+
+/* ------------------------------------------------------------------ what they told it, as a fact
+   "150 usd is coming from Vercel this month", "I subscribed to Netflix, 12,99 a month on the
+   15th", "I cancelled Spotify": kept as notes, they changed no number (2026-09-21). The
+   readers in statements.js pull the parts out; this offers the fact itself when the parts
+   are there, and asks for the missing one when they are not. Computed, never the model's. */
+export const FACT_KINDS_OFFERED = Object.freeze(['income', 'commitment', 'merchant_kind']);
+const keyOf = (name) => String(name || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, ' ').trim();
+const dayWord = (L, d) => say(L, 'the {d}', { d: ordinalIn(L, d) });
+function ordinalIn(L, d) {
+  if (L === 'es') return `${d}`;
+  if (L === 'pt-BR' || L === 'pt') return `${d}`;
+  const s = ['th', 'st', 'nd', 'rd'][(d % 10 > 3 || [11, 12, 13].includes(d % 100)) ? 0 : d % 10];
+  return `${d}${s}`;
+}
+/** A recurring series whose name the sentence names, or null. */
+function seriesNamed(name, ctx) {
+  const k = keyOf(name); if (!k) return null;
+  return (ctx.recurring || []).find((s) => { const n = keyOf(s.merchant_name || s.merchant_key); return n === k || n.includes(k) || k.includes(n); }) || null;
+}
+/**
+ * The fact a statement carries, as an offer, or the question it needs answered first:
+ * { offer } | { ask } | null.
+ */
+export function learnFromStatement(message, ctx, { now = new Date() } = {}) {
+  const L = ctx.language;
+  const cancel = cancelStatement(message);
+  if (cancel) {
+    const s = seriesNamed(cancel.name, ctx);
+    if (s) return { offer: { kind: 'fact', fact: { kind: 'merchant_kind', subject: s.merchant_key, subjectLabel: s.merchant_name || s.merchant_key, value: 'cancelled' }, label: say(L, 'Cancelled: {name}, no longer expected', { name: s.merchant_name || s.merchant_key }) } };
+    return { ask: say(L, 'The ledger sees no charge called {name} that comes back. Which one did you cancel?', { name: cancel.name }) };
+  }
+  const sub = subscriptionStatement(message);
+  if (sub) {
+    if (sub.currency !== 'EUR') return { ask: say(L, '{name} is in {ccy}: about how much is that in euros a month?', { name: sub.name, ccy: sub.currency }) };
+    if (!sub.day) return { ask: say(L, 'On which day of the month does {name} take its {amount}?', { name: sub.name, amount: amountText(sub.amount) }) };
+    return { offer: { kind: 'fact', fact: { kind: 'commitment', subject: keyOf(sub.name), subjectLabel: sub.name, value: 'subscription', amount: sub.amount, day: sub.day, note: sub.cadence }, label: say(L, 'Expect {name}: {amount} {cadence}, {day}', { name: sub.name, amount: amountText(sub.amount), cadence: say(L, sub.cadence), day: dayWord(L, sub.day) }) } };
+  }
+  const inc = incomeStatement(message);
+  if (inc) {
+    if (inc.currency !== 'EUR') return { ask: say(L, '{source} pays in {ccy}: about how much is that in euros? Then the month can count it.', { source: inc.source, ccy: inc.currency }) };
+    const day = inc.day || (inc.once ? partsIn(now)?.day || 1 : null);
+    if (!day) return { ask: say(L, 'On which day does the {amount} from {source} usually come?', { amount: amountText(inc.amount), source: inc.source }) };
+    const month = dayIn(now).slice(0, 7);
+    return { offer: { kind: 'fact', fact: { kind: 'income', subject: keyOf(inc.source), subjectLabel: inc.source, value: inc.once ? `once:${month}` : null, amount: inc.amount, day }, label: inc.once ? say(L, 'Coming in this month: {source}, {amount}', { source: inc.source, amount: amountText(inc.amount) }) : say(L, 'Comes in: {source}, {amount} on {day}', { source: inc.source, amount: amountText(inc.amount), day: dayWord(L, day) }) } };
+  }
+  return null;
+}
+
 
 /* ------------------------------------------------------------------ typed inputs
    Only the person's own message is an instruction. A name that came from a bank, a shop or
@@ -394,6 +444,13 @@ export function validateAction(action, ctx) {
     return { kind: 'person', merchant_key: t.merchant_key, name: nameOf(t), role, note, label: label || say(ctx.language, '{name} is {role}', { name: nameOf(t), role: say(ctx.language, role) }) + (note ? `, ${note}` : '') };
   }
   /* Something they told the ledger that fits no question: kept in their words, read back to the model. */
+  if (action.kind === 'fact') {
+    const f = action.fact;
+    if (!f || !FACT_KINDS_OFFERED.includes(f.kind) || !f.subject) return null;
+    const fact = { kind: f.kind, subject: String(f.subject).slice(0, 120), subjectLabel: f.subjectLabel ? String(f.subjectLabel).slice(0, 120) : null, value: f.value == null ? null : String(f.value).slice(0, 240), amount: Number.isFinite(Number(f.amount)) ? Number(f.amount) : null, day: Number.isFinite(Number(f.day)) ? Number(f.day) : null, note: f.note ? String(f.note).slice(0, 240) : null };
+    if ((fact.kind === 'income' || fact.kind === 'commitment') && !(fact.amount > 0 && fact.day >= 1 && fact.day <= 31)) return null;
+    return { kind: 'fact', fact, label: typeof action.label === 'string' && action.label ? action.label.slice(0, 120) : say(ctx.language, 'Keep that') };
+  }
   /* A setup offer is the code's to make, never the model's. */
   if (action.kind === 'setup') return action.href === SETUP_HREF && typeof action.step === 'string' && typeof action.label === 'string' ? { kind: 'setup', step: action.step, label: action.label, href: SETUP_HREF } : null;
   if (action.kind === 'remember') {
@@ -597,6 +654,7 @@ export const RULES = [
   'Asked whether they can afford an amount, answer yes or no in the first sentence against today\'s number (the line for today, or the one beginning "Left for"), then give those numbers; repeat the amount they named as they wrote it.',
   'A place is only ever itself: never say one place is, looks like or counts as another (a Lidl is not a Mercadona). Asked about a place none of the lines hold, say nothing was seen there. "A payment without a name" is a payment the bank sent without a name: say so in those words, never as a place called unknown.',
   'On a greeting, a thanks, an "ok" or a message with no question in it, answer in one short line with no numbers and no figure.',
+  'When what they told you is money coming in, a subscription they took on, or a charge they cancelled, the code offers the fact itself under your words: say back what they said and that the month, the day and the plan move once they tap it; propose no remember for it.',
   'When the person tells you something, begin by saying back in a few words what they told you, in their terms ("Spotify is your flatmate\'s, not yours"), then say what the ledger will do with it, then the offer. Never answer a statement with what the ledger currently thinks as if they had asked.',
   'A plan, a trip, a visit, an exam, a change in their life, even with no money in it: propose remember with their words, and say the ledger will read those days with it in mind.',
   'When they say what they want to keep at the end of the month, or a limit for a kind of place, propose answer with the keep or cap question id from the questions list if it is there, else remember.',
@@ -654,6 +712,23 @@ function plainProse(raw) {
    English is the source; a language with no line falls back to it. ASCII, \u for accents. */
 const PHRASES = {
   es: {
+    'Cancelled: {name}, no longer expected': 'Cancelado: {name}, ya no se espera',
+    'The ledger sees no charge called {name} that comes back. Which one did you cancel?': 'El libro no ve ning\u00fan cargo llamado {name} que vuelva. \u00bfCu\u00e1l cancelaste?',
+    '{name} is in {ccy}: about how much is that in euros a month?': '{name} est\u00e1 en {ccy}: \u00bfcu\u00e1nto es eso en euros al mes, m\u00e1s o menos?',
+    'On which day of the month does {name} take its {amount}?': '\u00bfQu\u00e9 d\u00eda del mes cobra {name} sus {amount}?',
+    'Expect {name}: {amount} {cadence}, {day}': 'Esperar {name}: {amount} {cadence}, {day}',
+    '{source} pays in {ccy}: about how much is that in euros? Then the month can count it.': '{source} paga en {ccy}: \u00bfcu\u00e1nto es en euros, m\u00e1s o menos? As\u00ed el mes puede contarlo.',
+    'On which day does the {amount} from {source} usually come?': '\u00bfQu\u00e9 d\u00eda suelen llegar los {amount} de {source}?',
+    'Coming in this month: {source}, {amount}': 'Entra este mes: {source}, {amount}',
+    'Comes in: {source}, {amount} on {day}': 'Entra: {source}, {amount} el {day}',
+    'the {d}': 'd\u00eda {d}',
+    'Keep that': 'Guardar eso',
+    '{name} is no longer expected. The month and the day move with it.': '{name} ya no se espera. El mes y el d\u00eda se mueven con ello.',
+    '{name}, {amount} on {day}, now counts as spoken for.': '{name}, {amount} el {day}, ya cuenta como comprometido.',
+    '{source}, {amount}, now counts as coming in. Today and the plan move with it.': '{source}, {amount}, ya cuenta como entrada. Hoy y el plan se mueven con ello.',
+    'monthly': 'al mes',
+    'weekly': 'a la semana',
+    'yearly': 'al a\u00f1o',
     'The ledger does not hold that number.': 'El libro no tiene ese n\u00famero.',
     'Where {month} went in {kind}, by place': 'A d\u00f3nde fue {month} en {kind}, por lugar',
     'Connect a bank': 'Conecta un banco',
@@ -729,6 +804,23 @@ const PHRASES = {
     'There is nothing in the ledger yet. Connect a bank or add a statement and ask again.': 'Todav\u00eda no hay nada en el libro. Conecta un banco o a\u00f1ade un extracto y pregunta otra vez.',
   },
   'pt-BR': {
+    'Cancelled: {name}, no longer expected': 'Cancelado: {name}, n\u00e3o \u00e9 mais esperado',
+    'The ledger sees no charge called {name} that comes back. Which one did you cancel?': 'O livro n\u00e3o v\u00ea nenhuma cobran\u00e7a chamada {name} que volte. Qual voc\u00ea cancelou?',
+    '{name} is in {ccy}: about how much is that in euros a month?': '{name} est\u00e1 em {ccy}: quanto d\u00e1 isso em euros por m\u00eas, mais ou menos?',
+    'On which day of the month does {name} take its {amount}?': 'Em que dia do m\u00eas {name} cobra os {amount}?',
+    'Expect {name}: {amount} {cadence}, {day}': 'Esperar {name}: {amount} {cadence}, {day}',
+    '{source} pays in {ccy}: about how much is that in euros? Then the month can count it.': '{source} paga em {ccy}: quanto d\u00e1 em euros, mais ou menos? A\u00ed o m\u00eas pode contar.',
+    'On which day does the {amount} from {source} usually come?': 'Em que dia os {amount} de {source} costumam chegar?',
+    'Coming in this month: {source}, {amount}': 'Entra este m\u00eas: {source}, {amount}',
+    'Comes in: {source}, {amount} on {day}': 'Entra: {source}, {amount} no {day}',
+    'the {d}': 'dia {d}',
+    'Keep that': 'Guardar isso',
+    '{name} is no longer expected. The month and the day move with it.': '{name} n\u00e3o \u00e9 mais esperado. O m\u00eas e o dia se movem com isso.',
+    '{name}, {amount} on {day}, now counts as spoken for.': '{name}, {amount} no {day}, agora conta como comprometido.',
+    '{source}, {amount}, now counts as coming in. Today and the plan move with it.': '{source}, {amount}, agora conta como entrada. Hoje e o plano se movem com isso.',
+    'monthly': 'por m\u00eas',
+    'weekly': 'por semana',
+    'yearly': 'por ano',
     'The ledger does not hold that number.': 'O livro n\u00e3o tem esse n\u00famero.',
     'Where {month} went in {kind}, by place': 'Para onde foi {month} em {kind}, por lugar',
     'Connect a bank': 'Conecte um banco',
@@ -1058,7 +1150,15 @@ export function assembleReply(parsed, ctx, message = '') {
   /* A remember rides only on a statement: on "give me a graph of the 8th to the 14th" the
      model offered to remember the question (2026-09-20). */
   const teaches = isStatement(message) || /\b(remember|note|keep in mind|recuerda|anota|lembra|anote|lembre)\b/i.test(message);
-  const actions = (parsed.actions || []).slice(0, 3).filter((a) => teaches || a?.kind !== 'remember').filter((a) => a?.kind !== 'setup').map((a) => validateAction(a, ctx)).filter(Boolean);
+  const actions = (parsed.actions || []).slice(0, 3).filter((a) => teaches || a?.kind !== 'remember').filter((a) => a?.kind !== 'setup' && a?.kind !== 'fact').map((a) => validateAction(a, ctx)).filter(Boolean);
+  /* What they told it, as the fact it is: offered first, and the note stands down. */
+  const learned = learnFromStatement(message, ctx, { now: ctx.now });
+  if (learned?.offer) {
+    const offer = validateAction(learned.offer, ctx);
+    if (offer) { for (let i = actions.length - 1; i >= 0; i -= 1) if (actions[i].kind === 'remember') actions.splice(i, 1); actions.unshift(offer); }
+  }
+  /* While the ledger is asking for the missing part, a note would keep half a fact. */
+  if (learned?.ask) for (let i = actions.length - 1; i >= 0; i -= 1) if (actions[i].kind === 'remember') actions.splice(i, 1);
   /* The missing source, offered at the moment it is missing (never by the model). */
   const missing = setupOffer(message, ctx);
   if (missing && !actions.some((a) => a.kind === 'setup')) actions.push(missing);
@@ -1071,7 +1171,7 @@ export function assembleReply(parsed, ctx, message = '') {
      below" and, one time in three, attaches no offer; the person then has nothing to tap and
      the ledger learns nothing. When they told the ledger something and no learning offer
      survived, their own words are offered as a note. */
-  if (isStatement(message) && !actions.some((a) => LEARNING_KINDS.includes(a.kind))) {
+  if (isStatement(message) && !learned?.ask && !actions.some((a) => LEARNING_KINDS.includes(a.kind) || a.kind === 'fact')) {
     const note = validateAction({ kind: 'remember', text: String(message).trim().slice(0, 200), label: say(ctx.language, 'Remember this') }, ctx);
     if (note) actions.push(note);
   }
@@ -1139,7 +1239,8 @@ export async function answer(userId, message, history = [], { now = new Date() }
   if (quick) return keep(quick);
 
   ctx.asked = text;
-  const hint = LANGUAGE_HINT[languageOf(text)] || '';
+  const learnedHint = learnFromStatement(text, ctx, { now })?.ask ? `\n\nBefore the ledger can keep what they just said it needs one thing: ask exactly this, in their language, and nothing else about it: ${learnFromStatement(text, ctx, { now }).ask}` : '';
+  const hint = (LANGUAGE_HINT[languageOf(text)] || '') + learnedHint;
   const system = `${RULES}\n\nWhat the ledger knows:\n${contextText(ctx)}${hint ? `\n\n${hint}` : ''}`;
   const turns = (Array.isArray(history) ? history : []).slice(-MAX_HISTORY_TURNS)
     .filter((h) => h && typeof h.text === 'string' && h.text.trim())
@@ -1364,7 +1465,8 @@ export async function answerStream(userId, message, history = [], { now = new Da
   }
 
   ctx.asked = asked;
-  const hint = LANGUAGE_HINT[languageOf(asked)] || '';
+  const learnedHint = learnFromStatement(asked, ctx, { now })?.ask ? `\n\nBefore the ledger can keep what they just said it needs one thing: ask exactly this, in their language, and nothing else about it: ${learnFromStatement(asked, ctx, { now }).ask}` : '';
+  const hint = (LANGUAGE_HINT[languageOf(asked)] || '') + learnedHint;
   const system = `${RULES}\n\nWhat the ledger knows:\n${contextText(ctx)}${hint ? `\n\n${hint}` : ''}`;
   const turns = (Array.isArray(history) ? history : []).slice(-MAX_HISTORY_TURNS)
     .filter((h) => h && typeof h.text === 'string' && h.text.trim())
@@ -1405,7 +1507,7 @@ export async function answerStream(userId, message, history = [], { now = new Da
 
   /* A sentence whose amount the ledger does not hold never reaches the wire: the rules
      forbid the model to add up or work out, and when it does anyway the sentence goes. */
-  const known = amountsInText(contextText(ctx));
+  const known = amountsInText(contextText(ctx)).concat(amountsTyped(asked));
   const grounded = (s) => amountsInText(s).every((a) => known.some((k) => Math.abs(k - a) < 0.005));
   let droppedSentences = 0;
   const emit = (revealed, { final = false } = {}) => {
@@ -1562,8 +1664,20 @@ export function amountsInText(text) {
  * not compute must never reach the screen. Returns the kept text and how many sentences
  * went; empty when nothing survived. Pure.
  */
+/** Every number the person typed, with or without cents: "180 euros" is 180, "12,99" is 12.99. */
+export function amountsTyped(text) {
+  const out = [];
+  for (const m of String(text || '').matchAll(/\b(\d{1,3}(?:\.\d{3})+|\d+)(?:,(\d{1,2}))?\b/g)) {
+    const n = Number(`${m[1].replace(/\./g, '')}.${(m[2] || '00').padEnd(2, '0')}`);
+    if (Number.isFinite(n)) out.push(n);
+  }
+  return out;
+}
+
 export function dropUngrounded(text, ctx) {
-  const known = amountsInText(contextText(ctx));
+  /* The amounts the person just typed are theirs to hear back: "you subscribed to Netflix,
+     12,99 a month" was cut for a number the ledger had not computed (2026-09-21). */
+  const known = amountsInText(contextText(ctx)).concat(amountsTyped(ctx.asked || ''));
   const has = (a) => known.some((k) => Math.abs(k - a) < 0.005);
   const kept = [];
   let dropped = 0;
@@ -1639,6 +1753,13 @@ export async function act(userId, action, { now = new Date() } = {}) {
     return { done: true, said };
   }
   if (checked.kind === 'setup') return { done: false, said: say(ctx.language, 'That is a step on the You page.') };
+  if (checked.kind === 'fact') {
+    const f = checked.fact;
+    await answerQuestion(userId, { questionId: null, kind: f.kind, subject: f.subject, subjectLabel: f.subjectLabel, value: f.value, amount: f.amount, day: f.day, note: f.note });
+    if (f.kind === 'merchant_kind') return { done: true, said: say(ctx.language, '{name} is no longer expected. The month and the day move with it.', { name: f.subjectLabel || f.subject }) };
+    if (f.kind === 'commitment') return { done: true, said: say(ctx.language, '{name}, {amount} on {day}, now counts as spoken for.', { name: f.subjectLabel || f.subject, amount: amountText(f.amount), day: dayWord(ctx.language, f.day) }) };
+    return { done: true, said: say(ctx.language, '{source}, {amount}, now counts as coming in. Today and the plan move with it.', { source: f.subjectLabel || f.subject, amount: amountText(f.amount) }) };
+  }
   if (checked.kind === 'remember') {
     /* Thirty notes is a memory; more is a diary the prompt cannot carry. */
     if ((ctx.facts || []).filter((f) => f.kind === 'note').length >= 30) return { done: false, said: say(ctx.language, 'It holds thirty of your notes already. Forget one on You and it will take this.') };

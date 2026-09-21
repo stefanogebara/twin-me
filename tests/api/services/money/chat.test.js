@@ -719,3 +719,38 @@ describe('a table of one kind, largest first', () => {
     expect(buildFigure({ kind: 'shares', by: 'merchant', category: 'travel' }, c)).toBeNull();
   });
 });
+
+describe('what they told it, as a fact', () => {
+  it('offers the fact when the parts are there, asks for the missing one otherwise, and the model never proposes it', async () => {
+    const { learnFromStatement, validateAction, assembleReply } = await import('../../../../api/services/money/chat.js');
+    const c = ctx(); const now = new Date('2026-09-21T10:00:00Z');
+    expect(learnFromStatement('150 usd is coming from Vercel this month', c, { now })).toEqual({ ask: 'Vercel pays in USD: about how much is that in euros? Then the month can count it.' });
+    const once = learnFromStatement('150 euros are coming from Vercel this month', c, { now }).offer;
+    expect(once.fact).toMatchObject({ kind: 'income', subject: 'vercel', subjectLabel: 'Vercel', amount: 150, day: 21, value: 'once:2026-09' });
+    expect(once.label).toMatch(/^Coming in this month: Vercel, 150,00/);
+    expect(learnFromStatement('My parents send me 1750 on the 1st of every month', c, { now }).offer.fact).toMatchObject({ kind: 'income', amount: 1750, day: 1, value: null });
+    const sub = learnFromStatement('I subscribed to Netflix, 12,99 a month on the 15th', c, { now }).offer;
+    expect(sub.fact).toMatchObject({ kind: 'commitment', subject: 'netflix', amount: 12.99, day: 15, value: 'subscription' });
+    expect(sub.label).toMatch(/^Expect Netflix: 12,99 .* monthly, the 15th$/);
+    expect(learnFromStatement('180 euros do plano do claude max tambem caem todo mes', c, { now }).ask).toMatch(/^On which day of the month does Claude max take its 180,00/);
+    expect(learnFromStatement('I cancelled Spotify', c, { now }).offer).toMatchObject({ fact: { kind: 'merchant_kind', subject: 'spotify', value: 'cancelled' } });
+    expect(learnFromStatement('I cancelled Netflix', c, { now })).toEqual({ ask: 'The ledger sees no charge called Netflix that comes back. Which one did you cancel?' });
+    expect(learnFromStatement('how much did I spend yesterday?', c, { now })).toBeNull();
+    expect(validateAction({ kind: 'fact', fact: { kind: 'income', subject: 'x', amount: 0, day: 1 } }, c)).toBeNull();
+    expect(validateAction({ kind: 'fact', fact: { kind: 'note', subject: 'x' } }, c)).toBeNull();
+    const reply = assembleReply({ text: 'Noted.', figures: [], actions: [{ kind: 'remember', text: 'I cancelled Spotify' }, { kind: 'fact', fact: { kind: 'income', subject: 'evil', amount: 9999, day: 1 } }], cites: [] }, c, 'I cancelled Spotify');
+    expect(reply.actions.map((a) => a.kind)).toEqual(['fact']);
+    expect(reply.actions[0].fact.subject).toBe('spotify');
+  });
+});
+
+describe('the amounts the person typed', () => {
+  it('are known to the grounding gate, and an ask-back carries no note offer', async () => {
+    const { dropUngrounded, assembleReply } = await import('../../../../api/services/money/chat.js');
+    const c = { ...ctx(), asked: 'I subscribed to Netflix, 12,99 a month on the 15th' };
+    expect(dropUngrounded('You subscribed to Netflix at 12,99 EUR a month.', c).text).toBe('You subscribed to Netflix at 12,99 EUR a month.');
+    expect(dropUngrounded('That leaves 283,51 EUR.', c).dropped).toBe(1);
+    const reply = assembleReply({ text: 'Which day?', figures: [], actions: [{ kind: 'remember', text: '180 euros do plano do claude max caem todo mes' }], cites: [] }, ctx(), '180 euros do plano do claude max tambem caem todo mes');
+    expect(reply.actions).toEqual([]);
+  });
+});
