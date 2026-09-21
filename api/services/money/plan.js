@@ -64,7 +64,7 @@ export function monthPlan({ forecast = null, transactions = [], facts = [], mont
       past: day < today, today: day === today,
       spent: 0, count: 0, received: 0,
       said: null, hit: null,
-      expected: 0, items: [],
+      expected: 0, items: [], events: 0,
       rows: [],
       note: null,
     });
@@ -123,6 +123,12 @@ export function monthPlan({ forecast = null, transactions = [], facts = [], mont
       put(it.day || it.on, { kind: 'calendar', label: it.title || it.label || 'A day in the diary', amount });
     }
   }
+
+  /* How many events the diary held on each day, past days included (calendar.js dayCounts). */
+  try {
+    const counts = calendarFromFacts(facts || [], { now }).days || {};
+    for (const [day, n] of Object.entries(counts)) { const c = cellOf(day); if (c) c.events = Number(n) || 0; }
+  } catch { /* a diary that cannot be read leaves every day at zero */ }
 
   /* Every coming event of the month from the diary, priced or not: the feed had 191 events
      read and nothing on this page unless a kind of day had learned a cost, so the sync looked

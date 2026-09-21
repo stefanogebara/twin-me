@@ -86,6 +86,35 @@ export function normaliseEvent(raw) {
  * the title, lowercased, with dates, times, numbers and symbols stripped. A recurring series
  * carries its own id so "Weekly sync" on Mondays and "Weekly sync" on Fridays stay apart.
  */
+/**
+ * How many events each local day held: one integer a day, merged across runs so the record
+ * outlives the ninety days a read can see. Without it the diary keeps only what is still to
+ * come, and "a day with class costs less than a free day" cannot be computed at all
+ * (2026-09-21). Pure.
+ */
+export function dayCounts(events = [], prior = {}) {
+  const out = { ...(prior && typeof prior === 'object' ? prior : {}) };
+  const seen = new Set();
+  for (const e of events || []) {
+    if (!e || !e.start) continue;
+    const day = dayIn(e.start);
+    if (!day) continue;
+    if (!seen.has(day)) { seen.add(day); out[day] = 0; }
+    out[day] += 1;
+  }
+  /* A day the read covered and found empty is a zero, not a gap: that is the whole point. */
+  return out;
+}
+
+/** The days the run covered, so an empty day inside the window is written as zero. */
+export function coveredDays(fromISO, toISO) {
+  const out = {};
+  const from = new Date(fromISO); const to = new Date(toISO);
+  if (Number.isNaN(from.getTime()) || Number.isNaN(to.getTime())) return out;
+  for (let t = from.getTime(); t <= to.getTime(); t += DAY_MS) { const d = dayIn(new Date(t)); if (d) out[d] = 0; }
+  return out;
+}
+
 export function shapeKey(event) {
   const words = String(event?.title || '')
     .toLowerCase()
@@ -337,6 +366,7 @@ export function calendarFromFacts(facts, { now = new Date() } = {}) {
   return {
     connected: Boolean(meta),
     learned_at: meta?.learned_at || null,
+    days: meta?.days && typeof meta.days === 'object' ? meta.days : {},
     routine: meta?.routine || null,
     learned,
     snapshot,
@@ -645,7 +675,11 @@ export async function learnEventSpend(userId, { now = new Date(), events = null 
   const past = evs
     .filter((e) => ms(e.start) < now.getTime() && (AWAY_WORDS.test(String(e.title).toLowerCase()) || EXAM_WORDS.test(String(e.title).toLowerCase()) || DEADLINE_WORDS.test(String(e.title).toLowerCase())))
     .map((e) => ({ title: e.title, start: e.start, end: e.end, all_day: e.all_day }));
-  const meta = { learned_at: now.toISOString(), routine: routineSummary(evs, { now }), events_seen: evs.length, snapshot, past };
+  /* One integer a day, kept for good: the read only sees ninety days back, so each run
+     merges what it saw into what was already there (2026-09-21). */
+  const before = calendarFromFacts(await listFacts(userId, { includeInternal: true }).catch(quietly('calendar/prior-days', () => [])), { now });
+  const days = dayCounts(evs, { ...(before.days || {}), ...coveredDays(from, now.toISOString()) });
+  const meta = { learned_at: now.toISOString(), routine: routineSummary(evs, { now }), events_seen: evs.length, snapshot, past, days };
   await persist(userId, learned, meta);
   return { learned: learned.length, events: evs.length, snapshot: snapshot.length };
 }

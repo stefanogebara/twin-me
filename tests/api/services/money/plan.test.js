@@ -134,3 +134,16 @@ describe('the diary on the plan', () => {
     expect(items).toEqual([{ day: '2026-09-24', kind: 'calendar', label: 'R Homework', amount: 0 }]);
   });
 });
+
+describe('the diary on each square', () => {
+  it('carries how many events a day held, past days included', async () => {
+    const { monthPlan } = await import('../../../../api/services/money/plan.js');
+    const now = new Date('2026-09-21T10:00:00Z');
+    const facts = [{ kind: 'event_spend_meta', subject: '', value: JSON.stringify({ days: { '2026-09-15': 3, '2026-09-22': 5, '2026-08-30': 2 }, snapshot: [] }) }];
+    const cells = monthPlan({ forecast: null, transactions: [], facts, now }).cells;
+    const at = (d) => cells.find((c) => c.day === d);
+    expect(at('2026-09-15').events).toBe(3);
+    expect(at('2026-09-22').events).toBe(5);
+    expect(at('2026-09-16').events).toBe(0);
+  });
+});
