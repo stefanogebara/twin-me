@@ -32,11 +32,13 @@ export default function WhatsAppSource({ m }: { m: MoneyAccount }) {
           {link.step === 'linked' ? <button type="button" className="mv-pill mv-pill--ghost" onClick={() => void link.unlink()} disabled={link.busy}>{t('Remove')}</button> : null}
         </span>
       </div>
+      <p className="mv-body mv-body--icon mv-quiet">
+        {link.step === 'linked' ? t('One line each morning, and answers when you write. Say stop to end it.') : t('Say stop to end it.')}
+      </p>
       {link.step === 'phone' ? (
         <form className="mv-body mv-body--icon" onSubmit={(e) => { e.preventDefault(); void link.requestCode(phone); }}>
           <input className="mv-field" inputMode="tel" autoComplete="tel" placeholder="+34 600 000 000" value={phone} onChange={(e) => setPhone(e.target.value)} aria-label={t('Your WhatsApp number')} />
           <button type="submit" className="mv-pill mv-pill--ghost" disabled={link.busy || !phone.trim()}>{t('Send a code')}</button>
-          <p className="mv-quiet">{t('Say stop there to end the morning line.')}</p>
         </form>
       ) : null}
       {link.step === 'code' ? (

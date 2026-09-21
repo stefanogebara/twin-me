@@ -230,8 +230,9 @@ const PrivacyPolicy = () => {
                 into a point on a map, if you use Money.
               </li>
               <li>
-                <strong>Kapso and Meta Platforms (WhatsApp Business)</strong> - Carry messages
-                between you and TwinMe, if you connect WhatsApp.
+                <strong>WhatsApp providers</strong> - Carry messages between you and your twin on
+                WhatsApp, if you connect it. For the money twin on WhatsApp these are Kapso and
+                Meta Platforms (WhatsApp Business).
               </li>
             </ul>
           </section>
