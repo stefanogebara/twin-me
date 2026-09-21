@@ -1,136 +1,142 @@
 # Estado do repositório — TwinMe
 
-> Escrito pela primeira passada do `/intel` em 2026-08-24. Janela: 30 dias
-> (2026-07-14 → 2026-08-13, 91 commits). HEAD `55e44d08`, branch `main`.
+> Reescrito pela passada do `/intel` de 2026-09-21. Janela: 28 dias
+> (2026-08-24 → 2026-09-21, 50 commits em `main`). HEAD `9460cc7`, branch `main`.
 > Reescrito a cada `/intel`. Fonte: o git, não o config.
 
 ## O parágrafo
 
-Os últimos 30 dias não foram de construir gêmeo — foram de **medir se o gêmeo
-é fiel e consertar a memória que sustenta isso**. A harness de fidelidade virou
-portão de merge (`46da9e52`: flag só passa se mover o score) e cobrou o preço
-no mesmo dia: o *temporal spine*, shipado 14 dias antes, foi deletado porque o
-eval reprovou. Junto veio a Grande Deleção — reranker, modos de
-neurotransmissor, roteador neuropil, 15 dos 30 crons, e a IA colapsada em cinco
-superfícies. Do lado da recuperação, a busca vetorial estava devolvendo zero
-linhas em consulta filtrada por tipo, e a resposta foi **medir e otimizar
-dentro do Postgres**, não trocar de banco: índice HNSW parcial e MMR em duas
-fases, com payload 39× menor. Uma onda de honestidade atravessou os conectores:
-parar de afirmar o que não foi medido. Nenhum conector novo apareceu no top-25
-de arquivos tocados.
+Os últimos 28 dias não foram sobre o gêmeo — foram sobre **decidir que o dinheiro é o
+produto e provar isso em produção**. `CLAUDE.md` foi reescrito em 19/09 ("TwinMe Money is
+the product... everything under 'the twin' is secondary"), e o código seguiu: `/`, `/home`,
+`/dashboard` e o pós-OAuth agora levam a `/money` (D3/OW1), e em 20/09 Stefano decidiu D1 —
+o gêmeo legado foi **estacionado em produção** (`LEGACY_TWIN_ENABLED=false`; dez crons
+respondem 200 e não fazem nada). No lugar dele: onze rodadas de um harness de chat
+adversarial (`chatScenarios.js`, 65+ cenários, um juiz) que consertaram janela de tempo,
+figura da semana, reconciliação visível, aluguel por Bizum, janela de devolução em recibo —
+cada rodada com o que quebrou e o que mudou, registrado em `PROGRESS.md`. Em paralelo,
+infraestrutura: um *loop* agêntico (triagem → implementa → inspeciona, em GitHub Actions,
+nunca escreve no ledger) foi construído e ensaiado ponta a ponta; cobertura de código virou
+piso de CI; todo request ao Supabase ganhou prazo de 25s depois de um travamento de 16
+minutos. E o Codex avançou uma frente nova, "Presence" (um orb com voz, WhatsApp, uma
+landing própria), com dois PRs ainda abertos. `intel.config.json` não foi editado ainda —
+seu `one_line` e seus três `bets` continuam falando do gêmeo digital como o produto.
 
 ## O que shipou
 
-- **Recuperação vetorial consertada por medição** — HNSW parcial (`1b72efa4`,
-  #234: `memory_type='conversation'` ia de 0 linhas para 30 em 386ms) e MMR em
-  duas fases (`fc226194`, #235: 770.610 B/662ms → 19.879 B/254ms).
-- **Harness de fidelidade como portão de merge** (`46da9e52`) —
-  `twin-research/fidelity-eval.js` foi o arquivo mais tocado do período (19×).
-- **A Grande Deleção** — temporal spine (`a8b3314e`), reranker + neurotransmissor
-  + neuropil (`01e00797`), 15 de 30 crons (`3073983f`).
-- **Higiene epistêmica da memória** — o gêmeo parou de se citar como fato
-  (`df8b146e`) e as reflexões pararam de comer o próprio output (`4c73e592`).
-- **Onda de honestidade nos conectores** — Spotify parou de descrever pessoa
-  não medida (`f711dc83`), "ai" no nome do repo deixou de ser evidência de data
-  science (`27fd15db`), fetch que falhou deixou de virar fetch vazio
-  (`2069f5b1`).
-- **Recibos no chat** (`9da39ded`) — fontes de plataforma e confiança de
-  evidência na resposta. **O padrão de UI que o spike de proveniência precisa
-  já existe — só nunca foi levado para o traço.**
-- Story Chapters, decay Ebbinghaus per-memory, compilador de task-brief.
+- **Money first, de fato** (`783bc68d`, D3/OW1) — `/`, `/home`, `/dashboard`, pós-sign-in e
+  pós-OAuth caem em `/money`; pinado por `money-first.goal.test.js`.
+- **O gêmeo legado estacionado** (D1, decidido por Stefano 20/09; `LEGACY_TWIN_ENABLED=false`
+  em produção) — medido antes de parar: 34 memórias de chat por 2 usuários em 30 dias contra
+  3.214 reflexões e 160 insights proativos gerados por crons no mesmo período; $3,18/30 dias
+  em DeepSeek quase inteiro gasto refletindo sobre ninguém.
+  > **Trava de estado:** item de intel que proponha reviver o gêmeo legado (reflexões,
+  > insights proativos, os dez crons parados) sem uma medição nova de uso perde o eixo
+  > Alavanca — foi medido e estacionado aqui, com números.
+- **Onze rodadas de chat curado contra cenários reais** (`#450`–`#468`, `chatScenarios.js`
+  65+ cenários) — janelas de tempo em três idiomas (`windows.js`), figura da semana desenhada
+  em código, reconciliação visível por linha (`seen.js`, "visto pelo banco e o celular"),
+  aluguel por Bizum recorrente (`bizum.js`), janela de devolução de recibo (`returns.js`),
+  timeout de 50s com oferta de "not mine" sempre anexada, entradas tipadas contra injeção
+  (`inject-eval.mjs`: instrução de comerciante obedecida 0/6 depois da correção), oferta de
+  setup como ação do chat em vez de página.
+- **Ciclos de dependência do money quebrados** (M2-1, `#432`) — `factsRepository.js` +
+  `forecastService.js` isolam `store.js` de `calendar.js`/`predictions.js`; `madge --circular`
+  em 0; `store.js` caiu de 1.237 para 1.108 linhas.
+- **Uma leitura por página, cache por revisão de ingestão** (M2-3, `#434`) — `GET
+  /api/money/page` lê as onze partes uma vez; produção medida: Today pinta em 0,9–3,2s morno
+  (era 13–19s).
+- **O loop agêntico ensaiado ponta a ponta** (M2-6, `#442`–`#448`) — triagem → implementa
+  (Claude Code headless, `$5` de teto, `guard.mjs` recusa qualquer mudança em tabela do
+  ledger, cron, schema ou `.env`) → inspeciona (modelo fresco aprova ou pede trabalho); nunca
+  faz merge sozinho. Primeira PR real (`#444`) aprovada e mergeada.
+- **Higiene de infraestrutura** — piso de cobertura em CI (65/58/52/61%, M0-1); `strict:
+  true` em `src/pages/money/**` (M3-1); um cliente Redis só (M3-3, achou um rate limiter que
+  nunca usava o Redis compartilhado); ensaio de restore de backup antes de migration que toca
+  o ledger (M0-4); prazo de 25s em todo request Supabase depois de um travamento de 16 min em
+  produção (21/09).
+- **Cinco ideias dos scouts de 19/09, construídas** — reconciliação visível, cobrança que
+  "ainda cabe" antes de acontecer, janela de devolução, aluguel por Bizum, "noventa segundos"
+  de revisão sem veredito pronto (`#438`).
 
 ## O que está em voo
 
-- **PRs abertos:** #257 (`fix/design-tier2-claura-sweep`), #255
-  (`fix/design-tier1-broken-buttons`), #254
-  (`feat/phase-2-make-moat-visible`) — todos de 12–13/08.
-- **Transcrição on-device compila mas não está no pipeline** —
-  `desktop/src-tauri/src/transcribe.rs`, `transcribe_wav` marcado
-  `#[allow(dead_code)] // wired into the capture -> transcribe pipeline in a
-  later 5B unit`.
-- **Risco residual assumido em commit** — `52b40c42`: o budget de 12s cobre o
-  contexto, não a perna do LLM; healthy path medido em 57s.
-- `f1d008da` registra que o ganho do digest de plataforma **não replicou** num
-  segundo dia.
-- ~40 branches remotas, a maioria já mergeada e não podada.
+- **PRs abertos, dois ativos:** `#453` presence/people-wipe (20/09), `#435` presence/ux
+  (19/09) — frente do Codex, ainda sem leitura cruzada com este estado.
+- **PRs abertos, provavelmente abandonados** (nenhum commit em cima há mais de 3 semanas):
+  `#418` eval de custo de leitura de página (17/09), `#302` design Cosmos/Presence/Portrait
+  (10/09, draft), `#299` migrations do Presence (09/09), `#273` e **`#350` são passadas de
+  `/intel` anteriores que nunca foram mergeadas** (31/08 e 14/09, ambas draft) — o STATE.md
+  que este arquivo substitui nunca refletiu o trabalho dessas duas passadas; `seen.jsonl` em
+  `main` pode estar sem os itens que elas viram. `#272` (26/08) e `#267` (25/08) também
+  seguem abertos sem atividade recente. Vale uma triagem de limpeza de branches — não feita
+  aqui, fora do escopo desta passada.
+- **Presence** (Codex) é uma frente nova não documentada em `CLAUDE.md`: um orb com voz
+  (ElevenLabs), uma landing própria de seis páginas, chamada web chegando por WhatsApp,
+  camada de segurança e "as pessoas ao redor dela" (`#427`, `#429`, `#433` já mergeados).
+  Relação com "money first" ainda não está escrita em lugar nenhum.
+- **Aberto para Stefano em `PROGRESS.md`:** M1-4 (fail-closed no logout se Redis cair),
+  rótulo do número do dia ("estimativa" vs "orçamento sustentável"), orçamento de palavras de
+  Today (mede 285, o registro pede ~150), token de push dedicado para o loop.
+- **`intel.config.json` não foi tocado pela mudança de estratégia** — ver Divergências.
 
 ## O que morreu
 
-- **Temporal spine** (`a8b3314e`, 11/08) — 14 dias de vida, morto pelo eval.
-- Reranker LLM, modos de neurotransmissor, roteador neuropil (`01e00797`).
-- Cron de saliency-replay e cache-warm de grafo (`00a8e241`); 15 de 30 crons
-  (`3073983f`).
-- Braço "spread" do eval — medido, reprovado duas vezes (`d28ccb70`,
-  `3e4750fc`).
-- Rotas `/preview/*` rebaixadas a dev-only.
-
-> **Trava de estado:** item de intel que proponha ressuscitar reranker,
-> temporal spine, roteador por neurotransmissor ou agregador bancário perde o
-> eixo Alavanca. Foram medidos e reprovados aqui.
+- **`test/`, `ml/` (incluindo `ml/gnn_model.py`), `context/`, `screenshots/`** — deletados
+  (QW5, `ba89498a`); `mobile/node_modules` nunca esteve rastreado, regra de ignore
+  acrescentada.
+- **O pacote `redis` como segunda conexão** — M3-3 (`#434`); um rate limiter tinha seu próprio
+  cliente Redis que nenhum limiter jamais usava.
+- **`--legacy-peer-deps`** — M3-5 (`#434`); a única causa era `lovable-tagger`, plugin da era
+  Lovable pedindo Vite 5 contra Vite 7; removido.
+- **Retry de teste (`--retry=2`) na suíte noturna** — a caminho de sair (M0-2); dez noites
+  verdes em `--retry=0` são o critério, ainda em contagem.
+- **Dez crons do gêmeo legado, sem serem apagados** — não morreram, foram **estacionados**
+  (D1): respondem 200 e não fazem nada. Ver trava de estado acima.
 
 ## Áreas quentes
 
-`twin-research/fidelity-eval.js` (19) · `api/services/memoryStreamService.js`
-(12) · `api/services/fidelityBatteryService.js` (10) ·
-`tests/api/services/twinFidelity.test.js` (8) ·
-`api/services/twinSystemPromptBuilder.js` (6) · `src/pages/TalkToTwin.tsx` (5) ·
-`api/services/twinPromptAssembly.js` (5) ·
-`api/services/observationIngestion.js` (5).
+`docs/roadmap/PROGRESS.md` (29, o tracker vive aqui) · `api/services/money/chat.js` (17) ·
+`tests/api/services/money/chatScenarios.js` (12) ·
+`tests/api/services/money/chat.test.js` (11) · `tests/goals/README.md` (10) ·
+`tests/api/services/money/persistence.integration.test.js` (8) ·
+`api/services/money/store.js` (8) · `src/lib/i18n/{pt-BR,es}.money.ts` (7 cada) ·
+`api/services/money/windows.js` + seu teste (6) · `src/services/api/moneyAPI.ts` (6) ·
+`src/App.tsx` (6). Zero arquivos do gêmeo legado no top-25 — só `App.tsx` (roteamento) o
+toca, para tirar rota dele do caminho.
 
 ## Divergências com o config
 
-Nenhuma foi aplicada sozinha. `bets` e `settled` só o Stefano mexe.
+1. **`one_line` e os três `bets` descrevem um produto que o próprio `CLAUDE.md` já
+   não descreve.** `one_line` diz "Gêmeo digital auto-referente... revela sua soul
+   signature"; `CLAUDE.md` diz, desde 19/09, "TwinMe Money is the product... everything
+   under 'the twin' is secondary... a candidate for parking". Isso não é interpretação — é
+   o texto canônico do projeto tendo mudado sob o config. Os três `bets` (auto-referente,
+   profundidade de conectores, Tauri local) são todos sobre o gêmeo; nenhum menciona
+   dinheiro, PSD2, reconciliação ou previsão, que é onde 100% dos commits desta janela
+   foram. **Decisão pendente do Stefano:** reescrever `one_line` e acrescentar (não
+   substituir, a regra deste arquivo proíbe) um quarto bet sobre o money twin, ou manter os
+   bets do gêmeo como aposta de longo prazo enquanto o money twin é tratado como produto
+   tático? A pergunta de 24/08 sobre o fosso (largura de conectores vs. fidelidade medida)
+   segue sem resposta e agora tem uma terceira opção: nem uma nem outra, o fosso virou
+   dinheiro.
 
-1. **`bets[1]` — "profundidade de ingestão (30+ plataformas) é o fosso" — o
-   código foi na direção oposta.** `api/config/platformConfigs.js:12` documenta
-   o corte: *"replan-2026-06-10 Track C portfolio cut: twitch, linkedin,
-   reddit, notion, pinterest, steam, soundcloud removed"*. A allowlist
-   canônica tem **7 keepers** (Spotify, YouTube, Discord, Whoop, Calendar,
-   GitHub, Gmail) + Netflix/Instagram/Amazon via extensão. Não são 30+, são 7 —
-   e plataformas foram removidas **ativamente** (`e2b804d2`, `d156e4b2`).
-   Onde o código de fato aprofundou foi noutro eixo: captura ambiente (clips de
-   janela, reunião, WhatsApp, Telegram, voz, biometria) e **fidelidade medida**.
-   **Decisão pendente do Stefano:** o fosso ainda é largura de conectores, ou
-   já virou fidelidade medida + profundidade de captura? Isso muda o que o
-   `intel` considera ameaça.
-   *(O item de 22/08 sobre Gemini e ChatGPT abrindo conectores já fazia essa
-   pergunta pelo lado do mercado. O código a responde pelo lado de dentro.)*
+2. **`settled` pode ganhar uma linha que o git prova sem ambiguidade: money first é fato
+   em produção, não intenção.** `/`, `/home`, `/dashboard`, pós-sign-in e pós-OAuth levam a
+   `/money` (pinado por teste); `LEGACY_TWIN_ENABLED=false` está em produção desde 20/09 com
+   a decisão escrita em `PROGRESS.md` ("D1: decided yes... Stefano, 2026-09-20"). Isto foi
+   **acrescentado** ao `settled` nesta passada (permitido pela regra: fato inequívoco do
+   git); nenhuma linha existente foi editada ou removida.
 
-2. **`bets[2]` — "processamento local no Tauri é diferencial de confiança" —
-   silencioso tendendo a contradizer.** whisper.cpp está compilado no binário,
-   mas `transcribe_wav` não está plugado. No mesmo binário,
-   `desktop/src-tauri/src/sync.rs` posta clips para o servidor, e
-   `api/routes/observations-clip.js` aceita **8.000 caracteres de conteúdo
-   bruto por clip, 100 clips por batch**. Nenhuma inferência de persona roda
-   local. Nem o README nem o `CLAUDE.md` fazem a afirmação de "local" como copy
-   — a aposta não foi cobrada nem cumprida.
+3. **`settled` ainda diz "captura financeira é por WhatsApp" (`4a74a4d6`, 2026-06-12) — e
+   segue falso.** Já sinalizado nas passadas de 14/09 e 21/09 (Em aberto, INTEL.md): a
+   captura é Enable Banking (PSD2) em produção desde 08/09, upload de extrato e um endereço
+   de e-mail de recibos. Nenhuma linha nova de código mudou isso nesta janela; repetido aqui
+   porque o `settled` do config continua sem correção e a regra deste arquivo é nunca deixar
+   isso viver só numa passada anterior.
 
-3. **`stack` dizia "Anthropic API"; a realidade é OpenRouter + DeepSeek V3.2.**
-   Não existe `@anthropic-ai/sdk` no `package.json` da raiz.
-   `api/config/aiModels.js:17` é explícito: *"(was Claude Sonnet 4.6;
-   deliberately kept on DeepSeek for cost — audit #118)"*, com teste anti-drift.
-   *Corrigido no config, mais `verdict_note` avisando a rubrica.*
-
-4. **`settled` — nenhum violado.** `pgvector fica` é respeitado com rigor
-   incomum: quando a recuperação quebrou, mediram e otimizaram dentro do
-   Postgres; há até uma migration chamada
-   `20260728f_embedding_cast_measured_not_a_bottleneck.sql`. Zero clientes de
-   Pinecone/Weaviate/Qdrant/Chroma/Milvus fora de docs arquivados.
-   **Zona cinzenta a decidir em `settled[0]`:** três rotas públicas sem auth
-   expõem a soul signature de um usuário a quem tiver o UUID —
-   `api/routes/soul-signature-public.js`, `api/routes/portfolio-public.js`
-   (que publica os **scores OCEAN brutos**) e `api/routes/og-image.js`, com a
-   rota de front `/p/:userId` comentada como *"Premium shareable profile"*.
-   É exibição opt-in de um retrato, não clonagem operacional — o `settled`
-   formalmente está de pé. Mas a linha está implícita, e vale escrevê-la.
-
-5. **`known_gaps[0]` estava certo no diagnóstico e errado na causa.** A tabela
-   de proveniência **já existe e é escrita** (`behavioral_evidence`,
-   `evidenceGeneratorService.js:418`). O problema é que ela é **write-only**:
-   nenhuma rota e nenhum arquivo de `src/` lê de volta. *Reformulado.*
-
-6. **`known_gaps[1]` e `[2]` estavam desatualizados.** Esquecimento de
-   **memória** está resolvido (cron de 5 tiers, supersessão, decay Ebbinghaus);
-   o que falta é esquecimento de **persona**. E já existe BM25 no repo — só que
-   como rescoring sobre candidatos do canal denso, com peso 0.10 que o próprio
-   `twin-config.js` admite nunca ter sido validado. *Reformulados.*
+4. **`known_gaps` sobre o dia (ruído de ~22 EUR, 53% dos dias em zero; banda em 67% onde
+   deveria 80%) seguem intocados por código nesta janela.** O spike `dia-hurdle` e
+   `banda-conformal-pid` (`BACKLOG.md`) continuam "aberto" — nenhum commit em `calibration.js`
+   fora dos já contados em passadas anteriores. Não é divergência nova, é confirmação de que
+   o gap descrito ainda é o gap real.
