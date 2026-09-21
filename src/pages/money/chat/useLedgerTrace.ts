@@ -61,6 +61,11 @@ export function useLedgerTrace(): { steps: TraceStep[]; reading: boolean } {
               detail: typeof raw.detail === 'string' && raw.detail ? raw.detail : null,
               count: typeof raw.count === 'number' && Number.isFinite(raw.count) ? raw.count : null,
               done: raw.done === true || raw.state === 'done' || raw.state === 'failed',
+              /* The server's own key for the grey line, so the panel speaks the reader's language;
+                 dropped here since 2026-09-16, the panel showed the English detail (2026-09-21). */
+              say: raw.say && typeof raw.say === 'object' && typeof (raw.say as { key?: unknown }).key === 'string'
+                ? { key: (raw.say as { key: string }).key, vars: (raw.say as { vars?: Record<string, string | number> }).vars }
+                : null,
             };
             setSteps((all) => {
               const at = all.findIndex((x) => x.step === next.step);

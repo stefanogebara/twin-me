@@ -545,9 +545,11 @@ router.get('/stream', async (req, res) => {
     await step('places', 'Working out the places', async () => {
       const r = await enrichPlaces(userId, { limit: 8 });
       if (r.provider === 'none') return { detail: 'Place lookups are off.', say: { key: 'Place lookups are off.' }, count: 0 };
+      /* "all of them placed, 0" when nothing was looked at said nothing (2026-09-21). */
+      const said = r.left ? { key: '{n} still to do', vars: { n: r.left } } : r.looked ? { key: 'all of them placed' } : { key: 'Nothing new to place.' };
       return {
-        detail: r.left ? `${r.left} still to do` : 'all of them placed',
-        say: r.left ? { key: '{n} still to do', vars: { n: r.left } } : { key: 'all of them placed' },
+        detail: r.left ? `${r.left} still to do` : r.looked ? 'all of them placed' : 'Nothing new to place.',
+        say: said,
         count: r.placed,
       };
     });

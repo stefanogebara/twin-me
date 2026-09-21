@@ -7,6 +7,7 @@
 import type { MoneyAccount } from '../useMoneyAccount';
 import MonthHero from './month/MonthHero';
 import WhereItWent from './month/WhereItWent';
+import ByWeekday from './month/ByWeekday';
 import Ledger from './month/Ledger';
 import Recurring from './month/Recurring';
 import Readings from './Readings';
@@ -19,6 +20,8 @@ export default function MonthView({ m }: { m: MoneyAccount }) {
       <MonthHero m={m} />
           {/* Where it went, by kind of place */}
       <WhereItWent m={m} />
+          {/* By day of the week, the last eight full weeks (2026-09-21). */}
+      <ByWeekday m={m} />
           {/* Ledger */}
       <Ledger m={m} />
           {/* Recurring */}
