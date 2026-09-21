@@ -110,13 +110,15 @@ export default function PresenceVoiceSetup() {
   }, [rec]);
 
   if (state === 'loading') {
-    return <main className="presence-cosmos pc-shell"><div className="pc-empty">Carregando...</div></main>;
+    return <main className="presence-cosmos pc-app dsh"><div className="pc-shell"><div className="pc-empty">Carregando...</div></div></main>;
   }
   if (state !== 'ready' || !overview) {
     return (
-      <main className="presence-cosmos pc-shell">
-        <div className="pc-empty">Não foi possível abrir a sua Presença.</div>
-        <button className="pc-btn pc-btn--ghost" onClick={() => navigate('/presence/home')}>Voltar</button>
+      <main className="presence-cosmos pc-app dsh">
+        <div className="pc-shell">
+          <div className="pc-empty">Não foi possível abrir a sua Presença.</div>
+          <button className="pc-btn pc-btn--ghost" onClick={() => navigate('/presence/home')}>Voltar</button>
+        </div>
       </main>
     );
   }
@@ -220,15 +222,16 @@ export default function PresenceVoiceSetup() {
   const canRecord = consented || voiceReady;
 
   return (
-    <main className="presence-cosmos pc-shell" id="main-content">
-      <div className="pc-app">
+    <main className="presence-cosmos pc-app dsh" id="main-content">
+      <div className="pc-shell pc-shell--single">
+        <div className="pc-col">
         <Link className="pc-btn pc-btn--ghost" to="/presence/settings">
           <ArrowLeft size={14} aria-hidden="true" /> Configurações
         </Link>
 
-        <header className="pc-sechead" style={{ marginTop: 28 }}>
-          <h1 className="pc-sechead-title">A sua voz</h1>
-          <p className="pc-sechead-line">
+        <header className="pc-apphead">
+          <h1 className="pc-apphead-title">A sua voz</h1>
+          <p className="pc-apphead-line">
             {voiceReady
               ? `As ligações dela usam a sua voz${voice?.sample_count ? ` · ${voice.sample_count} ${voice.sample_count === 1 ? 'amostra' : 'amostras'}` : ''}.`
               : 'Três trechos curtos, e ela passa a ouvir você.'}
@@ -355,6 +358,7 @@ export default function PresenceVoiceSetup() {
         )}
 
         {error ? <p className="pc-empty" role="alert">{error}</p> : null}
+        </div>
       </div>
     </main>
   );
