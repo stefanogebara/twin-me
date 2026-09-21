@@ -74,11 +74,11 @@ export async function releaseOffer(userId, offerId) {
   if (error) log.warn(`offer not released: ${error.message}`);
 }
 
-/** Beta people with a linked WhatsApp number who have not said stop. */
+/** Beta people with a linked, enabled WhatsApp number who have not said stop. */
 export async function morningRecipients() {
   const ids = moneyChannelUserIds();
   if (!ids.length) return [];
-  const { data, error } = await supabaseAdmin.from('messaging_channels').select('user_id, channel_id, preferences').eq('channel', 'whatsapp').in('user_id', ids);
+  const { data, error } = await supabaseAdmin.from('messaging_channels').select('user_id, channel_id, preferences').eq('channel', 'whatsapp').eq('is_enabled', true).in('user_id', ids);
   if (error) throw new Error(error.message);
   return (data || []).filter((r) => r.channel_id && !(r.preferences || {}).money_morning_muted).map((r) => ({ userId: r.user_id, phone: r.channel_id }));
 }
