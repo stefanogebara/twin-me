@@ -535,6 +535,7 @@ export const RULES = [
   'When the question names a weekday, a night, a weekend, a date, a stretch between two dates or "since" a date, the line beginning "Asked stretch" holds exactly that stretch: quote its total, count and largest, and its kinds and places. Asked what a week costs on average, quote the line beginning "Average week", never the last seven days. A comparison of two stretches is the two lines side by side; never work out the difference.',
   'A line is about the days it names and no others: never give a line\'s numbers for a different day, weekend or stretch. When the stretch asked about has no line, say the ledger cannot tell for those days. The month\'s costliest day and the spend by day of the week over the last full weeks are lines of their own: quote them for "which day" questions, never the per-day line of the last seven.',
   'Asked whether somebody sent or paid this month, answer from the line beginning "From people this month" (or "To people this month"): a name missing there did not, this month, whatever the 90-day line says; then say when they last did, from "last on". Asked about a place over several months or "since" a month, quote the line beginning "Whole ledger by place" and say since when the ledger goes back; this month\'s figure is never the answer to a longer question. "Average per day" and the cheapest day are lines of their own.',
+  'Asked for two or more places or kinds together, the answer is the one figure when all but one are absent from the lines (a place with no payment adds nothing); when two or more have figures, give each and say the ledger has no total for the pair. A kind\'s largest payment is the one its own line names, never the window\'s.',
   'Asked whether something can still be returned, or what closes soon, quote the line beginning "Return windows closing"; without it, say the receipts the ledger holds state no return window.',
   'Asked how much went to people, by Bizum or by transfer, this month, or what came from them, quote the lines beginning "To people this month" and "From people this month": they hold the totals and each person. Asked for a graph of a stretch named in the question, ask for the week figure: it draws that stretch, a bar per day.',
   'Asked whether they can afford an amount, answer yes or no in the first sentence against today\'s number (the line for today, or the one beginning "Left for"), then give those numbers; repeat the amount they named as they wrote it.',
@@ -824,7 +825,11 @@ export function withoutChartQuestion(text, figuresDrawn) {
   const chart = /\b(graph|chart|grafic[oa]|diagrama|bars?|barras|figure|figura|dia a dia|day by day|per day|por dia)\b/;
   const aboutTheChart = (p) => {
     const n = p.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-    return chart.test(n) && (/\?\s*$/.test(p) || /\b(ask for|ask me for|peca|peda|pide|pida|pidele|solicite)\b/.test(n));
+    /* a question about it, an instruction to ask for it, or the model narrating that it will ask
+       for it ("vou pedir o grafico", "I will ask for the week figure", 2026-09-21) */
+    /* narration needs no chart word: "I'll draw the week." (2026-09-21) */
+    if (/\b(i will draw|i'll draw|let me draw|vou desenhar|voy a dibujar|i will ask for the|i'll ask for the|vou pedir (o|a)|voy a pedir (el|la))\b/.test(n)) return true;
+    return chart.test(n) && (/\?\s*$/.test(p) || /\b(ask for|ask me for|peca|peda|pide|pida|pidele|solicite|vou pedir|vou mostrar|vou desenhar|i will ask|i'll ask|let me ask|let me draw|i will draw|i'll draw|voy a pedir|pedire|voy a mostrar|voy a dibujar|aqui esta o grafico|aqui esta a figura|here is the (week |month |day )?(graph|chart|figure)|here it is|aqui esta el grafico|aqui esta la figura)\b/.test(n));
   };
   const kept = parts.filter((p) => !aboutTheChart(p));
   return kept.length && kept.length < parts.length ? kept.join(' ') : text;

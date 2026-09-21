@@ -134,7 +134,13 @@ export function dayTotals(transactions = [], from, to, max = 31) {
 /** A window's spending by a key (a kind of place, a place), largest first: [{ key, total, count }]. */
 export function breakdown(rows, keyOf, max = 4) {
   const by = new Map();
-  for (const t of rows) { const k = keyOf(t) || 'not read yet'; const b = by.get(k) || { key: k, total: 0, count: 0 }; b.total = r2(b.total + Math.abs(Number(t.amount))); b.count += 1; by.set(k, b); }
+  for (const t of rows) {
+    const k = keyOf(t) || 'not read yet';
+    const b = by.get(k) || { key: k, total: 0, count: 0, biggest: null };
+    b.total = r2(b.total + Math.abs(Number(t.amount))); b.count += 1;
+    if (!b.biggest || Math.abs(Number(t.amount)) > b.biggest.amount) b.biggest = { name: name(t), amount: r2(Math.abs(Number(t.amount))) };
+    by.set(k, b);
+  }
   return [...by.values()].sort((a, b) => b.total - a.total).slice(0, max);
 }
 
@@ -148,7 +154,10 @@ export function stretchLine(label, transactions = [], from, to, { categoryOf = n
   if (!w.count) return `${label}: nothing spent, not one payment in that stretch.`;
   let line = `${label}: spent ${eur(w.total)} in ${w.count} payment${w.count === 1 ? '' : 's'}${w.biggest ? `, the largest ${w.biggest.name} ${eur(w.biggest.amount)}` : ''}.`;
   if (categoryOf && inWindow.length > 1) {
-    const kinds = breakdown(inWindow, categoryOf).map((b) => `${b.key} ${eur(b.total)} (${b.count})`).join('; ');
+    /* each kind with its own largest: asked about transport, the model paired the kind's total
+       with the window's smallest payment as "the largest" (2026-09-21) */
+    /* every kind, not the top four: transport fell off last week's line and the model said there was none (2026-09-21) */
+    const kinds = breakdown(inWindow, categoryOf, 16).map((b) => `${b.key} ${eur(b.total)} (${b.count}${b.count > 1 && b.biggest ? `, largest ${b.biggest.name} ${eur(b.biggest.amount)}` : ''})`).join('; ');
     const places = breakdown(inWindow, nameOf || name, 3).map((b) => `${b.key} ${eur(b.total)} (${b.count})`).join('; ');
     line += ` By kind: ${kinds}. By place: ${places}.`;
   }

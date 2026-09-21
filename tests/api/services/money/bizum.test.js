@@ -129,3 +129,14 @@ describe('describeBetweenPeople says when the person last moved money', async ()
     expect(line).toBe('Mama: sent you 3500,00 EUR in 90 days, last on 12 Aug.');
   });
 });
+
+describe('the month-to-people line stays a line', () => {
+  it('names six people at most and counts the rest, with the total unchanged', async () => {
+    const { monthBetweenPeople, describeMonthBetweenPeople } = await import('../../../../api/services/money/bizum.js');
+    const now = new Date('2026-09-20T10:00:00Z');
+    const rows = Array.from({ length: 9 }, (_, i) => tx(`p${i}`, '2026-09-05T10:00:00Z', -(100 - i * 10), `Person ${String.fromCharCode(65 + i)} Surname`, 'bizum'));
+    const line = describeMonthBetweenPeople(monthBetweenPeople(rows, now))[0].replace(/\u00a0/g, ' ').replace(/\u20ac/g, 'EUR');
+    expect(line).toMatch(/^To people this month \(Bizum and transfers\): 540,00 EUR to 9 people: Person A\. 100,00 EUR \(1\); .*Person F\. 50,00 EUR \(1\); and 3 more, smaller\.$/);
+    expect(line).not.toMatch(/Person G/);
+  });
+});
