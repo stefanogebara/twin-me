@@ -9,7 +9,7 @@ import { Menu, X } from 'lucide-react';
 import MoneyOnboarding, { type OnboardingGiven } from '../../components/MoneyOnboarding';
 import { useT } from '@/lib/i18n';
 
-export type MoneyNavLink = { to: string; label: string; current?: boolean; sub?: boolean };
+export type MoneyNavLink = { to: string; label: string; current?: boolean; sub?: boolean; apart?: boolean };
 
 
 
@@ -42,7 +42,7 @@ export default function MoneyNav({ links, onboarding }: { links: MoneyNavLink[];
         {links.map((l) => (l.to.startsWith('#') ? (
           <a key={l.to} href={l.to} className={l.sub ? 'is-sub' : undefined} onClick={close}>{t(l.label)}</a>
         ) : (
-          <Link key={l.to} to={l.to} className={l.sub ? 'is-sub' : undefined} aria-current={l.current ? 'page' : undefined} onClick={close}>{t(l.label)}</Link>
+          <Link key={l.to} to={l.to} className={l.sub ? 'is-sub' : l.apart ? 'is-apart' : undefined} aria-current={l.current ? 'page' : undefined} onClick={close}>{t(l.label)}</Link>
         )))}
       </nav>
     </aside>

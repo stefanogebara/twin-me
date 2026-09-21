@@ -118,7 +118,7 @@ export function looksLikeInstruction(text) {
    money twin answered "connect a bank or add a statement" as a sentence with nothing to tap
    (stranger walk of 2026-09-13). The offer is computed here, never proposed by the model. */
 const BANK_NAMES = ['revolut', 'bbva', 'sabadell', 'santander', 'caixabank', 'caixa', 'openbank', 'n26', 'bankinter', 'ing', 'imagin', 'evo', 'unicaja', 'kutxabank', 'abanca', 'wise', 'bunq', 'monzo', 'nubank', 'itau', 'bradesco'];
-const SETUP_HREF = '/money/you#sources';
+const SETUP_HREF = '/money/account#sources';
 export function setupOffer(message, ctx) {
   const m = String(message || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
   const L = ctx.language;

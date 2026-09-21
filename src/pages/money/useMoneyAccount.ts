@@ -93,7 +93,8 @@ export function useMoneyRead(userId: string | null, view: MoneyView) {
        the server, and the names of the parts that could not be read. Nine requests over a
        browser's six connections painted in rounds. */
     let page: MoneyPage | null = null;
-    try { page = await moneyAPI.page(viewRef.current); } catch { page = null; }
+    /* The account page reads what You reads (2026-09-21). */
+    try { page = await moneyAPI.page(viewRef.current === 'account' ? 'you' : viewRef.current); } catch { page = null; }
     if (mine !== seq.current) return;
     /* Marked when the read lands, not when it leaves. Stamped on departure, a read cancelled
        by an unmount still counted as "just loaded", so the mount that replaced it read
