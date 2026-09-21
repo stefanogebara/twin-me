@@ -348,6 +348,9 @@ export function ledgerQuestions({ transactions = [], facts = [], placeOf = () =>
     if (!isOut(t) || placeOf(t)) continue;
     if (['transfer', 'bizum'].includes(t.channel)) continue;
     if (knownKinds.has(t.merchant_key)) continue;
+    /* A line the bank sent without a name has no place to ask about: "What kind of place is
+       unknown?" was on the screen (2026-09-21). */
+    if (!t.merchant_raw || /^unknown$/i.test(String(t.merchant_raw).trim())) continue;
     if (!unplaced.has(t.merchant_key)) unplaced.set(t.merchant_key, { name: nameOf(t), total: 0, rows: [] });
     const g = unplaced.get(t.merchant_key);
     g.total += abs(t);

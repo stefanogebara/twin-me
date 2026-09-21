@@ -16,7 +16,7 @@ const CADENCE_WORD: Record<string, string> = {
   quarterly: 'Every three months', yearly: 'Every year',
 };
 
-function Bars({ points }: { points: FigurePoint[] }) {
+export function Bars({ points }: { points: FigurePoint[] }) {
   const top = Math.max(...points.map((p) => p.value), 1);
   return (
     <div className="mc-bars" role="img" aria-label={points.map((p) => `${p.label} ${euro(p.value)}`).join(', ')}>

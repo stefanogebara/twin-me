@@ -119,3 +119,18 @@ describe('a day in the diary lands on its square', () => {
     expect(cell.items.map((i) => [i.kind, i.amount])).toEqual([['calendar', 40]]);
   });
 });
+
+describe('the diary on the plan', () => {
+  it('lists a coming event of the month even when its kind of day has no learned cost', async () => {
+    const { monthPlan } = await import('../../../../api/services/money/plan.js');
+    const now = new Date('2026-09-21T10:00:00Z');
+    const facts = [{ kind: 'event_spend_meta', subject: '', value: JSON.stringify({ snapshot: [
+      { id: 'e1', title: 'R Homework', start: '2026-09-24T12:00:00+02:00', end: '2026-09-24T13:00:00+02:00', all_day: false },
+      { id: 'e2', title: 'Old thing', start: '2026-09-02T12:00:00+02:00', end: '2026-09-02T13:00:00+02:00', all_day: false },
+      { id: 'e3', title: 'October', start: '2026-10-02T12:00:00+02:00', end: '2026-10-02T13:00:00+02:00', all_day: false },
+    ] }) }];
+    const plan = monthPlan({ forecast: null, transactions: [], facts, now });
+    const items = plan.cells.flatMap((c) => c.items.map((i) => ({ day: c.day, ...i })));
+    expect(items).toEqual([{ day: '2026-09-24', kind: 'calendar', label: 'R Homework', amount: 0 }]);
+  });
+});

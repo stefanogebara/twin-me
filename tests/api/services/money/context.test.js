@@ -256,3 +256,10 @@ describe('the rent split raised by the ledger (idea 4)', () => {
     expect(ledgerQuestions({ transactions: dinners, now: NOW }).some((q) => q.id === 'rent:ana lopez')).toBe(false);
   });
 });
+
+describe('a line without a name', () => {
+  it('is never asked about as a place', () => {
+    const rows = [1, 2, 3].map((i) => ({ id: `u${i}`, occurred_at: `2026-09-1${i}T10:00:00Z`, amount: -10, merchant_raw: null, merchant_key: 'unknown', channel: 'card' }));
+    expect(ledgerQuestions({ transactions: rows, now: NOW }).some((q) => String(q.id).startsWith('kind:'))).toBe(false);
+  });
+});

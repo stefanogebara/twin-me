@@ -19,6 +19,7 @@
  * the cells; the one sentence this offers (planLine) is computed.
  */
 import { dayIn, partsIn } from './zone.js';
+import { calendarFromFacts } from './calendar.js';
 import { money } from './currency.js';
 
 const r2 = (n) => Math.round(Number(n) * 100) / 100;
@@ -122,6 +123,23 @@ export function monthPlan({ forecast = null, transactions = [], facts = [], mont
       put(it.day || it.on, { kind: 'calendar', label: it.title || it.label || 'A day in the diary', amount });
     }
   }
+
+  /* Every coming event of the month from the diary, priced or not: the feed had 191 events
+     read and nothing on this page unless a kind of day had learned a cost, so the sync looked
+     dead (2026-09-21). A day that already carries a priced item keeps that one. */
+  try {
+    const diary = calendarFromFacts(facts || [], { now });
+    for (const e of diary.snapshot || []) {
+      if (!e || !e.start || e.noted) continue;
+      const day = dayIn(e.start);
+      if (!day || day.slice(0, 7) !== monthKey) continue;
+      const c = cellOf(day);
+      if (!c || c.past) continue;
+      const title = String(e.title || '').trim().slice(0, 80);
+      if (!title || c.items.some((i) => i.kind === 'calendar' && String(i.label).toLowerCase() === title.toLowerCase())) continue;
+      c.items.push({ kind: 'calendar', label: title, amount: 0 });
+    }
+  } catch { /* a diary that cannot be read is no diary, not a broken plan */ }
 
   /* The person's own words on a day. */
   for (const f of facts || []) {
