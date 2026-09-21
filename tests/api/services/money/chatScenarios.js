@@ -121,6 +121,9 @@ export const SCENARIOS = [
   { id: 'subscription-no-day', kind: 'statement', message: '180 euros do plano do claude max tambem caem todo mes mas na conta de credito', route: 'model', figures: { only: ['recurring', 'band'] }, actions: { none: true }, mention: [/dia|day/i, /\?/], judge: false, maxSentences: 3 },
   { id: 'cancelled-spotify', kind: 'ask', message: 'I cancelled Spotify yesterday', route: 'model', figures: { only: ['recurring'] }, actions: { some: ['fact'] }, mention: [/spotify/i], judge: false, maxSentences: 3 },
 
+  /* 2026-09-21: a part of a day is only as complete as the payments that carry an hour */
+  { id: 'night-hours-caveat', kind: 'ask', message: 'How much did I spend last Friday night?', route: 'model', figures: { only: ['shares', 'week', 'weekdays', 'history'] }, actions: { none: true }, mention: [/\d+,\d{2}\s?(EUR|€)|nothing|nada/i, /hora|hour|banco|bank|lan\u00e7|book/i], maxSentences: 4 },
+
   /* statements: the person is teaching, not asking */
   { id: 'maria-dolores', kind: 'statement', message: 'maria dolores is the woman who gets me the real madrid tickets for 50 euros per person, so many times see if money comes back from 50 euro transfers or 200 euro to me as friends sometimes buy from me or my friends pay their ticket to me as i do the bridging w maria dolores.', route: 'model', figures: { only: [] }, actions: { some: ['person', 'remember'] }, mention: [/maria dolores/i], avoid: [/charges? comes? back every month/i, /subscription/i], maxSentences: 4 },
   { id: 'landlord', kind: 'statement', message: 'The 200 euro transfer to Maria Dolores Tomas Obon is my rent, she is my landlord.', route: 'model', figures: { only: [] }, actions: { some: ['person'] }, mention: [/rent|landlord|aluguel|alquiler|propriet|casero/i], maxSentences: 4 },
