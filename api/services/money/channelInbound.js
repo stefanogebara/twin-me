@@ -7,16 +7,18 @@
  */
 import { createLogger } from '../logger.js';
 import { answer, act, looksLikeInstruction } from './chat.js';
-import { listChatTurns, userLanguage } from './store.js';
+import { listChatTurns, userLanguage, saveChatTurn } from './store.js';
 import { claimInbound, markReplied, setMorningMuted, keepOffers, takeOffer, recentOffers, offerSaid, releaseOffer } from './channelStore.js';
-import { sendWhatsAppCtaButton, sendWhatsAppButtons } from '../whatsappService.js';
+import { sendWhatsAppCtaButton, sendWhatsAppButtons, downloadWhatsAppMedia } from '../whatsappService.js';
+import { readAttachment, acceptsAttachment, MAX_ATTACHMENT_BYTES } from './attachments.js';
+import { ATTACHMENT_DEPS } from './attachmentDeps.js';
 import { renderReply, muteIntent, channelSay, offerMessage, offerIdFrom, numberedChoice, asForwarded } from './channel.js';
 
 const log = createLogger('MoneyChannel');
 /** How many kept turns ride along as history. */
 export const HISTORY_TURNS = 8;
 
-const DEFAULT_DEPS = { answer, act, listChatTurns, userLanguage, claimInbound, markReplied, setMorningMuted, keepOffers, takeOffer, recentOffers, offerSaid, releaseOffer, sendCta: sendWhatsAppCtaButton, sendButtons: sendWhatsAppButtons, looksLikeInstruction };
+const DEFAULT_DEPS = { answer, act, listChatTurns, userLanguage, claimInbound, markReplied, setMorningMuted, keepOffers, takeOffer, recentOffers, offerSaid, releaseOffer, sendCta: sendWhatsAppCtaButton, sendButtons: sendWhatsAppButtons, looksLikeInstruction, download: downloadWhatsAppMedia, readAttachment, saveChatTurn, attachmentDeps: ATTACHMENT_DEPS };
 const APP_URL = () => String(process.env.APP_URL || process.env.VITE_APP_URL || 'https://twinme.me').replace(/\/+$/, '');
 
 export async function handleMoneyInbound(parsed, { userId, send, deps = {} }) {
@@ -32,6 +34,23 @@ export async function handleMoneyInbound(parsed, { userId, send, deps = {} }) {
     await d.setMorningMuted(userId, mute === 'mute');
     await send(phone, channelSay(language, mute === 'mute' ? 'The morning line is off. Say start to bring it back.' : 'The morning line is back on.'));
     return { handled: true, kind: 'money_mute', userId };
+  }
+
+  /* A photo or a document: read in memory and dropped, as on the page. Only what it said is kept. */
+  const file = parsed.document || parsed.image;
+  if (file) {
+    const filename = parsed.document ? String(file.filename || 'file').replace(/[\r\n\t]/g, ' ').slice(0, 120) : `photo.${/png/i.test(file.mimeType || '') ? 'png' : 'jpg'}`;
+    const note = String(file.caption || text || '').replace(/\s+/g, ' ').trim().slice(0, 500);
+    const buffer = acceptsAttachment(filename, file.mimeType || '') ? await d.download(file.id) : null;
+    if (!buffer || buffer.length > MAX_ATTACHMENT_BYTES) {
+      await send(phone, channelSay(language, 'That file could not be read. A photo of it would come through.'));
+      return { handled: true, kind: 'money_attachment_unread', userId };
+    }
+    const r = await d.readAttachment(userId, { buffer, filename, mimeType: file.mimeType || '', note, language }, d.attachmentDeps);
+    await Promise.resolve(d.saveChatTurn(userId, { role: 'user', text: `Sent ${filename}${note ? `. ${note}` : ''}` })).catch(() => {});
+    await Promise.resolve(d.saveChatTurn(userId, { role: 'twin', text: r.said, receipts: r.receipts || null })).catch(() => {});
+    await send(phone, renderReply({ text: r.said }).text);
+    return { handled: true, kind: 'money_attachment', userId };
   }
 
   /* A tap, or a bare number while the offers are still on the screen. No model in this path:

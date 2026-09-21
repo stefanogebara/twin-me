@@ -1,10 +1,13 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 vi.mock('../../../../api/services/logger.js', () => ({ createLogger: () => ({ warn() {}, error() {}, info() {}, debug() {} }) }));
 vi.mock('../../../../api/services/money/chat.js', () => ({ answer: vi.fn(), act: vi.fn(), looksLikeInstruction: () => false }));
-vi.mock('../../../../api/services/money/store.js', () => ({ listChatTurns: vi.fn(), userLanguage: vi.fn() }));
+vi.mock('../../../../api/services/money/store.js', () => ({ listChatTurns: vi.fn(), userLanguage: vi.fn(), saveChatTurn: vi.fn() }));
 vi.mock('../../../../api/services/money/channelStore.js', () => ({ claimInbound: vi.fn(), markReplied: vi.fn(), setMorningMuted: vi.fn(), keepOffers: vi.fn(), takeOffer: vi.fn(), recentOffers: vi.fn(), offerSaid: vi.fn(), releaseOffer: vi.fn() }));
-vi.mock('../../../../api/services/whatsappService.js', () => ({ sendWhatsAppCtaButton: vi.fn(), sendWhatsAppButtons: vi.fn() }));
+vi.mock('../../../../api/services/whatsappService.js', () => ({ sendWhatsAppCtaButton: vi.fn(), sendWhatsAppButtons: vi.fn(), downloadWhatsAppMedia: vi.fn() }));
+vi.mock('../../../../api/services/money/attachments.js', () => ({ readAttachment: vi.fn(), acceptsAttachment: vi.fn(() => true), MAX_ATTACHMENT_BYTES: 4194304 }));
+vi.mock('../../../../api/services/money/attachmentDeps.js', () => ({ ATTACHMENT_DEPS: {} }));
 import { handleMoneyInbound } from '../../../../api/services/money/channelInbound.js';
+import { acceptsAttachment } from '../../../../api/services/money/attachments.js';
 
 let send; let deps;
 beforeEach(() => {
@@ -25,7 +28,12 @@ beforeEach(() => {
     releaseOffer: vi.fn().mockResolvedValue(),
     sendButtons: vi.fn().mockResolvedValue({ success: true }),
     looksLikeInstruction: vi.fn().mockReturnValue(false),
+    download: vi.fn().mockResolvedValue(Buffer.from('x')),
+    readAttachment: vi.fn().mockResolvedValue({ kind: 'receipt', said: 'Zara, 49,95 €, on 20 Sep. It can go back until 20 Oct.', receipts: [] }),
+    saveChatTurn: vi.fn().mockResolvedValue({ id: 't' }),
+    attachmentDeps: {},
   };
+  acceptsAttachment.mockReturnValue(true);
 });
 
 describe('a message on the channel', () => {
@@ -118,6 +126,30 @@ describe('offers on the channel', () => {
     expect(send).toHaveBeenCalledWith('34600000000', 'That could not be done right now.');
     expect(deps.releaseOffer).toHaveBeenCalledWith('u1', OFFER);
     expect(deps.offerSaid).not.toHaveBeenCalled();
+  });
+});
+
+describe('a file on the channel', () => {
+  it('reads a photo with its caption as the note and says what it said', async () => {
+    const r = await handleMoneyInbound({ phone: '34600000000', image: { id: 'media-1', mimeType: 'image/jpeg', caption: 'zara' }, messageId: 'wamid.14' }, { userId: 'u1', send, deps });
+    expect(deps.download).toHaveBeenCalledWith('media-1');
+    expect(deps.readAttachment).toHaveBeenCalledWith('u1', expect.objectContaining({ filename: 'photo.jpg', mimeType: 'image/jpeg', note: 'zara', language: 'en' }), deps.attachmentDeps);
+    expect(send).toHaveBeenCalledWith('34600000000', 'Zara, 49,95 €, on 20 Sep. It can go back until 20 Oct.');
+    expect(deps.saveChatTurn).toHaveBeenCalledTimes(2);
+    expect(r.kind).toBe('money_attachment');
+  });
+  it('says so when the file did not arrive', async () => {
+    deps.download.mockResolvedValue(null);
+    await handleMoneyInbound({ phone: '34600000000', document: { id: 'media-2', filename: 'extracto.pdf', mimeType: 'application/pdf' }, messageId: 'wamid.15' }, { userId: 'u1', send, deps });
+    expect(deps.readAttachment).not.toHaveBeenCalled();
+    expect(send).toHaveBeenCalledWith('34600000000', 'That file could not be read. A photo of it would come through.');
+  });
+  it('never downloads a file the type refuses, and says it could not be read', async () => {
+    acceptsAttachment.mockReturnValue(false);
+    await handleMoneyInbound({ phone: '34600000000', document: { id: 'media-3', filename: 'archivo.exe', mimeType: 'application/x-msdownload' }, messageId: 'wamid.16' }, { userId: 'u1', send, deps });
+    expect(deps.download).not.toHaveBeenCalled();
+    expect(deps.readAttachment).not.toHaveBeenCalled();
+    expect(send).toHaveBeenCalledWith('34600000000', 'That file could not be read. A photo of it would come through.');
   });
 });
 

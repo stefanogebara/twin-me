@@ -46,10 +46,9 @@ import multer from 'multer';
 import { authenticateUser } from '../middleware/auth.js';
 import { validate } from '../middleware/validate.js';
 import * as S from './moneySchemas.js';
-import { inboxAddress, inboxDomain, isInboxConfigured, verifySvix, ingestReceivedEmail, extractReceipt, receiptToSighting } from '../services/money/inbox.js';
+import { inboxAddress, inboxDomain, isInboxConfigured, verifySvix, ingestReceivedEmail } from '../services/money/inbox.js';
 import { readAttachment, acceptsAttachment, MAX_ATTACHMENT_BYTES } from '../services/money/attachments.js';
-import { extractDocumentText } from '../services/documentExtractionService.js';
-import { complete as llmComplete, TIER_EXTRACTION } from '../services/llmGateway.js';
+import { ATTACHMENT_DEPS } from '../services/money/attachmentDeps.js';
 import { accuracy } from '../services/money/predictions.js';
 import { createLogger } from '../services/logger.js';
 import { captureFromBody } from '../services/money/captureParser.js';
@@ -716,21 +715,6 @@ const attachOne = (req, res, next) => attach.single('file')(req, res, (err) => {
   if (err.code === 'LIMIT_FILE_SIZE') return res.status(413).json({ success: false, error: 'That file is over 4 MB. A photo of it would come through.' });
   return res.status(400).json({ success: false, error: 'That file could not be received.' });
 });
-const ATTACHMENT_DEPS = {
-  extractText: extractDocumentText,
-  extractReceipt,
-  receiptToSighting,
-  ingestSighting,
-  ingestSightings,
-  parseStatement: (buffer, name) => toSightings(/\.(xlsx|xls)$/i.test(name) ? parseWorkbook(buffer) : parseDelimited(buffer.toString('utf8')), {}),
-  complete: (args) => llmComplete({ tier: TIER_EXTRACTION, ...args }),
-  listFacts,
-  rememberNote: (userId, { subject, text }) => answerQuestion(userId, { questionId: null, kind: 'note', subject, subjectLabel: null, value: text }),
-  afterLedgerChange: async (userId) => {
-    await refreshRecurring(userId).catch((e) => log.warn('recurring after attachment failed', { error: e.message }));
-    await refreshReadings(userId).catch((e) => log.warn('readings after attachment failed', { error: e.message }));
-  },
-};
 
 router.post('/chat/attach', attachOne, async (req, res) => {
   if (!req.file?.buffer?.length) return res.status(400).json({ success: false, error: 'It reads photos, PDFs, plain text and bank exports as Excel or CSV.' });
