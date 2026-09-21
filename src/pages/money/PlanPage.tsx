@@ -21,6 +21,7 @@ import TotalRow from './figures/TotalRow';
 import { MONEY_NAV } from './navLinks';
 import { merchantLabel } from './words';
 import { daysAhead } from './planAhead';
+import { classSplit } from './classDays';
 import { moneyAPI, euro, shortDay, type MoneyPlan, type MoneyPlanCell, type MoneyPlanItem } from '../../services/api/moneyAPI';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { useT, useLocale } from '@/lib/i18n';
@@ -187,9 +188,11 @@ export default function PlanPage() {
                   >
                     <span className="mv-plan-dom">{c.dom}</span>
                     {figure ? <span className="mv-plan-figure mv-figures">{euro(v)}</span> : null}
-                    {(c.items.length || c.note) ? (
+                    {(c.items.length || c.note || c.events) ? (
                       <span className="mv-plan-marks" aria-hidden="true">
                         {c.items.slice(0, 4).map((i, k) => <i key={k} className={`mv-plan-mark mv-plan-mark--${i.kind}`} />)}
+                        {/* The diary, on the square: a dot an event, up to four (2026-09-21). */}
+                        {Array.from({ length: Math.min(c.events || 0, 4) }, (_, k) => <i key={`e${k}`} className="mv-plan-mark mv-plan-mark--event" />)}
                         {c.note ? <i className="mv-plan-mark mv-plan-mark--note" /> : null}
                       </span>
                     ) : null}
@@ -200,6 +203,22 @@ export default function PlanPage() {
               })}
             </div>
           ) : failed ? null : <Wait inline state={orbFor('page')} line="Reading the plan." />}
+
+          {/* A day with class against a day without, from the squares themselves (2026-09-21). */}
+          {plan && classSplit(plan.cells) ? (() => {
+            const s = classSplit(plan.cells)!;
+            const top = Math.max(s.withClass, s.free) || 1;
+            return (
+              <section className="mv-section" id="classdays">
+                <h2>{t('With class, or free.')}</h2>
+                <p className="mv-sub">{t('{a} days with something in the diary, {b} without.', { a: s.withDays, b: s.freeDays })}</p>
+                <div className="mv-split">
+                  <div className="mv-split-row"><span>{t('With class')}</span><i style={{ width: `${(s.withClass / top) * 100}%` }} /><b className="mv-figures">{euro(s.withClass)}</b></div>
+                  <div className="mv-split-row"><span>{t('Free')}</span><i className="is-free" style={{ width: `${(s.free / top) * 100}%` }} /><b className="mv-figures">{euro(s.free)}</b></div>
+                </div>
+              </section>
+            );
+          })() : null}
 
           {/* The days ahead, listed: what the diary and the standing charges hold for the rest of
               the month, without opening a square (2026-09-21). */}

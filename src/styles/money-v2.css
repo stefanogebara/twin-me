@@ -326,6 +326,15 @@
 .mv .mv-plan-mark--income { background: var(--ok); }
 .mv .mv-plan-mark--calendar { background: none; border: 1px solid var(--ink); box-sizing: border-box; }
 .mv .mv-plan-mark--note { background: none; border: 1px solid var(--ink-2); border-radius: 50%; box-sizing: border-box; }
+/* A dot an event in the diary (2026-09-21). */
+.mv .mv-plan-mark--event { background: var(--rg-periwinkle, #668cc2); border-radius: 50%; }
+/* A day with class against a day without. */
+.mv .mv-split { display: grid; gap: 14px; margin-top: 32px; }
+.mv .mv-split-row { display: grid; grid-template-columns: 96px minmax(0, 1fr) auto; gap: 14px; align-items: center; }
+.mv .mv-split-row > span { color: var(--ink-2); font-weight: 350; }
+.mv .mv-split-row > i { height: 26px; border-radius: 3px; background: var(--rg-periwinkle, #668cc2); min-width: 2px; }
+.mv .mv-split-row > i.is-free { background: var(--rg-ember); }
+.mv .mv-split-row > b { font-weight: 500; white-space: nowrap; }
 .mv .mv-plan-said { position: absolute; left: 8px; right: 8px; background: var(--mark); }
 .mv .mv-plan-bar { position: absolute; left: 8px; right: 8px; bottom: 0; background: var(--ink); }
 .mv .mv-plan-day.is-ahead .mv-plan-bar { background: none; border: 1px solid var(--ink-3); border-bottom: 0; box-sizing: border-box; }

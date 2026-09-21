@@ -42,6 +42,8 @@ export type MoneyPlanCell = {
   day: string; dom: number; weekday: number; past: boolean; today: boolean;
   spent: number; count: number; received: number; said: { low: number; high: number } | null; hit: boolean | null;
   expected: number; items: MoneyPlanItem[]; rows: { id: string; merchant: string | null; amount: number; occurred_at: string }[];
+  /* How many events the diary held that day, past days included. */
+  events?: number;
   note: { id: string | null; text: string } | null;
 };
 export type MoneyPlan = {
