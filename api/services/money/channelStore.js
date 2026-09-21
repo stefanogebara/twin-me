@@ -4,6 +4,7 @@
  */
 import { supabaseAdmin } from '../database.js';
 import { createLogger } from '../logger.js';
+import { NUMBERED_REPLY_WINDOW_MS, MAX_BUTTONS } from './channel.js';
 
 const log = createLogger('MoneyChannelStore');
 
@@ -32,4 +33,37 @@ export async function setMorningMuted(userId, muted) {
   if (!row) return;
   const { error } = await supabaseAdmin.from('messaging_channels').update({ preferences: { ...(row.preferences || {}), money_morning_muted: Boolean(muted) } }).eq('id', row.id);
   if (error) throw new Error(error.message);
+}
+
+/** The offers of one reply, kept so a tap can find them. The setup offer is a link, not an act. */
+export async function keepOffers(userId, actions) {
+  const rows = (actions || []).filter((a) => a && a.kind && a.kind !== 'setup').slice(0, MAX_BUTTONS)
+    .map((action, position) => ({ user_id: userId, position, action }));
+  if (!rows.length) return [];
+  const { data, error } = await supabaseAdmin.from('money_channel_offers').insert(rows).select('id, position, action');
+  if (error) { log.warn(`offers not kept: ${error.message}`); return []; }
+  return (data || []).sort((a, b) => a.position - b.position);
+}
+
+/** Takes an offer once. Null when it was taken already or is not this person's. */
+export async function takeOffer(userId, offerId) {
+  const { data, error } = await supabaseAdmin.from('money_channel_offers').update({ taken_at: new Date().toISOString() })
+    .eq('user_id', userId).eq('id', offerId).is('taken_at', null).select('id, action').maybeSingle();
+  if (error) throw new Error(error.message);
+  return data || null;
+}
+
+/** The untaken offers of the newest reply, in the order shown, while a bare number can still mean them. */
+export async function recentOffers(userId, now = new Date()) {
+  const since = new Date(now.getTime() - NUMBERED_REPLY_WINDOW_MS).toISOString();
+  const { data } = await supabaseAdmin.from('money_channel_offers').select('id, position, action, created_at')
+    .eq('user_id', userId).is('taken_at', null).gte('created_at', since).order('created_at', { ascending: false }).limit(MAX_BUTTONS * 2);
+  const rows = data || [];
+  if (!rows.length) return [];
+  const newest = rows[0].created_at;
+  return rows.filter((r) => r.created_at === newest).sort((a, b) => a.position - b.position);
+}
+
+export async function offerSaid(offerId, said) {
+  await supabaseAdmin.from('money_channel_offers').update({ said: String(said || '').slice(0, 1000) }).eq('id', offerId);
 }

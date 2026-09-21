@@ -89,3 +89,33 @@ const WORDS = {
 export function channelSay(language, source) {
   return (WORDS[language] && WORDS[language][source]) || source;
 }
+
+/* A button title is twenty characters and no two may match, so each starts with its number and
+   the full label is in the body above. Cut at a word, never inside one. */
+function buttonTitle(n, label) {
+  const whole = `${n}. ${String(label || '').trim()}`;
+  if (whole.length <= BUTTON_TITLE_CHARS) return whole;
+  const head = whole.slice(0, BUTTON_TITLE_CHARS);
+  const space = head.lastIndexOf(' ');
+  return (space > 3 ? head.slice(0, space) : head).trim();
+}
+
+export function offerMessage(rows, language) {
+  const shown = (rows || []).slice(0, MAX_BUTTONS);
+  if (!shown.length) return null;
+  const lines = shown.map((r, i) => `${i + 1}. ${r.action.label || r.action.kind}`);
+  return {
+    body: `${lines.join('\n')}\n\n${channelSay(language, 'Tap one, or reply with its number.')}`,
+    buttons: shown.map((r, i) => ({ id: `${OFFER_PREFIX}${r.id}`, title: buttonTitle(i + 1, r.action.label || r.action.kind) })),
+  };
+}
+
+export function offerIdFrom(replyId) {
+  const m = /^mo:([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$/i.exec(String(replyId || ''));
+  return m ? m[1] : null;
+}
+
+export function numberedChoice(text) {
+  const m = /^\s*([1-3])\s*[.)]?\s*$/.exec(String(text || ''));
+  return m ? Number(m[1]) : null;
+}

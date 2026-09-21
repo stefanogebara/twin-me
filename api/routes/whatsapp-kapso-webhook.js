@@ -127,6 +127,7 @@ function parseIncomingMessage(body) {
     return {
       phone: msg.from,
       text: alias ? `conecta ${alias}` : (reply?.title || null),
+      replyId: reply?.id || null,
       messageId: msg.id,
       contactName: msg.username || null,
       context: quoted(msg),
