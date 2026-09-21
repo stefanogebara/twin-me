@@ -13,8 +13,11 @@ let channelRows;
 vi.mock('../../../api/services/database.js', () => {
   function builder(table) {
     const b = { _table: table };
-    for (const m of ['select', 'eq', 'in', 'order']) b[m] = () => b;
+    for (const m of ['select', 'eq', 'in', 'order', 'update']) b[m] = () => b;
     b.insert = () => ({ then: (r) => Promise.resolve({ error: null }).then(r) });
+    // The wa_provider affinity write chains .update().eq().eq().in().then() with no .limit()/
+    // .insert() to resolve it — make the builder itself thenable so that chain settles too.
+    b.then = (resolve) => Promise.resolve({ error: null }).then(resolve);
     b.limit = () => {
       if (table === 'messaging_channels') return Promise.resolve({ data: channelRows, error: null });
       return Promise.resolve({ data: [], error: null }); // user_memories history

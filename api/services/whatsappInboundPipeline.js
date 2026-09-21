@@ -23,10 +23,9 @@
  *     image?:       { id, mimeType, caption },     // id = media id OR direct URL
  *     messageId?:   string,
  *     contactName?: string,
- *     context?:     { messageId: string | null },   // Meta `context.id`: the message this one replies to
+ *     context?:     { messageId: string | null, forwarded?: boolean },   // messageId = the message this one replies to (Meta `context.id`); forwarded = WhatsApp's forwarded mark
  *     format?:      string,         // for logging/debugging only
  *     replyId?:     string,         // the id of a tapped reply button or list row
- *     context?:     { messageId, forwarded },       // forwarded: WhatsApp says it was forwarded
  *   }
  *
  * `send(phone, text)` is injected so replies go back out the SAME provider the
