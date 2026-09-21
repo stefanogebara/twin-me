@@ -84,3 +84,16 @@ describe('retiredKinds', () => {
     expect(retiredKinds(rows('month_pace', 40, 0, 0).concat(rows('named_expense', 31, 4, 1)))).toEqual(new Set(['named_expense']));
   });
 });
+
+describe('what a nudge may not say', () => {
+  it('stays silent about the month on a balance basis, and a dated nudge expires once its day has passed', async () => {
+    const { chargeAhead, expiredNudge, CHARGE_AHEAD, NAMED_EXPENSE } = await import('../../../../api/services/money/nudges.js');
+    const cast = { committed_items: [{ merchant_key: 'higgsfield', merchant_name: 'Higgsfield', typical_amount: 53.96, next_expected: '2026-09-22' }], committed: 53.96, month: '2026-09-01' };
+    expect(chargeAhead({ cast, allowance: { free: -54.12, basis: 'balance' }, now: new Date('2026-09-21T10:00:00Z') })).toBeNull();
+    expect(chargeAhead({ cast, allowance: { free: -54.12, basis: 'income' }, now: new Date('2026-09-21T10:00:00Z') })).not.toBeNull();
+    const now = new Date('2026-09-21T10:00:00Z');
+    expect(expiredNudge({ kind: NAMED_EXPENSE, month: '2026-09-16', numbers: { on: '2026-09-16' } }, now)).toBe(true);
+    expect(expiredNudge({ kind: CHARGE_AHEAD, month: '2026-09-22', numbers: { by: '2026-09-22' } }, now)).toBe(false);
+    expect(expiredNudge({ kind: 'month_pace', month: '2026-09-01', numbers: {} }, now)).toBe(false);
+  });
+});

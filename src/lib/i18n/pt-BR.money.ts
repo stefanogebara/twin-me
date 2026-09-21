@@ -805,6 +805,7 @@ export const PT_BR_MONEY: Record<string, string> = {
   "Nothing new to place.": "Nada novo para localizar.",
   "By day of the week.": "Por dia da semana.",
   "The last eight full weeks, Monday to Sunday. {day} costs most.": "As \u00faltimas oito semanas completas, de segunda a domingo. {day} \u00e9 o que mais custa.",
+  "Tomorrow: usually about {value}, up to {high}.": "Amanh\u00e3: normalmente uns {value}, at\u00e9 {high}.",
   "{name} lands {when}, {amount}, already off today's number.": "{name} cai {when}, {amount}, já descontado do número de hoje.",
   "{names} land {when}, {amount} together, already off today's number.": "{names} caem {when}, {amount} no total, já descontados do número de hoje.",
   "today and tomorrow": "hoje e amanhã",

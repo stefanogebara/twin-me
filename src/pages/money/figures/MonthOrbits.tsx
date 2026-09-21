@@ -210,7 +210,8 @@ export default function MonthOrbits({ groups, rows, recurring, today, daysInMont
   const dayName = (iso: string) => new Date(iso).toLocaleDateString(locale, { weekday: 'long', day: 'numeric', month: 'short' });
   const kindName = (k: Kind) => (k.key === 'rest' ? t('The rest') : cap(t(k.key)));
 
-  let caption = t('A ring per kind of place, a mark per payment. Today is nearest you. Tap one.');
+  /* No caption until a ring or a mark is tapped: the instruction read as gibberish in text (2026-09-21). */
+  let caption = '';
   let list: { key: string; title: string; sub?: string; amount: number }[] = [];
   let listTotal = 0;
   if (pick && 'kind' in pick) {
@@ -238,7 +239,7 @@ export default function MonthOrbits({ groups, rows, recurring, today, daysInMont
   return (
     <figure className="mv-orbits" ref={(el) => { wrap.current = el; }}>
       <canvas ref={ref} role="img" aria-label={label} style={{ width: '100%', height: H }} onPointerMove={onMove} onPointerLeave={onLeave} onClick={onClick} />
-      <figcaption className="mv-sub" aria-live="polite">{caption}</figcaption>
+      {caption ? <figcaption className="mv-sub" aria-live="polite">{caption}</figcaption> : null}
       {list.length ? (
         <ul className="mv-list mv-fig-rows">
           {list.map((r) => (

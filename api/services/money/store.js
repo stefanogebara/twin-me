@@ -21,7 +21,7 @@ import { fetchTransactions, toSighting, distinctPending, fetchBalances } from '.
 import { readLedger, monthSegments } from './analyst.js';
 import { spendingRule, markCounted, personRoles } from './spending.js';
 import { poolMerchantPriors } from './priors.js';
-import { nudgeFindings, retiredKinds, NUDGE_KINDS } from './nudges.js';
+import { nudgeFindings, retiredKinds, NUDGE_KINDS, expiredNudge } from './nudges.js';
 import { safeToSpend } from './allowance.js';
 import { tellTwin, tellTwinFacts, tellTwinPatterns, tellTwinTurn } from './twinBridge.js';
 import { lookupPlace, providerFor, categoryFromBrand, PROVIDER_NONE } from './places.js';
@@ -466,7 +466,8 @@ export async function listReadings(userId, { includeRejected = false } = {}) {
   /* A reading the person marked as not theirs is not shown again and is never cited: saying
      "not me" has to mean something, or it is a poll rather than a control. The row is kept,
      so the same finding stays quiet when it is recomputed tomorrow. */
-  const readings = (data || []).filter((r) => includeRejected || r.verdict !== 'not_me');
+  /* A dated nudge whose day has passed stays in the table for the retirement tally and off the page (nudges.js). */
+  const readings = (data || []).filter((r) => includeRejected || r.verdict !== 'not_me').filter((r) => !expiredNudge(r, new Date()));
   const ids = [...new Set(readings.flatMap((r) => r.receipt_ids || []))];
   if (!ids.length) return readings.map((r) => ({ ...r, receipts: [] }));
   const { data: rows } = await supabaseAdmin
