@@ -95,5 +95,6 @@ describe('what a nudge may not say', () => {
     expect(expiredNudge({ kind: NAMED_EXPENSE, month: '2026-09-16', numbers: { on: '2026-09-16' } }, now)).toBe(true);
     expect(expiredNudge({ kind: CHARGE_AHEAD, month: '2026-09-22', numbers: { by: '2026-09-22' } }, now)).toBe(false);
     expect(expiredNudge({ kind: 'month_pace', month: '2026-09-01', numbers: {} }, now)).toBe(false);
+    expect(expiredNudge({ kind: CHARGE_AHEAD, month: '2026-09-22', numbers: { by: '2026-09-22', withdrawn_at: '2026-09-21T10:00:00Z' } }, now)).toBe(true);
   });
 });

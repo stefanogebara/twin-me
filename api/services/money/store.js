@@ -424,7 +424,7 @@ export async function refreshReadings(userId, now = new Date()) {
      Postgres counts NULLs as distinct: an upsert on (kind, month) inserted a fresh copy
      every run. So the write is an explicit update-or-insert, which also keeps the id and
      the verdict the person already gave. */
-  const { data: existing } = await supabaseAdmin.from('money_readings').select('id, kind, month, verdict').eq('user_id', userId);
+  const { data: existing } = await supabaseAdmin.from('money_readings').select('id, kind, month, verdict, numbers').eq('user_id', userId);
   const keyOf = (kind, month) => `${kind}|${month || ''}`;
   const byKey = new Map((existing || []).map((r) => [keyOf(r.kind, r.month), r.id]));
   /* A kind this person has muted more than acted on, over thirty deliveries, is not
@@ -450,6 +450,11 @@ export async function refreshReadings(userId, now = new Date()) {
      was said and whether it was muted is what the retirement rule reads. */
   const stale = (existing || []).filter((r) => !seen.has(keyOf(r.kind, r.month)) && !NUDGE_KINDS.includes(r.kind) && r.kind !== SPLIT_OPEN).map((r) => r.id);
   if (stale.length) await supabaseAdmin.from('money_readings').delete().in('id', stale);
+  /* A nudge this run did not produce is withdrawn: off the page now, kept for the tally.
+     "More than the 0,00 EUR left of your month" stayed on Month a day after the basis changed (2026-09-21). */
+  for (const r of (existing || []).filter((x) => NUDGE_KINDS.includes(x.kind) && !seen.has(keyOf(x.kind, x.month)) && !(x.numbers || {}).withdrawn_at)) {
+    await supabaseAdmin.from('money_readings').update({ numbers: { ...(r.numbers || {}), withdrawn_at: now.toISOString() } }).eq('id', r.id);
+  }
   /* The twin should know what the money says, in the same stream as everything else it
      knows. Duplicate content inside a day is skipped by the memory stream itself. */
   const told = await tellTwin(userId, findings).catch((e) => { log.warn(`twin bridge failed: ${e.message}`); return { written: 0 }; });
