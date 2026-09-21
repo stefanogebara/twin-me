@@ -97,8 +97,9 @@ export function shapeKey(event) {
     .split(/\s+/)
     .filter(Boolean)
     .slice(0, 3);
-  const base = words.join(' ') || 'untitled';
-  return event?.recurring ? `${base}#${event.recurring}` : base;
+  /* The words alone: a rescheduled series got a new recurring id and the same kind of day
+     was learned twice, with two costs (2026-09-21). */
+  return words.join(' ') || 'untitled';
 }
 
 /** The words of a shape key, for saying it back. */

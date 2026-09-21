@@ -13,6 +13,7 @@
  * in the person's own words: the twin knows the trip before the payments arrive.
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { orbFor } from './orbFor';
 import '../../styles/money-v2.css';
 import MoneyNav, { type MoneyNavLink } from './MoneyNav';
 import Wait from '../../components/Wait';
@@ -196,7 +197,7 @@ export default function PlanPage() {
                 );
               })}
             </div>
-          ) : failed ? null : <Wait inline state="searching" line="Reading the plan." />}
+          ) : failed ? null : <Wait inline state={orbFor('page')} line="Reading the plan." />}
 
           {cell ? (
             <section className="mv-section" aria-live="polite">

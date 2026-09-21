@@ -36,9 +36,11 @@ export function factRank(f: MoneyFact): number {
 export function factTitle(f: MoneyFact, t: T = asIs): string {
   /* A note is their sentence; the row keeps its first sixty characters and opens for the rest. */
   if (f.kind === 'note') { const v = String(f.value || ''); return v.length > 60 ? `${v.slice(0, 57).trim()}...` : v; }
+  /* A stored choice is an English word (family, friend, save); the dictionaries hold them,
+     and t() hands back anything else, so their own typed words stay theirs (2026-09-21). */
   return [
-    cap(f.subject_label || f.value || f.subject || t('unnamed')),
-    f.subject_label && f.value ? f.value : '',
+    cap(t(String(f.subject_label || f.value || f.subject || 'unnamed'))),
+    f.subject_label && f.value ? t(String(f.value)) : '',
     f.day ? t('on the {day}', { day: ordinal(f.day, t) }) : '',
     f.share ? t('{n}% yours', { n: Math.round(Number(f.share) * 100) }) : '',
   ].filter(Boolean).join(', ');

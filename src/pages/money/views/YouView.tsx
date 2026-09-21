@@ -5,6 +5,7 @@
  */
 
 import Wait from '../../../components/Wait';
+import { orbFor } from '../orbFor';
 import { Stamp } from '../Carved';
 import type { MoneyAccount } from '../useMoneyAccount';
 import Noticed from './you/Noticed';
@@ -21,7 +22,7 @@ export default function YouView({ m }: { m: MoneyAccount }) {
             <p className="mv-eyebrow">{t('You')}</p>
             <h1>{user?.firstName ? t('{name}.', { name: user.firstName }) : t('You.')}</h1>
             <p className="mv-sub">{t('What it knows in your words, and where it reads from.')}</p>
-            {facts === null && !youFailed ? <Wait inline state="searching" line="Reading what it knows." /> : null}
+            {facts === null && !youFailed ? <Wait inline state={orbFor('page')} line="Reading what it knows." /> : null}
           </section>
           {/* What it knows: the person's own words, each one forgettable; then what it still
               wants to ask. The facts are claims the ledger checks, so the grey word under each

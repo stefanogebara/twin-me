@@ -27,7 +27,7 @@ export default function Review({ m }: { m: MoneyAccount }) {
             <li key={row.id}>
               <button type="button" className="mv-item" aria-expanded={isOpen} onClick={() => setOpen(isOpen ? null : row.id)}>
                 <span className="mv-item-text">
-                  <span className="mv-item-title">{merchantLabel(row)}</span>
+                  <span className="mv-item-title">{merchantLabel(row, t)}</span>
                   <span className="mv-item-sub">{shortDay(row.occurred_at, locale)}</span>
                 </span>
                 <span className="mv-item-end mv-figures">{euro(Math.abs(Number(row.amount)))}<Chevron /></span>

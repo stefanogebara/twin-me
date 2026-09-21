@@ -5,6 +5,7 @@
  */
 
 import { useState } from 'react';
+import { orbFor } from '../orbFor';
 import { Link } from 'react-router-dom';
 import { euro, shortDay, BANKS } from '../../../services/api/moneyAPI';
 import type { MoneyAccount } from '../useMoneyAccount';
@@ -30,7 +31,7 @@ export default function TodayView({ m }: { m: MoneyAccount }) {
             {!loaded ? (
               /* The first seconds of a new account are the month being read; an ellipsis
                  where the number goes read as a broken figure to a stranger. */
-              <Wait inline state="searching" line="Reading your month." />
+              <Wait inline state={orbFor('page')} line="Reading your month." />
             ) : unread ? (
               <>
                 <h1>{t('Your month could not be read.')}</h1>
@@ -111,7 +112,7 @@ export default function TodayView({ m }: { m: MoneyAccount }) {
                 {/* The band's own record, once it has one: how many days it has been checked
                     against, and how many it held. A range nobody scores is a range nobody
                     should trust, so the number is printed as soon as there is one. */}
-                {forecast?.band_calibration && forecast.band_calibration.days > 0 && forecast.band_calibration.coverage !== null ? (
+                {forecast?.band_calibration && forecast.band_calibration.days >= 7 && forecast.band_calibration.coverage !== null ? (
                   <p className="mv-sub">{t('The range has held on {held} of the last {days} days.', { held: Math.round(forecast.band_calibration.coverage * forecast.band_calibration.days), days: forecast.band_calibration.days })}</p>
                 ) : null}
                 {/* A month that stopped moving must say why: the bank ends its session on its

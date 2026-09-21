@@ -10,6 +10,7 @@
  * Spec: .claude/plans/2026-09-07-money-twin/README.md
  */
 import { askWords } from './askWords';
+import { orbFor } from './orbFor';
 import { Link } from 'react-router-dom';
 import '../../styles/money-v2.css';
 import '../../styles/money-setup.css';
@@ -33,7 +34,7 @@ export default function MoneySetupPage() {
         <div className="mv-col">
           <section className="ms-stage">
             {!loaded ? (
-              <Wait inline state="searching" line="Reading your payments." />
+              <Wait inline state={orbFor('learning')} line="Reading your payments." />
             ) : failed ? (
               <div className="ms-stage-inner">
                 <h1>{t('The questions did not load.')}</h1>

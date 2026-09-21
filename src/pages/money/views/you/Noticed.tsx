@@ -5,6 +5,7 @@
  */
 
 import Wait from '../../../../components/Wait';
+import { orbFor } from '../../orbFor';
 import { readingWords } from '../../readingWords';
 import type { MoneyAccount } from '../../useMoneyAccount';
 import { worthShowing } from '../../patternKinds';
@@ -17,7 +18,7 @@ export default function Noticed({ m }: { m: MoneyAccount }) {
             <p className="mv-sub">{t('Nobody typed these. They are what your own payments repeat.')}</p>
             <ul className="mv-list">
               {patterns === null ? (
-                <li><Wait inline state="searching" line="Reading your payments." /></li>
+                <li><Wait inline state={orbFor('learning')} line="Reading your payments." /></li>
               ) : patterns.length === 0 ? (
                 <li><p className="mv-empty">{t('Nothing it can say yet. It needs a few more weeks of payments.')}</p></li>
               ) : patterns.filter((f) => worthShowing(f.kind)).length === 0 ? (

@@ -22,7 +22,7 @@ export function stillToCome(t: T, locale: string, f: MoneyForecast): Ahead[] {
   const rows: Ahead[] = [];
   for (const c of f.committed_items || []) {
     const times = Number(c.occurrences) || 0;
-    rows.push({ on: c.next_expected.slice(0, 10), name: merchantLabel(c), amount: -Math.abs(Number(c.typical_amount)), kind: 'charge',
+    rows.push({ on: c.next_expected.slice(0, 10), name: merchantLabel(c, t), amount: -Math.abs(Number(c.typical_amount)), kind: 'charge',
       why: [
         c.cadence ? cap(CADENCE[c.cadence] ? t(CADENCE[c.cadence]) : c.cadence) : t('Comes back'),
         times ? t(times === 1 ? '{n} time so far' : '{n} times so far', { n: times }) : '',
@@ -45,8 +45,11 @@ export function stillToCome(t: T, locale: string, f: MoneyForecast): Ahead[] {
   return rows.filter((r) => Number.isFinite(r.amount) && r.on).sort((a, b) => (a.on < b.on ? -1 : a.on > b.on ? 1 : Math.abs(b.amount) - Math.abs(a.amount))).slice(0, 8);
 }
 
-export function merchantLabel(t: { merchant_name?: string | null; merchant_raw?: string | null; merchant_key: string }) {
-  const s = t.merchant_name || t.merchant_raw || t.merchant_key;
+export const NO_NAME = 'A payment without a name';
+export function merchantLabel(x: { merchant_name?: string | null; merchant_raw?: string | null; merchant_key: string }, t: T = (s) => s) {
+  const s = String(x.merchant_name || x.merchant_raw || x.merchant_key || '').trim();
+  /* A line the bank sent without a name is not a place called Unknown (2026-09-21). */
+  if (!s || /^unknown$/i.test(s)) return t(NO_NAME);
   const base = s.length > 2 && s === s.toUpperCase() ? s.toLowerCase() : s;
   return base.charAt(0).toUpperCase() + base.slice(1);
 }
@@ -100,7 +103,7 @@ export function returnsClosingWords(t: T, list: { merchant: string; amount: numb
   const items = (list || []).filter((r) => r && r.merchant);
   if (!items.length) return null;
   const when = (d: number) => (d <= 0 ? t('today') : d === 1 ? t('tomorrow') : t('in {n} days', { n: d }));
-  const name = (r: { merchant: string }) => merchantLabel({ merchant_key: r.merchant });
+  const name = (r: { merchant: string }) => merchantLabel({ merchant_key: r.merchant }, t);
   if (items.length === 1) return t('The return window on {name}, {amount}, closes {when}.', { name: name(items[0]), amount: euro(items[0].amount), when: when(items[0].days_left) });
   const names = items.length === 2 ? t('{a} and {b}', { a: name(items[0]), b: name(items[1]) }) : t('{a}, {b} and {n} more', { a: name(items[0]), b: name(items[1]), n: items.length - 2 });
   return t('The return windows on {names} close {when}.', { names, when: when(items[items.length - 1].days_left) });
@@ -111,7 +114,7 @@ export function chargesSoonWords(t: T, charges: { name: string | null; amount: n
   const list = (charges || []).filter((c) => c.amount > 0);
   if (!list.length) return null;
   const when = list.every((c) => c.when === 'today') ? t('today') : list.every((c) => c.when === 'tomorrow') ? t('tomorrow') : t('today and tomorrow');
-  const name = (c: { name: string | null }) => (c.name ? merchantLabel({ merchant_key: c.name }) : t('A standing charge'));
+  const name = (c: { name: string | null }) => (c.name ? merchantLabel({ merchant_key: c.name }, t) : t('A standing charge'));
   if (list.length === 1) return t("{name} lands {when}, {amount}, already off today's number.", { name: name(list[0]), when, amount: euro(list[0].amount) });
   const total = list.reduce((s, c) => s + c.amount, 0);
   const names = list.length === 2 ? t('{a} and {b}', { a: name(list[0]), b: name(list[1]) }) : t('{a}, {b} and {n} more', { a: name(list[0]), b: name(list[1]), n: list.length - 2 });

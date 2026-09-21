@@ -4,7 +4,7 @@
  * button. Styles are in money-v2.css (.mv-side).
  */
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { Menu, X } from 'lucide-react';
 import MoneyOnboarding, { type OnboardingGiven } from '../../components/MoneyOnboarding';
 import { useT } from '@/lib/i18n';
@@ -17,9 +17,13 @@ export default function MoneyNav({ links, onboarding }: { links: MoneyNavLink[];
   const [open, setOpen] = useState(false);
   const t = useT();
   const close = () => setOpen(false);
+  /* The first-run steps belong to Today only: they covered Month, Plan and You for a new
+     person (2026-09-21). You reopens one step on purpose with ?start=banks|phone; that stays. */
+  const here = useLocation();
+  const onToday = here.pathname === '/money' || new URLSearchParams(here.search).has('start');
   return (
     <>
-    <MoneyOnboarding given={onboarding?.given} reread={onboarding?.reread} />
+    {onToday ? <MoneyOnboarding given={onboarding?.given} reread={onboarding?.reread} /> : null}
     <aside className={`mv-side${open ? ' is-open' : ''}`}>
       <div className="mv-side-bar">
         <Link to="/money" className="mv-mark" aria-label={t('TwinMe, this month')} onClick={close}><i /><i /><i /><i /><i /><i /></Link>
