@@ -61,7 +61,7 @@ import { parseDelimited, parseWorkbook, toSightings } from '../services/money/st
 import { statementAccounts, createStatementAccount, ownedStatementAccount, checkStatementEvidence, StatementInputError } from '../services/money/statements/accounts.js';
 import { isConfigured, listBanks, startAuthorisation, createSession, getSession, applicationInfo } from '../services/money/feeds/enableBanking.js';
 import { answer as chatAnswer, answerStream as chatAnswerStream, act as chatAct } from '../services/money/chat.js';
-import { ahead as calendarAhead, learnEventSpend, addFeed as addCalendarFeed, removeFeed as removeCalendarFeed } from '../services/money/calendar.js';
+import { ahead as calendarAhead, learnEventSpend, addFeed as addCalendarFeed, removeFeed as removeCalendarFeed, termWeeks } from '../services/money/calendar.js';
 import { todayAllowance } from '../services/money/allowanceService.js';
 import { monthPlan, planLine } from '../services/money/plan.js';
 import { spendingRule } from '../services/money/spending.js';
@@ -232,7 +232,8 @@ router.get('/plan', async (req, res) => {
     const start = month ? `${month}-01T00:00:00Z` : new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1)).toISOString();
     const [cast, rows, facts] = await Promise.all([forecast(req.user.id), listTransactions(req.user.id, { since: start, limit: 5000, currency: 'EUR' }), listFacts(req.user.id)]);
     const plan = monthPlan({ forecast: cast, transactions: rows, facts, month, now, isSpending: spendingRule(facts) });
-    res.json({ success: true, data: { ...plan, line: planLine(plan, { now }) } });
+    /* The term either side of this week: the same facts, no second read (2026-09-21). */
+    res.json({ success: true, data: { ...plan, line: planLine(plan, { now }), term: termWeeks(facts, { now }) } });
   } catch (error) { log.error('plan failed', { error: error.message }); res.status(500).json({ success: false, error: 'Internal server error' }); }
 });
 

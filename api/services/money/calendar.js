@@ -27,6 +27,7 @@ import { getValidAccessToken } from '../tokenRefreshService.js';
 import { listTransactions } from './transactionRepository.js';
 import { listFacts, categoriesFor } from './factsRepository.js';
 import { weekdayIn, partsIn, dayIn } from './zone.js';
+import { shiftDay } from './windows.js';
 import { quietly } from './quietly.js';
 
 const log = createLogger('MoneyCalendar');
@@ -375,6 +376,55 @@ export function calendarFromFacts(facts, { now = new Date() } = {}) {
     /* The days the person wrote on, as events: the week ahead reads them even without a calendar. */
     noted,
   };
+}
+
+/* How many weeks of the term the strip shows either side of this one. Three ahead, not
+   four: a read reaches SNAPSHOT_DAYS out, so a fourth week ahead ends past the horizon
+   every time and would always draw as a gap. */
+export const TERM_BACK = 5;
+export const TERM_AHEAD = 3;
+/* Fewer days than this counted and there is no term to show, only a first read. */
+export const TERM_MIN_DAYS = 14;
+
+/**
+ * The term as weeks: one event count a week, four back and four ahead (2026-09-21).
+ *
+ * A term is not flat. Two weeks carry fifteen events and two carry one, and the forecast
+ * treats them all the same; a person cannot see that shape anywhere in the product. The
+ * whole strip is arithmetic on the day counts the diary already keeps (dayCounts), which
+ * cover every day the last read saw: ninety days back, and forward to its own horizon.
+ *
+ * A week is drawn only when every one of its days is inside what has been read. Outside
+ * that it is unknown, never zero: an empty week and an unread week look identical in a
+ * bar chart and mean opposite things. Pure.
+ */
+export function termWeeks(facts, { now = new Date(), back = TERM_BACK, ahead = TERM_AHEAD } = {}) {
+  const { days, learned_at: learnedAt } = calendarFromFacts(facts, { now });
+  const keys = Object.keys(days || {}).sort();
+  if (keys.length < TERM_MIN_DAYS || !learnedAt) return null;
+  const floor = keys[0];
+  /* The read went out SNAPSHOT_DAYS from the moment it ran; past that nothing was seen. */
+  const horizon = dayIn(new Date(new Date(learnedAt).getTime() + SNAPSHOT_DAYS * DAY_MS));
+  const today = dayIn(now);
+  const monday = shiftDay(today, -((weekdayIn(now) + 6) % 7));
+  const weeks = [];
+  for (let w = -back; w <= ahead; w += 1) {
+    const start = shiftDay(monday, w * 7);
+    const inWeek = []; for (let i = 0; i < 7; i += 1) inWeek.push(shiftDay(start, i));
+    const known = inWeek.every((d) => d >= floor && d <= horizon);
+    weeks.push({
+      start, end: inWeek[6], offset: w, current: w === 0, past: inWeek[6] < today, known,
+      events: known ? inWeek.reduce((s, d) => s + (Number(days[d]) || 0), 0) : null,
+    });
+  }
+  const seen = weeks.filter((x) => x.known);
+  /* Two weeks are not a term. */
+  if (seen.length < 3) return null;
+  const busiest = seen.reduce((b, x) => (!b || x.events > b.events ? x : b), null);
+  const quietest = seen.reduce((b, x) => (!b || x.events < b.events ? x : b), null);
+  const thisWeek = weeks.find((x) => x.current && x.known) || null;
+  const nextWeek = weeks.find((x) => x.offset === 1 && x.known) || null;
+  return { weeks, busiest, quietest, this_week: thisWeek, next_week: nextWeek, read_to: horizon, read_from: floor };
 }
 
 /**
