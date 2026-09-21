@@ -193,7 +193,7 @@ describe('presenceStore', () => {
         ['order', 'created_at'],
       ]);
       expect(facts.ops).toEqual([
-        ['select', 'kind, question, answer, confidence, expires_at'],
+        ['select', 'kind, question, answer, confidence, expires_at, created_at'],
         ['eq', 'presence_id', PRESENCE_ID],
         ['eq', 'status', 'active'],
         ['or', expect.stringMatching(/^expires_at\.is\.null,expires_at\.gt\.\d{4}-\d{2}-\d{2}T/)],

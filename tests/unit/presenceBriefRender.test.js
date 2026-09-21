@@ -125,3 +125,62 @@ describe('the emergency contact (Phase 2, T8)', () => {
     expect(prompt).not.toMatch(/vou avisar/);
   });
 });
+
+/**
+ * When she told us something matters as much as what she told us. An undated
+ * bullet is read as true now, so a cough from three weeks ago comes back as
+ * today's cough. Dates also let her hear "você me contou" instead of a fact
+ * asserted out of nowhere. (Instinct keeps its memory as dated bullets for the
+ * same reason; read 2026-09-21.)
+ */
+describe('facts carry the day she said them', () => {
+  const said = (answer, isoDay) => ({
+    kind: 'biography', question: 'O que ela contou', answer, confidence: 'committed', created_at: `${isoDay}T09:00:00.000Z`,
+  });
+
+  it('dates what she has told us, in Brazilian Portuguese', () => {
+    const { prompt } = renderCallBrief({
+      presence,
+      facts: [said('Está com uma tosse', '2026-09-01')],
+      now: new Date('2026-09-21T12:00:00.000Z'),
+    });
+    expect(prompt).toContain('Está com uma tosse (ela contou em 1 de setembro)');
+  });
+
+  it('says how long ago, so a three-week-old worry is not heard as today', () => {
+    const { prompt } = renderCallBrief({
+      presence,
+      facts: [said('Está com uma tosse', '2026-09-01')],
+      now: new Date('2026-09-21T12:00:00.000Z'),
+    });
+    expect(prompt).toMatch(/Nothing here is necessarily still true/i);
+    expect(prompt).toMatch(/never assert a dated fact as if it were today/i);
+  });
+
+  it('leaves the family-written anchors undated — nobody "contou" them on a call', () => {
+    const { prompt } = renderCallBrief({
+      presence,
+      facts: [{ kind: 'anchor', question: 'Um lugar', answer: 'Ubatuba', created_at: '2026-08-30T09:00:00.000Z' }],
+      now: new Date('2026-09-21T12:00:00.000Z'),
+    });
+    expect(prompt).toContain('Um lugar: Ubatuba');
+  });
+
+  it('renders a fact with no date exactly as before', () => {
+    const { prompt } = renderCallBrief({
+      presence,
+      facts: [{ kind: 'biography', question: 'O que ela contou', answer: 'Gosta de macarrão', confidence: 'committed' }],
+    });
+    expect(prompt).toContain('- Gosta de macarrão\n');
+    expect(prompt).not.toMatch(/Gosta de macarrão \(/);
+  });
+
+  it('dates the memories of recent conversations', () => {
+    const { prompt } = renderCallBrief({
+      presence,
+      recentConversations: [{ started_at: '2026-09-19T10:00:00.000Z', summary: 'Falamos do passeio dela.' }],
+      now: new Date('2026-09-21T12:00:00.000Z'),
+    });
+    expect(prompt).toContain('Falamos do passeio dela. (19 de setembro)');
+  });
+});

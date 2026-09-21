@@ -274,7 +274,7 @@ export async function getCallBriefSources(presenceId) {
       .select('name, relation, called_by')
       .eq('presence_id', presenceId).eq('status', 'active').order('created_at'),
     supabaseAdmin.from('presence_facts')
-      .select('kind, question, answer, confidence, expires_at')
+      .select('kind, question, answer, confidence, expires_at, created_at')
       .eq('presence_id', presenceId).eq('status', 'active')
       .or('expires_at.is.null,expires_at.gt.' + new Date().toISOString())
       .order('created_at'),

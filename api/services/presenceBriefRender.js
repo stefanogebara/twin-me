@@ -12,12 +12,32 @@ function fence(text) {
   return `<<<\n${text}\n>>>`;
 }
 
+const MONTHS_PT = [
+  'janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho',
+  'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro',
+];
+
+/**
+ * The day something was said, as a person would say it ("1 de setembro"), with
+ * the year only when it was not this one. An undated line reads as true now, so
+ * a cough from three weeks ago comes back as today's cough; the date is what
+ * lets the model say "você me contou" instead of asserting it fresh.
+ * Returns '' for anything unparseable, and the caller then renders as before.
+ */
+function dayInPt(value, now) {
+  if (!value) return '';
+  const date = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(date.getTime())) return '';
+  const day = `${date.getUTCDate()} de ${MONTHS_PT[date.getUTCMonth()]}`;
+  return date.getUTCFullYear() === now.getUTCFullYear() ? day : `${day} de ${date.getUTCFullYear()}`;
+}
+
 /**
  * @param {object} input
  * @param {boolean} [input.firstCall]  her first phone call: introduce, ask for her yes,
  *   learn her name and hour; no notes, no memories (there are none she agreed to yet)
  */
-export function renderCallBrief({ presence, people = [], facts = [], notes = [], recentConversations = [], firstCall = false }) {
+export function renderCallBrief({ presence, people = [], facts = [], notes = [], recentConversations = [], firstCall = false, now = new Date() }) {
   const caredFor = presence.cared_for_name?.trim() || 'ela';
   const caller = presence.caller_name?.trim() || 'sua família';
   const byKind = (kind) => facts.filter((f) => f.kind === kind);
@@ -112,14 +132,15 @@ ${fence(intro.answer.slice(0, 1800))}`);
   // Store 5 — episodic memory: what past conversations held.
   if (recentConversations.length > 0) {
     sections.push(`WHAT YOU REMEMBER FROM RECENT CONVERSATIONS (build on these naturally — you DO remember her):
-${fence(recentConversations.map((c) => `- ${c.summary}`).join('\n'))}`);
+${fence(recentConversations.map((c) => { const day = dayInPt(c.started_at, now); return `- ${c.summary}${day ? ` (${day})` : ''}`; }).join('\n'))}`);
   }
 
   // Store 4 — biography learned in conversation (committed + still-valid provisional).
   const biography = facts.filter((f) => f.kind === 'biography' && f.confidence !== 'ask').slice(-12);
   if (biography.length > 0) {
-    sections.push(`THINGS YOU HAVE LEARNED ABOUT ${caredFor.toUpperCase()} (from her own words in past conversations):
-${fence(biography.map((f) => `- ${f.answer}`).join('\n'))}`);
+    sections.push(`THINGS YOU HAVE LEARNED ABOUT ${caredFor.toUpperCase()} (from her own words in past conversations, each with the day she said it):
+${fence(biography.map((f) => { const day = dayInPt(f.created_at, now); return `- ${f.answer}${day ? ` (ela contou em ${day})` : ''}`; }).join('\n'))}
+Nothing here is necessarily still true — it was true on the day she said it. So never assert a dated fact as if it were today: ask after it ("como está aquela tosse?"), or place it in time ("você me contou semana passada..."). The older it is, the more gently you hold it.`);
   }
 
   // Conversation craft — the reminiscence protocol.
