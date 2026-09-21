@@ -654,6 +654,7 @@ function plainProse(raw) {
    English is the source; a language with no line falls back to it. ASCII, \u for accents. */
 const PHRASES = {
   es: {
+    'The ledger does not hold that number.': 'El libro no tiene ese n\u00famero.',
     'Where {month} went in {kind}, by place': 'A d\u00f3nde fue {month} en {kind}, por lugar',
     'Connect a bank': 'Conecta un banco',
     'Add a statement': 'A\u00f1ade un extracto',
@@ -728,6 +729,7 @@ const PHRASES = {
     'There is nothing in the ledger yet. Connect a bank or add a statement and ask again.': 'Todav\u00eda no hay nada en el libro. Conecta un banco o a\u00f1ade un extracto y pregunta otra vez.',
   },
   'pt-BR': {
+    'The ledger does not hold that number.': 'O livro n\u00e3o tem esse n\u00famero.',
     'Where {month} went in {kind}, by place': 'Para onde foi {month} em {kind}, por lugar',
     'Connect a bank': 'Conecte um banco',
     'Add a statement': 'Adicione um extrato',
@@ -1114,6 +1116,8 @@ export function withoutRepeats(text, history) {
 
 const EMPTY_LEDGER = 'There is nothing in the ledger yet. Connect a bank or add a statement and ask again.';
 const NO_ANSWER = 'The ledger cannot answer that from what it has.';
+/* Closes a sentence whose words were already on the screen when its number turned out to be one the ledger never computed. */
+const NO_SUCH_NUMBER = 'The ledger does not hold that number.';
 const TOO_LONG = 'That took too long to answer. Ask it again.';
 const CHAT_MODEL_TIMEOUT_MS = 50000;
 
@@ -1411,7 +1415,15 @@ export async function answerStream(userId, message, history = [], { now = new Da
       /* Compared after the currency is written the way the finished answer writes it: the
          previous turn holds euro signs, and "116,76 EUR" would not have matched them. */
       const full = euroGlyphs(sentence);
-      if (released > 0) { put(full.slice(released), true); released = 0; continue; }
+      if (released > 0) {
+        /* Words already on the screen cannot be taken back; the number that arrived at the end
+           of the sentence can still be refused. A streamed answer once said "the average of the
+           full months is 196,94 EUR", a sum the ledger never computed (2026-09-21). */
+        if (grounded(full)) put(full.slice(released), true);
+        else { droppedSentences += 1; put(`\u2026 ${say(ctx.language, NO_SUCH_NUMBER)}`, true); }
+        released = 0;
+        continue;
+      }
       if (!grounded(full)) { droppedSentences += 1; continue; }
       if (!said.has(shapeOf(full))) put(full, false);
       released = 0;
@@ -1422,7 +1434,7 @@ export async function answerStream(userId, message, history = [], { now = new Da
       const converted = euroGlyphs(pending);
       const tail = converted.slice(released).replace(/\s+$/, '');
       if (tail.trim()) {
-        if (released > 0) put(tail, true);
+        if (released > 0) { if (grounded(converted)) put(tail, true); else { droppedSentences += 1; put(`\u2026 ${say(ctx.language, NO_SUCH_NUMBER)}`, true); } }
         else if (!grounded(converted)) droppedSentences += 1;
         else if (!said.has(shapeOf(converted.trim()))) put(tail.trim(), false);
       }

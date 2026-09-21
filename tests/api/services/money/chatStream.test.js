@@ -361,6 +361,18 @@ describe('the streamed answer', () => {
     expect(reply.text).toBe(textOf(events));
   });
 
+  it('refuses a number that arrives at the end of a sentence whose words were already flowing', async () => {
+    /* The words before the number flow (nothing said before could be repeated); the number
+       comes last and is one the ledger never computed. The words on the screen stay, the
+       number never shows, and the sentence closes honestly. */
+    streamCall.mockImplementation(streamsIn(['{"text":"Clothing took 116,76 EUR. The average of the full months is ', '196,94 EUR. ', 'Spotify is 11,99 EUR a month.","figures":[],"actions":[]}']));
+    const { events, onEvent } = recorder();
+    const reply = await answerStream('u1', 'how much on clothes?', [], { now: NOW, onEvent });
+    expect(textOf(events)).not.toMatch(/196,94/);
+    expect(textOf(events)).toMatch(/^Clothing took 116,76 \u20ac\. The average of the full months ?\u2026 The ledger does not hold that number\. Spotify is 11,99 \u20ac a month\.$/);
+    expect(reply.text).toBe(textOf(events));
+  });
+
   it('a reply that stood only on invented sums says so once', async () => {
     streamCall.mockImplementation(streamsIn(['That leaves 283,51 EUR. ', 'About 30,58 EUR a day.']));
     const { events, onEvent } = recorder();
