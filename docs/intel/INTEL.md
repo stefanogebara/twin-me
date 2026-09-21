@@ -15,6 +15,28 @@
 
 ## Em aberto — precisa de decisão do Stefano
 
+> **Passada de 2026-09-21 (money twin, Instinct teardown).** Fonte única: o teardown
+> do Instinct escrito pelo Stefano em 21/09 (Claude Doc `3uCiDnABuBYdker1Ce4EHx`; seis
+> pesquisadores, DNS, certificados, bundle público, sem nada atrás de login), lido inteiro
+> e cruzado com o repositório. Quatorze movimentos triados: 2 PROTOTIPAR (em
+> `BACKLOG.md`: `entradas-tipadas`, `setup-por-oferta`), 2 DISCUTIR (abaixo), 7 REGISTRAR
+> (Radar), 3 DESCARTAR (Stripe Link só nos EUA; iMessage sem vendedor na UE; sandbox
+> E2B, nada aqui navega). A pergunta do endereço de recibos (14/09, abaixo) continua
+> aberta e o teardown só a reforça: o e-mail do Instinct é SES inbound + envio.
+
+### [DISCUTIR 10/15] O número do dia chega onde a pessoa já está (WhatsApp), ou fica na página?
+**Data:** 2026-09-21 · **Fonte:** teardown (seção "Reception", "What TwinMe can take"; [preço por mensagem da Meta a partir de 1/10/2026](https://developers.facebook.com/docs/whatsapp/pricing)) · **Eixos:** P3 A2 D2 E1 L2
+**O que é:** o que os usuários do Instinct elogiam é o que chega sem pedir (follow-up de fio largado, relatório diário) num canal que já abrem; o Meta Muse fez o mesmo em 8/09. O teardown conclui que a forma defensável na UE é um assistente de dinheiro no WhatsApp em que a IA é acessória ao serviço (a categoria que a política da Meta permite), com pagamentos feitos pela pessoa.
+**Por que toca este projeto:** o número do dia (`allowance.js`), a cobrança de amanhã (`chargesSoon`) e o prazo de devolução (`returns.js`) só existem em `/money`; ninguém recebe nada. As rotas de WhatsApp do gêmeo antigo existem (`api/routes/cron-morning-briefing.js`, `morning-briefing.js`) mas estão atrás de `LEGACY_TWIN_ENABLED=false` e falam do gêmeo, não do dinheiro. O `settled` do `intel.config.json` ainda diz "captura financeira é por WhatsApp" (linha velha, ver passada de 14/09).
+**A pergunta:** uma mensagem por manhã ("Hoje: 14,60 EUR; Higgsfield cai amanhã") no WhatsApp para você e os dois amigos, medindo abertura de `/money` e custo por mensagem, ou a página continua sendo o único lugar? Se sim, WhatsApp (cobrado por mensagem desde 1/10) ou Telegram (grátis, sem política contra assistentes)?
+
+### [DISCUTIR 9/15] O telefone diz onde a pessoa está, e a viagem entra sozinha na agenda?
+**Data:** 2026-09-21 · **Fonte:** teardown (Features: localização ao vivo por iMessage, gatilhos de chegada e saída, perguntas de histórico, controle de apagar; post do fundador de 5/09) · **Eixos:** P2 A2 D2 E1 L2
+**O que é:** o Instinct recebe a localização ao vivo e reage a chegar e sair de um lugar; a pessoa pode apagar o histórico.
+**Por que toca este projeto:** hoje a viagem entra por frase ("vou a Bilbao de sexta a domingo", `when.js`, PR #452) e a banda do dia só alarga com um dia marcado como fora (`calendar.js`, ideia 7 esperando dado: 1 dia fora em 75). O app Android já lê notificações do banco (`twinme-phone-capture`); localização é uma permissão a mais e um canal a mais, e o produto vende privacidade como feature.
+**A pergunta:** o telefone pode mandar "estou fora de Madrid" (só a cidade, só quando muda), para a viagem contar sem ninguém digitar, ou a localização fica fora por princípio?
+
+
 > **Passada de 2026-09-14 (money twin).** Rodada a partir da revisão de pesquisa de 13/09
 > (cinco agentes; página em https://claude.ai/code/artifact/39ccecb0-ffdd-4cc9-a177-e09a48eb3043),
 > um analista por item, seis itens. Manutenção: `intel.config.json` ainda diz em `settled`
@@ -295,6 +317,13 @@ Novos em 2026-09-19 (varredura de três batedores: produtos, papers, o que as pe
 - **Fundido** em `BACKLOG.md#mcp-contexto-portatil`: o Copilot Money expõe o ledger por MCP desde maio de 2026 ([changelog](https://www.copilot.money/changelog)); o item ganha uma perna "o dinheiro por MCP" com âncora em `api/mcp-server/src/server.ts` e `api/services/money/forecastService.js`.
 
 ## Radar
+- `2026-09-21` **Instinct: memória com agente de chat só-leitura, compactação diária, correções datadas** (teardown, sonda da Supermemory): 13.000 tokens por turno, busca exata por palavra, uma preferência levou 23 h 16 min para valer. O money twin já tem a forma (o chat lê `money_facts` e `money_readings`; `cron-money-learn` escreve à noite, sem modelo) e é mais rápido: um "remember" vale no turno seguinte. A única lacuna: uma correção apaga o fato (`deleteFact`) em vez de deixar a entrada datada que o substitui.
+- `2026-09-21` **Instinct: segredo por link de uso único, preenchido no servidor, nunca pelo chat** (teardown, Vault): não se aplica hoje, o money twin nunca pede senha (PSD2 por redirecionamento, extrato por upload); vira regra se um dia baixar extrato por login.
+- `2026-09-21` **Instinct: cartão de aprovação que carrega o plano + arquivo de autonomia por usuário** (teardown): as ofertas do chat já são isso (nada muda sem toque; `assembleReply`); o "quanto perguntar" é o orçamento de perguntas ainda aberto no plano de 13/09.
+- `2026-09-21` **Instinct: rede de pessoas de confiança, agente a agente, chaveada por telefone** (teardown, INFERRED bus próprio): o Presence (companheiro, convites, PR #427) é a mesma forma; para o dinheiro, o uso seria acertar uma divisão (`bizum.js`) com o gêmeo do colega. Sem alavanca até haver dois ledgers.
+- `2026-09-21` **Instinct treina nos dados do usuário por padrão, com opt-out só daqui para frente** (termos revisados em 26/08): posicionamento, não código. O ledger do TwinMe nunca treina nada (OpenRouter, sem retenção); vale uma linha na política de privacidade e na landing.
+- `2026-09-21` **Instinct: cadência de lançamento, uma interrupção removida por post, um número, um exemplo** (posts de 4 a 18/09): já anotado em 13/09; continua sendo o molde para os posts do money twin.
+- `2026-09-21` **Instinct: cada incidente documentado é agir sem confirmar ou tratar texto de fora como instrução** (TechCrunch 24/08): o money twin não age (só oferece), mas lê texto de fora (`inbox.js`, assunto do recibo em `raw_text` no contexto do chat). Spike em `BACKLOG.md` (`entradas-tipadas`).
 - `2026-09-19` **YNAB casa o pagamento do cartão com a compra** (ago. 2026, [what's new](https://www.ynab.com/whats-new)): uma saída da conta corrente ligada ao lançamento da fatura por valor e proximidade de data, para não contar duas vezes. É o problema F6/B3 da revisão de 18/09; a heurística é copiável em `api/services/money/ledger.js`.
 - `2026-09-19` **YNAB só troca a categoria de um comércio quando 2 das últimas 3 concordam** (ago. 2026): filtro de ruído sem modelo. Cabe em `places.js`/`setPlaceCategory` para quando provedor e pessoa discordam.
 - `2026-09-19` **Fintonic passa a conectar o Revolut** (ago. 2026, [blog](https://www.fintonic.com/blog/)): o incumbente espanhol trata o Revolut como conta de primeira classe — o mesmo pressuposto multi-banco do TwinMe.
