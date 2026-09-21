@@ -19,6 +19,7 @@ import MoneyNav, { type MoneyNavLink } from './MoneyNav';
 import Wait from '../../components/Wait';
 import TotalRow from './figures/TotalRow';
 import { MONEY_NAV } from './navLinks';
+import { merchantLabel } from './words';
 import { moneyAPI, euro, type MoneyPlan, type MoneyPlanCell, type MoneyPlanItem } from '../../services/api/moneyAPI';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { useT, useLocale } from '@/lib/i18n';
@@ -208,7 +209,7 @@ export default function PlanPage() {
                   {cell.rows.map((r) => (
                     <li key={r.id} className="mv-item mv-item--tight">
                       <span className="mv-item-text">
-                        <span className="mv-item-title">{r.merchant || t('Unknown')}</span>
+                        <span className="mv-item-title">{merchantLabel({ merchant_key: r.merchant || '' }, t)}</span>
                         <span className="mv-item-sub">{timeOf(r.occurred_at, locale)}</span>
                       </span>
                       <span className={`mv-item-end${r.amount > 0 ? ' mv-in' : ''}`}>{r.amount > 0 ? `+${euro(r.amount)}` : euro(r.amount)}</span>
