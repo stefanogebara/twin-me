@@ -10,6 +10,7 @@ import type { MoneyAccount } from '../useMoneyAccount';
 import Noticed from './you/Noticed';
 import Knows from './you/Knows';
 import Sources from './you/Sources';
+import Account from './you/Account';
 
 export default function YouView({ m }: { m: MoneyAccount }) {
   const { t, user, facts, youFailed } = m;
@@ -32,6 +33,8 @@ export default function YouView({ m }: { m: MoneyAccount }) {
       <Knows m={m} />
           {/* Sources */}
       <Sources m={m} />
+          {/* The account: language, sign out, what it keeps, delete (2026-09-21). */}
+      <Account m={m} />
     </>
   );
 }
