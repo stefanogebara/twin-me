@@ -26,7 +26,7 @@
  */
 
 import { complete, stream as streamComplete, TIER_CHAT } from '../llmGateway.js';
-import { windowLines, weekAverageLine, costliestDayLine, weekdayLine, spendWindows, breakdown, eur, NO_NAME } from './windows.js';
+import { windowLines, weekAverageLine, costliestDayLine, cheapestDayLine, monthPaceLine, weekdayLine, spendWindows, breakdown, eur, NO_NAME } from './windows.js';
 import { askedLines, askedDays, askedWindows } from './asked.js';
 import { tripDays } from './when.js';
 import { balances, describeBetweenPeople, monthBetweenPeople, describeMonthBetweenPeople, splitFindings, MIN_WAYS, MAX_WAYS } from './bizum.js';
@@ -169,7 +169,7 @@ export function assemble({ transactions: rawTransactions = [], segments = [], fo
   const byId = new Map(transactions.map((t) => [t.id, t]));
   const open = [...(questions?.opening || []), ...(questions?.fromLedger || [])];
   return {
-    now, transactions, byId, segments, forecast: cast, recurring, readings, facts,
+    now, transactions, byId, segments, forecast: cast, recurring, readings, facts, roles,
     questions: open, places: places || [], placeByKey, categoryOf, categories, lastCategories, accounts: accounts || [], language: language || null, profiles, patterns, predictions,
   };
 }
@@ -419,6 +419,8 @@ export function contextText(ctx) {
   lines.push(...windowLines(ctx.transactions, ctx.now, windowOpts));
   lines.push(weekAverageLine(ctx.transactions, ctx.now));
   lines.push(costliestDayLine(ctx.transactions, ctx.now));
+  lines.push(cheapestDayLine(ctx.transactions, ctx.now));
+  lines.push(monthPaceLine(ctx.transactions, ctx.now));
   lines.push(weekdayLine(ctx.transactions, ctx.now));
   /* The stretch this question names (a weekday, a night, a weekend, a date, a range, since a
      date), totalled here: asked about the 8th to the 14th, the chat gave one day of it (2026-09-20). */
@@ -444,6 +446,12 @@ export function contextText(ctx) {
   if (byPlace.length) lines.push(`This month by place, total (payments): ${byPlace.map((b) => `${b.key} ${eur(b.total)} (${b.count})`).join('; ')}.`);
   const lastByPlace = breakdown(spendingIn(lastKey), placeName, 20);
   if (lastByPlace.length) lines.push(`${monthLabel(`${lastKey}-01`)} by place, total (payments): ${lastByPlace.map((b) => `${b.key} ${eur(b.total)} (${b.count})`).join('; ')}.`);
+  /* The whole ledger by place, so "since July at OpenAI" is a line and not this month's
+     figure passed off as the answer (2026-09-21). */
+  const allSpending = (ctx.transactions || []).filter((t) => out(t) && t.verdict !== 'not_me');
+  const firstDay = allSpending.reduce((m, t) => (!m || t.occurred_at < m ? t.occurred_at : m), null);
+  const allByPlace = breakdown(allSpending, placeName, 40);
+  if (allByPlace.length && firstDay) lines.push(`Whole ledger by place since ${dayMonth(firstDay)}, total (payments): ${allByPlace.map((b) => `${b.key} ${eur(b.total)} (${b.count})`).join('; ')}.`);
 
   const groups = ctx.categories?.groups || [];
   if (groups.length) {
@@ -474,7 +482,7 @@ export function contextText(ctx) {
   if (between.length) lines.push('Between people, 90 days: ' + between.join(' '));
   /* The month to and from people, totalled: asked who got Bizums this month, the model
      listed five people and said the ledger had no total (2026-09-20). */
-  lines.push(...describeMonthBetweenPeople(monthBetweenPeople(ctx.transactions, ctx.now)));
+  lines.push(...describeMonthBetweenPeople(monthBetweenPeople(ctx.transactions, ctx.now, ctx.roles || new Map())));
   for (const f of splitFindings(ctx.facts, ctx.transactions, { now: ctx.now }).slice(0, 3)) lines.push(`Shared payment still open: ${f.sentence.replace(/\u20ac/g, 'EUR')}`);
 
   lines.push(...calendarLines(ctx.facts, { now: ctx.now }));
@@ -522,6 +530,7 @@ export const RULES = [
   'Never add numbers up: if a total would need adding, give the parts and say the ledger has no total for that. Never work out a daily amount or a difference yourself. The totals for today, yesterday, last night, this week, last week and each of the last seven days are in the context, each with its kinds of place and its places, and each place has its total and count for this month and last: quote them when asked about a stretch, a kind of place, or a place; "how much is left" is the line that begins "Left for". A place missing from the by-place line had no payment that month: say so, never assemble a count or a total from other lines. The biggest or largest payment is one line of the recent payments, never a place\'s total over several.',
   'When the question names a weekday, a night, a weekend, a date, a stretch between two dates or "since" a date, the line beginning "Asked stretch" holds exactly that stretch: quote its total, count and largest, and its kinds and places. Asked what a week costs on average, quote the line beginning "Average week", never the last seven days. A comparison of two stretches is the two lines side by side; never work out the difference.',
   'A line is about the days it names and no others: never give a line\'s numbers for a different day, weekend or stretch. When the stretch asked about has no line, say the ledger cannot tell for those days. The month\'s costliest day and the spend by day of the week over the last full weeks are lines of their own: quote them for "which day" questions, never the per-day line of the last seven.',
+  'Asked whether somebody sent or paid this month, answer from the line beginning "From people this month" (or "To people this month"): a name missing there did not, this month, whatever the 90-day line says; then say when they last did, from "last on". Asked about a place over several months or "since" a month, quote the line beginning "Whole ledger by place" and say since when the ledger goes back; this month\'s figure is never the answer to a longer question. "Average per day" and the cheapest day are lines of their own.',
   'Asked how much went to people, by Bizum or by transfer, this month, or what came from them, quote the lines beginning "To people this month" and "From people this month": they hold the totals and each person. Asked for a graph of a stretch named in the question, ask for the week figure: it draws that stretch, a bar per day.',
   'Asked whether they can afford an amount, answer yes or no in the first sentence against today\'s number (the line for today, or the one beginning "Left for"), then give those numbers; repeat the amount they named as they wrote it.',
   'A place is only ever itself: never say one place is, looks like or counts as another (a Lidl is not a Mercadona). Asked about a place none of the lines hold, say nothing was seen there. "A payment without a name" is a payment the bank sent without a name: say so in those words, never as a place called unknown.',
@@ -818,6 +827,32 @@ export function withoutChartQuestion(text, figuresDrawn) {
 
 const ASK_OPENERS = /^(what|which|how|show|list|tell|give|draw|make|compare|plot|chart|graph|explain|why|when|where|who|que|qu\u00e9|cu\u00e1l|cual|cu\u00e1nto|cuanto|cu\u00e1ntos|cuantos|dime|muestra|dame|ens\u00e9\u00f1ame|ensename|quanto|quantos|qual|quais|como|quem|quando|onde|mostra|mostre|me mostra|me d\u00e1|me da|diga|me diga)\b/i;
 
+/**
+ * The language a message is written in, from its small words: en, es, pt or null when it
+ * cannot tell (a name, a number). A Spanish question was answered in Portuguese and an
+ * English one in Spanish (2026-09-21); the model reads a hint set right under the question
+ * better than a rule far above it. Pure.
+ */
+const LANGUAGE_WORDS = {
+  en: ['the', 'how', 'much', 'did', 'what', 'my', 'this', 'last', 'and', 'on', 'week', 'month', 'spend', 'spent', 'was', 'is', 'do', 'have', 'me', 'i'],
+  es: ['cuanto', 'cu\u00e1nto', 'gaste', 'gast\u00e9', 'llevo', 'gastado', 'esta', 'este', 'semana', 'mes', 'el', 'la', 'los', 'las', 'que', 'qu\u00e9', 'por', 'del', 'al', 'ayer', 'hoy', 'noche', 'fin', 'pasado', 'mis', 'tengo', 'puedo', 'cuando', 'cu\u00e1ndo'],
+  pt: ['quanto', 'gastei', 'ontem', 'hoje', 'noite', 'esta', 'este', 'semana', 'mes', 'm\u00eas', 'o', 'a', 'os', 'as', 'do', 'da', 'no', 'na', 'que', 'meu', 'minha', 'fim', 'passado', 'tenho', 'posso', 'quando', 'qual', 'n\u00e3o', 'nao'],
+};
+export function languageOf(message) {
+  const words = String(message || '').toLowerCase().replace(/[^\p{L}\s]/gu, ' ').split(/\s+/).filter(Boolean);
+  if (!words.length) return null;
+  const score = { en: 0, es: 0, pt: 0 };
+  for (const w of words) for (const [lang, list] of Object.entries(LANGUAGE_WORDS)) if (list.includes(w)) score[lang] += 1;
+  /* the words es and pt share ("esta", "este", "semana", "que", "fim", "passado") decide nothing */
+  const shared = new Set(LANGUAGE_WORDS.es.filter((w) => LANGUAGE_WORDS.pt.includes(w)));
+  for (const w of words) if (shared.has(w)) { score.es -= 1; score.pt -= 1; }
+  const best = Object.entries(score).sort((a, b) => b[1] - a[1])[0];
+  if (best[1] <= 0) return null;
+  const tied = Object.values(score).filter((v) => v === best[1]).length > 1;
+  return tied ? null : best[0];
+}
+const LANGUAGE_HINT = { en: 'The last message is in English: answer in English.', es: 'The last message is in Spanish: answer in Spanish, every word.', pt: 'The last message is in Portuguese: answer in Portuguese, every word.' };
+
 export function isStatement(message) {
   const m = String(message || '').trim();
   /* A long ask is still an ask: "give me a graph of what I spent between the 8th and the
@@ -974,7 +1009,8 @@ export async function answer(userId, message, history = [], { now = new Date() }
   if (quick) return keep(quick);
 
   ctx.asked = text;
-  const system = `${RULES}\n\nWhat the ledger knows:\n${contextText(ctx)}`;
+  const hint = LANGUAGE_HINT[languageOf(text)] || '';
+  const system = `${RULES}\n\nWhat the ledger knows:\n${contextText(ctx)}${hint ? `\n\n${hint}` : ''}`;
   const turns = (Array.isArray(history) ? history : []).slice(-MAX_HISTORY_TURNS)
     .filter((h) => h && typeof h.text === 'string' && h.text.trim())
     .map((h) => ({ role: h.role === 'twin' ? 'assistant' : 'user', content: h.text.trim() }));
@@ -1195,7 +1231,8 @@ export async function answerStream(userId, message, history = [], { now = new Da
   }
 
   ctx.asked = asked;
-  const system = `${RULES}\n\nWhat the ledger knows:\n${contextText(ctx)}`;
+  const hint = LANGUAGE_HINT[languageOf(asked)] || '';
+  const system = `${RULES}\n\nWhat the ledger knows:\n${contextText(ctx)}${hint ? `\n\n${hint}` : ''}`;
   const turns = (Array.isArray(history) ? history : []).slice(-MAX_HISTORY_TURNS)
     .filter((h) => h && typeof h.text === 'string' && h.text.trim())
     .map((h) => ({ role: h.role === 'twin' ? 'assistant' : 'user', content: h.text.trim() }));

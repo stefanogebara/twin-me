@@ -38,7 +38,7 @@ describe('spendWindows', () => {
     expect(lines).toContain('Yesterday: spent 45,40 EUR in 2 payments, the largest dinner 34,00 EUR.');
     expect(lines).toContain('Last night (yesterday 18:00 to 06:00 today): spent 46,00 EUR in 2 payments, the largest dinner 34,00 EUR.');
     expect(lines.at(-1)).toMatch(/^Spent per day, last 7 days: Sunday 09-13 nothing; .*Saturday 09-19 14,50 EUR \(2\)\.$/);
-    expect(windowLines([], now)[0]).toBe('Today so far: nothing spent.');
+    expect(windowLines([], now)[0]).toBe('Today so far: nothing spent, not one payment in that stretch.');
   });
 
   it('breaks a window down by kind of place and by place when told how', () => {
@@ -89,5 +89,14 @@ describe('costliestDayLine and weekdayLine', () => {
     const rows = [tx('m1', '2026-09-07T10:00:00Z', -30), tx('m2', '2026-08-31T10:00:00Z', -20), tx('f1', '2026-09-11T20:00:00Z', -60), tx('this', '2026-09-15T10:00:00Z', -999)];
     expect(weekdayLine(rows, now, 8)).toBe('Spent by day of the week, last 8 full weeks, costliest first: Friday 60,00 EUR; Monday 50,00 EUR; Tuesday 0,00 EUR; Wednesday 0,00 EUR; Thursday 0,00 EUR; Saturday 0,00 EUR; Sunday 0,00 EUR.');
     expect(weekdayLine([], now)).toBe('Spent by day of the week, last 8 full weeks: nothing.');
+  });
+});
+
+describe('cheapestDayLine and monthPaceLine', () => {
+  it('names the cheapest day with a payment and counts the empty ones, and the average per day so far', async () => {
+    const { cheapestDayLine, monthPaceLine } = await import('../../../../api/services/money/windows.js');
+    expect(cheapestDayLine(ledger, now)).toBe('Cheapest day with a payment this month: Saturday 19 Sep 14,50 EUR (2); days with nothing spent: 15.');
+    expect(monthPaceLine(ledger, now)).toBe('Average per day this month: 32,01 EUR over 19 days (spent 608,10 EUR so far).');
+    expect(monthPaceLine([], now)).toBe('Average per day this month: 0,00 EUR over 19 days (spent 0,00 EUR so far).');
   });
 });

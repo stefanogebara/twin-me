@@ -122,10 +122,14 @@ export function askedWindows(text, now = new Date()) {
       let back = (weekday - wd + 7) % 7;
       if (last && back === 0) back = 7;
       const key = shiftDay(today, -back);
-      const night = /\b(night|noche|noite|evening)\b/.test(t);
-      const from = startOf(key) + (night ? 18 * HOUR : 0);
-      const to = night ? startOf(shiftDay(key, 1)) + 6 * HOUR : startOf(shiftDay(key, 1));
-      push(`${weekdayLabel(key)}${night ? ' night (18:00 to 06:00)' : capped(to)}`, from, to);
+      /* the parts of a day: a night runs 18:00 to 06:00 the next day, a morning 06:00 to 12:00, an afternoon 12:00 to 18:00 */
+      const night = /\b(night|noche|noite|evening|tarde-noite)\b/.test(t);
+      const morning = !night && /\b(morning|manana|manha|de manha|por la manana)\b/.test(t);
+      const afternoon = !night && !morning && /\b(afternoon|tarde)\b/.test(t);
+      const part = night ? ' night (18:00 to 06:00)' : morning ? ' morning (06:00 to 12:00)' : afternoon ? ' afternoon (12:00 to 18:00)' : '';
+      const from = startOf(key) + (night ? 18 : morning ? 6 : afternoon ? 12 : 0) * HOUR;
+      const to = night ? startOf(shiftDay(key, 1)) + 6 * HOUR : morning ? startOf(key) + 12 * HOUR : afternoon ? startOf(key) + 18 * HOUR : startOf(shiftDay(key, 1));
+      push(`${weekdayLabel(key)}${part || capped(to)}`, from, to);
     }
     return out;
   }

@@ -20,6 +20,11 @@ describe('askedWindows', () => {
     expect(askedWindows('quanto gastei na sexta a noite', sun)[0].label).toBe('Friday 18 September night (18:00 to 06:00)');
     expect(askedWindows('cuanto gaste el viernes por la noche', sun)[0].label).toBe('Friday 18 September night (18:00 to 06:00)');
   });
+  it('reads a morning and an afternoon', () => {
+    expect(askedWindows('How much did I spend on Sunday morning?', sun)[0]).toEqual({ key: 'asked', label: 'Sunday 20 September morning (06:00 to 12:00)', from: madrid('2026-09-20', '06'), to: madrid('2026-09-20', '12') });
+    expect(askedWindows('que gaste el sabado por la tarde', sun)[0].label).toBe('Saturday 19 September afternoon (12:00 to 18:00)');
+    expect(askedWindows('quanto gastei sexta de manha', sun)[0].label).toBe('Friday 18 September morning (06:00 to 12:00)');
+  });
   it('reads this weekend and last weekend as Saturday to Monday 06:00, and both for a comparison', () => {
     const w = askedWindows('This weekend versus last weekend?', sun);
     expect(w.map((x) => x.label)).toEqual(['This weekend (19 and 20 September, so far)', 'Last weekend (12 and 13 September)']);
@@ -67,7 +72,7 @@ describe('askedLines', () => {
     expect(lines).toEqual(['Asked stretch, Saturday 19 September: spent 25,60 EUR in 2 payments, the largest a payment without a name 18,50 EUR. By kind: food 18,50 EUR (1); transport 7,10 EUR (1). By place: a payment without a name 18,50 EUR (1); taxi 7,10 EUR (1).']);
   });
   it('says nothing spent, and nothing at all when the question names no stretch', () => {
-    expect(askedLines(ledger, 'what did I spend on the 16th', sun)).toEqual(['Asked stretch, 16 September: nothing spent.']);
+    expect(askedLines(ledger, 'what did I spend on the 16th', sun)).toEqual(['Asked stretch, 16 September: nothing spent, not one payment in that stretch.']);
     expect(askedLines(ledger, 'how much did I spend last Friday night', sun)[0]).toMatch(/^Asked stretch, Friday 18 September night \(18:00 to 06:00\): spent 29,46 EUR in 2 payments, the largest bar 22,36 EUR\./);
     expect(askedLines(ledger, 'am I on track', sun)).toEqual([]);
   });
