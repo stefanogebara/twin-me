@@ -73,6 +73,29 @@ export function costliestDayLine(transactions = [], now = new Date()) {
   return `Costliest day this month: ${top.weekday} ${p.day} ${MONTH_SHORT[p.month - 1]} ${eur(top.total)} (${top.count})${top.biggest ? `, the largest ${top.biggest.name} ${eur(top.biggest.amount)}` : ''}.`;
 }
 
+/** The cheapest day with a payment this month: the model picked one of the last seven (2026-09-21). */
+export function cheapestDayLine(transactions = [], now = new Date()) {
+  const month = dayIn(now).slice(0, 7);
+  const from = startOfDayIn(`${month}-01`).getTime();
+  const days = dayTotals(transactions, from, new Date(now).getTime() + 60000);
+  const spent = days.filter((d) => d.count);
+  if (!spent.length) return 'Cheapest day this month: nothing spent yet.';
+  const low = spent.reduce((a, b) => (b.total < a.total ? b : a));
+  const p = partsIn(new Date(startOfDayIn(low.day).getTime() + 12 * 3600000));
+  const empty = days.length - spent.length;
+  return `Cheapest day with a payment this month: ${low.weekday} ${p.day} ${MONTH_SHORT[p.month - 1]} ${eur(low.total)} (${low.count}); days with nothing spent: ${empty}.`;
+}
+
+/** What a day of this month has cost on average, so far: spent over the days elapsed, today included. */
+export function monthPaceLine(transactions = [], now = new Date()) {
+  const month = dayIn(now).slice(0, 7);
+  const from = startOfDayIn(`${month}-01`).getTime();
+  const days = dayTotals(transactions, from, new Date(now).getTime() + 60000);
+  const total = r2(days.reduce((s, d) => s + d.total, 0));
+  if (!days.length) return 'Average per day this month: nothing yet.';
+  return `Average per day this month: ${eur(total / days.length)} over ${days.length} day${days.length === 1 ? '' : 's'} (spent ${eur(total)} so far).`;
+}
+
 /**
  * Spending by day of the week over the last full weeks, each weekday's total, the costliest
  * first: "which day do I spend most on" was answered with one week's Monday (2026-09-20).
@@ -122,7 +145,7 @@ export function breakdown(rows, keyOf, max = 4) {
 export function stretchLine(label, transactions = [], from, to, { categoryOf = null, nameOf = null } = {}) {
   const inWindow = (transactions || []).filter(spending).filter((t) => at(t) >= from && at(t) < to);
   const w = sum(inWindow);
-  if (!w.count) return `${label}: nothing spent.`;
+  if (!w.count) return `${label}: nothing spent, not one payment in that stretch.`;
   let line = `${label}: spent ${eur(w.total)} in ${w.count} payment${w.count === 1 ? '' : 's'}${w.biggest ? `, the largest ${w.biggest.name} ${eur(w.biggest.amount)}` : ''}.`;
   if (categoryOf && inWindow.length > 1) {
     const kinds = breakdown(inWindow, categoryOf).map((b) => `${b.key} ${eur(b.total)} (${b.count})`).join('; ');

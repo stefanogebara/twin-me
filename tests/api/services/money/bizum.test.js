@@ -89,7 +89,7 @@ describe('what it says', () => {
     const rows = balances(ledger, facts, { now: NOW });
     expect(rows[0]).toMatchObject({ name: 'Mauad G.', role: 'family', received: 100, settlements: 0, sent: 0, net: 100 });
     expect(rows.find((r) => r.name === 'Ana L.')).toMatchObject({ received: 0, settlements: 15.6, net: 15.6 });
-    expect(describeBetweenPeople(rows)[0]).toBe('Mauad G. (family): sent you 100,00\u00a0\u20ac in 90 days.');
+    expect(describeBetweenPeople(rows)[0]).toBe('Mauad G. (family): sent you 100,00\u00a0\u20ac in 90 days, last on 12 Sep.');
   });
 });
 
@@ -113,6 +113,19 @@ describe('monthBetweenPeople', async () => {
     const lines = describeMonthBetweenPeople(monthBetweenPeople(rows, now)).map((l) => l.replace(/\u00a0/g, ' ').replace(/\u20ac/g, 'EUR'));
     expect(lines[0]).toBe('To people this month (Bizum and transfers): 262,00 EUR to 3 people: Maria D. 200,00 EUR (1); Achref S. 50,00 EUR (1); Sofia C. 12,00 EUR (1).');
     expect(lines[1]).toBe('From people this month: 25,00 EUR from 1 person: Achref S. 25,00 EUR (1).');
+    expect(lines[2]).toBe('Nobody marked family sent anything this month.');
+    const withRole = describeMonthBetweenPeople(monthBetweenPeople(rows, now, new Map([['achref safraou', 'family']])));
+    expect(withRole[1]).toMatch(/Achref S\. \(family\)/);
+    expect(withRole).toHaveLength(2);
     expect(describeMonthBetweenPeople(monthBetweenPeople([rows[5]], now))).toEqual([]);
+  });
+});
+
+describe('describeBetweenPeople says when the person last moved money', async () => {
+  const { balances, describeBetweenPeople } = await import('../../../../api/services/money/bizum.js');
+  it('ends each line with the last day', () => {
+    const rows = [tx('p1', '2026-08-12T10:00:00Z', 1750, 'Mama', 'transfer'), tx('p2', '2026-07-12T10:00:00Z', 1750, 'Mama', 'transfer')];
+    const line = describeBetweenPeople(balances(rows, [], { now: new Date('2026-09-21T10:00:00Z') }))[0].replace(/\u00a0/g, ' ').replace(/\u20ac/g, 'EUR');
+    expect(line).toBe('Mama: sent you 3500,00 EUR in 90 days, last on 12 Aug.');
   });
 });

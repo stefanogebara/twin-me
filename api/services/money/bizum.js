@@ -80,14 +80,14 @@ export function personMovements(transactions = []) {
  * This month between people, by person: what "how much did I send by Bizum this month"
  * means. The 90-day balances answer who owes whom; this answers the month (2026-09-20).
  */
-export function monthBetweenPeople(transactions = [], now = new Date()) {
+export function monthBetweenPeople(transactions = [], now = new Date(), roles = new Map()) {
   const month = monthIn(now);
   const by = new Map();
   let sent = 0; let received = 0;
   for (const m of personMovements(transactions)) {
     if (monthIn(m.occurred_at) !== month || m.verdict === 'not_me') continue;
     const key = m.merchant_key || m.person;
-    if (!by.has(key)) by.set(key, { key, name: shortName(m.person), sent: 0, sentCount: 0, received: 0, receivedCount: 0 });
+    if (!by.has(key)) by.set(key, { key, name: shortName(m.person), role: roles.get(String(key).toLowerCase()) || null, sent: 0, sentCount: 0, received: 0, receivedCount: 0 });
     const b = by.get(key);
     if (m.direction === 'out') { b.sent = r2(b.sent + abs(m)); b.sentCount += 1; sent += abs(m); } else { b.received = r2(b.received + abs(m)); b.receivedCount += 1; received += abs(m); }
   }
@@ -99,13 +99,16 @@ export function describeMonthBetweenPeople(m) {
   if (!m || !m.people.length) return [];
   const to = m.people.filter((p) => p.sent);
   const from = m.people.filter((p) => p.received);
+  const named = (p) => `${p.name}${p.role ? ` (${p.role})` : ''}`;
   const lines = [];
   lines.push(to.length
-    ? `To people this month (Bizum and transfers): ${euro(m.sent)} to ${to.length} ${to.length === 1 ? 'person' : 'people'}: ${to.map((p) => `${p.name} ${euro(p.sent)} (${p.sentCount})`).join('; ')}.`
+    ? `To people this month (Bizum and transfers): ${euro(m.sent)} to ${to.length} ${to.length === 1 ? 'person' : 'people'}: ${to.map((p) => `${named(p)} ${euro(p.sent)} (${p.sentCount})`).join('; ')}.`
     : 'To people this month (Bizum and transfers): nothing sent.');
   lines.push(from.length
-    ? `From people this month: ${euro(m.received)} from ${from.length} ${from.length === 1 ? 'person' : 'people'}: ${from.map((p) => `${p.name} ${euro(p.received)} (${p.receivedCount})`).join('; ')}.`
+    ? `From people this month: ${euro(m.received)} from ${from.length} ${from.length === 1 ? 'person' : 'people'}: ${from.map((p) => `${named(p)} ${euro(p.received)} (${p.receivedCount})`).join('; ')}.`
     : 'From people this month: nothing received.');
+  /* "Did my parents send the money" was answered yes with a friend's transfer (2026-09-21). */
+  if (!from.some((p) => p.role === 'family')) lines.push('Nobody marked family sent anything this month.');
   return lines;
 }
 
@@ -301,6 +304,10 @@ export function describeBetweenPeople(rows = []) {
     if (b.received) parts.push(`sent you ${euro(b.received)}`);
     if (b.settlements) parts.push(`paid you back ${euro(b.settlements)}`);
     if (b.sent) parts.push(`you sent ${euro(b.sent)}`);
-    return `${b.name}${b.role ? ` (${b.role})` : ''}: ${parts.join(', ')} in 90 days.`;
+    /* The last movement's day: "did my parents send the money this month" was answered yes
+       from a 90-day total whose last transfer was in August (2026-09-21). */
+    const last = b.last ? new Date(b.last) : null;
+    const lastDay = last && !Number.isNaN(last.getTime()) ? `, last on ${dayIn(last).slice(8)} ${['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][Number(dayIn(last).slice(5, 7)) - 1]}` : '';
+    return `${b.name}${b.role ? ` (${b.role})` : ''}: ${parts.join(', ')} in 90 days${lastDay}.`;
   });
 }

@@ -629,3 +629,14 @@ describe('the largest subscription', () => {
     expect(r.figures.map((f) => f.kind)).toEqual(['recurring']);
   });
 });
+
+describe('languageOf', () => {
+  it('reads the language of a question from its small words, and nothing from a name', async () => {
+    const { languageOf } = await import('../../../../api/services/money/chat.js');
+    expect(languageOf('cuanto llevo gastado esta semana?')).toBe('es');
+    expect(languageOf('quanto gastei ontem a noite?')).toBe('pt');
+    expect(languageOf('How much did I spend on Sunday morning?')).toBe('en');
+    expect(languageOf('Glovo')).toBe(null);
+    expect(languageOf('ok')).toBe(null);
+  });
+});
