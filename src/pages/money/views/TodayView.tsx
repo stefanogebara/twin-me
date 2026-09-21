@@ -10,7 +10,6 @@ import { euro, shortDay, BANKS } from '../../../services/api/moneyAPI';
 import type { MoneyAccount } from '../useMoneyAccount';
 import Wait from '../../../components/Wait';
 import HomeAsk from '../HomeAsk';
-import Fortnight from '../figures/Fortnight';
 import TotalRow from '../figures/TotalRow';
 import { KindTile } from '../Carved';
 import { todayHere, localDay, allowanceWords } from '../readingWords';
@@ -144,7 +143,9 @@ export default function TodayView({ m }: { m: MoneyAccount }) {
                     })()}
                   </span>
                 </div>
-                {forecast.days && forecast.days.days.length ? <Fortnight strip={forecast.days} tomorrow={forecast.tomorrow ?? null} ledger={ledger} /> : null}
+                {/* Tomorrow in one grey line; the thirty-day strip with its two drawings said
+                    what Month says and made Today 383 words (2026-09-21). */}
+                {forecast.tomorrow && forecast.tomorrow.high > 0 ? <p className="mv-sub">{t('Tomorrow: usually about {value}, up to {high}.', { value: euro(forecast.tomorrow.value), high: euro(forecast.tomorrow.high) })}</p> : null}
                 {ahead.length ? (
                   <>
                   <p className="mv-sub mv-ahead-head">{t('Still to come this month')}</p>

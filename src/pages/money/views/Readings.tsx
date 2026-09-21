@@ -18,7 +18,9 @@ import type { MoneyAccount } from '../useMoneyAccount';
 export default function Readings({ m, view }: { m: MoneyAccount; view: 'today' | 'month' }) {
   const { t, locale, readings, quietDays, shown, lead, rest } = m;
   const [openReading, setOpenReading] = useState<string | null>(null);
-  return readings.length ? (
+  /* Month says what Today does not: the same twelve lines on both pages read as noise (2026-09-21). */
+  const list = view === 'today' ? rest : readings.filter((r) => !shown.some((s) => s.id === r.id));
+  return (view === 'today' ? readings.length : list.length) ? (
             <section className="mv-section" id="readings">
               {view === 'today' && lead ? (
                 <>
@@ -42,7 +44,7 @@ export default function Readings({ m, view }: { m: MoneyAccount; view: 'today' |
                   long it has had nothing new to say, from the day each reading was first said. */}
               {quietDays !== null && quietDays >= 2 && !lead ? <p className="mv-sub">{t('Nothing new for {n} days.', { n: quietDays })}</p> : null}
               <ul className="mv-list">
-                {(view === 'today' ? rest : readings).map((r) => {
+                {list.map((r) => {
                   const isOpen = openReading === r.id;
                   return (
                     <li key={r.id}>

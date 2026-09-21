@@ -70,12 +70,10 @@ export default function Recurring({ m }: { m: MoneyAccount }) {
             )}
             {/* Whether a subscription was used, and the honest gap where nothing can look: the
                 same section, one grey line further down, not a heading of its own. */}
-            {usage && (usage.findings.length || unmeasured.length) ? (
+            {usage && usage.findings.length ? (
               <>
               <p className="mv-sub mv-more" id="usage">
-                {unmeasured.length
-                  ? t('Whether it gets used: {amount} a month goes where nothing here can look.', { amount: euro(unmeasured.reduce((sum, x) => sum + Number(x.typical_amount || 0), 0)) })
-                  : t('Whether it gets used, read from the accounts it can see.')}
+                {t('Whether it gets used, read from the accounts it can see.')}
               </p>
               <ul className="mv-list">
                 {usage.findings.map((f) => (
@@ -88,14 +86,6 @@ export default function Recurring({ m }: { m: MoneyAccount }) {
                     </span>
                   </li>
                 ))}
-                {unmeasured.length ? (
-                  <li className="mv-item">
-                    <span className="mv-item-text">
-                      <span className="mv-item-title">{nameList(t, unmeasured.map((x) => x.name))}</span>
-                      <span className="mv-item-sub">{t('No connected account shows their use, so nothing is guessed.')}</span>
-                    </span>
-                  </li>
-                ) : null}
               </ul>
               </>
             ) : null}

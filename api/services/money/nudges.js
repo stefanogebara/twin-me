@@ -90,6 +90,10 @@ export function upcoming(cast, now = new Date()) {
  */
 export function chargeAhead({ cast = null, allowance = null, now = new Date() } = {}) {
   if (!cast || !allowance || allowance.free === null || allowance.free === undefined) return null;
+  /* On a balance basis the day rests on what is in the bank, and "left of your month" is
+     not a figure the person was ever shown: Month said "more than the 0,00 EUR left of your
+     month" beside a Today that said 146 EUR left (2026-09-21). */
+  if (allowance.basis === 'balance') return null;
   const horizon = dayOf(new Date(now.getTime() + AHEAD_DAYS * DAY));
   const ahead = upcoming(cast, now).filter((i) => i.on <= horizon);
   if (!ahead.length) return null;
@@ -132,6 +136,17 @@ export function namedExpense({ cast = null, now = new Date(), except = null } = 
     receipts: [],
     evidence_count: 1,
   };
+}
+
+/**
+ * A dated nudge whose day has passed. The row is kept (the retirement rule reads it) but the
+ * page must not say "Facebook, 20,00 EUR, leaves today" six days after that day (2026-09-21).
+ */
+export function expiredNudge(row, now = new Date()) {
+  if (!row || ![CHARGE_AHEAD, NAMED_EXPENSE].includes(row.kind)) return false;
+  const n = row.numbers || {};
+  const on = String(n.by || n.on || row.month || '').slice(0, 10);
+  return Boolean(on) && on < dayOf(now);
 }
 
 /**
