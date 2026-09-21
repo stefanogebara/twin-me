@@ -680,3 +680,10 @@ describe('withoutMarkBelow', () => {
     expect(withoutMarkBelow('Noted. If that is right, mark it below.', true)).toBe('Noted. If that is right, mark it below.');
   });
 });
+
+describe('what the ledger can read', () => {
+  it('is one computed line in the context, with the formats a statement takes', async () => {
+    const { contextText } = await import('../../../../api/services/money/chat.js');
+    expect(contextText(ctx())).toMatch(/Sources the ledger can read: .*\.xlsx or \.csv, never a PDF/);
+  });
+});
