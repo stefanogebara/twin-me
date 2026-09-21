@@ -142,9 +142,11 @@ function MoneyConversation() {
                 </div>
 
                 {historyFailed ? <p role="alert" className="mv-note">{t('Your earlier conversation could not be loaded. Refresh to try again.')}</p> : null}
-                {lines.map((l) => (
+                {/* One "How it got there", under the answer someone might actually check: it
+                    stood under all eleven turns (2026-09-21). */}
+                {lines.map((l, li) => (
                   <motion.div key={l.id} className={`mc-line ${l.who === 'you' ? 'mc-line--you' : ''}`} {...rise}>
-                    <span className="mc-line-who">{l.who === 'you' ? t('You') : t('The ledger')}</span>
+                    {l.who === 'you' ? <span className="mc-line-who">{t('You')}</span> : null}
                     {l.pending ? (
                       <Pending status={l.text} thinking={l.thinking} still={Boolean(stillMotion)} />
                     ) : (
@@ -161,7 +163,7 @@ function MoneyConversation() {
                       </div>
                     ) : null}
                     {l.acted ? <p className="mc-acted">{l.acted}</p> : null}
-                    {l.who === 'twin' && !l.pending && ((l.thinking && l.thinking.trim()) || (l.basis && l.basis.length)) ? (
+                    {l.who === 'twin' && !l.pending && li === lines.length - 1 && ((l.thinking && l.thinking.trim()) || (l.basis && l.basis.length)) ? (
                       <div className="mc-how">
                         <button type="button" className="mc-how-toggle" aria-expanded={Boolean(l.howOpen)} onClick={() => toggleHow(l.id)}>{t('How it got there')}</button>
                         {l.howOpen ? (

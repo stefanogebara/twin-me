@@ -249,6 +249,8 @@
 /* The dated rows under the band: day, name, amount; income marked with a plus and ok ink. */
 .mv .mv-ahead { margin-top: 12px; }
 .mv .mv-ahead .mv-item { grid-template-columns: 56px 32px minmax(0, 1fr) auto; }
+/* Without the tile: the day, what it is, the amount (2026-09-21). */
+.mv .mv-ahead .mv-ahead-row { grid-template-columns: 56px minmax(0, 1fr) auto; }
 /* The days ahead on Plan: the day, the item, the amount; no tile (2026-09-21). */
 .mv .mv-ahead-list .mv-item { grid-template-columns: 56px minmax(0, 1fr) auto; }
 .mv .mv-ahead-day { color: var(--ink-3); font-weight: 350; }
