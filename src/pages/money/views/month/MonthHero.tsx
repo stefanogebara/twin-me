@@ -5,6 +5,7 @@
  */
 
 import { euro } from '../../../../services/api/moneyAPI';
+import { orbFor } from '../../orbFor';
 import Wait from '../../../../components/Wait';
 import MonthOrbits from '../../figures/MonthOrbits';
 import { ordinalDay, monthName } from '../../words';
@@ -17,7 +18,7 @@ export default function MonthHero({ m }: { m: MoneyAccount }) {
             <p className="mv-eyebrow">{t('Month')}</p>
             {/* The day says it is reading; the month printed an ellipsis where its figure goes,
                 which reads as a broken number to anyone who has not seen it work. */}
-            {!loaded ? <Wait inline state="searching" line="Reading your month." /> : null}
+            {!loaded ? <Wait inline state={orbFor('page')} line="Reading your month." /> : null}
             {/* The month as a constellation: a hub per kind of place, a dot per payee. It
                 says nothing until tapped; the list it opens ends in the total. */}
             {categories && categories.groups.some((g) => g.spent > 0) ? (() => {

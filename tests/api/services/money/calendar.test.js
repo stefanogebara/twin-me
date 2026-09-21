@@ -101,10 +101,13 @@ describe('shapeKey', () => {
     expect(shapeKey(ev('a', 'Dinner with the flat 12/09 at 19:30', '2026-09-10T19:30:00Z', '2026-09-10T22:00:00Z'))).toBe('dinner with the');
     expect(shapeKey(ev('b', 'Macro 101', '2026-09-01T09:00:00Z', '2026-09-01T11:00:00Z'))).toBe('macro');
   });
-  it('keeps recurring series apart', () => {
+  it('reads the same words as the same kind of day, whichever series they came from', () => {
+    /* A rescheduled series gets a new recurring id; keyed on it, one kind of day was learned
+       twice with two costs (2026-09-21). */
     const a = ev('a', 'Weekly sync', '2026-09-01T09:00:00Z', '2026-09-01T10:00:00Z', { recurring: 'r1' });
     const b = ev('b', 'Weekly sync', '2026-09-05T09:00:00Z', '2026-09-05T10:00:00Z', { recurring: 'r2' });
-    expect(shapeKey(a)).not.toBe(shapeKey(b));
+    expect(shapeKey(a)).toBe(shapeKey(b));
+    expect(shapeKey(a)).toBe('weekly sync');
   });
 });
 

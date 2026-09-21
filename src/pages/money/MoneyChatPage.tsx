@@ -13,7 +13,9 @@
  * The right-hand column shows the engine reading the ledger as it happens: real steps,
  * real counts, nothing invented. If the trace stream is not there, the column says so.
  */
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { orbFor } from './orbFor';
 import { useAuth } from '@/contexts/AuthContext';
 import { motion } from 'framer-motion';
 import { ArrowUp, Paperclip } from 'lucide-react';
@@ -40,21 +42,26 @@ const NAV: MoneyNavLink[] = MONEY_NAV('ask');
 function Pending({ status, thinking, still }: { status: string; thinking?: string; still: boolean }) {
   const t = useT();
   const thought = (thinking || '').trim();
+  /* The reasoning is not streamed onto the screen: one quiet line counts the seconds while
+     the model thinks, and the thought waits under How it got there once the answer is in
+     (2026-09-21, the way Claude and ChatGPT fold it). */
+  const [seconds, setSeconds] = useState(0);
+  useEffect(() => {
+    if (!thought) return undefined;
+    const id = window.setInterval(() => setSeconds((n) => n + 1), 1000);
+    return () => window.clearInterval(id);
+  }, [Boolean(thought)]);
+  const work = thought ? 'thinking' : /file|arquivo|archivo/i.test(status) ? 'file' : 'reading';
   return (
     <div className="mc-pending" aria-live="polite">
       {/* The library's two sizes are two designs: 64 is its chat-avatar scale, 20 its inline
           scale. While an answer is on its way the orb is the avatar (2026-09-19). */}
-      <LedgerOrb state={thought ? 'solving' : 'searching'} size={64} paused={still} label="" className="mc-pending-orb" />
+      <LedgerOrb state={orbFor(work)} size={64} paused={still} label="" className="mc-pending-orb" />
       <div className="mc-pending-body">
       <p className="mc-line-text is-pending">
         <span>{thought ? t('Working it out') : t(status)}</span>
       </p>
-      {thought ? (
-        <motion.div className="mc-thinking" initial={still ? false : { opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.28 }}>
-          <span className="mc-line-who">{t('Thinking')}</span>
-          <div className="mc-thinking-well"><p className="mc-thinking-text">{thought}</p></div>
-        </motion.div>
-      ) : null}
+      {thought ? <p className="mv-quiet mc-thinking-line">{seconds < 2 ? t('Thinking') : t('Thinking for {n} s', { n: seconds })}</p> : null}
       </div>
     </div>
   );
@@ -80,7 +87,7 @@ function TracePanel({ steps, reading }: { steps: TraceStep[]; reading: boolean }
     <aside className="mc-trace" aria-label={t('What it is doing')}>
       {/* One orb for the whole panel, at its head. One per unfinished row meant three or four
           canvases turning at once, and on a long read they never stopped (2026-09-16). */}
-      {reading && steps.length ? <p className="mc-trace-head"><LedgerOrb state="searching" size={20} label="" /><span className="mv-sub">{t('Reading the ledger.')}</span></p> : null}
+      {reading && steps.length ? <p className="mc-trace-head"><LedgerOrb state={orbFor('trace')} size={20} label="" /><span className="mv-sub">{t('Reading the ledger.')}</span></p> : null}
       {steps.length === 0 ? (
         <p className="mv-sub">{t('Not reading the ledger right now.')}</p>
       ) : idle ? (
@@ -141,7 +148,7 @@ function MoneyConversation() {
                     {l.pending ? (
                       <Pending status={l.text} thinking={l.thinking} still={Boolean(stillMotion)} />
                     ) : (
-                      <p className="mc-line-text">{l.text}{l.writing ? <LedgerOrb state="composing" size={16} className="mc-writing" label={t('Writing')} /> : null}</p>
+                      <p className="mc-line-text">{l.text}{l.writing ? <LedgerOrb state={orbFor('writing')} size={16} className="mc-writing" label={t('Writing')} /> : null}</p>
                     )}
                     {l.error ? <p role="alert" className="mv-note">{l.error}</p> : null}
                     {l.file?.url ? <img className="mc-file" src={l.file.url} alt="" /> : null}

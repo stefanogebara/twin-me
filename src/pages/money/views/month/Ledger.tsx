@@ -62,7 +62,7 @@ export default function Ledger({ m }: { m: MoneyAccount }) {
                               <li key={row.id} className={Number(row.amount) > 0 ? 'is-in' : undefined}>
                                 <button type="button" className="mv-item mv-item--sub" onClick={() => void toggle(row.id)} aria-expanded={open === row.id}>
                                   <span className="mv-item-text">
-                                    <span className="mv-item-title">{merchantLabel(row)}</span>
+                                    <span className="mv-item-title">{merchantLabel(row, t)}</span>
                                     <span className="mv-item-sub">
                                       {[shortDay(row.occurred_at, locale), seenWords(t, seen[row.id], Boolean(row.posted_at)) || (row.posted_at ? '' : t('pending')), row.is_recurring ? t('recurring') : '', row.verdict ? t(row.verdict === 'worth_it' ? 'worth it' : 'not me') : ''].filter(Boolean).join(', ')}
                                     </span>

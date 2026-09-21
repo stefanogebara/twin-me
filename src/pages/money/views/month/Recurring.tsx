@@ -25,7 +25,7 @@ export default function Recurring({ m }: { m: MoneyAccount }) {
                 <ul className="mv-list">
                   {[...subscriptions, ...bills].map((r) => {
                     const isOpen = openSeries === r.merchant_key;
-                    const name = merchantLabel({ merchant_name: r.merchant_name, merchant_key: r.merchant_key });
+                    const name = merchantLabel({ merchant_name: r.merchant_name, merchant_key: r.merchant_key }, t);
                     const more = [
                       r.day_of_month ? t('Lands on the {day}.', { day: ordinalDay(t, r.day_of_month) }) : '',
                       typeof r.total_paid === 'number' ? t(r.occurrences === 1 ? '{amount} so far, over {n} charge.' : '{amount} so far, over {n} charges.', { amount: euro(r.total_paid), n: r.occurrences }) : '',
