@@ -15,7 +15,7 @@ import { incomeEvents, incomeFindings } from './income.js';
 import { createLogger } from '../logger.js';
 import { ingestSightings } from './ingestion.js';
 export { ingestSighting, ingestSightings } from './ingestion.js';
-import { detectRecurring } from './recurring.js';
+import { detectRecurring, withoutCancelled } from './recurring.js';
 import { projectMonth } from './projection.js';
 import { fetchTransactions, toSighting, distinctPending, fetchBalances } from './feeds/enableBanking.js';
 import { readLedger, monthSegments } from './analyst.js';
@@ -55,7 +55,8 @@ export async function refreshRecurring(userId, now = new Date()) {
   const rows = evidence.filter((row) => row.verdict !== 'not_me');
   const { data: merchants } = await supabaseAdmin.from('money_merchants').select('merchant_key, platform').not('platform', 'is', null);
   const platforms = Object.fromEntries((merchants || []).map((m) => [m.merchant_key, m.platform]));
-  const series = detectRecurring(rows, { now, platforms });
+  const facts = await listFacts(userId).catch(quietly('recurring/facts', () => []));
+  const series = withoutCancelled(detectRecurring(rows, { now, platforms }), facts);
   /* The key is machine spelling ("render com"). A card should carry the name the ledger shows. */
   const names = new Map();
   for (const t of rows) if (t.merchant_raw && !names.has(t.merchant_key)) names.set(t.merchant_key, t.merchant_raw);

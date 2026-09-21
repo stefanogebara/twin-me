@@ -8,6 +8,7 @@
  * forecast snapshot, kept for the record.
  */
 import { supabaseAdmin } from '../database.js';
+import { withoutCancelled } from './recurring.js';
 import { createLogger } from '../logger.js';
 import { splitShareOf, reimbursementIds } from './bizum.js';
 import { incomeEvents } from './income.js';
@@ -41,6 +42,7 @@ export async function forecast(userId, now = new Date()) {
      for, money coming in, the share of a split cost that is actually theirs, and which
      transfers are not spending at all. */
   const commitments = facts.filter((f) => f.kind === 'commitment' && f.amount);
+  const recurring = withoutCancelled(rec, facts);
   const shares = new Map(facts.filter((f) => f.kind === 'shared_cost' && f.share != null)
     .map((f) => [String(f.subject || '').toLowerCase(), Number(f.share)]));
 
@@ -82,7 +84,7 @@ export async function forecast(userId, now = new Date()) {
      and the two figures on one screen disagreed (2026-09-16). */
   const cal = calendarForecast(facts, { now });
   const expected = (cal.calendar_items || []).map((i) => ({ date: i.day, amount: i.amount, label: i.title }));
-  const result = projectMonth({ transactions: rows, recurring: rec, commitments, income, shareOf, isSpending, isIncome, now, widen: band.widen, expected });
+  const result = projectMonth({ transactions: rows, recurring, commitments, income, shareOf, isSpending, isIncome, now, widen: band.widen, expected });
   result.band_calibration = { widen: band.widen, days: band.days, coverage: band.coverage, trusted: band.trusted, carried_from: band.carried_from || null };
   /* The last thirty days as marks, with the range the twin gave each one and whether it
      held, and the range it has given tomorrow, widened by what it has earned so far. */

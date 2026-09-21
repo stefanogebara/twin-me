@@ -127,7 +127,11 @@ export function incomeEvents({ facts = [], transactions = [], isIncome = null, n
       const amount = Math.abs(Number(f.amount) || 0);
       const day = Number(f.day) || 1;
       if (!amount) continue;
-      out.push({ source: labelOf(f), amount: r2(amount), due_on: nextDue(day, now), day, confidence: SAID_CONFIDENCE, basis: 'said', times: s ? s.times : 0, last_arrived_on: s ? dayOf(s.last_seen) : null, said: true, key: s ? s.key : null });
+      /* "150 EUR from Vercel this month": once, in that month, never a monthly promise (2026-09-21). */
+      const once = String(f.value || '').match(/^once:(\d{4}-\d{2})$/);
+      const due = nextDue(day, now);
+      if (once && due.slice(0, 7) !== once[1]) continue;
+      out.push({ source: labelOf(f), amount: r2(amount), due_on: due, day, confidence: SAID_CONFIDENCE, basis: once ? 'said, once' : 'said', times: s ? s.times : 0, last_arrived_on: s ? dayOf(s.last_seen) : null, said: true, key: s ? s.key : null });
     }
   }
   for (const s of series) {

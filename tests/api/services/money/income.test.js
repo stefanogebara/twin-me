@@ -61,3 +61,15 @@ describe('incomeFindings', () => {
     expect(incomeFindings({ facts, transactions: family.slice(0, 1), isIncome, now: NOW })).toEqual([]);
   });
 });
+
+describe('a stated income said once', async () => {
+  const { incomeEvents } = await import('../../../../api/services/money/income.js');
+  it('lands in its month only, and a plain stated income every month', () => {
+    const now = new Date('2026-09-21T10:00:00Z');
+    const once = { kind: 'income', subject: 'vercel', subject_label: 'Vercel', amount: 150, day: 21, value: 'once:2026-09' };
+    const later = { kind: 'income', subject: 'vercel', subject_label: 'Vercel', amount: 150, day: 21, value: 'once:2026-08' };
+    const monthly = { kind: 'income', subject: 'parents', subject_label: 'Parents', amount: 1750, day: 1 };
+    const evs = incomeEvents({ facts: [once, later, monthly], transactions: [], now, horizonDays: 40 });
+    expect(evs.map((e) => `${e.source} ${e.amount} ${e.due_on} ${e.basis}`)).toEqual(['Vercel 150 2026-09-21 said, once', 'Parents 1750 2026-10-01 said']);
+  });
+});
