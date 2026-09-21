@@ -28,6 +28,7 @@
 import { complete, stream as streamComplete, TIER_CHAT } from '../llmGateway.js';
 import { windowLines, weekAverageLine, costliestDayLine, cheapestDayLine, monthPaceLine, weekdayLine, spendWindows, breakdown, eur, NO_NAME } from './windows.js';
 import { askedLines, askedDays, askedWindows } from './asked.js';
+import { clockLine } from './clock.js';
 import { incomeStatement, subscriptionStatement, cancelStatement } from './statements.js';
 import { listReturnsClosing } from './returns.js';
 import { tripDays } from './when.js';
@@ -526,7 +527,15 @@ export function contextText(ctx) {
   lines.push(weekdayLine(ctx.transactions, ctx.now));
   /* The stretch this question names (a weekday, a night, a weekend, a date, a range, since a
      date), totalled here: asked about the 8th to the 14th, the chat gave one day of it (2026-09-20). */
-  if (ctx.asked) lines.push(...askedLines(ctx.transactions, ctx.asked, ctx.now, windowOpts));
+  if (ctx.asked) {
+    lines.push(...askedLines(ctx.transactions, ctx.asked, ctx.now, windowOpts));
+    /* A part of a day can only be as complete as the payments that carry an hour (clock.js). */
+    const [w] = askedWindows(ctx.asked, ctx.now);
+    if (w && /night|morning|afternoon/.test(w.label)) {
+      const clock = clockLine(ctx.transactions, w.from, w.to);
+      if (clock) lines.push(clock);
+    }
+  }
 
   if (ctx.segments.length) {
     lines.push('Per month, spent / received / payments: ' + [...ctx.segments]
@@ -645,6 +654,7 @@ export const RULES = [
   'Write amounts exactly as the context does, like 12,50 EUR.',
   'Do not say "always" for an amount that varies; say "usually" or "about".',
   'Never add numbers up: if a total would need adding, give the parts and say the ledger has no total for that. Never work out a daily amount or a difference yourself. The totals for today, yesterday, last night, this week, last week and each of the last seven days are in the context, each with its kinds of place and its places, and each place has its total and count for this month and last: quote them when asked about a stretch, a kind of place, or a place; "how much is left" is the line that begins "Left for". A place missing from the by-place line had no payment that month: say so, never assemble a count or a total from other lines. The biggest or largest payment is one line of the recent payments, never a place\'s total over several.',
+  'When a line beginning "Hours are not complete" is present, the answer about that night, morning or afternoon must carry a short clause saying how many of the payments around it know their hour; never give a part of a day as a complete figure without it.',
   'When the question names a weekday, a night, a weekend, a date, a stretch between two dates or "since" a date, the line beginning "Asked stretch" holds exactly that stretch: quote its total, count and largest, and its kinds and places. Asked what a week costs on average, quote the line beginning "Average week", never the last seven days. A comparison of two stretches is the two lines side by side; never work out the difference.',
   'A line is about the days it names and no others: never give a line\'s numbers for a different day, weekend or stretch. When the stretch asked about has no line, say the ledger cannot tell for those days. The month\'s costliest day and the spend by day of the week over the last full weeks are lines of their own: quote them for "which day" questions, never the per-day line of the last seven.',
   'Asked whether somebody sent or paid this month, answer from the line beginning "From people this month" (or "To people this month"): a name missing there did not, this month, whatever the 90-day line says; then say when they last did, from "last on". Asked about a place over several months or "since" a month, quote the line beginning "Whole ledger by place" and say since when the ledger goes back; this month\'s figure is never the answer to a longer question. "Average per day" and the cheapest day are lines of their own.',
