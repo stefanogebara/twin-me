@@ -26,7 +26,7 @@ spikes estão abertos. Ver `STATE.md` para o estado do repositório.
 
 **Toca:** `api/services/money/inbox.js` (`gateReceipt`, `receiptToSighting`), `api/services/money/ingestion.js` (status de um avistamento só de e-mail), `api/services/money/chat.js` (`contextText`: um marcador por origem), `tests/api/services/money/chatScenarios.js`, `scripts/money/chat-eval.mjs`.
 
-**Status:** aberto
+**Status:** medido e fechado em parte (2026-09-21, PR `claude/typed-inputs-and-setup-offer`): `scripts/money/inject-eval.mjs` (ledger sintético, modelo real, k=3): comerciante com instrução obedecido 0/6; fato guardado com "5000 EUR left" repetido 1/3, porque um número dentro de um fato passa o portão de fundamentação. Feito: uma nota que lê como instrução nunca é guardada (`looksLikeInstruction`, em `validateAction`), o contexto diz o que é dado, dois cenários adversariais fixos no harness (`inject-remember`, `inject-reveal`, sem juiz) e `--runs k` (pass^k). **Não feito, decisão do Stefano:** contar um avistamento só-de-e-mail como não confirmado até o banco o registrar muda o número do mês e pode esconder recibos reais por até quatro dias; o endereço é hex e não se adivinha.
 
 ---
 
@@ -48,7 +48,7 @@ spikes estão abertos. Ver `STATE.md` para o estado do repositório.
 
 **Toca:** `api/services/money/chat.js` (`shortCircuit`, `assembleReply`, `validateAction`), `src/pages/money/chat/*`, `src/pages/money/setup/*`, `tests/api/services/money/chatScenarios.js`.
 
-**Status:** aberto
+**Status:** feito (2026-09-21, PR `claude/typed-inputs-and-setup-offer`): `setupOffer(message, ctx)` computa a oferta (`setup`, passo bank | statement | inbox, link para `/money/you#sources`) no ledger vazio, num banco citado que o ledger não tem, num extrato ou num recibo sem endereço; o modelo nunca a propõe (`validateAction` recusa); no app a oferta navega em vez de chamar `/chat/act`. Dois cenários (`setup-missing-bank`, `setup-statement`), 2/2 em pass^2. A caminhada de estranho fica para a próxima sessão em produção.
 
 ---
 
