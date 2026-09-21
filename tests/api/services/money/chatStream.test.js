@@ -369,7 +369,7 @@ describe('the streamed answer', () => {
     const { events, onEvent } = recorder();
     const reply = await answerStream('u1', 'how much on clothes?', [], { now: NOW, onEvent });
     expect(textOf(events)).not.toMatch(/196,94/);
-    expect(textOf(events)).toMatch(/^Clothing took 116,76 \u20ac\. The average of the full months is\u2026 The ledger does not hold that number\. Spotify is 11,99 \u20ac a month\.$/);
+    expect(textOf(events)).toMatch(/^Clothing took 116,76 \u20ac\. The average of the full months ?\u2026 The ledger does not hold that number\. Spotify is 11,99 \u20ac a month\.$/);
     expect(reply.text).toBe(textOf(events));
   });
 
