@@ -9,7 +9,7 @@ const PRESENCE = { id: '11111111-1111-4111-8111-111111111111', owner_user_id: 'u
 const ok = (data) => ({ data, error: null });
 
 const { store, log, llm } = vi.hoisted(() => ({
-  store: { saveConversationSummary: vi.fn(), addFacts: vi.fn(), recordElderAssent: vi.fn(), saveFact: vi.fn() },
+  store: { saveConversationSummary: vi.fn(), addFacts: vi.fn(), recordElderAssent: vi.fn(), saveFact: vi.fn(), listActivePeople: vi.fn() },
   log: { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() },
   llm: { complete: vi.fn() },
 }));
@@ -105,5 +105,61 @@ describe('the distress tripwire (Phase 2, T8)', () => {
 
     expect(result.urgency).toBe('high');
     expect(result.needsFamily).toEqual(['Ela pediu o remédio.']);
+  });
+});
+
+/**
+ * She calls people by the names she has always called them: "a Rê", "o tio Zé",
+ * "a dona Cida". The map holds Renata, José, Aparecida. Without the map in front
+ * of it the summarizer files each of them as a stranger, and the family gets the
+ * same `Quem é "Rê"?` card after every single call.
+ */
+describe('people she names are matched against the family map', () => {
+  const people = [
+    { name: 'Renata', relation: 'filha', called_by: 'Rê' },
+    { name: 'José', relation: 'irmão', called_by: 'tio Zé' },
+    { name: 'Aparecida', relation: 'vizinha', called_by: '' },
+  ];
+
+  beforeEach(() => {
+    store.listActivePeople.mockResolvedValue(ok(people));
+  });
+
+  it('puts the map in the prompt, with the names she uses', async () => {
+    await summarizeConversation('c-1', PRESENCE, transcript);
+
+    const { system } = llm.complete.mock.calls[0][0];
+    expect(system).toContain('Renata');
+    expect(system).toContain('Rê');
+    expect(system).toContain('tio Zé');
+  });
+
+  it('drops a name that is on the map, however she said it', async () => {
+    reply({ unknown_people: ['Rê', 'o tio Zé', 'APARECIDA', 'Marlene'] });
+
+    await summarizeConversation('c-1', PRESENCE, transcript);
+
+    const asks = store.addFacts.mock.calls[0][0].filter((r) => r.confidence === 'ask');
+    expect(asks).toHaveLength(1);
+    expect(asks[0].question).toContain('Marlene');
+  });
+
+  it('matches across accents and honorifics', async () => {
+    reply({ unknown_people: ['Jose', 'dona Aparecida', 'a Renata'] });
+
+    await summarizeConversation('c-1', PRESENCE, transcript);
+
+    const rows = store.addFacts.mock.calls;
+    expect(rows).toHaveLength(0);
+  });
+
+  it('still raises the ask when the map cannot be read', async () => {
+    store.listActivePeople.mockResolvedValue({ data: null, error: new Error('down') });
+    reply({ unknown_people: ['Marlene'] });
+
+    await summarizeConversation('c-1', PRESENCE, transcript);
+
+    const asks = store.addFacts.mock.calls[0][0].filter((r) => r.confidence === 'ask');
+    expect(asks).toHaveLength(1);
   });
 });
