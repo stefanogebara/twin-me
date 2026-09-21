@@ -272,6 +272,31 @@ describe('the streamed answer', () => {
     expect(phases(events)).not.toContain('done');
   });
 
+  it('asks again without reasoning when the aborted reasoning stream ends quietly with nothing, as the gateway does', async () => {
+    process.env.MONEY_CHAT_REASONING_PATIENCE_MS = '30';
+    try {
+      streamCall.mockImplementation(async ({ reasoning, signal, onReasoning, onChunk }) => {
+        if (reasoning) {
+          onReasoning('Thinking about clothing.');
+          /* Production: the gateway sees the abort, logs "stream complete, 0 tokens" and resolves empty. */
+          await new Promise((resolve) => signal.addEventListener('abort', () => resolve(), { once: true }));
+          return { content: '' };
+        }
+        onChunk('Clothing took 116,76 EUR.');
+        return { content: 'Clothing took 116,76 EUR.' };
+      });
+      const { events, onEvent } = recorder();
+      const reply = await answerStream('u1', 'what was biggest?', [], { now: NOW, onEvent });
+      expect(streamCall).toHaveBeenCalledTimes(2);
+      expect(streamCall.mock.calls[1][0].reasoning).toBeUndefined();
+      expect(textOf(events)).toBe('Clothing took 116,76 \u20ac.');
+      expect(reply.text).toBe(textOf(events));
+      expect(reply.text).not.toMatch(/cannot answer/);
+    } finally {
+      delete process.env.MONEY_CHAT_REASONING_PATIENCE_MS;
+    }
+  });
+
   it('asks again without reasoning when the reasoning outlives its patience with no word said', async () => {
     process.env.MONEY_CHAT_REASONING_PATIENCE_MS = '30';
     try {
