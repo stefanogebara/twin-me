@@ -32,7 +32,7 @@
  * POST /api/money/bank/pull                pull the feed now (PSD2: four unattended pulls a day)
  * POST /api/money/chat { message, history? } a question or a correction, answered with figures and receipts
  * POST /api/money/chat/act { action }      run an action the person confirmed from a chat reply
- * POST /api/money/channel/opt-in           WhatsApp linked from the You page: the morning-line consent, recorded
+ * POST /api/money/channel/opt-in           WhatsApp linked from the You page: consent to answer there, recorded
  *
  * Spec: .claude/plans/2026-09-07-money-twin/README.md
  */
