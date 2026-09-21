@@ -20,7 +20,8 @@ import Wait from '../../components/Wait';
 import TotalRow from './figures/TotalRow';
 import { MONEY_NAV } from './navLinks';
 import { merchantLabel } from './words';
-import { moneyAPI, euro, type MoneyPlan, type MoneyPlanCell, type MoneyPlanItem } from '../../services/api/moneyAPI';
+import { daysAhead } from './planAhead';
+import { moneyAPI, euro, shortDay, type MoneyPlan, type MoneyPlanCell, type MoneyPlanItem } from '../../services/api/moneyAPI';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { useT, useLocale } from '@/lib/i18n';
 
@@ -199,6 +200,27 @@ export default function PlanPage() {
               })}
             </div>
           ) : failed ? null : <Wait inline state={orbFor('page')} line="Reading the plan." />}
+
+          {/* The days ahead, listed: what the diary and the standing charges hold for the rest of
+              the month, without opening a square (2026-09-21). */}
+          {plan && daysAhead(plan.cells).length ? (
+            <section className="mv-section" id="ahead">
+              <h2>{t('The days ahead.')}</h2>
+              <p className="mv-sub">{t('What the diary and the standing charges hold for the rest of the month.')}</p>
+              <ul className="mv-list mv-ahead-list">
+                {daysAhead(plan.cells).map(({ day, item }, k) => (
+                  <li key={`${day}-${k}`} className="mv-item mv-item--tight">
+                    <span className="mv-ahead-day">{shortDay(day, locale)}</span>
+                    <span className="mv-item-text">
+                      <span className="mv-item-title">{itemLabel(item.label, t)}</span>
+                      <span className="mv-item-sub">{itemWords(item, t)}</span>
+                    </span>
+                    <span className={`mv-item-end${item.kind === 'income' ? ' mv-in' : ''}`}>{item.amount > 0 ? (item.kind === 'income' ? `+${euro(item.amount)}` : euro(item.amount)) : ''}</span>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          ) : null}
 
           {cell ? (
             <section className="mv-section" aria-live="polite">
