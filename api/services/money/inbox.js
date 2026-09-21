@@ -23,6 +23,7 @@
  */
 
 import crypto from 'node:crypto';
+import { returnWindow } from './returns.js';
 import { supabaseAdmin } from '../database.js';
 import { createLogger } from '../logger.js';
 import { complete, TIER_EXTRACTION } from '../llmGateway.js';
@@ -277,10 +278,12 @@ export function bankAlertSighting({ subject, from, text, html }, { emailId, rece
 /* ------------------------------------------------------------------ the sighting */
 
 /** A gated receipt as the ledger's own row. Pure. */
-export function receiptToSighting(receipt, { emailId, from, subject, receivedAt }) {
+export function receiptToSighting(receipt, { emailId, from, subject, receivedAt, text = null }) {
   if (!isPaidReceipt(receipt)) return null;
   const merchant = receipt.merchant || String(from || '').replace(/^.*<([^>]+)>.*$/, '$1').split('@')[1]?.split('.')[0] || 'Email receipt';
   const occurred = receipt.date || receivedAt || new Date().toISOString();
+  /* The return window the receipt states, as a date, so the day can say when it closes (idea 1). */
+  const window = text ? returnWindow(text, occurred) : null;
   return {
     source: 'email',
     source_ref: receiptReference(emailId),
@@ -288,6 +291,7 @@ export function receiptToSighting(receipt, { emailId, from, subject, receivedAt 
     raw_json: {
       kind: receipt.kind, items: receipt.items, order_ref: receipt.order_ref, plan: receipt.plan,
       previous_amount: receipt.previous_amount, next_charge_at: receipt.next_charge_at, from: from || null,
+      ...(window ? { return_until: window.until, return_days: window.days, return_quote: window.quote } : {}),
     },
     amount: receipt.amount,
     currency: receipt.currency,
@@ -321,7 +325,7 @@ export async function ingestReceivedEmail(event) {
   }
   const receipt = await extractReceipt({ subject: message.subject, from: message.from, text: message.text, html: message.html, userId });
   if (!receipt) return { outcome: 'not_a_receipt', userId };
-  const origin = { emailId: id, from: message.from, subject: message.subject, receivedAt: message.created_at };
+  const origin = { emailId: id, from: message.from, subject: message.subject, receivedAt: message.created_at, text: messageText({ subject: message.subject, text: message.text, html: message.html }) };
   if (!isPaidReceipt(receipt)) {
     const notice = await saveReceiptNotice(userId, receipt, origin);
     return { outcome: 'notice_saved', kind: receipt.kind, notice_id: notice.id };

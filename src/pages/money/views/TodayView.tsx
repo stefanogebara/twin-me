@@ -14,7 +14,7 @@ import Fortnight from '../figures/Fortnight';
 import TotalRow from '../figures/TotalRow';
 import { KindTile } from '../Carved';
 import { todayHere, localDay, allowanceWords } from '../readingWords';
-import { ordinalDay, pct, chargesSoonWords } from '../words';
+import { ordinalDay, pct, chargesSoonWords, returnsClosingWords } from '../words';
 import Readings from './Readings';
 import Review from './Review';
 
@@ -72,6 +72,8 @@ export default function TodayView({ m }: { m: MoneyAccount }) {
                     {/* The charge before it lands: named the day before, and already taken off the
                         number above, so nothing on the page contradicts it. */}
                     {chargesSoonWords(t, today.charges_soon) ? <p className="mv-sub">{chargesSoonWords(t, today.charges_soon)}</p> : null}
+                    {/* The return window on a receipt, one quiet line near its end (idea 1, 2026-09-21). */}
+                    {returnsClosingWords(t, today.returns_closing) ? <p className="mv-sub">{returnsClosingWords(t, today.returns_closing)}</p> : null}
                     {today.today_events?.length ? (
                       <p className="mv-sub">{t('The diary expects {what} today.', { what: today.today_events.map((e) => `${e.title}, ${euro(e.amount)}`).join('; ') })}</p>
                     ) : null}
