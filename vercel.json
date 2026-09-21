@@ -203,6 +203,10 @@
     {
       "path": "/api/cron/money-learn",
       "schedule": "30 5 * * *"
+    },
+    {
+      "path": "/api/cron/money-morning",
+      "schedule": "30 6 * * *"
     }
   ]
 }

@@ -4,7 +4,7 @@
  */
 import { supabaseAdmin } from '../database.js';
 import { createLogger } from '../logger.js';
-import { NUMBERED_REPLY_WINDOW_MS, MAX_BUTTONS } from './channel.js';
+import { NUMBERED_REPLY_WINDOW_MS, MAX_BUTTONS, moneyChannelUserIds } from './channel.js';
 
 const log = createLogger('MoneyChannelStore');
 
@@ -72,4 +72,25 @@ export async function offerSaid(offerId, said) {
 export async function releaseOffer(userId, offerId) {
   const { error } = await supabaseAdmin.from('money_channel_offers').update({ taken_at: null }).eq('user_id', userId).eq('id', offerId);
   if (error) log.warn(`offer not released: ${error.message}`);
+}
+
+/** Beta people with a linked WhatsApp number who have not said stop. */
+export async function morningRecipients() {
+  const ids = moneyChannelUserIds();
+  if (!ids.length) return [];
+  const { data, error } = await supabaseAdmin.from('messaging_channels').select('user_id, channel_id, preferences').eq('channel', 'whatsapp').in('user_id', ids);
+  if (error) throw new Error(error.message);
+  return (data || []).filter((r) => r.channel_id && !(r.preferences || {}).money_morning_muted).map((r) => ({ userId: r.user_id, phone: r.channel_id }));
+}
+
+/** Claims today's line for one person. Null when it was already claimed: one line a day, whatever runs twice. */
+export async function claimMorningSend(userId, day, { template, language }) {
+  const { data, error } = await supabaseAdmin.from('money_channel_sends').insert({ user_id: userId, day, kind: 'morning', template, language }).select('id').maybeSingle();
+  if (!error) return data?.id || null;
+  if (error.code === '23505') return null;
+  throw new Error(error.message);
+}
+
+export async function finishMorningSend(id, { providerMessageId = null, error = null } = {}) {
+  await supabaseAdmin.from('money_channel_sends').update({ provider_message_id: providerMessageId, error: error ? String(error).slice(0, 500) : null, sent_at: error ? null : new Date().toISOString() }).eq('id', id);
 }

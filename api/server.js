@@ -479,6 +479,7 @@ import cronMemoryArchiveRoutes from './routes/cron-memory-archive.js';
 import cronMemoryForgettingRoutes from './routes/cron-memory-forgetting.js';
 import cronMoneyPullRoutes from './routes/cron-money-pull.js';
 import cronMoneyLearnRoutes from './routes/cron-money-learn.js';
+import cronMoneyMorningRoutes from './routes/cron-money-morning.js';
 import cronSoulSignatureRegenRoutes from './routes/cron-soul-signature-regen.js';
 import cronPresenceCallsRoutes from './routes/cron-presence-calls.js';
 import webhooksElevenlabsRoutes from './routes/webhooks-elevenlabs.js';
@@ -734,6 +735,7 @@ app.use('/api/cron/memory-archive', legacyTwinGate, cronMemoryArchiveRoutes);   
 app.use('/api/cron/memory-forgetting', legacyTwinGate, cronMemoryForgettingRoutes); // Weekly multi-tier quality maintenance
 app.use('/api/cron/money-pull', cronMoneyPullRoutes); // Three bank reads a day, leaving one of the four for the person
 app.use('/api/cron/money-learn', cronMoneyLearnRoutes); // Once a day: the day written down and scored, for everyone with a ledger
+app.use('/api/cron/money-morning', cronMoneyMorningRoutes); // Once a day: one computed line to each person on WhatsApp who wants it
 app.use('/api/cron/soul-signature-regen', legacyTwinGate, cronSoulSignatureRegenRoutes); // Daily auto-regen of stale soul signatures (audit D-H2)
 app.use('/api/cron/presence-calls', cronPresenceCallsRoutes); // Hourly: dial the Presence elders whose local hour it is
 app.use('/api/webhooks/elevenlabs', webhooksElevenlabsRoutes); // Presence: post-call transcript (signed) and inbound-call initiation
