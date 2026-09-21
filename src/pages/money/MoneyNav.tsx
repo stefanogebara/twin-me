@@ -17,8 +17,10 @@ export default function MoneyNav({ links, onboarding }: { links: MoneyNavLink[];
   const [open, setOpen] = useState(false);
   const t = useT();
   const close = () => setOpen(false);
-  /* The first-run steps belong to Today only: they covered Month, Plan and You for a new person (2026-09-21). */
-  const onToday = useLocation().pathname === '/money';
+  /* The first-run steps belong to Today only: they covered Month, Plan and You for a new
+     person (2026-09-21). You reopens one step on purpose with ?start=banks|phone; that stays. */
+  const here = useLocation();
+  const onToday = here.pathname === '/money' || new URLSearchParams(here.search).has('start');
   return (
     <>
     {onToday ? <MoneyOnboarding given={onboarding?.given} reread={onboarding?.reread} /> : null}
