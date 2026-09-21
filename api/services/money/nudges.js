@@ -145,6 +145,9 @@ export function namedExpense({ cast = null, now = new Date(), except = null } = 
 export function expiredNudge(row, now = new Date()) {
   if (!row || ![CHARGE_AHEAD, NAMED_EXPENSE].includes(row.kind)) return false;
   const n = row.numbers || {};
+  /* Withdrawn: the refresh no longer produced it (the basis changed, the charge was paid),
+     so it leaves the page at once; the row stays for the retirement tally (2026-09-21). */
+  if (n.withdrawn_at) return true;
   const on = String(n.by || n.on || row.month || '').slice(0, 10);
   return Boolean(on) && on < dayOf(now);
 }
