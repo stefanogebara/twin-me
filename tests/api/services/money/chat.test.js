@@ -636,6 +636,8 @@ describe('languageOf', () => {
     expect(languageOf('cuanto llevo gastado esta semana?')).toBe('es');
     expect(languageOf('quanto gastei ontem a noite?')).toBe('pt');
     expect(languageOf('How much did I spend on Sunday morning?')).toBe('en');
+    expect(languageOf('I got a refund from Zara, does that count?')).toBe('en');
+    expect(languageOf('quanto gastei em bares este mes?')).toBe('pt');
     expect(languageOf('Glovo')).toBe(null);
     expect(languageOf('ok')).toBe(null);
   });
@@ -685,5 +687,14 @@ describe('what the ledger can read', () => {
   it('is one computed line in the context, with the formats a statement takes', async () => {
     const { contextText } = await import('../../../../api/services/money/chat.js');
     expect(contextText(ctx())).toMatch(/Sources the ledger can read: .*\.xlsx or \.csv, never a PDF/);
+  });
+});
+
+describe('the largest per kind', () => {
+  it('is a computed line for this month, with the words people use for the kinds', async () => {
+    const { contextText } = await import('../../../../api/services/money/chat.js');
+    const text = contextText(ctx());
+    expect(text).toMatch(/Largest payment per kind this month: .*Spotify 11,99 EUR/);
+    expect(text).toMatch(/Words people use for the kinds: eating out is a bar/);
   });
 });

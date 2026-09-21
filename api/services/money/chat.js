@@ -494,6 +494,15 @@ export function contextText(ctx) {
   const groups = ctx.categories?.groups || [];
   if (groups.length) {
     lines.push('This month by kind of place: ' + groups.slice(0, 8).map((g) => `${g.category} ${amountText(g.spent)} (${g.share}%)`).join('; ') + '.');
+    /* each kind's largest payment, this month and last, computed with the page's own rule:
+       asked for the biggest bar bill, the model named the month's largest payment, a
+       supermarket (2026-09-21) */
+    const largestByKind = (rows) => breakdown(rows, ctx.categoryOf, 16).filter((b) => b.biggest).map((b) => `${b.key}: ${b.biggest.name} ${eur(b.biggest.amount)}`).join('; ');
+    const thisLargest = largestByKind(spendingIn(monthKey));
+    if (thisLargest) lines.push(`Largest payment per kind this month: ${thisLargest}.`);
+    const lastLargest = largestByKind(spendingIn(lastKey));
+    if (lastLargest) lines.push(`Largest payment per kind in ${monthLabel(`${lastKey}-01`)}: ${lastLargest}.`);
+    lines.push('Words people use for the kinds: eating out is a bar, a cafe, a restaurant, a pub, a terrace, a night out, comida fuera, restaurantes, bares, food when it is not groceries; groceries is a supermarket (Mercadona, Lidl, Carrefour, Dia), mantimentos, supermercado; transport is metro, bus, Renfe, Cercanias, Uber, Cabify, taxi; entertainment is cinema, concerts, tickets, games; software is apps and subscriptions like Spotify or OpenAI. Answer a question about one of these words from the kind\'s own line.');
   }
   const lastGroups = ctx.lastCategories?.groups || [];
   if (lastGroups.length) {
@@ -893,9 +902,10 @@ const ASK_OPENERS = /^(what|which|how|show|list|tell|give|draw|make|compare|plot
  * better than a rule far above it. Pure.
  */
 const LANGUAGE_WORDS = {
-  en: ['the', 'how', 'much', 'did', 'what', 'my', 'this', 'last', 'and', 'on', 'week', 'month', 'spend', 'spent', 'was', 'is', 'do', 'have', 'me', 'i'],
+  en: ['the', 'how', 'much', 'did', 'what', 'my', 'this', 'last', 'and', 'on', 'week', 'month', 'spend', 'spent', 'was', 'is', 'do', 'have', 'me', 'i', 'got', 'from', 'does', 'that', 'count', 'can', 'will', 'it', 'of', 'to', 'for', 'with', 'you', 'in', 'at', 'which', 'why', 'when', 'show', 'left', 'yesterday', 'today', 'night'],
   es: ['cuanto', 'cu\u00e1nto', 'gaste', 'gast\u00e9', 'llevo', 'gastado', 'esta', 'este', 'semana', 'mes', 'el', 'la', 'los', 'las', 'que', 'qu\u00e9', 'por', 'del', 'al', 'ayer', 'hoy', 'noche', 'fin', 'pasado', 'mis', 'tengo', 'puedo', 'cuando', 'cu\u00e1ndo'],
-  pt: ['quanto', 'gastei', 'ontem', 'hoje', 'noite', 'esta', 'este', 'semana', 'mes', 'm\u00eas', 'o', 'a', 'os', 'as', 'do', 'da', 'no', 'na', 'que', 'meu', 'minha', 'fim', 'passado', 'tenho', 'posso', 'quando', 'qual', 'n\u00e3o', 'nao'],
+  /* no one-letter or English-looking words ('a', 'as', 'no'): "a refund" once tied English with Portuguese (2026-09-21) */
+  pt: ['quanto', 'gastei', 'ontem', 'hoje', 'noite', 'esta', 'este', 'semana', 'mes', 'm\u00eas', 'os', 'do', 'da', 'na', 'que', 'meu', 'minha', 'fim', 'passado', 'tenho', 'posso', 'quando', 'qual', 'n\u00e3o', 'nao', 'em', 'bares', 'voc\u00ea', 'voce', 'foi', 'com', 'para', 'pra'],
 };
 export function languageOf(message) {
   const words = String(message || '').toLowerCase().replace(/[^\p{L}\s]/gu, ' ').split(/\s+/).filter(Boolean);
