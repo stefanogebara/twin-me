@@ -24,17 +24,47 @@
 > E2B, nada aqui navega). A pergunta do endereço de recibos (14/09, abaixo) continua
 > aberta e o teardown só a reforça: o e-mail do Instinct é SES inbound + envio.
 
+> **Passada de 2026-09-21 (varredura semanal — feed do resumo matinal preso em 2026-08-22,
+> tratado como vazio; 6 `intel-scout` em paralelo, ~44 candidatos crus, 26 lidos a fundo).**
+> STATE.md reescrito (28 dias, 50 commits: money virou o produto de fato, gêmeo legado
+> estacionado em produção). Uma linha inequívoca acrescentada a `settled` em
+> `intel.config.json` (money-first é fato em produção). 3 PROTOTIPAR novos em `BACKLOG.md`
+> (`fidelidade-minimal-facts`, `dinheiro-por-telefonema`, `supabase-health-via-mcp`), 3
+> DISCUTIR novos (abaixo), 2 pernas fundidas em spikes já abertos (`mcp-contexto-portatil`,
+> `dia-hurdle`), 11 REGISTRAR (Radar), 3 DESCARTAR, mais os candidatos que não passaram do
+> gate de escopo. Divergência nova em `STATE.md`: `one_line`/`bets` do config ainda
+> descrevem o gêmeo digital como o produto; `CLAUDE.md` diz o oposto desde 19/09.
+
 ### [DISCUTIR 10/15] O número do dia chega onde a pessoa já está (WhatsApp), ou fica na página?
-**Data:** 2026-09-21 · **Fonte:** teardown (seção "Reception", "What TwinMe can take"; [preço por mensagem da Meta a partir de 1/10/2026](https://developers.facebook.com/docs/whatsapp/pricing)) · **Eixos:** P3 A2 D2 E1 L2
-**O que é:** o que os usuários do Instinct elogiam é o que chega sem pedir (follow-up de fio largado, relatório diário) num canal que já abrem; o Meta Muse fez o mesmo em 8/09. O teardown conclui que a forma defensável na UE é um assistente de dinheiro no WhatsApp em que a IA é acessória ao serviço (a categoria que a política da Meta permite), com pagamentos feitos pela pessoa.
-**Por que toca este projeto:** o número do dia (`allowance.js`), a cobrança de amanhã (`chargesSoon`) e o prazo de devolução (`returns.js`) só existem em `/money`; ninguém recebe nada. As rotas de WhatsApp do gêmeo antigo existem (`api/routes/cron-morning-briefing.js`, `morning-briefing.js`) mas estão atrás de `LEGACY_TWIN_ENABLED=false` e falam do gêmeo, não do dinheiro. O `settled` do `intel.config.json` ainda diz "captura financeira é por WhatsApp" (linha velha, ver passada de 14/09).
-**A pergunta:** uma mensagem por manhã ("Hoje: 14,60 EUR; Higgsfield cai amanhã") no WhatsApp para você e os dois amigos, medindo abertura de `/money` e custo por mensagem, ou a página continua sendo o único lugar? Se sim, WhatsApp (cobrado por mensagem desde 1/10) ou Telegram (grátis, sem política contra assistentes)?
+**Data:** 2026-09-21 · **Fonte:** teardown (seção "Reception", "What TwinMe can take"); atualizado na varredura semanal com [preço exato da Meta a partir de 1/10/2026](https://developers.facebook.com/documentation/business-messaging/whatsapp/pricing/non-template-messages) e [Félix (US$200M Série C, WhatsApp financeiro para a diáspora latina)](https://news.crunchbase.com/venture/fintech-whatsapp-remittance-startup-felix-raises-200m-a16z-general-catalyst/) · **Eixos:** P3 A2 D2 E1 L2
+**O que é:** o que os usuários do Instinct elogiam é o que chega sem pedir (follow-up de fio largado, relatório diário) num canal que já abrem; o Meta Muse fez o mesmo em 8/09. O teardown conclui que a forma defensável na UE é um assistente de dinheiro no WhatsApp em que a IA é acessória ao serviço (a categoria que a política da Meta permite), com pagamentos feitos pela pessoa. Félix prova, em escala (US$8bi processados, 6M+ pessoas), que banking inteiro roda nativamente dentro do WhatsApp para um público leigo/imigrante — mesmo canal, produto mais pesado (banking licenciado vs. ledger que nunca move dinheiro).
+**Correção de números (varredura semanal):** a tarifa de 1/10 só atinge mensagem de **serviço** dentro da janela de 24h aberta pelo usuário — 1.000 grátis por número por mês, ~€0,0166/mensagem depois disso (não os US$0,0200 citados na primeira leitura). Uma mensagem de **template** (push frio, sem o usuário ter escrito antes) já era paga antes de outubro e continua na mesma tarifa — a novidade de outubro é irrelevante se o desenho for manter a janela de 24h aberta por uso diário do twin, e o free tier provavelmente cobre folgadamente um piloto de 3 pessoas (~90 mensagens de serviço/mês).
+**Por que toca este projeto:** o número do dia (`allowance.js`), a cobrança de amanhã (`chargesSoon`) e o prazo de devolução (`returns.js`) só existem em `/money`; ninguém recebe nada. As rotas de WhatsApp do gêmeo antigo existem (`api/routes/cron-morning-briefing.js`, `api/services/messageRouter.js:deliverInsight`) mas estão atrás de `LEGACY_TWIN_ENABLED=false` e falam do gêmeo, não do dinheiro. O `settled` do `intel.config.json` ainda diz "captura financeira é por WhatsApp" (linha velha, ver passada de 14/09).
+**A pergunta:** uma mensagem por manhã ("Hoje: 14,60 EUR; Higgsfield cai amanhã") no WhatsApp para você e os dois amigos, medindo abertura de `/money` e custo por mensagem, ou a página continua sendo o único lugar? E, se sim: o design mantém a janela de 24h aberta (o usuário conversa com o twin todo dia, a mensagem matinal entra como resposta, free tier cobre a escala atual) ou é push frio de template (sempre pago, com ou sem 1/10 — nesse desenho Telegram já era mais barato, sem prazo)?
 
 ### [DISCUTIR 9/15] O telefone diz onde a pessoa está, e a viagem entra sozinha na agenda?
 **Data:** 2026-09-21 · **Fonte:** teardown (Features: localização ao vivo por iMessage, gatilhos de chegada e saída, perguntas de histórico, controle de apagar; post do fundador de 5/09) · **Eixos:** P2 A2 D2 E1 L2
 **O que é:** o Instinct recebe a localização ao vivo e reage a chegar e sair de um lugar; a pessoa pode apagar o histórico.
 **Por que toca este projeto:** hoje a viagem entra por frase ("vou a Bilbao de sexta a domingo", `when.js`, PR #452) e a banda do dia só alarga com um dia marcado como fora (`calendar.js`, ideia 7 esperando dado: 1 dia fora em 75). O app Android já lê notificações do banco (`twinme-phone-capture`); localização é uma permissão a mais e um canal a mais, e o produto vende privacidade como feature.
 **A pergunta:** o telefone pode mandar "estou fora de Madrid" (só a cidade, só quando muda), para a viagem contar sem ninguém digitar, ou a localização fica fora por princípio?
+
+### [DISCUTIR 10/15] O gateway de LLM vale um roteamento EU-only, ou é teatro de compliance?
+**Data:** 2026-09-21 · **Fonte:** [OpenRouter — in-region routing (US) + tier Business self-serve](https://openrouter.ai/blog/announcements/us-in-region-routing/) (2026-09-09) · **Eixos:** P3 A2 D2 E2 L1
+**O que é:** OpenRouter estende o roteamento in-region (já existia para a UE) aos EUA, e o tier Business (residência de dados garantida por região) virou self-serve — sem contrato, sem mínimo mensal, fee de 8% sobre compra de crédito contra 5,5% no Standard. Sem fallback cross-region: se nenhum provedor in-region serve o modelo pedido, a chamada falha com 404 em vez de cair para infraestrutura global.
+**Por que toca este projeto:** `api/services/llmGateway.js` é o gateway único de LLM do TwinMe, cliente direto do `baseURL` global da OpenRouter (linha 235). O produto atende estudantes na Espanha, mas não há hoje nenhum requisito de residência de dados na UE registrado no projeto, e GDPR aceita transferência com salvaguardas contratuais — não exige fisicamente manter dados na UE. O 404 sem fallback contraria o desenho atual do gateway, que investe em circuit breaker e retries para nunca cair; e não está confirmado que o DeepSeek V3.2 (modelo padrão) tem provedor in-region na UE.
+**A pergunta:** vale pagar 8% (vs 5,5%) e aceitar chamadas sem fallback só para poder dizer "os dados de inferência não saem da UE" — ou isso é teatro de compliance sem exigência legal real por trás, já que nenhum cliente ou regulador pede isso hoje?
+
+### [DISCUTIR 8/15] Vale trocar CDN por preço fixo, mesmo sem saber o consumo real?
+**Data:** 2026-09-21 · **Fonte:** [Vercel — Flat Rate CDN GA para times Pro](https://vercel.com/changelog/flat-rate-cdn-is-now-ga-for-pro-teams) (2026-09-08) · **Eixos:** P1 A2 D2 E2 L1
+**O que é:** Vercel troca a fatura de CDN por uso (requests, Fast/Blob/Sandbox Data Transfer) por um valor fixo por tier: incluído no Pro até 1M requests/1TB, depois US$20/mês (10M/50TB), US$100/mês (50M/50TB), US$300/mês (150M/50TB); tráfego acima da capacidade não sobe de tier nem degrada, sujeito a fair-use.
+**Por que toca este projeto:** `CLAUDE.md` tem uma seção "Vercel Cost Rules" inteira por causa do estouro de US$375 de março de 2026 — mas a causa raiz documentada (`tests/goals/vercel-cost-rules.goal.test.js`) foi cron mais frequente que */15 e `maxDuration` acima de 60s, ou seja, **compute (GB-hora)**, não CDN; as duas regras já estão em conformidade hoje. Sem visibilidade do consumo real de CDN do TwinMe (app signed-in, não site de alto tráfego público), não dá para saber se isto mudaria a fatura.
+**A pergunta:** vale conferir `vercel usage` antes de decidir se liga o Flat Rate CDN, ou esse gasto é irrelevante perto do que já causou o estouro histórico?
+
+### [DISCUTIR 8/15] Decompor a incerteza do juiz do chat vale a construção de um dataset de rótulos?
+**Data:** 2026-09-21 · **Fonte:** [Decomposing LLM-Judge Uncertainty to Target Expert Labels, arXiv 2609.06444](https://arxiv.org/abs/2609.06444) (2026-09-06, Composo AI) · **Eixos:** P2 A2 D1 E2 L1
+**O que é:** separar a incerteza epistêmica (o juiz não sabe) da aleatória (desacordo real, nenhum rótulo reduz) num juiz-LLM, via regressão bayesiana leve sem chamadas extras, corta 83% mais erro que rotear por incerteza total — mas o próprio autor admite que, no único dataset de desacordo humano real testado (ChaosNLI), uma heurística trivial (escalar os itens menos rotulados) empata esse resultado.
+**Por que toca este projeto:** `scripts/money/chat-eval.mjs` é o harness ativo (65+ cenários) com um único juiz LLM de pergunta binária; `docs/roadmap/PROGRESS.md` documenta em quase toda rodada (2, 5, 6, 9, 10, 11) falsos-negativos desse juiz único em respostas corretas, e o código comenta que o DeepSeek "flipped between 2 and 0 on the same reply across runs".
+**A pergunta:** vale montar um dataset estruturado dos rótulos históricos (as releituras manuais de "judge-0" já feitas em cada rodada) para testar se a decomposição epistêmica corta releitura abaixo do que já é gasto revisando toda falha — ou o harness é pequeno demais para o ganho compensar o trabalho de construir a calibração?
 
 
 > **Passada de 2026-09-14 (money twin).** Rodada a partir da revisão de pesquisa de 13/09
@@ -115,61 +145,6 @@ de `order()`.
 (b) tirar o número e (c) aceitar o risco continuam disponíveis — o bloco está a um delete
 de (b). (a) foi escolhida por ser a única que não exige juízo de negócio: torna a afirmação
 verdadeira em vez de removê-la ou defendê-la.
-
----
-
-### [DISCUTIR 10/15] Um traço de persona é um slot com um valor corrente?
-**Data:** 2026-08-24 · **Eixos:** P3 A2 D2 E2 L1
-**Fonte:** [arXiv 2608.20685 — validade temporal em históricos reais](https://arxiv.org/abs/2608.20685)
-
-**O que é:** MemStrata mantém supersessão determinística por tripla (sujeito, relação,
-objeto): valor novo retira o antigo por **chave exata**, não por similaridade, porque
-velho e novo têm embedding quase idêntico. Em 130 transições atômicas extraídas de 707
-issues reais do SWE-bench, o RAG serve o valor superseditado **36–38% das vezes** e o
-reranker não corrige; MemStrata leva a ~0 na latência do RAG.
-
-**Por que toca este projeto:** este repo já internalizou o mecanismo em julho — tem
-`superseded_by`/`superseded_at`, filtro na RPC e Tier 2b no cron de esquecimento. Por
-isso o item **não vira spike novo**: foi fundido como braço de `mcp-portao-escrita`. O
-valor que sobra é o número, e uma pergunta que o número expõe.
-
-**A pergunta:** a supersessão determinística só funciona onde existe **um** valor que
-substitui o anterior — e o `UNIQUE(user_id, platform, feature_name, dimension)` de
-`behavioral_evidence` assume que sim, que Abertura-via-Spotify tem um valor certo por vez.
-Se um traço é na verdade uma distribuição que oscila legitimamente (a pessoa estava
-disciplinada em março e dispersa em julho, e as duas coisas são verdade), então versionar
-por slot é a forma errada, e o `known_gaps[1]` se fecha por **confiança decrescente e
-TTL**, não por supersessão. Só você decide o que o produto está afirmando — e a resposta
-muda o braço do spike de "grava / verifica / pergunta" para "grava / retira / pergunta".
-
----
-
-### [DISCUTIR 9/15] O gateway de LLM e o billing viraram a mesma empresa
-**Data:** 2026-08-24 · **Eixos:** P2 A2 D2 E1 L2
-**Fontes:** [Stripe Newsroom](https://stripe.com/newsroom/news/stripe-agrees-to-acquire-openrouter) · [blog da OpenRouter](https://openrouter.ai/blog/announcements/openrouter-is-joining-stripe/)
-
-**O que é:** a Stripe assinou acordo para adquirir a OpenRouter, declarando que "tokens
-são a moeda central" e que pretende fundir o roteamento com o produto Token Billing. A
-OpenRouter promete "nada na sua integração muda" e neutralidade que "não se curva a
-nenhum modelo, provedor ou empresa-mãe". Deal ainda não fechado.
-
-**Por que toca este projeto:** a OpenRouter é o gateway **único** de LLM
-(`api/services/llmGateway.js`, com `OPENROUTER_API_KEY` como env obrigatória que dá
-`process.exit(1)` em `api/server.js`) e a Stripe já é o billing (`api/routes/billing.js`).
-Chat, análise, extração, visão, embeddings e enriquecimento passam todos pela mesma chave.
-
-**O que a fonte não prova:** a neutralidade é copy, não contrato — não há cláusula, prazo,
-métrica nem governança. E "nada muda na sua integração" é promessa sobre a assinatura da
-API, não sobre preço, política de roteamento ou retenção. Os US$ 7 bi são reporte da
-Bloomberg que a Stripe se recusou a confirmar.
-
-**A pergunta:** não é "sair da OpenRouter" — não há motivo hoje. É: vale meia hora
-extraindo `https://openrouter.ai/api/v1` e o nome da chave para env
-(`LLM_GATEWAY_BASE_URL` / `LLM_GATEWAY_API_KEY`) nos 13 pontos onde está hardcoded, e
-rodar a harness contra um segundo gateway OpenAI-compatível **uma vez**, só pra saber o
-número do custo de saída? Ou isso é ansiedade de fornecedor tomando tempo do trabalho de
-fidelidade? Segunda decisão embutida: o `settled` deveria virar "todo LLM passa por **um**
-gateway, hoje OpenRouter" — o que preserva a disciplina sem prender a marca?
 
 ---
 
@@ -316,7 +291,31 @@ Novos em 2026-09-19 (varredura de três batedores: produtos, papers, o que as pe
 - **Fundido** em `BACKLOG.md#banda-conformal-pid` (perna 2): calibrar a faixa pelos resíduos dos dias *parecidos* (mesmo dia da semana, mesma distância do pagamento) em vez de todos — [Jin et al., Retrieval-Corrected Conformal Prediction for Time Series, 2026](https://arxiv.org/abs/2608.10553), 12/15.
 - **Fundido** em `BACKLOG.md#mcp-contexto-portatil`: o Copilot Money expõe o ledger por MCP desde maio de 2026 ([changelog](https://www.copilot.money/changelog)); o item ganha uma perna "o dinheiro por MCP" com âncora em `api/mcp-server/src/server.ts` e `api/services/money/forecastService.js`.
 
+Novos em 2026-09-21 (varredura semanal, 6 `intel-scout` + 26 `intel-analyst`):
+
+- [PROTOTIPAR 13/15] Fidelidade: um braço "só demografia" para testar se a profundidade de ingestão compra acurácia → `BACKLOG.md#fidelidade-minimal-facts`
+  · âncora: `twin-research/fidelity-eval.js`, `intel.config.json` (bets[1])
+- [PROTOTIPAR 12/15] Ativar o `place_call` já construído para um caso ancorado no ledger → `BACKLOG.md#dinheiro-por-telefonema`
+  · âncora: `api/services/callService.js`, `api/routes/webhook-vapi.js`, `api/services/money/recurring.js`
+- [PROTOTIPAR 12/15] O agente de saúde da própria Supabase, testado contra um incidente real → `BACKLOG.md#supabase-health-via-mcp`
+  · âncora: `.github/workflows/agentic-loop.yml`, `scripts/agentic/loop.mjs`
+- **Fundido** em `BACKLOG.md#mcp-contexto-portatil` (perna 3): dois servidores MCP de terceiros sobre Enable Banking (`bank-mcp`, `bankmcp`) — um vira conferência cruzada dos campos ainda não verificados em `enableBanking.js`, o outro é o desenho de OAuth 2.1 escopado que falta em `api/routes/api-keys.js`, 11/15.
+- **Fundido** em `BACKLOG.md#dia-hurdle` (citação de apoio): gradient boosting isolado perde para híbrido ocorrência×quantidade em demanda intermitente ([Kislinskii, Hameed, arXiv 2609.14718](https://arxiv.org/abs/2609.14718)) — mesmo mecanismo do spike já aberto, evidência mais fraca (domínio incompatível), 8/15.
+
 ## Radar
+- `2026-09-21` **Quartz (Londres, £2,75M pre-seed, ex-Revolut/N26) lança agregador PSD2 + IA "Charlie"** para pensões/ISAs/investimentos no UK — mesma retórica "personal banker for everyone" do money twin, mas nicho de riqueza vs. o gasto diário de estudante na Espanha; sem licença de aconselhamento, sem benchmark publicado. [tech.eu](https://tech.eu/2026/09/16/quartz-launches-with-ps275m-to-build-a-personal-banker-for-everyone/) · 7/15
+- `2026-09-21` **Ledger (Emmanuelzyronis, v1.0.0): reconciliação com evidência append-only e versionamento por supersessão** — `money_transactions`/`money_sightings` do TwinMe ainda são mutados in-place (UPDATE/UPSERT em `commit_money_ingestion`), sem trilha de auditoria equivalente; gap real, mas não escrito em known_gaps. [GitHub](https://github.com/Emmanuelzyronis/Ledger) · 7/15
+- `2026-09-21` **PRISM: juiz de fidelidade de persona decomposto em Task Framing/Stance/Estilo** — números não verificáveis na leitura, mas ecoa a instabilidade já documentada do juiz único de `chat-eval.mjs` (não do harness de persona, que nem usa juiz LLM e está parado desde D1). [arXiv 2608.26674](https://arxiv.org/abs/2608.26674) · 7/15
+- `2026-09-21` **Perplexity conecta a Flanks** (AISP do Banco da Espanha/BCE, ~€43bi agregados) para consultar holdings de patrimônio em linguagem natural — repete o padrão dos conectores Gemini/ChatGPT já DISCUTIDO em 2026-08-22, mas em wealth management B2B, fora do domínio de gasto/PSD2 do TwinMe Money. [fintech.global](https://fintech.global/2026/08/26/perplexity-taps-flanks-to-power-ai-driven-wealth-management/) · 7/15
+- `2026-09-21` **REALM: grafo cognitivo com reconsolidação por LLM a cada retrieval** (75,97% LoCoMo / 65,11% LongMemEval) — mecanismo é geração, não aritmética, então não serve ao money twin (`settled`: computed, not generated) nem ao gêmeo legado, parado desde D1. [arXiv 2609.16053](https://arxiv.org/abs/2609.16053) · 6/15
+- `2026-09-21` **Predição conformal multi-fonte/multi-alvo (MS-RLCP, Scaling-Score CP)** — split-conformal em lote com exchangeability entre fontes/alvos; nenhum ataca o atraso de liquidação de 4 dias que hoje zera o alargamento da banda do dia. O spike `banda-conformal-pid` já cobre a frente certa. [arXiv 2609.14531](https://arxiv.org/abs/2609.14531) · [arXiv 2609.17091](https://arxiv.org/abs/2609.17091) · 6/15
+- `2026-09-21` **Comportamento simulado por LLM: priors estatísticos acertam a distribuição agregada mas fragmentam rotina e achatam variabilidade individual** (43h de câmera em escritório) — tema afim ao fidelity-eval do TwinMe, sem overlap direto de dado/stack. [arXiv 2609.01257](https://arxiv.org/abs/2609.01257) · 6/15
+- `2026-09-21` **II-42/psql_bm25s: terceiro motor BM25 nativo para Postgres** — mesmo bloqueio já discutido para ParadeDB/pg_textsearch (extensão C fora da lista de ~30 da imagem gerenciada do Supabase); a resposta ao DISCUTIR 8/15 de 24/08 não muda. [GitHub](https://github.com/Intelligent-Internet/psql_bm25s) · 5/15
+- `2026-09-21` **reconforge (0.0.4, protótipo sintético local): reconciliação com fatos/possibilidades separadas** — mesmo princípio de evidência-antes-de-conclusão que `ledger.js`/`chat.js` já aplicam em produção, com mais maturidade (fuzzy matching, dado real). [GitHub](https://github.com/SamanGharagozlou/reconforge) · 5/15
+- `2026-09-21` **openrecon: CLI de reconciliação ledger-vs-processador por id, depois valor+data** — resolve um problema estruturalmente mais fácil (id compartilhado) que o de TwinMe (multi-canal sem id comum); `ledger.js` já é mais completo na dimensão que importaria (match por comerciante). [GitHub](https://github.com/Naresh-Paturi-Community/openrecon) · 5/15
+- `2026-09-21` **Enable Banking: changelog de agosto** (dashboard de indisponibilidade por ASPSP, Klarna em 9 países incl. Espanha, conta devedora SEPA para bancos Redsys) — nenhuma mudança de API que `enableBanking.js` precise absorver; não responde a pergunta pendente sobre Plaid/US friends. [Enable Banking](https://enablebanking.com/blog/2026/09/09/changelog-august-2026) · 5/15
+- `2026-09-21` **Split Pay levanta US$125M (Khosla/Thrive/Levchin) para adiantar até 50% do aluguel por 30 dias** — valida a dor que "a Bizum que é o aluguel" (`context.js`, #462) já lê, mas do lado do crédito/float, território que o `settled` fecha explicitamente (nunca reter nem adiantar saldo). [Axios](https://www.axios.com/2026/09/08/split-pay-khosla-125-million) · 5/15
+- `2026-09-21` **Félix levanta US$200M (a16z/General Catalyst): banking inteiro dentro do WhatsApp** para a diáspora latina — reforça, sem responder sozinho, a pergunta DISCUTIR de hoje sobre levar o número do dia pro WhatsApp (ver acima). [Crunchbase News](https://news.crunchbase.com/venture/fintech-whatsapp-remittance-startup-felix-raises-200m-a16z-general-catalyst/) · 7/15
 - `2026-09-21` **Instinct: memória com agente de chat só-leitura, compactação diária, correções datadas** (teardown, sonda da Supermemory): 13.000 tokens por turno, busca exata por palavra, uma preferência levou 23 h 16 min para valer. O money twin já tem a forma (o chat lê `money_facts` e `money_readings`; `cron-money-learn` escreve à noite, sem modelo) e é mais rápido: um "remember" vale no turno seguinte. A única lacuna: uma correção apaga o fato (`deleteFact`) em vez de deixar a entrada datada que o substitui.
 - `2026-09-21` **Instinct: segredo por link de uso único, preenchido no servidor, nunca pelo chat** (teardown, Vault): não se aplica hoje, o money twin nunca pede senha (PSD2 por redirecionamento, extrato por upload); vira regra se um dia baixar extrato por login.
 - `2026-09-21` **Instinct: cartão de aprovação que carrega o plano + arquivo de autonomia por usuário** (teardown): as ofertas do chat já são isso (nada muda sem toque; `assembleReply`); o "quanto perguntar" é o orçamento de perguntas ainda aberto no plano de 13/09.
@@ -342,4 +341,13 @@ Novos em 2026-09-19 (varredura de três batedores: produtos, papers, o que as pe
 
 ## Arquivo
 
-_vazio_
+- `2026-09-21` **[DISCUTIR 10/15] Um traço de persona é um slot com um valor corrente?**
+  (aberto 2026-08-24) — envelheceu sem decisão. O braço técnico já foi fundido em
+  `mcb-portao-escrita`; a pergunta de negócio (traço como slot vs. distribuição) segue sem
+  resposta, mas o gêmeo legado onde `behavioral_evidence` vive está estacionado desde D1
+  (2026-09-20) — a pergunta perde urgência até haver decisão de reativar o gêmeo.
+- `2026-09-21` **[DISCUTIR 9/15] O gateway de LLM e o billing viraram a mesma empresa**
+  (aberto 2026-08-24) — envelheceu sem decisão. O deal Stripe/OpenRouter não fechou nem
+  apareceu de novo em nenhuma das três varreduras seguintes (14/09, 19/09, 21/09); sem
+  novidade, a pergunta ("extrair a env var do gateway, rodar contra um segundo provedor
+  uma vez") fica arquivada até o deal fechar ou um novo sinal aparecer.

@@ -70,6 +70,8 @@ spikes estão abertos. Ver `STATE.md` para o estado do repositório.
 
 **Toca:** `api/services/money/calibration.js` (dayForecast), `scripts/money/evaluate-day-forecast.mjs`, `tests/api/services/money/calibration.test.js`.
 
+**Citação de apoio (2026-09-21, fundida por INTEL):** [Kislinskii, Hameed — Gradient Boosting for Intermittent Demand, arXiv 2609.14718](https://arxiv.org/abs/2609.14718) confirma, num domínio incompatível (5.000 SKUs militares, não uma série por pessoa), o mesmo mecanismo de dois passos (ocorrência × quantidade): IMAPA+CatBoost reduz o MAE em ~24% sobre IMAPA sozinho. Evidência mais fraca que Switch-Hurdle/TSB, não muda a técnica escolhida (logística simples, não gradient boosting per-user) — citado aqui só para registro, sem abrir item novo.
+
 **Status:** aberto
 
 ---
@@ -571,5 +573,74 @@ de conversa com assistente, apesar de `api/routes/claude-sync.js` já ler `~/.cl
 
 **Toca:** `api/mcp-server/src/server.ts`, `api/mcp-server/package.json`, `api/routes/api-keys.js`, `api/routes/mcp.js`, `twin-research/fidelity-eval.js`, `api/services/exports/registry.js`
 **Perna (2026-09-19, fundida por INTEL):** o Copilot Money expõe categorias, transações, orçamentos e recorrências por MCP desde 15/05/2026 ([changelog](https://www.copilot.money/changelog)), e o TwinMe já tem um servidor MCP (`api/mcp-server`). O dinheiro por MCP é uma ferramenta a mais no servidor: `money.today`, `money.month`, `money.recurring`, todas lendo `api/services/money/forecastService.js` e `allowanceService.js` — números computados, nunca gerados, o que nenhum cliente de chat genérico tem. Medir: alguém usa? (chamadas por semana no log do servidor).
+
+**Perna 3 (2026-09-21, fundida por INTEL — 11/15, dois repos independentes sobre o mesmo provedor):** [bank-mcp](https://github.com/elcukro/bank-mcp) (Plaid/Teller/Enable Banking/Tink) e [bankmcp](https://github.com/pgronberg/bankmcp) (dedicado a Enable Banking/PSD2, o mesmo provedor de `api/services/money/feeds/enableBanking.js`) já existem como implementações de referência de terceiros. bank-mcp é conferência cruzada barata: seu adapter Enable Banking dá para comparar campo a campo contra o comentário de incerteza em `enableBanking.js:9-14` ("verify the exact field names before the first live run") — spike de 2h, critério de parada: usar API do Enable Banking visivelmente antiga. bankmcp é a peça que falta no buraco já nomeado nesta ficha (`POST /api/api-keys` sem `scopes`/`expires_at`): seu `auth.ts` é um servidor OAuth 2.1 de um usuário só (PKCE, dynamic client registration, tokens hasheados e escopados) — o desenho a copiar (não o código; stack incompatível) para `api/mcp-server/src/auth/api-key-auth.ts`. Spike de 4h: adaptar esse desenho, escrever um teste que chama `get_soul_signature` com chave sem escopo e espera 403. Parar se exigir tocar `service-adapters.ts` (a dependência do `@anthropic-ai/sdk`) — aí o problema real é o braço principal deste spike (reanimar `api/mcp-server`), não este.
+
+**Status:** aberto
+
+
+---
+
+### fidelidade-minimal-facts — O harness de fidelidade ganha um braço "só demografia"
+**Origem:** INTEL 2026-09-21 · **Veredito:** PROTOTIPAR 13/15 (P3 A2 D3 E3 L2)
+**Fonte:** [Toubia et al. — "Digital twins are funhouse mirrors", Science Advances, 2026-09-14](https://pmc.ncbi.nlm.nih.gov/articles/PMC13537255/) (Columbia Business School)
+
+**O que é:** GPT-4.1 alimentado com 500+ respostas reais de cada uma de 1.784 pessoas (dataset público Twin-2K-500) não prevê melhor, em 19 estudos pré-registrados (164 outcomes, 13.506 participantes acumulados), do que uma persona só com idade+renda (0,748 vs 0,746, p=0,37) — e pouco acima de um prompt vazio (0,734). O gêmeo de persona completa encolhe em direção à média em 154/164 casos (sub-variação), estereotipa mais perto do genérico demográfico do que dos humanos reais, e é hiper-racional (sem os vieses cognitivos que humanos reais mostram).
+
+**Por que toca este projeto:** ataca direto `bets[1]` do `intel.config.json` ("profundidade de ingestão é o fosso, não a qualidade do modelo") — 500+ respostas não bateram idade+renda. `api/services/personalityProfileService.js`/`personalityPromptBuilder.js` já caem para 0,5 de OCEAN default quando não computado, o mesmo "genérico" que o paper descreve. O gêmeo legado está estacionado (D1, 2026-09-20) por baixo uso medido — isto é validação de arquitetura para um cenário futuro, não urgência operacional hoje.
+
+**Hipótese:** se o TwinMe adicionar um braço `minimal-facts` (nome + faixa etária, sem histórico de plataformas) ao harness de fidelidade, ele pontua quase igual ao braço `baseline` (grounding completo) — delta pequeno, ecoando o Δ0,014 do paper — revelando que a profundidade de ingestão do TwinMe compra pouca acurácia individual além do genérico.
+
+**Spike (4h):** adicionar um `CONFIG minimal_facts` em `twin-research/fidelity-eval.js` (mesmo padrão do braço `spine` já documentado no arquivo), rodar contra a wave de fidelidade v3 mais recente, N=5 trials, comparar contra `baseline`.
+
+**Medir:** delta de `twin_accuracy` (0–1) entre `baseline` e `minimal_facts`. Delta < 0,02 = achado equivalente ao paper: motivo para reabrir `bets[1]` antes de investir mais em conectores.
+
+**Parar se:** não houver wave 2/3 disponível para nenhum usuário de teste (`normalized_fidelity` ainda NULL, known_gap já escrito) — não rodar com rigor contra a wave 1 antiga.
+
+**Toca:** `twin-research/fidelity-eval.js`, `api/services/personalityProfileService.js`, `intel.config.json` (bets[1])
+
+**Status:** aberto
+
+---
+
+### dinheiro-por-telefonema — Ativar o `place_call` já construído para um caso ancorado no ledger
+**Origem:** INTEL 2026-09-21 · **Veredito:** PROTOTIPAR 12/15 (P3 A3 D2 E2 L2)
+**Fonte:** [Instinct + Meta Muse ganham a capacidade de ligar, TechCrunch, 2026-09-17](https://techcrunch.com/2026/09/17/rival-ai-agents-instinct-and-metas-muse-both-add-the-ability-to-make-calls/) · [Instinct levanta US$350M a US$2,5bi, TechCrunch, 2026-08-26](https://techcrunch.com/2026/08/26/viral-ai-startup-instinct-has-raised-350-million-at-a-2-5-billion-valuation/)
+
+**O que é:** o Instinct Concierge (agora com US$350M levantados, US$2,5bi de valuation) e o Muse da Meta ganharam a capacidade de discar telefone — reservar mesa, entrar em lista de cancelamento, resolver cobrança. Nenhum dos dois revela provedor de voz, taxa de sucesso nem se a revelação obrigatória ("isto é uma IA ligando") de fato acontece.
+
+**Por que toca este projeto:** `api/services/callService.js` + `api/routes/webhook-vapi.js` + a tool `place_call` em `api/services/tools/extendedTools.js` já implementam essencialmente o mesmo recurso (Vapi, revelação de IA, aprovação do usuário) — mas dentro do gêmeo legado, estacionado desde D1 (2026-09-20, `LEGACY_TWIN_ENABLED=false`). É a única feature do dossiê Instinct (teardown de 21/09, PR #465) que o TwinMe já tem pronta e só não liga.
+
+**Hipótese:** se `place_call` for ativado para um único caso de uso ancorado no money twin — ligar para cancelar uma assinatura que `recurring.js` já sinalizou como cobrança recorrente — o TwinMe tem uma ação de dinheiro concreta e auditável (transcript + outcome em `twin_calls`), amarrada a um ledger, que o Concierge genérico do Instinct não tem.
+
+**Spike (1 dia, inclui configurar conta/trial Vapi):** ligar a flag `phone_calls` só para o usuário de teste, disparar `placeCall()` com goal derivado de uma linha real de `money_recurring` ("cancelar a assinatura X"), verificar que `webhook-vapi.js` grava transcript+outcome em `twin_calls` e que a frase de revelação de IA aparece no transcript.
+
+**Medir:** uma ligação completa (status != failed) com outcome gravado, frase de revelação presente.
+
+**Parar se:** custo do trial Vapi ou a política de conformidade de ligação automatizada não puderem ser resolvidos numa sessão (o plano `.claude/plans/2026-06-16-twin-phone-calls` citado no código não existe mais no repo) — aí volta a ser decisão de produto, não spike de engenharia.
+
+**Toca:** `api/services/callService.js`, `api/routes/webhook-vapi.js`, `api/services/tools/extendedTools.js`, `api/services/money/recurring.js`, `api/middleware/legacyTwin.js`
+
+**Status:** aberto
+
+---
+
+### supabase-health-via-mcp — O agente de saúde da própria Supabase, testado contra um incidente real
+**Origem:** INTEL 2026-09-21 · **Veredito:** PROTOTIPAR 12/15 (P3 A3 D2 E2 L2)
+**Fontes:** [Supabase — Health Check Advisors](https://supabase.com/changelog/50577-health-check-advisors) (2026-09-18) · [Supabase — Observability on Auto-Pilot](https://supabase.com/changelog/50403-observability-autopilot) (2026-09-13)
+
+**O que é:** Supabase Advisors ganhou uma aba Health com quatro checagens de taxa de erro (Data API, Auth, Storage, Edge Functions) via `POST /v2/projects/{ref}/advisors/run`; e um guia publica quatro prompts prontos por papel (Health e Performance de hora em hora, Security e Capacity diários) para rodar via qualquer runtime MCP (Claude Routines, Codex, Cursor), lendo logs pela tool `query_logs` do Supabase MCP server.
+
+**Por que toca este projeto:** o TwinMe já mantém um loop agêntico próprio (M2-6, `docs/roadmap/PROGRESS.md`, `.github/workflows/agentic-loop.yml`) rodando Claude Code headless via GitHub Actions para vigiar a própria produção — a mesma ideia aplicada ao Supabase, a única dependência de banco do projeto. Em 21/09/2026 uma chamada ao Supabase travou 16 minutos sem timeout, vista só por acaso nos logs de uma sessão de agente — exatamente o tipo de pico que a checagem de Health teria sinalizado sozinha.
+
+**Hipótese:** se conectarmos o Supabase MCP server (`read_only=true`) e rodarmos o prompt do papel Health contra os logs reais do projeto, o agente sinaliza o incidente de 21/09 (Auth travado 16 min, 504 aos 30s) ou outra anomalia real com severidade coerente.
+
+**Spike (4h):** configurar o Supabase MCP server read-only, copiar o prompt do papel Health do guia oficial, rodar uma vez via `claude -p` headless (mesmo binário de `scripts/agentic/implement.mjs`) contra as últimas 24–72h de logs de produção; comparar com o que o Sentry já tem registrado do incidente de 21/09 (wiring do #456).
+
+**Medir:** sinaliza corretamente pelo menos 1 incidente real dos últimos 7 dias com no máximo 1 falso positivo na mesma rodada.
+
+**Parar se:** o MCP server exigir plano pago que não temos, ou a saída sair genérica/sem grounding nos logs reais depois de uma rodada — vira REGISTRAR, não vale integrar ao loop.
+
+**Toca:** `.github/workflows/agentic-loop.yml`, `scripts/agentic/loop.mjs`, `scripts/security/run-supabase-regression.mjs`
 
 **Status:** aberto
