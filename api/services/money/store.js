@@ -1060,10 +1060,17 @@ export async function skipQuestion(userId, questionId) {
  * Forget one thing the person said. The fact goes, and the question that produced it is
  * open again, so a wrong answer can be given again rather than argued with. Internal rows
  * (the calendar's read, the receipts address) are not the person's words and stay.
+ *
+ * What was said is not lost: the row is copied, whole and dated, to money_facts_retired first
+ * (2026-09-22). Facts are upserted on (user, kind, subject), so a retired row left in place
+ * would be overwritten by the next answer; a separate table keeps the history and changes no read.
  */
-export async function deleteFact(userId, factId) {
-  const { data: fact } = await supabaseAdmin.from('money_facts').select('id, kind, question_id').eq('user_id', userId).eq('id', factId).maybeSingle();
+export async function deleteFact(userId, factId, { reason = 'forget' } = {}) {
+  const { data: fact } = await supabaseAdmin.from('money_facts').select('*').eq('user_id', userId).eq('id', factId).maybeSingle();
   if (!fact || INTERNAL_FACT_KINDS.includes(fact.kind)) return { deleted: false };
+  const { error: keepError } = await supabaseAdmin.from('money_facts_retired').insert({ user_id: userId, fact, reason });
+  /* A history that cannot be written must not stop a person correcting the ledger. */
+  if (keepError) log.warn(`fact not retired before delete: ${keepError.message}`);
   const { error } = await supabaseAdmin.from('money_facts').delete().eq('user_id', userId).eq('id', factId);
   if (error) throw new Error(error.message);
   if (fact.question_id) await supabaseAdmin.from('money_questions_asked').delete().eq('user_id', userId).eq('question_id', fact.question_id);
