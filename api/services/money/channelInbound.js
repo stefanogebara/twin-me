@@ -13,6 +13,7 @@ import { sendWhatsAppCtaButton, sendWhatsAppButtons, downloadWhatsAppMedia } fro
 import { readAttachment, acceptsAttachment, MAX_ATTACHMENT_BYTES } from './attachments.js';
 import { ATTACHMENT_DEPS } from './attachmentDeps.js';
 import { renderReply, muteIntent, channelSay, offerMessage, offerIdFrom, numberedChoice, asForwarded, labelOf, CHANNEL_DEADLINE_MS } from './channel.js';
+import { quietly } from './quietly.js';
 
 const log = createLogger('MoneyChannel');
 /** How many kept turns ride along as history. */
@@ -29,7 +30,7 @@ export async function handleMoneyInbound(parsed, { userId, send, deps = {} }) {
   const { phone, text, messageId } = parsed;
 
   if (!(await d.claimInbound(messageId, userId))) return { handled: true, kind: 'money_duplicate', userId };
-  const language = await Promise.resolve(d.userLanguage(userId)).catch(() => null);
+  const language = await Promise.resolve(d.userLanguage(userId)).catch(quietly('channel/user-language', null));
 
   const mute = muteIntent(text);
   if (mute) {
@@ -51,8 +52,8 @@ export async function handleMoneyInbound(parsed, { userId, send, deps = {} }) {
       return { handled: true, kind: 'money_attachment_unread', userId };
     }
     const r = await d.readAttachment(userId, { buffer, filename, mimeType: file.mimeType || '', note, language }, d.attachmentDeps);
-    await Promise.resolve(d.saveChatTurn(userId, { role: 'user', text: `Sent ${filename}${note ? `. ${note}` : ''}` })).catch(() => {});
-    await Promise.resolve(d.saveChatTurn(userId, { role: 'twin', text: r.said, receipts: r.receipts || null })).catch(() => {});
+    await Promise.resolve(d.saveChatTurn(userId, { role: 'user', text: `Sent ${filename}${note ? `. ${note}` : ''}` })).catch(quietly('channel/save-user-turn', undefined));
+    await Promise.resolve(d.saveChatTurn(userId, { role: 'twin', text: r.said, receipts: r.receipts || null })).catch(quietly('channel/save-twin-turn', undefined));
     await send(phone, renderReply({ text: r.said }).text);
     return { handled: true, kind: 'money_attachment', userId };
   }
@@ -62,7 +63,7 @@ export async function handleMoneyInbound(parsed, { userId, send, deps = {} }) {
   let offerId = offerIdFrom(parsed.replyId);
   if (!offerId && !parsed.context?.forwarded) {
     const n = numberedChoice(text);
-    if (n) offerId = (await Promise.resolve(d.recentOffers(userId)).catch(() => []))[n - 1]?.id || null;
+    if (n) offerId = (await Promise.resolve(d.recentOffers(userId)).catch(quietly('channel/recent-offers', () => [])))[n - 1]?.id || null;
   }
   if (offerId) {
     const row = await d.takeOffer(userId, offerId);
@@ -81,19 +82,19 @@ export async function handleMoneyInbound(parsed, { userId, send, deps = {} }) {
         said = e.message;
       } else {
         /* Not the ledger's refusal — a transient failure. Give the offer back so a retry tap works. */
-        await Promise.resolve(d.releaseOffer(userId, row.id)).catch(() => {});
+        await Promise.resolve(d.releaseOffer(userId, row.id)).catch(quietly('channel/release-offer', undefined));
         released = true;
         said = channelSay(language, 'That could not be done right now.');
       }
     }
     await send(phone, said);
-    if (!released) await Promise.resolve(d.offerSaid(userId, row.id, said)).catch(() => {});
+    if (!released) await Promise.resolve(d.offerSaid(userId, row.id, said)).catch(quietly('channel/offer-said', undefined));
     return { handled: true, kind: 'money_act', userId };
   }
 
   if (!text) return { handled: false, kind: 'money_nothing_to_read', userId };
 
-  const turns = await Promise.resolve(d.listChatTurns(userId, { limit: HISTORY_TURNS })).catch(() => []);
+  const turns = await Promise.resolve(d.listChatTurns(userId, { limit: HISTORY_TURNS })).catch(quietly('channel/history', () => []));
   const history = (turns || []).map((t) => ({ role: t.role, text: t.text }));
 
   let message = text;
@@ -111,7 +112,7 @@ export async function handleMoneyInbound(parsed, { userId, send, deps = {} }) {
   const deadline = new Promise((resolve) => { timer = setTimeout(() => resolve(DEADLINE), timeLeft); });
   const reply = await Promise.race([answerPromise, deadline]);
   if (reply === DEADLINE) {
-    answerPromise.catch(() => {}); // a late reply must not become an unhandled rejection
+    answerPromise.catch(quietly('channel/late-answer', undefined)); // a late reply must not become an unhandled rejection
     log.warn('money channel answer timed out', { userId, elapsedMs: Date.now() - startedAt });
     await send(phone, channelSay(language, 'That took too long to answer. Ask it again.'));
     return { handled: true, kind: 'money_deadline', userId };

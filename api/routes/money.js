@@ -694,7 +694,7 @@ router.post('/chat/act', validate({ body: S.CHAT_ACT }), async (req, res) => {
 });
 
 /* The person linked WhatsApp from the You page, under the sentence that says what it will send. */
-router.post('/channel/opt-in', async (req, res) => {
+router.post('/channel/opt-in', validate({ body: S.CHANNEL_OPT_IN }), async (req, res) => {
   if (!isMoneyChannelUser(req.user.id)) return res.status(403).json({ success: false, error: 'Not available on this account.' });
   try { await recordOptIn(req.user.id); res.json({ success: true }); }
   catch (error) { log.error('channel opt-in failed', { error: error.message }); res.status(500).json({ success: false, error: 'Internal server error' }); }

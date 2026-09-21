@@ -42,6 +42,7 @@ export const CHAT = loose({
 });
 export const CHAT_ACT = loose({ action: loose({ kind: z.string().min(1).max(40) }) });
 export const CALENDAR_FEED = loose({ url: z.string().trim().min(1).max(2000) });
+export const CHANNEL_OPT_IN = z.object({}).strict();
 export const HOME = loose({
   district: short.nullable().optional(), city: short.nullable().optional(),
   lat: z.union([z.number().min(-90).max(90), z.string().max(24)]).nullable().optional(),

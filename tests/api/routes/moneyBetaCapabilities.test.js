@@ -46,3 +46,10 @@ it('opts a listed WhatsApp person in, and refuses one outside the list', async (
   const refused = await request(app).post('/money/channel/opt-in').send({});
   expect(refused.status).toBe(403);
 });
+it('refuses an opt-in body with an unexpected key', async () => {
+  vi.stubEnv('MONEY_WHATSAPP_USER_IDS', owner);
+  const callsBefore = f.optIn.mock.calls.length;
+  const res = await request(app).post('/money/channel/opt-in').send({ extra: true });
+  expect(res.status).toBe(400);
+  expect(f.optIn.mock.calls.length).toBe(callsBefore);
+});
