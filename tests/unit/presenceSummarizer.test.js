@@ -163,3 +163,39 @@ describe('people she names are matched against the family map', () => {
     expect(asks).toHaveLength(1);
   });
 });
+
+/**
+ * The escalation dial moves what joins her own words in the family digest.
+ * It never moves whether she is heard: pain, a fall or a cry for help clear
+ * every bar, and the tripwire raises the urgency regardless.
+ */
+describe('how much the family hears is the family\'s choice', () => {
+  it('asks for what a person would act on by default', async () => {
+    await summarizeConversation('c-1', PRESENCE, transcript);
+
+    expect(llm.complete.mock.calls[0][0].system).toMatch(/what a person would want to act on/);
+  });
+
+  it('asks for everything, good days included, when the family wants everything', async () => {
+    await summarizeConversation('c-1', { ...PRESENCE, autonomy_escalation: 'everything' }, transcript);
+
+    expect(llm.complete.mock.calls[0][0].system).toMatch(/including a good day/);
+  });
+
+  it('keeps only what needs a person today when the family asked for that', async () => {
+    await summarizeConversation('c-1', { ...PRESENCE, autonomy_escalation: 'only_urgent' }, transcript);
+
+    const { system } = llm.complete.mock.calls[0][0];
+    expect(system).toMatch(/ONLY:/);
+    expect(system).toMatch(/An empty list is the right answer for an ordinary call/);
+  });
+
+  it('still raises the urgency from her own words, at the quietest setting', async () => {
+    const fell = [{ role: 'user', content: 'Eu caí no banheiro ontem.' }];
+
+    const result = await summarizeConversation('c-1', { ...PRESENCE, autonomy_escalation: 'only_urgent' }, fell);
+
+    expect(result.urgency).toBe('high');
+    expect(result.needsFamily.length).toBeGreaterThan(0);
+  });
+});

@@ -700,3 +700,33 @@ describe('PATCH /:id — the emergency contact (Phase 2, T8)', () => {
     expect(store.updatePresence).not.toHaveBeenCalled();
   });
 });
+
+describe('PATCH /:id — autonomy calibration (2026-09-21)', () => {
+  it('saves both dials', async () => {
+    store.updatePresence.mockResolvedValue(ok({ ...OWNED, autonomy_escalation: 'only_urgent', autonomy_initiative: 'ask' }));
+
+    const res = await api('patch', `/${PRESENCE_ID}`).send({ autonomy_escalation: 'only_urgent', autonomy_initiative: 'ask' });
+
+    expect(res.status).toBe(200);
+    expect(store.updatePresence).toHaveBeenCalledWith(PRESENCE_ID, expect.objectContaining({
+      autonomy_escalation: 'only_urgent', autonomy_initiative: 'ask',
+    }));
+  });
+
+  it('refuses a value outside the contract rather than storing a default', async () => {
+    const res = await api('patch', `/${PRESENCE_ID}`).send({ autonomy_escalation: 'nunca me avise' });
+
+    expect(res.status).toBe(400);
+    expect(store.updatePresence).not.toHaveBeenCalled();
+  });
+
+  it('leaves the other dial alone when only one is sent', async () => {
+    store.updatePresence.mockResolvedValue(ok(OWNED));
+
+    await api('patch', `/${PRESENCE_ID}`).send({ autonomy_initiative: 'wait' });
+
+    const patch = store.updatePresence.mock.calls[0][1];
+    expect(patch).toHaveProperty('autonomy_initiative', 'wait');
+    expect(patch).not.toHaveProperty('autonomy_escalation');
+  });
+});

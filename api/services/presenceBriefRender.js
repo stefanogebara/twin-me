@@ -1,3 +1,5 @@
+import { initiativeSection } from './presenceAutonomy.js';
+
 /**
  * Presence call brief — pure renderer.
  * No I/O: presenceCallBrief.js fetches the stores and calls renderCallBrief(); tests call it directly.
@@ -142,6 +144,9 @@ ${fence(recentConversations.map((c) => { const day = dayInPt(c.started_at, now);
 ${fence(biography.map((f) => { const day = dayInPt(f.created_at, now); return `- ${f.answer}${day ? ` (ela contou em ${day})` : ''}`; }).join('\n'))}
 Nothing here is necessarily still true — it was true on the day she said it. So never assert a dated fact as if it were today: ask after it ("como está aquela tosse?"), or place it in time ("você me contou semana passada..."). The older it is, the more gently you hold it.`);
   }
+
+  // Autonomy calibration — what the family lets the presence open on its own.
+  sections.push(initiativeSection(presence.autonomy_initiative, caredFor));
 
   // Conversation craft — the reminiscence protocol.
   // The rules below were written from a real call (2026-09-01): the agent connected a

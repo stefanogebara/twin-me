@@ -11,6 +11,7 @@
 import { saveConversationSummary, addFacts, recordElderAssent, saveFact, listActivePeople } from './presenceStore.js';
 import { createLogger } from './logger.js';
 import { distressTripwire } from './presenceTripwire.js';
+import { escalationInstruction } from './presenceAutonomy.js';
 
 const log = createLogger('PresenceSummarizer');
 
@@ -103,10 +104,7 @@ export async function summarizeConversation(conversationId, presence, transcript
     userId: presence.owner_user_id,
     system: `You process a voice conversation between an older adult and her family's AI presence. The family is Brazilian: everything they read must be em português do Brasil. Reply with STRICT JSON only: ${BASE_FIELDS}${firstCall ? FIRST_CALL_FIELDS : ''}}.
 
-needs_family must include, in plain family-facing language:
-- any request, question or practical need she raised;
-- any health mention, pain, worry or confusion;
-- emotional withdrawal: if she went quiet, gave one-word answers, or ended the conversation shortly after a specific topic, say so and name the topic. A family wants to know this more than anything else in the call. Report it even when nothing was explicitly asked of them.
+${escalationInstruction(presence.autonomy_escalation)}
 
 Every needs_family entry is a plain sentence a family member reads on their phone. Never prefix a category label; never use capitals for emphasis. Write "Ela ficou quieta depois que a Presença falou da comida da mãe dela, e não falou mais." — not "RETRAIMENTO EMOCIONAL: ..."
 ${firstCall ? '\nThis was her FIRST call: the presence introduced itself and asked whether it may talk with her again. Report her answer in "assent" exactly as she gave it; never assume a yes.\n' : ''}

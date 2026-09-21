@@ -342,7 +342,7 @@ describe('presenceStore', () => {
 
       expect(calls[0].table).toBe('presences');
       expect(calls[0].ops).toEqual([
-        ['select', 'id, owner_user_id, cared_for_name, caller_name, tone, elder_phone, call_hour, call_days, call_timezone, elder_assent_at'],
+        ['select', 'id, owner_user_id, cared_for_name, caller_name, tone, elder_phone, call_hour, call_days, call_timezone, elder_assent_at, autonomy_escalation, autonomy_initiative'],
         ['eq', 'status', 'active'],
         ['not', 'elder_phone', 'is', null],
       ]);

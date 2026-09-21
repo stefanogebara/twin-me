@@ -128,7 +128,7 @@ export async function listActivePresencesOwnedBy(userId) {
 /** Every active presence with a phone to call, with what the schedule and the brief need. */
 export async function listCallablePresences() {
   return supabaseAdmin.from('presences')
-    .select('id, owner_user_id, cared_for_name, caller_name, tone, elder_phone, call_hour, call_days, call_timezone, elder_assent_at')
+    .select('id, owner_user_id, cared_for_name, caller_name, tone, elder_phone, call_hour, call_days, call_timezone, elder_assent_at, autonomy_escalation, autonomy_initiative')
     .eq('status', 'active')
     .not('elder_phone', 'is', null);
 }

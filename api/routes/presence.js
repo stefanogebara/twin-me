@@ -79,6 +79,7 @@ import {
 } from '../services/presenceStore.js';
 import { createLogger } from '../services/logger.js';
 import { deriveReadiness } from '../services/presenceReadiness.js';
+import { ESCALATION, INITIATIVE } from '../services/presenceAutonomy.js';
 
 const log = createLogger('Presence');
 const router = express.Router();
@@ -90,6 +91,29 @@ const SCHEDULE_FIELDS = ['elder_phone', 'call_hour', 'call_days', 'call_timezone
 const E164_RE = /^\+[1-9][0-9]{7,14}$/;
 // The emergency contact (Phase 2, T8): a name she hears, a phone the family keeps.
 const EMERGENCY_FIELDS = ['emergency_name', 'emergency_phone'];
+const AUTONOMY_FIELDS = ['autonomy_escalation', 'autonomy_initiative'];
+
+/**
+ * The two autonomy dials. A value outside the contract is refused rather than
+ * coerced: silently storing a default would tell the family their choice was
+ * saved when the presence goes on doing something else.
+ */
+function parseAutonomyPatch(body) {
+  const patch = {};
+  if (body.autonomy_escalation !== undefined) {
+    if (!ESCALATION.includes(body.autonomy_escalation)) {
+      return { error: 'Escolha inválida para o que a família recebe depois da ligação.' };
+    }
+    patch.autonomy_escalation = body.autonomy_escalation;
+  }
+  if (body.autonomy_initiative !== undefined) {
+    if (!INITIATIVE.includes(body.autonomy_initiative)) {
+      return { error: 'Escolha inválida para o que a Presença puxa sozinha.' };
+    }
+    patch.autonomy_initiative = body.autonomy_initiative;
+  }
+  return { patch };
+}
 
 /** "+55 (11) 99999-0000" -> "+5511999990000"; null clears; anything else is invalid. */
 function parseEmergencyPatch(body) {
@@ -415,6 +439,11 @@ router.patch('/:id', authenticateUser, async (req, res) => {
       const emergency = parseEmergencyPatch(req.body);
       if (emergency.error) return res.status(400).json({ success: false, error: emergency.error });
       Object.assign(patch, emergency.patch);
+    }
+    if (AUTONOMY_FIELDS.some((field) => req.body?.[field] !== undefined)) {
+      const autonomy = parseAutonomyPatch(req.body);
+      if (autonomy.error) return res.status(400).json({ success: false, error: autonomy.error });
+      Object.assign(patch, autonomy.patch);
     }
     if (Object.keys(patch).length === 0) {
       return res.status(400).json({ success: false, error: 'No patchable fields provided' });

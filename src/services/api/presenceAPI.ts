@@ -36,10 +36,18 @@ export interface PresenceRecord {
   /** Whom the presence says it will tell "agora" when she speaks of pain, a fall, or asks for help. */
   emergency_name?: string | null;
   emergency_phone?: string | null;
+  /** Autonomy calibration: how much of a call the family hears, and whether the
+   *  presence opens a worry it remembers or waits for her (2026-09-21). */
+  autonomy_escalation?: PresenceEscalation;
+  autonomy_initiative?: PresenceInitiative;
 }
 
+/** Mirrors ESCALATION / INITIATIVE in api/services/presenceAutonomy.js. */
+export type PresenceEscalation = 'everything' | 'when_it_matters' | 'only_urgent';
+export type PresenceInitiative = 'ask' | 'wait';
+
 /** The fields the family may change on PATCH; the server validates each. */
-export type PresencePatch = Partial<Pick<PresenceRecord, 'cared_for_name' | 'relationship' | 'caller_name' | 'tone' | 'status' | 'elder_phone' | 'call_hour' | 'call_days' | 'call_timezone' | 'emergency_name' | 'emergency_phone'>>;
+export type PresencePatch = Partial<Pick<PresenceRecord, 'cared_for_name' | 'relationship' | 'caller_name' | 'tone' | 'status' | 'elder_phone' | 'call_hour' | 'call_days' | 'call_timezone' | 'emergency_name' | 'emergency_phone' | 'autonomy_escalation' | 'autonomy_initiative'>>;
 
 export interface PresenceCall {
   id: string;

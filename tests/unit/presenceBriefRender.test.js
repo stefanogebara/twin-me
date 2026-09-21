@@ -184,3 +184,27 @@ describe('facts carry the day she said them', () => {
     expect(prompt).toContain('Falamos do passeio dela. (19 de setembro)');
   });
 });
+
+/**
+ * Autonomy calibration reaches the call: whether the presence opens a worry it
+ * remembers, or waits for her. The rule about death and loss holds either way.
+ */
+describe('the family sets how much the presence does on its own', () => {
+  it('waits for her by default', () => {
+    const { prompt } = renderCallBrief({ presence });
+    expect(prompt).toMatch(/Do not raise it\. Wait for her to bring it up/);
+  });
+
+  it('may ask once when the family chose that', () => {
+    const { prompt } = renderCallBrief({ presence: { ...presence, autonomy_initiative: 'ask' } });
+    expect(prompt).toMatch(/you may ask ONCE, gently/);
+    expect(prompt).not.toMatch(/Do not raise it/);
+  });
+
+  it('never turns a death into a question, whichever the family chose', () => {
+    for (const autonomy_initiative of ['ask', 'wait']) {
+      const { prompt } = renderCallBrief({ presence: { ...presence, autonomy_initiative } });
+      expect(prompt).toMatch(/Never ask about someone who has died/);
+    }
+  });
+});
