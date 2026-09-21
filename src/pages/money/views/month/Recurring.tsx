@@ -42,7 +42,9 @@ export default function Recurring({ m }: { m: MoneyAccount }) {
                           <span className="mv-item-text">
                             <span className="mv-item-title">{name}</span>
                             <span className="mv-item-sub">
-                              {[t(r.is_subscription ? 'Subscription' : 'Recurring'), CADENCE[r.cadence] ? t(CADENCE[r.cadence]) : r.cadence, r.next_expected ? t('next around {day}', { day: shortDay(r.next_expected, locale) }) : ''].filter(Boolean).join(', ')}
+                              {/* Six rows that each began "Recurring, every month" said the cadence
+                                  six times; the date is what differs (2026-09-21). */}
+                              {[CADENCE[r.cadence] ? t(CADENCE[r.cadence]) : r.cadence, r.next_expected ? t('next around {day}', { day: shortDay(r.next_expected, locale) }) : ''].filter(Boolean).join(', ')}
                             </span>
                           </span>
                           <span className="mv-item-end">{euro(r.typical_amount)}<Chevron /></span>

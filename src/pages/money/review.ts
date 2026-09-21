@@ -13,6 +13,9 @@ export function reviewRows(ledger: MoneyTransaction[], now = new Date(), { days 
   const since = now.getTime() - days * 86400000;
   return ledger
     .filter((t) => Number(t.amount) < 0 && !t.verdict && (!t.currency || t.currency === 'EUR') && !t.is_recurring)
+    /* "Was it worth it?" about a payment the bank sent without a name cannot be answered:
+       two of the five rows were "a payment without a name" (2026-09-21). */
+    .filter((t) => { const n = String(t.merchant_name || t.merchant_raw || '').trim(); return n !== '' && !/^unknown$/i.test(n); })
     .filter((t) => { const at = new Date(t.occurred_at).getTime(); return Number.isFinite(at) && at >= since && at <= now.getTime() + 60000; })
     .sort((a, b) => Math.abs(Number(b.amount)) - Math.abs(Number(a.amount)))
     .slice(0, max);

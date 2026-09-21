@@ -393,7 +393,8 @@ export function buildFigure(request, ctx) {
 
   if (kind === 'history') {
     const rows = merchantRows(ctx, request.merchant).sort((a, b) => at(a) - at(b));
-    if (rows.length < 2) return null;
+    /* Two bars beside the same two numbers as rows is the same data twice (2026-09-21). */
+    if (rows.length < 3) return null;
     const shown = rows.slice(-MAX_HISTORY_POINTS);
     const name = ctx.placeByKey.get(shown[0].merchant_key)?.name || nameOf(shown[0]);
     const points = shown.map((t) => ({ label: dayMonth(t.occurred_at, ctx.language), value: round2(abs(t)) }));

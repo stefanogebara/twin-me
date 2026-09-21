@@ -814,6 +814,7 @@ export const ES_MONEY: Record<string, string> = {
   "Money, your account": "Dinero, tu cuenta",
   "The days ahead.": "Los d\u00edas que vienen.",
   "What the diary and the standing charges hold for the rest of the month.": "Lo que la agenda y los cargos fijos guardan para el resto del mes.",
+  "Likely {amount}, up to {high}": "Probablemente {amount}, hasta {high}",
   "{name} lands {when}, {amount}, already off today's number.": "{name} se cobra {when}, {amount}, ya descontado del número de hoy.",
   "{names} land {when}, {amount} together, already off today's number.": "{names} se cobran {when}, {amount} en total, ya descontados del número de hoy.",
   "today and tomorrow": "hoy y mañana",

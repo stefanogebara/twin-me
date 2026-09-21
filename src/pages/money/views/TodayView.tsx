@@ -56,7 +56,9 @@ export default function TodayView({ m }: { m: MoneyAccount }) {
                 {today && today.amount !== null ? (
                   <>
                     <button type="button" className="mv-day-figure" aria-expanded={dayOpen} onClick={() => setDayOpen((o) => !o)}>
-                      <span className="mv-day-value">{euro(today.over ? Math.abs(today.free ?? 0) : today.amount)}</span>
+                      {/* Over budget, the figure is a hole, not a balance: "74,18 EUR" over a
+                          grey "Over your budget" read as money to spend (2026-09-21). */}
+                      <span className="mv-day-value">{today.over ? `\u2212${euro(Math.abs(today.free ?? 0))}` : euro(today.amount)}</span>
                       <span className="mv-quiet">{today.over ? t('Over your budget') : t("Today's estimate")}</span>
                     </button>
                     <h1 className="mv-sr">{today.over ? t('Nothing today.') : t('{amount} today.', { amount: euro(today.amount) })}</h1>
@@ -139,22 +141,20 @@ export default function TodayView({ m }: { m: MoneyAccount }) {
                   <span>
                     {(() => {
                       const likely = { amount: euro(Math.max(forecast.projected_p50, forecast.spent + forecast.committed)), high: euro(forecast.projected_p90), day: ordinalDay(t, last), income: euro(incomeEdge || 0) };
-                      if (incomeEdge) return projectable ? t('Likely {amount}, up to {high}; {income} comes in', likely) : t('Likely {amount}; {income} comes in', likely);
+                      /* Three figures in one label ("Likely 1923,23, up to 2191,73; 1750,00 comes in")
+                         is a line nobody parses; what comes in is already in the day's own line. */
+                      if (incomeEdge) return projectable ? t('Likely {amount}, up to {high}', likely) : t('Likely {amount}', likely);
                       return projectable ? t('Likely {amount} by the {day}, up to {high}', likely) : t('Likely {amount} by the {day}', likely);
                     })()}
                   </span>
                 </div>
-                {/* Tomorrow in one grey line; the thirty-day strip with its two drawings said
-                    what Month says and made Today 383 words (2026-09-21). */}
-                {forecast.tomorrow && forecast.tomorrow.high > 0 ? <p className="mv-sub">{t('Tomorrow: usually about {value}, up to {high}.', { value: euro(forecast.tomorrow.value), high: euro(forecast.tomorrow.high) })}</p> : null}
                 {ahead.length ? (
                   <>
                   <p className="mv-sub mv-ahead-head">{t('Still to come this month')}</p>
                   <ul className="mv-list mv-ahead" aria-label={t('Still to come this month')}>
                     {ahead.map((r) => (
-                      <li key={`${r.kind}-${r.on}-${r.name}`} className="mv-item mv-item--tight">
+                      <li key={`${r.kind}-${r.on}-${r.name}`} className="mv-item mv-item--tight mv-ahead-row">
                         <span className="mv-ahead-day">{shortDay(r.on, locale)}</span>
-                        <KindTile kind={r.kind === 'income' ? 'income' : r.kind === 'stated' ? 'commitment' : r.kind === 'diary' ? 'diary' : 'software'} label={r.name} />
                         <span className="mv-item-text"><span className="mv-item-title">{r.name}</span><span className="mv-item-sub">{r.why}</span></span>
                         <span className={`mv-item-end mv-figures${r.amount > 0 ? ' mv-ahead-in' : ''}`}>{r.amount > 0 ? '+' : ''}{euro(Math.abs(r.amount))}</span>
                       </li>
