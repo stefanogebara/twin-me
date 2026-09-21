@@ -529,6 +529,7 @@ export const ES_MONEY: Record<string, string> = {
   "You sent {name} {amount} {n} times. Who is that?": "Le enviaste {amount} a {name} {n} veces. \u00bfQui\u00e9n es?",
   "What kind of place is {name}? You have paid there {n} times, {amount} in all.": "\u00bfQu\u00e9 tipo de sitio es {name}? Has pagado all\u00ed {n} veces, {amount} en total.",
   "{name} came every {gap} days and has not for {days}. Did you cancel it?": "{name} ven\u00eda cada {gap} d\u00edas y lleva {days} sin venir. \u00bfLo cancelaste?",
+  "{name} gets about {amount} from you around the {day}, {n} months running. It looks like your share of the rent. Is it?": "{name} recibe de ti unos {amount} sobre el {day}, {n} meses seguidos. Parece tu parte del alquiler. \u00bfLo es?",
   "{name} takes about {amount} around the {day}, {n} months running. Is this your rent?": "{name} se lleva unos {amount} sobre el {day}, {n} meses seguidos. \u00bfEs tu alquiler?",
   "You paid {amount} at {name} {day}, and {who} sent you {each} each. Was that split?": "Pagaste {amount} en {name} {day}, y {who} te envi\u00f3 {each} cada uno. \u00bfFue a medias?",
   "Read a moment ago; using what is stored.": "Le\u00eddo hace un momento; usando lo guardado.",
