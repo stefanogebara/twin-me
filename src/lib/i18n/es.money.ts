@@ -814,4 +814,13 @@ export const ES_MONEY: Record<string, string> = {
   "Ninety seconds.": "Noventa segundos.",
   "The payment that weighed most this week. Worth it, or not you?": "El pago que más pesó esta semana. ¿Valió la pena, o no fuiste tú?",
   "The {n} payments that weighed most this week. Worth it, or not you?": "Los {n} pagos que más pesaron esta semana. ¿Valieron la pena, o no fuiste tú?",
+  "WhatsApp": "WhatsApp",
+  "Linked.": "Enlazado.",
+  "It answers when you write. Nothing is sent unless you write first.": "Responde cuando escribes. No se envía nada si no escribes tú.",
+  "Nothing is sent unless you write first. Remove the number here to disconnect it.": "No se envía nada si no escribes tú. Quita el número aquí para desconectarlo.",
+  "Your WhatsApp number": "Tu número de WhatsApp",
+  "Send a code": "Enviar un código",
+  "The code sent to your WhatsApp": "El código enviado a tu WhatsApp",
+  "Link": "Enlazar",
+  "Use another number": "Usar otro número",
 };

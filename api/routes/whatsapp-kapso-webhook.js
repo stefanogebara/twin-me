@@ -65,8 +65,8 @@ function verifyKapsoSignature(signature, rawBody) {
 // Parse incoming message from either Kapso or Meta native format into the
 // normalized shape the inbound pipeline expects.
 // ====================================================================
-/** Meta's `context.id`: the message this one replies to (a Presence digest, for one). */
-const quoted = (msg) => ({ messageId: msg?.context?.id || null });
+/** Meta's `context`: the message this one replies to, and whether WhatsApp marks it forwarded. */
+const quoted = (msg) => ({ messageId: msg?.context?.id || null, forwarded: Boolean(msg?.context?.forwarded || msg?.context?.frequently_forwarded) });
 
 function parseIncomingMessage(body) {
   // Kapso v2 text
@@ -127,6 +127,7 @@ function parseIncomingMessage(body) {
     return {
       phone: msg.from,
       text: alias ? `conecta ${alias}` : (reply?.title || null),
+      replyId: reply?.id || null,
       messageId: msg.id,
       contactName: msg.username || null,
       context: quoted(msg),

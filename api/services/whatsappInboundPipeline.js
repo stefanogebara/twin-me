@@ -23,8 +23,9 @@
  *     image?:       { id, mimeType, caption },     // id = media id OR direct URL
  *     messageId?:   string,
  *     contactName?: string,
- *     context?:     { messageId: string | null },   // Meta `context.id`: the message this one replies to
+ *     context?:     { messageId: string | null, forwarded?: boolean },   // messageId = the message this one replies to (Meta `context.id`); forwarded = WhatsApp's forwarded mark
  *     format?:      string,         // for logging/debugging only
+ *     replyId?:     string,         // the id of a tapped reply button or list row
  *   }
  *
  * `send(phone, text)` is injected so replies go back out the SAME provider the
@@ -58,6 +59,8 @@ import { handleFileUploadToDrive } from './transactions/whatsappFileIngest.js';
 import { sendWhatsAppCtaButton, sendWhatsAppList, deriveWaProvider } from './whatsappService.js';
 import { classifyConnectIntent, buildConnectLink, classifyDisconnectIntent, classifyConnectionStatusIntent, disconnectPlatform, listConnectedPlatforms, buildConnectMenuRows } from './connectLinkService.js';
 import { handleFamilyReply } from './presenceRelay.js';
+import { isMoneyChannelUser, channelSay } from './money/channel.js';
+import { handleMoneyInbound } from './money/channelInbound.js';
 
 const log = createLogger('WhatsAppInbound');
 
@@ -226,6 +229,18 @@ export async function processInboundWhatsApp(parsed, { send, provider }) {
       await send(phone, presenceReply);
       log.info('Presence note from WhatsApp', { userId });
       return { handled: true, kind: 'presence_note', userId };
+    }
+  }
+
+  // 2c. The money twin's beta: answered by the ledger, and by nothing below. A family note
+  // (2b) still wins; a statement or a photo never reaches the legacy branches for these people.
+  if (isMoneyChannelUser(userId)) {
+    try {
+      return await handleMoneyInbound(parsed, { userId, send });
+    } catch (err) {
+      log.error('money channel failed', { userId, error: err.message });
+      await send(phone, channelSay(null, 'Something went wrong on my side. Ask again in a moment.')).catch(() => {});
+      return { handled: false, reason: 'money_channel_error', userId };
     }
   }
 

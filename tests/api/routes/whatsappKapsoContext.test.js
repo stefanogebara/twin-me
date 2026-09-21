@@ -43,7 +43,7 @@ describe('whatsapp kapso webhook — the quoted message', () => {
 
     expect(res.status).toBe(200);
     expect(processInboundWhatsApp).toHaveBeenCalledWith(
-      expect.objectContaining({ phone: '5511999990000', text: 'Diga que eu vou domingo.', messageId: 'wamid.r1', context: { messageId: 'wamid.t1' } }),
+      expect.objectContaining({ phone: '5511999990000', text: 'Diga que eu vou domingo.', messageId: 'wamid.r1', context: { messageId: 'wamid.t1', forwarded: false } }),
       expect.anything(),
     );
   });
@@ -62,5 +62,18 @@ describe('whatsapp kapso webhook — the quoted message', () => {
     await post(raw);
 
     expect(processInboundWhatsApp.mock.calls[0][0]).toMatchObject({ text: 'nota: comprei o remédio', context: { messageId: 'wamid.t2' } });
+  });
+
+  it('passes the id of a tapped reply button', async () => {
+    const raw = JSON.stringify({ message: { id: 'wamid.b1', from: '34600000000', type: 'interactive', interactive: { type: 'button_reply', button_reply: { id: 'mo:11111111-1111-4111-8111-111111111111', title: '1. Not mine: Glovo,' } }, kapso: { direction: 'inbound' } } });
+    const res = await post(raw);
+    expect(res.status).toBe(200);
+    expect(processInboundWhatsApp).toHaveBeenCalledWith(expect.objectContaining({ replyId: 'mo:11111111-1111-4111-8111-111111111111', text: '1. Not mine: Glovo,' }), expect.anything());
+  });
+
+  it('says when WhatsApp marks a message as forwarded', async () => {
+    const raw = JSON.stringify({ message: { id: 'wamid.f1', from: '34600000000', type: 'text', text: { body: 'Your order shipped' }, context: { forwarded: true }, kapso: { direction: 'inbound' } } });
+    await post(raw);
+    expect(processInboundWhatsApp).toHaveBeenCalledWith(expect.objectContaining({ context: { messageId: null, forwarded: true } }), expect.anything());
   });
 });

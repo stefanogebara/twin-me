@@ -96,17 +96,28 @@ Key money files (`api/services/money/`): `ledger.js` (reconcile), `ingestion.js`
 `figureScoreStore.js` (the loop), `recurring.js`, `spending.js`, `narrative.js` (a bank
 sentence to a name), `places.js` + `home.js` (place lookup), `calendar.js` + `ics.js` +
 `covariates.js`, `chat.js`, `feeds/enableBanking.js`, `statements/importer.js`,
-`inbox.js` (receipts), `twinBridge.js` (what the twin is told). Routes: `routes/money.js`,
-`routes/cron-money-pull.js` (hourly; bank read yields to the loop at 30 s).
+`inbox.js` (receipts), `twinBridge.js` (what the twin is told). WhatsApp channel:
+`channel.js` (pure: who is allowed on, reply-to-message rendering, offer labels),
+`channelInbound.js` (`handleMoneyInbound`, the one effectful entry point, deps-injected),
+`channelStore.js` (its database reads and writes), `attachmentDeps.js` (dependencies for
+reading an attachment into the ledger, shared byte for byte with the page's own
+POST /chat/attach). Routes: `routes/money.js`, `routes/cron-money-pull.js` (hourly;
+bank read yields to the loop at 30 s).
 Repair and evaluation scripts: `scripts/money/` (`merge-duplicate-payments.mjs`,
 `merge-duplicate-accounts.mjs`, `rescore-figures.mjs`, `evaluate-day-forecast.mjs`),
 `scripts/eval/page-eval.mjs`.
 
 Tables: `money_transactions`, `money_sightings`, `money_accounts`, `money_recurring`,
 `money_facts`, `money_figure_scores`, `money_predictions`, `money_readings`,
-`money_places`, `money_chat_turns`, `money_feed_accesses`, `money_ingestion_revisions`.
-RLS is on for all of them (a `DO ... EXECUTE` block, so static scans undercount);
-`anon` is revoked on every money table.
+`money_places`, `money_chat_turns`, `money_feed_accesses`, `money_ingestion_revisions`,
+`money_channel_inbound` (dedupes a provider retry), `money_channel_offers` (a reply's
+tap targets), `money_facts_retired` (a forgotten fact, kept and dated). RLS is on for
+all of them (a `DO ... EXECUTE` block, so static scans undercount); `anon` is revoked on
+every money table.
+
+The WhatsApp channel is gated by `MONEY_WHATSAPP_USER_IDS` (comma-separated
+`public.users.id`; unset means nobody is on it) on top of the same beta allowlist the
+rest of money uses.
 
 ### The twin — what still exists (secondary)
 

@@ -583,6 +583,56 @@ export async function sendWhatsAppList(recipientPhone, { body, buttonText, secti
 }
 
 /**
+ * Send up to three reply buttons (Meta "button" interactive via Kapso). A tap comes back as an
+ * interactive `button_reply` carrying the button's id. Any other provider, or a refused send,
+ * gets the body alone: the body already numbers the choices, and a bare number is read as a tap.
+ */
+export async function sendWhatsAppButtons(recipientPhone, { body, buttons } = {}) {
+  if (process.env.TWINME_DISABLE_OUTBOUND_SEND === 'true') {
+    return { success: true, suppressed: true };
+  }
+  const textFallback = () => sendWhatsAppMessage(recipientPhone, String(body || ''));
+
+  if (!USE_KAPSO) return textFallback();
+  const apiKey = process.env.KAPSO_API_KEY?.trim();
+  const phoneNumberId = process.env.KAPSO_PHONE_NUMBER_ID || process.env.TWINME_WHATSAPP_PHONE_NUMBER_ID;
+  if (!apiKey || !phoneNumberId || !(buttons || []).length) return textFallback();
+
+  try {
+    const apiUrl = `https://api.kapso.ai/meta/whatsapp/v24.0/${phoneNumberId}/messages`;
+    const interactive = {
+      type: 'button',
+      body: { text: String(body).slice(0, 1024) },
+      action: {
+        // Meta allows three reply buttons, a 20-character title and a 256-character id.
+        buttons: buttons.slice(0, 3).map((b) => ({ type: 'reply', reply: { id: String(b.id).slice(0, 256), title: String(b.title).slice(0, 20) } })),
+      },
+    };
+    const payload = { messaging_product: 'whatsapp', to: recipientPhone, type: 'interactive', interactive };
+    const { data, status } = await axios.post(apiUrl, payload, {
+      headers: { 'X-API-Key': apiKey, 'Content-Type': 'application/json' },
+      timeout: 15000,
+    });
+    logOutbound({
+      recipient: recipientPhone,
+      recipient_input: recipientPhone,
+      text_preview: `[buttons:${interactive.action.buttons.length}]`,
+      text_len: 0,
+      provider: 'kapso',
+      success: true,
+      message_id: data?.messages?.[0]?.id || null,
+      http_status: status,
+      raw_response: data || null,
+    });
+    return { success: true, messageId: data?.messages?.[0]?.id, provider: 'kapso', interactive: true };
+  } catch (err) {
+    const errMsg = err.response?.data?.error?.message || err.message;
+    log.warn('Kapso buttons send failed, falling back to text', { error: errMsg, status: err.response?.status });
+    return textFallback();
+  }
+}
+
+/**
  * Send a proactive insight via WhatsApp (plain text formatting).
  */
 function formatMeetingPrepMessage(insight) {

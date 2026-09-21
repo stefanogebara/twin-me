@@ -31,6 +31,10 @@ vi.mock('../../../api/services/whatsappService.js', () => ({
   downloadWhatsAppMedia: vi.fn(),
   // Provider-affinity exports (2026-07-13): the pipeline imports these.
   deriveWaProvider: vi.fn(() => 'kapso'),
+  // Money-on-WhatsApp exports: channelInbound.js (pulled in through
+  // whatsappInboundPipeline.js) imports these too.
+  sendWhatsAppCtaButton: vi.fn(),
+  sendWhatsAppButtons: vi.fn(),
 }));
 
 const captureMock = vi.fn();

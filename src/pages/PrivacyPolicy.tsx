@@ -105,6 +105,7 @@ const PrivacyPolicy = () => {
               <li><strong>Bank notifications you forward</strong> from your phone, as the text your bank wrote</li>
               <li><strong>A calendar link you paste,</strong> from Canvas, Blackboard or any calendar that gives you a private .ics address. We read it once a day: event titles, dates and times, and where they are. We keep, for ninety days back, only the events that name a trip, an exam or something due, and the month ahead; nothing is ever written to the calendar, and the link is removed the moment you remove it.</li>
               <li><strong>Emails sent to your receipts address.</strong> Money gives you an address of your own ending in in.twinme.me. Anything sent there is read as a payment: a receipt or invoice you forward, or the alert your bank sends when you point its alerts at that address. We keep the amount, the shop, the date, the line items and the order reference, and the message itself for as long as your account exists. Receipts from shops are read by a language model that may only return numbers present in the email; your bank's alerts are read by fixed rules. Nothing is sent to that address unless you or your bank send it, and we never read any other mailbox for this.</li>
+              <li><strong>WhatsApp.</strong> If you link WhatsApp, your phone number, the messages you send to TwinMe there and the files you attach to them. Attached files are read and dropped; what they said is kept.</li>
             </ul>
             <p>
               To place a purchase on a map, we send the merchant name and city — never the amount,
@@ -230,7 +231,8 @@ const PrivacyPolicy = () => {
               </li>
               <li>
                 <strong>WhatsApp providers</strong> - Carry messages between you and your twin on
-                WhatsApp, if you connect it.
+                WhatsApp, if you connect it. For the money twin on WhatsApp these are Kapso and
+                Meta Platforms (WhatsApp Business).
               </li>
             </ul>
           </section>
@@ -268,6 +270,10 @@ const PrivacyPolicy = () => {
               <li>
                 <strong>Edit enriched data:</strong> Correct or remove any
                 information discovered during email enrichment.
+              </li>
+              <li>
+                <strong>WhatsApp:</strong> Nothing is sent unless you write first. Remove the
+                number on the You page to disconnect it.
               </li>
             </ul>
           </section>
