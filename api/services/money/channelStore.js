@@ -27,6 +27,16 @@ export async function markReplied(userId, now = new Date()) {
   if (id) await supabaseAdmin.from('money_channel_sends').update({ replied_at: now.toISOString() }).eq('id', id);
 }
 
+/** When the person agreed to the morning line and to answers on WhatsApp. Kept once. */
+export async function recordOptIn(userId, now = new Date()) {
+  const { data } = await supabaseAdmin.from('messaging_channels').select('id, preferences').eq('user_id', userId).eq('channel', 'whatsapp').limit(1);
+  const row = data?.[0];
+  if (!row || (row.preferences || {}).money_opt_in_at) return false;
+  const { error } = await supabaseAdmin.from('messaging_channels').update({ preferences: { ...(row.preferences || {}), money_opt_in_at: now.toISOString() } }).eq('id', row.id);
+  if (error) throw new Error(error.message);
+  return true;
+}
+
 export async function setMorningMuted(userId, muted) {
   const { data } = await supabaseAdmin.from('messaging_channels').select('id, preferences').eq('user_id', userId).eq('channel', 'whatsapp').limit(1);
   const row = data?.[0];

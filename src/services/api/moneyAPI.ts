@@ -172,7 +172,7 @@ async function completeLedger(since?: string): Promise<MoneyTransaction[]> {
 export type MoneyPage = {
   forecast: MoneyForecast | null; today: MoneyToday | null; ledger: MoneyTransaction[] | null; recurring: MoneyRecurring[] | null;
   accounts: MoneyAccount[] | null; months: MoneyMonth[] | null; readings: MoneyReading[] | null; categories: MoneyCategories | null;
-  usage: MoneyUsage | null; capabilities: { bank: boolean; capture: boolean } | null; inbox: { address: string; receiving: boolean } | null;
+  usage: MoneyUsage | null; capabilities: { bank: boolean; capture: boolean; whatsapp?: boolean } | null; inbox: { address: string; receiving: boolean } | null;
   facts: MoneyFact[] | null;
   /* Which sources saw each payment, by transaction id: the reconciliation, visible. */
   seen: Record<string, string[]> | null;
@@ -216,7 +216,7 @@ export const moneyAPI = {
    * Raw fetch: authFetch always sets a JSON content type, and multipart needs the
    * browser to write its own boundary.
    */
-  capabilities: () => authFetch('/money/capabilities').then((r) => json<{ bank: boolean; capture: boolean }>(r)),
+  capabilities: () => authFetch('/money/capabilities').then((r) => json<{ bank: boolean; capture: boolean; whatsapp?: boolean }>(r)),
   statementAccounts: () => authFetch('/money/statement/accounts').then((r) => json<MoneyStatementAccount[]>(r)),
   createStatementAccount: (name: string) => authFetch('/money/statement/accounts', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name }) }).then((r) => json<MoneyStatementAccount>(r)),
   importStatement: async (file: File, accountId: string) => {

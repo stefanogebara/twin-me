@@ -32,6 +32,7 @@
  * POST /api/money/bank/pull                pull the feed now (PSD2: four unattended pulls a day)
  * POST /api/money/chat { message, history? } a question or a correction, answered with figures and receipts
  * POST /api/money/chat/act { action }      run an action the person confirmed from a chat reply
+ * POST /api/money/channel/opt-in           WhatsApp linked from the You page: the morning-line consent, recorded
  *
  * Spec: .claude/plans/2026-09-07-money-twin/README.md
  */
@@ -54,6 +55,8 @@ import { createLogger } from '../services/logger.js';
 import { captureFromBody } from '../services/money/captureParser.js';
 import { moneyCapabilities } from '../services/money/betaCapabilities.js';
 import { holdUndatedCapture } from '../services/money/legacyCapture.js';
+import { recordOptIn } from '../services/money/channelStore.js';
+import { isMoneyChannelUser } from '../services/money/channel.js';
 import { ingestSighting, ingestSightings, listTransactions, transactionPage, sightingsFor, refreshRecurring, forecast, setVerdict, userForCaptureKey, saveBankAccounts, listBankAccounts, pullBankFeed, refreshReadings, listReadings, setReadingVerdict, months, feedBudget, categorySpend, listPlaces, setPlaceCategory, enrichPlaces, subscriptionUsage, questionsFor, answerQuestion, skipQuestion, listFacts, deleteFact, recordCallbackFailure, listChatTurns, saveChatTurn, learn, userLanguage, patternsFor } from '../services/money/store.js';
 import { parseDelimited, parseWorkbook, toSightings } from '../services/money/statements/importer.js';
 import { statementAccounts, createStatementAccount, ownedStatementAccount, checkStatementEvidence, StatementInputError } from '../services/money/statements/accounts.js';
@@ -689,6 +692,13 @@ router.post('/chat/act', validate({ body: S.CHAT_ACT }), async (req, res) => {
     log.error('chat act failed', { error: error.message });
     res.status(500).json({ success: false, error: 'Internal server error' });
   }
+});
+
+/* The person linked WhatsApp from the You page, under the sentence that says what it will send. */
+router.post('/channel/opt-in', async (req, res) => {
+  if (!isMoneyChannelUser(req.user.id)) return res.status(403).json({ success: false, error: 'Not available on this account.' });
+  try { await recordOptIn(req.user.id); res.json({ success: true }); }
+  catch (error) { log.error('channel opt-in failed', { error: error.message }); res.status(500).json({ success: false, error: 'Internal server error' }); }
 });
 
 /**

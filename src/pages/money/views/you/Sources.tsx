@@ -14,6 +14,7 @@ import Mark from '../../Mark';
 import { MARK_FOR, hasMark } from '../../markPaths';
 import { markFor } from '../../carvedKinds';
 import PhoneSource from './PhoneSource';
+import WhatsAppSource from './WhatsAppSource';
 import type { MoneyAccount } from '../../useMoneyAccount';
 
 export default function Sources({ m }: { m: MoneyAccount }) {
@@ -137,6 +138,7 @@ export default function Sources({ m }: { m: MoneyAccount }) {
                 </li>
               ) : null}
               {capabilities.capture && <PhoneSource m={m} />}
+              {capabilities.whatsapp ? <WhatsAppSource m={m} /> : null}
             </ul>
           </section>
   );

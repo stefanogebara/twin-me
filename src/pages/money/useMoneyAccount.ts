@@ -22,7 +22,7 @@ import { CHANGE_BOUNDARY, readingRank, readingStake } from './readingOrder';
 type Snapshot = {
   userId: string | null; revision: number; at: number; forecast: MoneyForecast | null; today: MoneyToday | null; ledger: MoneyTransaction[]; recurring: MoneyRecurring[];
   accounts: MoneyBankAccount[]; months: MoneyMonth[]; readings: MoneyReading[]; categories: MoneyCategories | null; usage: MoneyUsage | null; unread: boolean;
-  capabilities: { bank: boolean; capture: boolean }; inbox: { address: string; receiving: boolean } | null; facts: MoneyFact[] | null; seen: Record<string, string[]>;
+  capabilities: { bank: boolean; capture: boolean; whatsapp?: boolean }; inbox: { address: string; receiving: boolean } | null; facts: MoneyFact[] | null; seen: Record<string, string[]>;
 };
 let SNAPSHOT: Snapshot | null = null;
 const SNAPSHOT_FRESH_MS = 30000;
