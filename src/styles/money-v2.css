@@ -139,6 +139,8 @@
 .mv-section { margin-top: var(--section); }
 .mv-head { display: flex; align-items: center; justify-content: space-between; gap: 8px 16px; flex-wrap: wrap; }
 .mv-list { margin-top: 40px; border-top: 1px solid var(--ink); }
+/* What the sources gave, above the sources themselves (2026-09-21). */
+.mv .mv-gave { margin-top: 24px; }
 .mv-list > li { border-bottom: 1px solid var(--rule); }
 .mv-sublist > li { border-top: 1px solid var(--rule); }
 
