@@ -22,6 +22,7 @@ import { MONEY_NAV } from './navLinks';
 import { merchantLabel } from './words';
 import { daysAhead } from './planAhead';
 import { classSplit } from './classDays';
+import TermStrip from './views/plan/TermStrip';
 import { moneyAPI, euro, shortDay, type MoneyPlan, type MoneyPlanCell, type MoneyPlanItem } from '../../services/api/moneyAPI';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { useT, useLocale } from '@/lib/i18n';
@@ -203,6 +204,9 @@ export default function PlanPage() {
               })}
             </div>
           ) : failed ? null : <Wait inline state={orbFor('page')} line="Reading the plan." />}
+
+          {/* The term either side of this week, from the diary's own day counts (2026-09-21). */}
+          {plan?.term && plan.term.weeks.length ? <TermStrip term={plan.term} t={t} locale={locale} /> : null}
 
           {/* A day with class against a day without, from the squares themselves (2026-09-21). */}
           {plan && classSplit(plan.cells) ? (() => {

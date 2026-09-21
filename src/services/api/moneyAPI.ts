@@ -47,10 +47,16 @@ export type MoneyPlanCell = {
   events?: number;
   note: { id: string | null; text: string } | null;
 };
+/** One week of the term: how many events the diary held, or null where nothing was read. */
+export type MoneyTermWeek = { start: string; end: string; offset: number; current: boolean; past: boolean; known: boolean; events: number | null };
+export type MoneyTerm = {
+  weeks: MoneyTermWeek[]; busiest: MoneyTermWeek | null; quietest: MoneyTermWeek | null;
+  this_week: MoneyTermWeek | null; next_week: MoneyTermWeek | null; read_from: string; read_to: string;
+};
 export type MoneyPlan = {
   month: string; days_in_month: number; first_weekday: number; today: string | null; cells: MoneyPlanCell[];
   totals: { spent_to_day: number; expected_rest: number; income_ahead: number; days_ahead: number };
-  peak: { day: string; amount: number } | null; line: string;
+  peak: { day: string; amount: number } | null; line: string; term?: MoneyTerm | null;
 };
 export type MoneyMonth = {
   month: string; spent: number; spent_to_day?: number; received: number; lines: number; days_covered: number; days_in_month: number; complete: boolean;

@@ -421,3 +421,61 @@ describe('the week ahead with a calendar', () => {
     expect(r.ahead.map((e) => `${e.start.slice(0, 10)} ${e.title}`)).toEqual(['2026-09-22 Class', '2026-09-25 Trip: Bilbao with two friends']);
   });
 });
+
+describe('the term as weeks', () => {
+  const { termWeeks } = cal;
+  /* Monday 2026-08-24 through Sunday 2026-10-25: nine weeks around the week of 21 September. */
+  const now = new Date('2026-09-23T10:00:00Z');
+  const daysFrom = (first, last, per) => {
+    const out = {};
+    for (let t = Date.parse(`${first}T12:00:00Z`); t <= Date.parse(`${last}T12:00:00Z`); t += 86400000) {
+      const day = new Date(t).toISOString().slice(0, 10);
+      out[day] = per(day);
+    }
+    return out;
+  };
+  const facts = (days, learnedAt = '2026-09-23T06:00:00Z') => ([
+    { kind: META_KIND, subject: 'meta', value: JSON.stringify({ learned_at: learnedAt, snapshot: [], past: [], days }) },
+  ]);
+
+  it('counts one week a bar and marks the week we are in', () => {
+    /* Two events every Tuesday, nothing else. */
+    const days = daysFrom('2026-06-25', '2026-10-24', (d) => (new Date(`${d}T12:00:00Z`).getUTCDay() === 2 ? 2 : 0));
+    const term = termWeeks(facts(days), { now });
+    expect(term.weeks).toHaveLength(9);
+    expect(term.weeks.every((w) => w.known)).toBe(true);
+    expect(term.weeks.map((w) => w.events)).toEqual([2, 2, 2, 2, 2, 2, 2, 2, 2]);
+    /* Five weeks behind, this one, three ahead: the read reaches a month out, no further. */
+    expect(term.weeks[0].start).toBe('2026-08-17');
+    const current = term.weeks.find((w) => w.current);
+    expect(current.start).toBe('2026-09-21');
+    expect(current.end).toBe('2026-09-27');
+    expect(term.this_week.start).toBe('2026-09-21');
+    expect(term.next_week.start).toBe('2026-09-28');
+  });
+
+  it('leaves a week nothing was read for unknown rather than empty', () => {
+    /* The read reached 24 October; the ninth week runs past it. */
+    const days = daysFrom('2026-09-14', '2026-10-24', () => 1);
+    const term = termWeeks(facts(days), { now });
+    const unread = term.weeks.filter((w) => !w.known).map((w) => w.start);
+    /* Every week before the first day the diary counted. */
+    expect(unread).toEqual(['2026-08-17', '2026-08-24', '2026-08-31', '2026-09-07']);
+    expect(term.weeks.filter((w) => !w.known).every((w) => w.events === null)).toBe(true);
+    expect(term.weeks.find((w) => w.start === '2026-09-14').events).toBe(7);
+  });
+
+  it('finds the busiest and the quietest week read', () => {
+    const days = daysFrom('2026-08-17', '2026-10-24', (d) => (d >= '2026-10-05' && d <= '2026-10-11' ? 0 : 1));
+    const term = termWeeks(facts(days), { now });
+    expect(term.quietest.start).toBe('2026-10-05');
+    expect(term.quietest.events).toBe(0);
+    expect(term.busiest.events).toBe(7);
+  });
+
+  it('says nothing when the diary has never been read, or barely', () => {
+    expect(termWeeks([], { now })).toBe(null);
+    /* One read of one day is not a term: it would draw every week ahead as an empty one. */
+    expect(termWeeks(facts({ '2026-09-22': 3 }), { now })).toBe(null);
+  });
+});
