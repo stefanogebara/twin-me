@@ -45,6 +45,11 @@ import { money } from './currency.js';
 const DAY = 86400000;
 /** Below this a monthly charge is a subscription, not a roof. */
 export const RENT_FLOOR = 200;
+/* A share of the rent handed to the person who pays it: smaller than a rent, fixed, near
+   the 1st. Recurring Bizum to the same name, similar amount, month after month (idea 4,
+   built 2026-09-21). */
+export const RENT_SPLIT_FLOOR = 100;
+export const RENT_SPLIT_TOLERANCE = 0.15;
 const euro = (n) => money(Math.abs(Number(n) || 0));
 /** The 1st, not the 1th. */
 function ordinal(d) {
@@ -399,9 +404,15 @@ export function ledgerQuestions({ transactions = [], facts = [], placeOf = () =>
      over 200 EUR leaving on the same day of the month, month after month, is asked about once,
      with the payments attached, and the answer becomes the commitment the projection carries. */
   const committed = new Set(facts.filter((f) => f.kind === 'commitment').map((f) => f.subject));
+  const roleOf = new Map(facts.filter((f) => f.kind === 'person' && f.value).map((f) => [f.subject, String(f.value).toLowerCase()]));
   for (const [key, list] of byMerchant) {
-    if (committed.has(key) || known.has(key)) continue;
-    const big = list.filter((t) => abs(t) >= RENT_FLOOR);
+    if (committed.has(key)) continue;
+    /* Money to a person can be the rent, or a share of it, whoever they said the person is:
+       a flatmate who collects the rent is still asked once. A landlord already is the rent. */
+    const toPerson = list.every((t) => ['transfer', 'bizum'].includes(t.channel));
+    const byBizum = list.every((t) => t.channel === 'bizum'); // person to person: the share of a rent travels this way
+    if (known.has(key) && (!toPerson || roleOf.get(key) === 'landlord')) continue;
+    const big = list.filter((t) => abs(t) >= (byBizum ? RENT_SPLIT_FLOOR : RENT_FLOOR));
     if (big.length < 2) continue;
     const months = new Set(big.map((t) => monthIn(t.occurred_at)));
     if (months.size < 2) continue;
@@ -410,14 +421,21 @@ export function ledgerQuestions({ transactions = [], facts = [], placeOf = () =>
     if (!days.every((d) => Math.abs(d - day) <= 3)) continue;
     const amounts = big.map(abs).sort((a, b) => a - b);
     const amount = amounts[Math.floor(amounts.length / 2)];
+    /* A share of the rent is a fixed sum; Bizums to a friend that wander are dinners. */
+    if (byBizum && !amounts.every((a) => Math.abs(a - amount) <= amount * RENT_SPLIT_TOLERANCE)) continue;
     const sorted = [...big].sort((a, b) => new Date(b.occurred_at) - new Date(a.occurred_at));
+    const split = byBizum && amount < RENT_FLOOR;
     questions.push({
       id: `rent:${key}`,
       kind: 'commitment',
       subject: key,
       subjectLabel: nameOf(sorted[0]),
-      ask: `${nameOf(sorted[0])} takes about ${euro(amount)} around the ${ordinal(day)}, ${months.size} months running. Is this your rent?`,
-      say: { key: '{name} takes about {amount} around the {day}, {n} months running. Is this your rent?', vars: { name: nameOf(sorted[0]), amount: euro(amount), day: day, n: months.size } },
+      ask: split
+        ? `${nameOf(sorted[0])} gets about ${euro(amount)} from you around the ${ordinal(day)}, ${months.size} months running. It looks like your share of the rent. Is it?`
+        : `${nameOf(sorted[0])} takes about ${euro(amount)} around the ${ordinal(day)}, ${months.size} months running. Is this your rent?`,
+      say: split
+        ? { key: '{name} gets about {amount} from you around the {day}, {n} months running. It looks like your share of the rent. Is it?', vars: { name: nameOf(sorted[0]), amount: euro(amount), day: day, n: months.size } }
+        : { key: '{name} takes about {amount} around the {day}, {n} months running. Is this your rent?', vars: { name: nameOf(sorted[0]), amount: euro(amount), day: day, n: months.size } },
       help: 'Rent or another fixed cost is money the month has already spoken for.',
       why: 'The month can then be projected with what is already spoken for, instead of finding out later.',
       changes: 'what the month is expected to end at',

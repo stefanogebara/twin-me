@@ -1,3 +1,4 @@
+import { timedFetch } from '../config/timedFetch.js';
 import { createClient } from '@supabase/supabase-js';
 import dotenv from 'dotenv';
 import path from 'path';
@@ -39,6 +40,7 @@ if (!supabaseUrl || !supabaseServiceKey) {
         schema: 'public'
       },
       global: {
+        fetch: timedFetch(),
         headers: {
           'x-connection-pool': 'server'
         }

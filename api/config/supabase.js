@@ -1,3 +1,4 @@
+import { timedFetch } from './timedFetch.js';
 import { createClient } from '@supabase/supabase-js';
 import dotenv from 'dotenv';
 import { createLogger } from '../services/logger.js';
@@ -43,7 +44,8 @@ export const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
   auth: {
     autoRefreshToken: false,
     persistSession: false
-  }
+  },
+  global: { fetch: timedFetch() }
 });
 log.info('supabaseAdmin configured', { keyType: 'SERVICE_ROLE_KEY (bypasses RLS)' });
 
