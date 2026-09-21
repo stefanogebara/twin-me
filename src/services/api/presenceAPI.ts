@@ -46,6 +46,9 @@ export interface PresenceRecord {
 export type PresenceEscalation = 'everything' | 'when_it_matters' | 'only_urgent';
 export type PresenceInitiative = 'ask' | 'wait';
 
+/** The models a cloned voice can be auditioned through (PREVIEW_MODELS on the server). */
+export type PresenceVoiceModel = 'eleven_v3_conversational' | 'eleven_flash_v2_5' | 'eleven_multilingual_v2';
+
 /** The fields the family may change on PATCH; the server validates each. */
 export type PresencePatch = Partial<Pick<PresenceRecord, 'cared_for_name' | 'relationship' | 'caller_name' | 'tone' | 'status' | 'elder_phone' | 'call_hour' | 'call_days' | 'call_timezone' | 'emergency_name' | 'emergency_phone' | 'autonomy_escalation' | 'autonomy_initiative'>>;
 
@@ -200,6 +203,17 @@ export const presenceAPI = {
     form.append('audio', audio, 'sample.webm');
     form.append('sample_seconds', String(sampleSeconds));
     return upload<VoiceSampleResult>(`/presence/${id}/voice-samples`, form);
+  },
+
+  /** Hear the cloned voice through one model. Returns the audio itself, not JSON. */
+  voicePreview: async (id: string, model: PresenceVoiceModel): Promise<Blob> => {
+    const response = await fetch(`${API_URL}/presence/${id}/voice-preview`, {
+      method: 'POST',
+      headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
+      body: JSON.stringify({ model }),
+    }).catch((err) => { throw new PresenceApiError(0, err instanceof Error ? err.message : 'network'); });
+    if (!response.ok) throw await errorOf(response);
+    return response.blob();
   },
 
   revokeVoice: (id: string) =>

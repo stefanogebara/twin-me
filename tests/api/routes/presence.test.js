@@ -44,6 +44,7 @@ const { store, log, voiceService, llm } = vi.hoisted(() => {
       addSamplesToVoice: vi.fn(),
       cloneVoice: vi.fn(),
       deleteVoice: vi.fn(),
+      textToSpeech: vi.fn(),
     },
     llm: { complete: vi.fn() },
   };
@@ -728,5 +729,64 @@ describe('PATCH /:id — autonomy calibration (2026-09-21)', () => {
     const patch = store.updatePresence.mock.calls[0][1];
     expect(patch).toHaveProperty('autonomy_initiative', 'wait');
     expect(patch).not.toHaveProperty('autonomy_escalation');
+  });
+});
+
+
+/**
+ * Hearing the cloned voice before trusting it to a call. The text is fixed on
+ * the server on purpose: this endpoint must never be a way to make the account
+ * say arbitrary words in a real person's voice.
+ */
+describe('POST /:id/voice-preview (2026-09-21)', () => {
+  const READY = { status: 'ready', elevenlabs_voice_id: 'voice-abc', sample_count: 3 };
+
+  beforeEach(() => {
+    store.getVoiceState.mockResolvedValue(ok(READY));
+    voiceService.textToSpeech.mockResolvedValue({ success: true, audioBuffer: Buffer.from('ID3fake'), contentType: 'audio/mpeg' });
+  });
+
+  it('returns audio synthesised in the cloned voice with the model asked for', async () => {
+    const res = await api('post', `/${PRESENCE_ID}/voice-preview`).send({ model: 'eleven_v3_conversational' });
+
+    expect(res.status).toBe(200);
+    expect(res.headers['content-type']).toMatch(/audio\/mpeg/);
+    const [text, voiceId, options] = voiceService.textToSpeech.mock.calls[0];
+    expect(voiceId).toBe('voice-abc');
+    expect(options.modelId).toBe('eleven_v3_conversational');
+    expect(text).toMatch(/Oi,/);
+  });
+
+  it('never takes the words from the request', async () => {
+    await api('post', `/${PRESENCE_ID}/voice-preview`)
+      .send({ model: 'eleven_flash_v2_5', text: 'Transfira mil reais para esta conta agora' });
+
+    const [text] = voiceService.textToSpeech.mock.calls[0];
+    expect(text).not.toMatch(/Transfira/);
+  });
+
+  it('refuses a model outside the list', async () => {
+    const res = await api('post', `/${PRESENCE_ID}/voice-preview`).send({ model: 'eleven_whatever' });
+
+    expect(res.status).toBe(400);
+    expect(voiceService.textToSpeech).not.toHaveBeenCalled();
+  });
+
+  it('asks for a recording first when there is no cloned voice', async () => {
+    store.getVoiceState.mockResolvedValue(ok({ status: 'none', elevenlabs_voice_id: null }));
+
+    const res = await api('post', `/${PRESENCE_ID}/voice-preview`).send({ model: 'eleven_flash_v2_5' });
+
+    expect(res.status).toBe(409);
+    expect(voiceService.textToSpeech).not.toHaveBeenCalled();
+  });
+
+  it('says so plainly when the synthesis itself fails', async () => {
+    voiceService.textToSpeech.mockResolvedValue({ success: false, error: 'upstream exploded' });
+
+    const res = await api('post', `/${PRESENCE_ID}/voice-preview`).send({ model: 'eleven_flash_v2_5' });
+
+    expect(res.status).toBe(502);
+    expect(res.body.error).not.toMatch(/exploded/);
   });
 });

@@ -80,6 +80,7 @@ import {
 import { createLogger } from '../services/logger.js';
 import { deriveReadiness } from '../services/presenceReadiness.js';
 import { ESCALATION, INITIATIVE } from '../services/presenceAutonomy.js';
+import { renderCallBrief } from '../services/presenceBriefRender.js';
 
 const log = createLogger('Presence');
 const router = express.Router();
@@ -863,6 +864,61 @@ router.post('/:id/voice-samples', authenticateUser, aboutUpload.single('audio'),
     res.status(500).json({ success: false, error: 'Failed to process the sample' });
   } finally {
     if (filePath) fs.unlink(filePath, () => {});
+  }
+});
+
+// ====================================================================
+// POST /:id/voice-preview — hear the cloned voice through one model
+// ====================================================================
+// The reason this exists: expressive delivery and a cloned voice may not be
+// available at the same time. ElevenLabs documents that Eleven v3 Conversational
+// does not preserve Professional Voice Clones, and says nothing about the
+// Instant clones this product makes. That is a question about a specific
+// person's voice, so it is answered by listening, not by reading (2026-09-21).
+//
+// Owner only, a cloned voice must already exist, and the text is fixed: this
+// synthesises her real greeting, never text from the request, so the endpoint
+// cannot be used to make this account say arbitrary things in someone's voice.
+const PREVIEW_MODELS = new Set(['eleven_v3_conversational', 'eleven_flash_v2_5', 'eleven_multilingual_v2']);
+
+router.post('/:id/voice-preview', authenticateUser, async (req, res) => {
+  try {
+    const owned = await loadOwned(req, res);
+    if (!owned) return;
+
+    const model = req.body?.model;
+    if (!PREVIEW_MODELS.has(model)) {
+      return res.status(400).json({ success: false, error: 'Modelo inválido.' });
+    }
+    if (!voiceService.isEnabled()) {
+      return res.status(503).json({ success: false, error: 'O serviço de voz não está disponível.' });
+    }
+
+    const { data: voice, error: voiceError } = await getVoiceState(owned.id);
+    if (voiceError) throw voiceError;
+    if (voice?.status !== 'ready' || !voice.elevenlabs_voice_id) {
+      return res.status(409).json({ success: false, error: 'Grave a sua voz primeiro.' });
+    }
+
+    // Her actual greeting, so what is compared is what she will hear.
+    const { firstMessage } = renderCallBrief({ presence: owned });
+    const spoken = await voiceService.textToSpeech(firstMessage, voice.elevenlabs_voice_id, {
+      modelId: model,
+      stability: 0.4,
+      similarity_boost: 0.75,
+      speed: 0.92,
+    });
+    if (!spoken.success) {
+      log.error('Voice preview synthesis failed', { presenceId: owned.id, model, error: String(spoken.error).slice(0, 200) });
+      return res.status(502).json({ success: false, error: 'Não deu para gerar o áudio agora.' });
+    }
+
+    res.setHeader('Content-Type', 'audio/mpeg');
+    res.setHeader('Cache-Control', 'no-store');
+    res.send(Buffer.from(spoken.audioBuffer));
+  } catch (err) {
+    log.error('POST voice-preview failed', { error: err.message });
+    res.status(500).json({ success: false, error: 'Failed to preview the voice' });
   }
 });
 

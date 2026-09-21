@@ -445,7 +445,7 @@ export default function PresenceHome({ page = 'home' }: { page?: PresencePage })
 
   const voiceLine = voiceReady
     ? `As ligações dela usam a sua voz${voice?.sample_count ? ` (${voice.sample_count} ${voice.sample_count === 1 ? 'amostra' : 'amostras'})` : ''}.`
-    : 'Em breve: a sua voz nas ligações dela. Por enquanto, ela ouve uma voz padrão, calorosa.';
+    : 'Três trechos curtos, e ela passa a ouvir você. Por enquanto, é uma voz brasileira padrão.';
 
   /** The old plate's ledger, as the title's one grey line. Every part states a
    *  real count or says plainly that there is none. */
@@ -1398,27 +1398,37 @@ export default function PresenceHome({ page = 'home' }: { page?: PresencePage })
               <h2 className="pc-sechead-title">A sua voz</h2>
               <p className="pc-sechead-line">Como soam as ligações dela.</p>
             </div>
-            {voiceReady ? (
-              <ul className="pc-list">
+            <ul className="pc-list">
+              <li className="pc-row">
+                <span className="pc-row-icon" aria-hidden="true"><BrandMark name="elevenlabs" size={18} /></span>
+                <div className="pc-row-text">
+                  <p className="pc-row-title">{voiceReady ? 'A sua voz' : 'Gravar a sua voz'}</p>
+                  <p className="pc-row-line">{voiceLine}</p>
+                </div>
+                {isOwner ? (
+                  <div className="pc-row-action">
+                    <Link className="pc-btn pc-btn--ghost" to="/presence/voice">
+                      {voiceReady ? 'Ouvir e ajustar' : 'Gravar'} <ChevronRight size={14} aria-hidden="true" />
+                    </Link>
+                  </div>
+                ) : <span />}
+              </li>
+              {voiceReady && isOwner ? (
                 <li className="pc-row">
-                  <span className="pc-row-icon" aria-hidden="true"><BrandMark name="elevenlabs" size={18} /></span>
+                  <span className="pc-row-icon" aria-hidden="true"><Trash2 /></span>
                   <div className="pc-row-text">
-                    <p className="pc-row-title">A sua voz</p>
-                    <p className="pc-row-line">{voiceLine}</p>
+                    <p className="pc-row-title">Remover a minha voz</p>
+                    <p className="pc-row-line">Ela é apagada, e as ligações voltam para uma voz padrão.</p>
                   </div>
                   <div className="pc-row-action">
                     <button className="pc-btn pc-btn--danger" onClick={removeVoice} disabled={voiceBusy}>
-                      {voiceBusy ? <Loader2 className="pc-spin" size={14} /> : <Trash2 size={14} />} Remover a minha voz
+                      {voiceBusy ? <Loader2 className="pc-spin" size={14} /> : <Trash2 size={14} />} Remover
                     </button>
                   </div>
                 </li>
-                {errorRow('voice')}
-              </ul>
-            ) : (
-              <div className="pc-list">
-                <p className="pc-empty">{voiceLine}</p>
-              </div>
-            )}
+              ) : null}
+              {errorRow('voice')}
+            </ul>
           </section>
 )}
 

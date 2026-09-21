@@ -103,7 +103,12 @@ class VoiceService {
       stability = 0.5,
       similarity_boost = 0.8,
       style = 0.0,
-      use_speaker_boost = true
+      use_speaker_boost = true,
+      // eleven_multilingual_v2 stays the default so every existing caller is
+      // unchanged; the Presence voice preview passes a model to compare how a
+      // cloned voice survives each one (2026-09-21).
+      modelId = 'eleven_multilingual_v2',
+      speed,
     } = options;
 
     const selectedVoiceId = voiceId || this.defaultVoiceId;
@@ -115,12 +120,13 @@ class VoiceService {
           text: text,
           // eleven_monolingual_v1 was deprecated by ElevenLabs (400 unsupported_model,
           // caught in QA 2026-08-31). multilingual_v2 covers pt-BR for Presence calls.
-          model_id: 'eleven_multilingual_v2',
+          model_id: modelId,
           voice_settings: {
             stability,
             similarity_boost,
             style,
-            use_speaker_boost
+            use_speaker_boost,
+            ...(speed === undefined ? {} : { speed }),
           }
         },
         {
