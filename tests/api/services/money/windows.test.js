@@ -44,8 +44,8 @@ describe('spendWindows', () => {
   it('breaks a window down by kind of place and by place when told how', () => {
     const kind = (t) => ({ dinner: 'eating out', bar: 'eating out', lunch: 'eating out', 'coffee-today': 'coffee', groceries: 'groceries', rent: 'home' }[t.merchant_key] || null);
     const lines = windowLines(ledger, now, { categoryOf: kind });
-    expect(lines.find((l) => l.startsWith('Yesterday:'))).toBe('Yesterday: spent 45,40 EUR in 2 payments, the largest dinner 34,00 EUR. By kind: eating out 45,40 EUR (2). By place: dinner 34,00 EUR (1); lunch 11,40 EUR (1).');
-    expect(breakdown(ledger.filter((t) => Number(t.amount) < 0 && !t.verdict && t.currency === 'EUR'), kind)).toEqual([{ key: 'home', total: 500, count: 1 }, { key: 'eating out', total: 57.4, count: 3 }, { key: 'groceries', total: 48.2, count: 1 }, { key: 'coffee', total: 2.5, count: 1 }]);
+    expect(lines.find((l) => l.startsWith('Yesterday:'))).toBe('Yesterday: spent 45,40 EUR in 2 payments, the largest dinner 34,00 EUR. By kind: eating out 45,40 EUR (2, largest dinner 34,00 EUR). By place: dinner 34,00 EUR (1); lunch 11,40 EUR (1).');
+    expect(breakdown(ledger.filter((t) => Number(t.amount) < 0 && !t.verdict && t.currency === 'EUR'), kind).map(({ biggest, ...b }) => b)).toEqual([{ key: 'home', total: 500, count: 1 }, { key: 'eating out', total: 57.4, count: 3 }, { key: 'groceries', total: 48.2, count: 1 }, { key: 'coffee', total: 2.5, count: 1 }]);
   });
 });
 

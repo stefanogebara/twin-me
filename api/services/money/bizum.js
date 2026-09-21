@@ -100,12 +100,15 @@ export function describeMonthBetweenPeople(m) {
   const to = m.people.filter((p) => p.sent);
   const from = m.people.filter((p) => p.received);
   const named = (p) => `${p.name}${p.role ? ` (${p.role})` : ''}`;
+  /* Six names at most: nine on the real ledger made a paragraph of a line, and the total is
+     the line's own figure, not the names' sum (2026-09-21). */
+  const listed = (people, field, count) => `${people.slice(0, 6).map((p) => `${named(p)} ${euro(p[field])} (${p[count]})`).join('; ')}${people.length > 6 ? `; and ${people.length - 6} more, smaller` : ''}`;
   const lines = [];
   lines.push(to.length
-    ? `To people this month (Bizum and transfers): ${euro(m.sent)} to ${to.length} ${to.length === 1 ? 'person' : 'people'}: ${to.map((p) => `${named(p)} ${euro(p.sent)} (${p.sentCount})`).join('; ')}.`
+    ? `To people this month (Bizum and transfers): ${euro(m.sent)} to ${to.length} ${to.length === 1 ? 'person' : 'people'}: ${listed(to, 'sent', 'sentCount')}.`
     : 'To people this month (Bizum and transfers): nothing sent.');
   lines.push(from.length
-    ? `From people this month: ${euro(m.received)} from ${from.length} ${from.length === 1 ? 'person' : 'people'}: ${from.map((p) => `${named(p)} ${euro(p.received)} (${p.receivedCount})`).join('; ')}.`
+    ? `From people this month: ${euro(m.received)} from ${from.length} ${from.length === 1 ? 'person' : 'people'}: ${listed(from, 'received', 'receivedCount')}.`
     : 'From people this month: nothing received.');
   /* "Did my parents send the money" was answered yes with a friend's transfer (2026-09-21). */
   if (!from.some((p) => p.role === 'family')) lines.push('Nobody marked family sent anything this month.');

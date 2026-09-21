@@ -68,6 +68,10 @@ describe('a question is answered, not remembered', () => {
     expect(withoutChartQuestion('Only a question about a graph?', true)).toBe('Only a question about a graph?');
     expect(withoutChartQuestion('Spent 538,21 EUR. Quer ver como foi dia a dia? Peca a figura da semana.', true)).toBe('Spent 538,21 EUR.');
     expect(withoutChartQuestion('Spent 538,21 EUR. Want a graph? The largest was 200,00 EUR.', true)).toBe('Spent 538,21 EUR. The largest was 200,00 EUR.');
+    expect(withoutChartQuestion('Entre 8 e 14 de setembro voce gastou 538,21 EUR. Vou pedir o grafico de semana para ver dia a dia.', true)).toBe('Entre 8 e 14 de setembro voce gastou 538,21 EUR.');
+    expect(withoutChartQuestion('This week cost 645,30 EUR. Here is the chart of the last seven days.', true)).toBe('This week cost 645,30 EUR.');
+    expect(withoutChartQuestion('This week cost 645,30 EUR. Here is the week figure.', true)).toBe('This week cost 645,30 EUR.');
+    expect(withoutChartQuestion('Between 8 and 14 September you spent 538,21 EUR. I\'ll draw the week.', true)).toBe('Between 8 and 14 September you spent 538,21 EUR.');
     expect(withoutChartQuestion('Spent 30,00 EUR. Is that right?', true)).toBe('Spent 30,00 EUR. Is that right?');
     const taught = assembleReply({ text: 'Noted.', figures: [], actions: [{ kind: 'remember', text: 'I am going to Bilbao on the 25th', label: 'Remember this' }], cites: [] }, ctx, 'I am going to Bilbao on the 25th');
     expect(taught.actions.map((a) => a.kind)).toEqual(['remember']);
