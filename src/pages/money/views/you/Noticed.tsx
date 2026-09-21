@@ -11,14 +11,15 @@ import type { MoneyAccount } from '../../useMoneyAccount';
 import { worthShowing } from '../../patternKinds';
 
 export default function Noticed({ m }: { m: MoneyAccount }) {
-  const { t, locale, patterns } = m;
+  const { t, locale, patterns, facts } = m;
   return (
           <section className="mv-section" id="noticed">
             <h2>{t('What it worked out on its own.')}</h2>
             <p className="mv-sub">{t('Nobody typed these. They are what your own payments repeat.')}</p>
             <ul className="mv-list">
               {patterns === null ? (
-                <li><Wait inline state={orbFor('learning')} line="Reading your payments." /></li>
+                /* One orb per screen: while the hero's orb reads what it knows, this section waits with a line alone (2026-09-21). */
+                <li>{facts === null ? <p className="mv-empty">{t('Reading your payments.')}</p> : <Wait inline state={orbFor('learning')} line="Reading your payments." />}</li>
               ) : patterns.length === 0 ? (
                 <li><p className="mv-empty">{t('Nothing it can say yet. It needs a few more weeks of payments.')}</p></li>
               ) : patterns.filter((f) => worthShowing(f.kind)).length === 0 ? (
