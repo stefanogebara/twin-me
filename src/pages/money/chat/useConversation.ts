@@ -4,7 +4,7 @@
  * (Split from MoneyChatPage on 2026-09-19, M2-2b.)
  */
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useReducedMotion } from 'framer-motion';
 import { moneyAPI, moneyChat, type ChatTurn, type ChatAction } from '../../../services/api/moneyAPI';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
@@ -21,6 +21,7 @@ export function useConversation() {
   const [traceOpen, setTraceOpen] = useState(false);
   const [asking, setAsking] = useState(false);
   const location = useLocation();
+  const navigate = useNavigate();
   const [text, setText] = useState(() => typeof location.state?.draft === 'string' ? location.state.draft.slice(0, 2000) : '');
   const [historyFailed, setHistoryFailed] = useState(false);
   const acting = useRef(new Set<string>());
@@ -184,6 +185,8 @@ export function useConversation() {
      sentence stays under the answer. */
   async function take(lineId: string, action: ChatAction) {
     if (acting.current.has(lineId)) return;
+    /* A setup offer is a step on another page, not something the ledger does. */
+    if (action.kind === 'setup' && typeof action.href === 'string' && action.href.startsWith('/money/')) { navigate(action.href); return; }
     acting.current.add(lineId);
     /* The offers go the moment one is tapped, so a second tap cannot run it twice. */
     setLines((all) => all.map((l) => (l.id === lineId ? { ...l, actions: [], acted: t('Doing it.') } : l)));

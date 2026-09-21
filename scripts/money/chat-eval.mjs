@@ -32,6 +32,8 @@ const arg = (name, dflt = null) => { const i = process.argv.indexOf(name); retur
 const API = arg('--api', 'http://127.0.0.1:3014');
 const ONLY = (arg('--only', '') || '').split(',').filter(Boolean);
 const JUDGE = process.argv.includes('--judge');
+/* pass^k (tau-bench, Yao et al. 2024): a scenario passes only when it passes all k runs; one pass is capability, k is reliability. */
+const RUNS = Math.max(1, Number(arg('--runs', '1')) || 1);
 /* The judge: DeepSeek flipped between 2 and 0 on the same reply across runs; a steadier reader by default. */
 const JUDGE_MODEL = arg('--judge-model', 'google/gemini-2.5-flash');
 const OUT = arg('--out', path.resolve(process.cwd(), '.claude/plans/2026-09-15-chat-evals/runs'));
@@ -94,7 +96,8 @@ async function judge(s, reply, token) {
   const { token, userId } = await signIn();
   const list = ONLY.length ? SCENARIOS.filter((s) => ONLY.includes(s.id)) : SCENARIOS;
   const results = [];
-  for (const s of list) {
+  const runsOf = new Map();
+  for (const s of list.flatMap((x) => Array.from({ length: RUNS }, () => x))) {
     const t0 = Date.now();
     let reply = null, error = null;
     try {
@@ -105,10 +108,12 @@ async function judge(s, reply, token) {
     const ms = Date.now() - t0;
     const sc = reply ? score(s, reply) : { checks: {}, kinds: [], acts: [], sentences: 0, amounts: [] };
     /* The shortcut's answers are templates; the judge has nothing to say about them. */
-    const jd = reply && JUDGE && s.route !== 'short' ? await judge(s, reply, token) : null;
+    /* judge: false on a scenario: a correct refusal is not an answer the judge can rate */
+    const jd = reply && JUDGE && s.route !== 'short' && s.judge !== false ? await judge(s, reply, token) : null;
     if (jd) sc.checks.judge = jd.addresses === null ? true : jd.addresses > 0;
     const pass = !error && Object.values(sc.checks).every(Boolean);
     results.push({ id: s.id, kind: s.kind, message: s.message, ms, error, text: reply?.text || null, figures: sc.kinds, actions: sc.acts, sentences: sc.sentences, checks: sc.checks, judge: jd, pass });
+    runsOf.set(s.id, [...(runsOf.get(s.id) || []), pass]);
     const failed = Object.entries(sc.checks).filter(([, v]) => !v).map(([k]) => k);
     console.log(`${pass ? 'PASS' : 'FAIL'}  ${s.id.padEnd(22)} ${String(ms).padStart(6)} ms  fig=[${sc.kinds.join(',')}] act=[${sc.acts.join(',')}] sent=${sc.sentences}${failed.length ? '  failed: ' + failed.join(',') : ''}${jd ? `  judge=${jd.addresses}` : ''}${error ? '  ERROR ' + error : ''}`);
     console.log(`      ${String(reply?.text || '').replace(/\n/g, ' ').slice(0, 220)}`);
@@ -120,6 +125,10 @@ async function judge(s, reply, token) {
   if (cleaned.error) console.log(`turns could not be read: ${cleaned.error.message}; delete them by hand since ${startedAt}`);
   if (turns.length) { const { error } = await sb.from('money_chat_turns').delete().in('id', turns.map((t) => t.id)); if (error) console.log(`turns could not be deleted: ${error.message}`); }
   const passed = results.filter((r) => r.pass).length;
+  if (RUNS > 1) {
+    const allK = [...runsOf.entries()].filter(([, v]) => v.every(Boolean)).length;
+    console.log(`pass^${RUNS}: ${allK}/${runsOf.size} scenarios passed every run` + [...runsOf.entries()].filter(([, v]) => !v.every(Boolean) && v.some(Boolean)).map(([id, v]) => ` (${id} ${v.filter(Boolean).length}/${v.length})`).join(''));
+  }
   const byCheck = {};
   for (const r of results) for (const [k, v] of Object.entries(r.checks)) { byCheck[k] = byCheck[k] || { pass: 0, fail: 0 }; byCheck[k][v ? 'pass' : 'fail'] += 1; }
   console.log(`\n${passed}/${results.length} passed. By check: ${Object.entries(byCheck).map(([k, v]) => `${k} ${v.pass}/${v.pass + v.fail}`).join(', ')}. Turns cleaned: ${turns?.length || 0}.`);
