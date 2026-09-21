@@ -249,6 +249,8 @@ export const moneyAPI = {
   labelCard: (accountId: string, last4: string, type: MoneyCard['type']) =>
     authFetch(`/money/bank/accounts/${encodeURIComponent(accountId)}/cards/${encodeURIComponent(last4)}/type`, { method: 'POST', body: JSON.stringify({ type }) }).then((r) => json<MoneyCard>(r)).then(moneyChanged),
   accounts: () => authFetch('/money/bank/accounts').then((r) => json<MoneyAccount[]>(r)),
+  /** The whole account, gone: the users row, and every money table by cascade. */
+  deleteAccount: () => authFetch('/account', { method: 'DELETE' }).then((r) => { if (!r.ok) throw new Error('That could not be deleted right now.'); }),
   /** Start a bank's consent; `back` is the money page to return to (Sources by default). */
   connect: (bank = 'Banco Santander', country = 'ES', back = '') =>
     authFetch('/money/bank/connect', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ bank, country, back }) }).then((r) => json<{ url: string }>(r)),
