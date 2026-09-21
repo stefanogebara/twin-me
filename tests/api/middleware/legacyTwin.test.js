@@ -30,6 +30,6 @@ describe('the legacy twin gate', () => {
       expect(crons, `${path} is scheduled`).toContain(path);
       expect(server, `${path} is gated`).toMatch(new RegExp(`app\\.(use|all)\\('${path}', legacyTwinGate, `));
     }
-    for (const path of ['/api/cron/money-pull', '/api/cron/money-learn', '/api/cron/presence-calls']) expect(server).not.toMatch(new RegExp(`'${path}', legacyTwinGate`));
+    for (const path of ['/api/cron/money-pull', '/api/cron/money-learn', '/api/cron/presence-calls', '/api/cron/money-morning']) expect(server).not.toMatch(new RegExp(`'${path}', legacyTwinGate`));
   });
 });

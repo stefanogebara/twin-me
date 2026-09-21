@@ -33,7 +33,7 @@ function makeChain(table) {
 vi.mock('../../../../api/services/database.js', () => ({ supabaseAdmin: { from: (table) => makeChain(table) } }));
 vi.mock('../../../../api/services/logger.js', () => ({ createLogger: () => ({ warn() {}, info() {}, error() {}, debug() {} }) }));
 
-const { morningRecipients } = await import('../../../../api/services/money/channelStore.js');
+const { morningRecipients, offerSaid } = await import('../../../../api/services/money/channelStore.js');
 
 describe('morningRecipients', () => {
   beforeEach(() => {
@@ -51,11 +51,23 @@ describe('morningRecipients', () => {
     expect(entry.ops).toContainEqual(['in', 'user_id', ['u1', 'u2']]);
   });
 
-  it('keeps a linked, unmuted number and drops one muted for the morning line', async () => {
+  it('keeps a linked, enabled, opted-in and unmuted number and drops one muted for the morning line', async () => {
     respond = () => ({
       data: [
-        { user_id: 'u1', channel_id: '+34600000000', preferences: {} },
-        { user_id: 'u2', channel_id: '+34600000001', preferences: { money_morning_muted: true } },
+        { user_id: 'u1', channel_id: '+34600000000', preferences: { money_opt_in_at: '2026-09-22T08:00:00Z' } },
+        { user_id: 'u2', channel_id: '+34600000001', preferences: { money_opt_in_at: '2026-09-22T08:00:00Z', money_morning_muted: true } },
+      ],
+      error: null,
+    });
+    const result = await morningRecipients();
+    expect(result).toEqual([{ userId: 'u1', phone: '+34600000000' }]);
+  });
+
+  it('drops a linked, enabled, unmuted number that never agreed on the You page', async () => {
+    respond = () => ({
+      data: [
+        { user_id: 'u1', channel_id: '+34600000000', preferences: { money_opt_in_at: '2026-09-22T08:00:00Z' } },
+        { user_id: 'u2', channel_id: '+34600000001', preferences: {} },
       ],
       error: null,
     });
@@ -68,5 +80,17 @@ describe('morningRecipients', () => {
     const result = await morningRecipients();
     expect(result).toEqual([]);
     expect(calls).toEqual([]);
+  });
+});
+
+describe('offerSaid', () => {
+  beforeEach(() => { calls.length = 0; });
+
+  it('scopes the update to the offer and the person it belongs to', async () => {
+    await offerSaid('u1', 'offer-1', 'Glovo is marked as not yours.');
+    const entry = calls.find((c) => c.table === 'money_channel_offers');
+    expect(entry.ops).toContainEqual(['update', { said: 'Glovo is marked as not yours.' }]);
+    expect(entry.ops).toContainEqual(['eq', 'id', 'offer-1']);
+    expect(entry.ops).toContainEqual(['eq', 'user_id', 'u1']);
   });
 });

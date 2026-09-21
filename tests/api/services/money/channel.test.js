@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { isMoneyChannelUser, moneyChannelUserIds, plainForChannel, cutAtSentence, renderReply, muteIntent, channelSay, CHANNEL_MAX_CHARS, offerMessage, offerIdFrom, numberedChoice, asForwarded } from '../../../../api/services/money/channel.js';
+import { isMoneyChannelUser, moneyChannelUserIds, plainForChannel, cutAtSentence, renderReply, muteIntent, channelSay, CHANNEL_MAX_CHARS, offerMessage, offerIdFrom, numberedChoice, asForwarded, labelOf } from '../../../../api/services/money/channel.js';
 
 describe('who is on the channel', () => {
   it('reads a comma-separated list and nothing else', () => {
@@ -59,6 +59,19 @@ describe('offers as buttons', () => {
   });
   it('is nothing when there is nothing to offer', () => {
     expect(offerMessage([], 'en')).toBe(null);
+  });
+  it('cleans a label the same way the chat\'s prose is cleaned, in the body and the button both', () => {
+    const dirty = [{ id: '33333333-3333-4333-8333-333333333333', position: 0, action: { kind: 'not_me', label: '*Not mine*: see https://evil.example/x now' } }];
+    const m = offerMessage(dirty, 'en');
+    expect(m.body).not.toMatch(/[*]/);
+    expect(m.body).not.toMatch(/https?:\/\//);
+    expect(m.buttons[0].title).not.toMatch(/[*]/);
+    expect(m.buttons[0].title).not.toMatch(/https?:\/\//);
+  });
+  it('falls back to the action\'s kind when the label is empty or only a link', () => {
+    expect(labelOf({ kind: 'not_me', label: '' })).toBe('not_me');
+    expect(labelOf({ kind: 'not_me', label: 'https://evil.example/x' })).toBe('not_me');
+    expect(labelOf({ kind: 'recategorise', label: 'File Mercadona under groceries' })).toBe('File Mercadona under groceries');
   });
   it('reads a button id and a bare number, and nothing else', () => {
     expect(offerIdFrom('mo:11111111-1111-4111-8111-111111111111')).toBe('11111111-1111-4111-8111-111111111111');

@@ -74,8 +74,8 @@ export async function recentOffers(userId, now = new Date()) {
   return rows.filter((r) => r.created_at === newest).sort((a, b) => a.position - b.position);
 }
 
-export async function offerSaid(offerId, said) {
-  await supabaseAdmin.from('money_channel_offers').update({ said: String(said || '').slice(0, 1000) }).eq('id', offerId);
+export async function offerSaid(userId, offerId, said) {
+  await supabaseAdmin.from('money_channel_offers').update({ said: String(said || '').slice(0, 1000) }).eq('id', offerId).eq('user_id', userId);
 }
 
 /** Gives an offer back after a failure that was not the ledger's own refusal, so it can be tapped again. */
@@ -84,13 +84,13 @@ export async function releaseOffer(userId, offerId) {
   if (error) log.warn(`offer not released: ${error.message}`);
 }
 
-/** Beta people with a linked, enabled WhatsApp number who have not said stop. */
+/** Beta people with a linked, enabled WhatsApp number who agreed to it on the You page and have not said stop. */
 export async function morningRecipients() {
   const ids = moneyChannelUserIds();
   if (!ids.length) return [];
   const { data, error } = await supabaseAdmin.from('messaging_channels').select('user_id, channel_id, preferences').eq('channel', 'whatsapp').eq('is_enabled', true).in('user_id', ids);
   if (error) throw new Error(error.message);
-  return (data || []).filter((r) => r.channel_id && !(r.preferences || {}).money_morning_muted).map((r) => ({ userId: r.user_id, phone: r.channel_id }));
+  return (data || []).filter((r) => r.channel_id && (r.preferences || {}).money_opt_in_at && !(r.preferences || {}).money_morning_muted).map((r) => ({ userId: r.user_id, phone: r.channel_id }));
 }
 
 /** Claims today's line for one person. Null when it was already claimed: one line a day, whatever runs twice. */

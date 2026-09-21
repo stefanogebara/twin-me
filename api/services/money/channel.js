@@ -9,6 +9,8 @@
 
 /** WhatsApp takes 4,096; a person reading on a lock screen does not. */
 export const CHANNEL_MAX_CHARS = 1500;
+/** The Vercel function is cut at 60 s; the chat alone may take 50. Answer by this, or say so. */
+export const CHANNEL_DEADLINE_MS = Number(process.env.MONEY_CHANNEL_DEADLINE_MS) || 40000;
 export const OFFER_PREFIX = 'mo:';
 export const MAX_BUTTONS = 3;
 export const BUTTON_TITLE_CHARS = 20;
@@ -66,6 +68,7 @@ const WORDS = {
     'The morning line is back on.': 'La línea de la mañana vuelve mañana.',
     'That was already done.': 'Eso ya estaba hecho.',
     'That could not be done right now.': 'Eso no se pudo hacer ahora.',
+    'That took too long to answer. Ask it again.': 'Eso tardó demasiado en responder. Pregunta de nuevo.',
     'Something went wrong on my side. Ask again in a moment.': 'Algo falló por mi parte. Pregunta de nuevo en un momento.',
     'The chart is on the page.': 'El gráfico está en la página.',
     'Open TwinMe': 'Abrir TwinMe',
@@ -78,6 +81,7 @@ const WORDS = {
     'The morning line is back on.': 'A linha da manhã volta amanhã.',
     'That was already done.': 'Isso já estava feito.',
     'That could not be done right now.': 'Não deu para fazer isso agora.',
+    'That took too long to answer. Ask it again.': 'Isso demorou demais para responder. Pergunte de novo.',
     'Something went wrong on my side. Ask again in a moment.': 'Algo falhou do meu lado. Pergunte de novo em instantes.',
     'The chart is on the page.': 'O gráfico está na página.',
     'Open TwinMe': 'Abrir TwinMe',
@@ -100,13 +104,29 @@ function buttonTitle(n, label) {
   return (space > 3 ? head.slice(0, space) : head).trim();
 }
 
+/* A label can carry model- or merchant-influenced text. Run it through the same cleaning as
+   the chat's prose, strip anything that reads as a link (WhatsApp auto-links a bare URL), and
+   fall back to the action's kind — a plain code identifier, left uncleaned — when nothing
+   readable is left. */
+export function labelOf(action) {
+  const cleaned = plainForChannel(action?.label || '')
+    .replace(/\bhttps?:\/\/\S+/gi, ' ')
+    .replace(/\bwww\.\S+/gi, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, 120)
+    .trim();
+  return cleaned || String(action?.kind || '');
+}
+
 export function offerMessage(rows, language) {
   const shown = (rows || []).slice(0, MAX_BUTTONS);
   if (!shown.length) return null;
-  const lines = shown.map((r, i) => `${i + 1}. ${r.action.label || r.action.kind}`);
+  const labels = shown.map((r) => labelOf(r.action));
+  const lines = labels.map((label, i) => `${i + 1}. ${label}`);
   return {
     body: `${lines.join('\n')}\n\n${channelSay(language, 'Tap one, or reply with its number.')}`,
-    buttons: shown.map((r, i) => ({ id: `${OFFER_PREFIX}${r.id}`, title: buttonTitle(i + 1, r.action.label || r.action.kind) })),
+    buttons: shown.map((r, i) => ({ id: `${OFFER_PREFIX}${r.id}`, title: buttonTitle(i + 1, labels[i]) })),
   };
 }
 

@@ -12,21 +12,23 @@ import { claimInbound, markReplied, setMorningMuted, keepOffers, takeOffer, rece
 import { sendWhatsAppCtaButton, sendWhatsAppButtons, downloadWhatsAppMedia } from '../whatsappService.js';
 import { readAttachment, acceptsAttachment, MAX_ATTACHMENT_BYTES } from './attachments.js';
 import { ATTACHMENT_DEPS } from './attachmentDeps.js';
-import { renderReply, muteIntent, channelSay, offerMessage, offerIdFrom, numberedChoice, asForwarded } from './channel.js';
+import { renderReply, muteIntent, channelSay, offerMessage, offerIdFrom, numberedChoice, asForwarded, labelOf, CHANNEL_DEADLINE_MS } from './channel.js';
 
 const log = createLogger('MoneyChannel');
 /** How many kept turns ride along as history. */
 export const HISTORY_TURNS = 8;
+/** A private token: only the deadline timer resolves with this, never answer(). */
+const DEADLINE = Symbol('money_channel_deadline');
 
-const DEFAULT_DEPS = { answer, act, listChatTurns, userLanguage, claimInbound, markReplied, setMorningMuted, keepOffers, takeOffer, recentOffers, offerSaid, releaseOffer, sendCta: sendWhatsAppCtaButton, sendButtons: sendWhatsAppButtons, looksLikeInstruction, download: downloadWhatsAppMedia, readAttachment, saveChatTurn, attachmentDeps: ATTACHMENT_DEPS };
+const DEFAULT_DEPS = { answer, act, listChatTurns, userLanguage, claimInbound, markReplied, setMorningMuted, keepOffers, takeOffer, recentOffers, offerSaid, releaseOffer, sendCta: sendWhatsAppCtaButton, sendButtons: sendWhatsAppButtons, looksLikeInstruction, download: downloadWhatsAppMedia, readAttachment, saveChatTurn, attachmentDeps: ATTACHMENT_DEPS, deadlineMs: CHANNEL_DEADLINE_MS };
 const APP_URL = () => String(process.env.APP_URL || process.env.VITE_APP_URL || 'https://twinme.me').replace(/\/+$/, '');
 
 export async function handleMoneyInbound(parsed, { userId, send, deps = {} }) {
+  const startedAt = Date.now();
   const d = { ...DEFAULT_DEPS, ...deps };
   const { phone, text, messageId } = parsed;
 
   if (!(await d.claimInbound(messageId, userId))) return { handled: true, kind: 'money_duplicate', userId };
-  await Promise.resolve(d.markReplied(userId)).catch((e) => log.warn(`reply not marked: ${e.message}`));
   const language = await Promise.resolve(d.userLanguage(userId)).catch(() => null);
 
   const mute = muteIntent(text);
@@ -35,6 +37,8 @@ export async function handleMoneyInbound(parsed, { userId, send, deps = {} }) {
     await send(phone, channelSay(language, mute === 'mute' ? 'The morning line is off. Say start to bring it back.' : 'The morning line is back on.'));
     return { handled: true, kind: 'money_mute', userId };
   }
+  /* A "stop"/"start" is not an answer to the morning line — only what follows counts. */
+  await Promise.resolve(d.markReplied(userId)).catch((e) => log.warn(`reply not marked: ${e.message}`));
 
   /* A photo or a document: read in memory and dropped, as on the page. Only what it said is kept. */
   const file = parsed.document || parsed.image;
@@ -56,7 +60,7 @@ export async function handleMoneyInbound(parsed, { userId, send, deps = {} }) {
   /* A tap, or a bare number while the offers are still on the screen. No model in this path:
      act() validates against the ledger as it does on the page. */
   let offerId = offerIdFrom(parsed.replyId);
-  if (!offerId) {
+  if (!offerId && !parsed.context?.forwarded) {
     const n = numberedChoice(text);
     if (n) offerId = (await Promise.resolve(d.recentOffers(userId)).catch(() => []))[n - 1]?.id || null;
   }
@@ -83,7 +87,7 @@ export async function handleMoneyInbound(parsed, { userId, send, deps = {} }) {
       }
     }
     await send(phone, said);
-    if (!released) await Promise.resolve(d.offerSaid(row.id, said)).catch(() => {});
+    if (!released) await Promise.resolve(d.offerSaid(userId, row.id, said)).catch(() => {});
     return { handled: true, kind: 'money_act', userId };
   }
 
@@ -101,13 +105,24 @@ export async function handleMoneyInbound(parsed, { userId, send, deps = {} }) {
     }
     message = f.message;
   }
-  const reply = await d.answer(userId, message, history);
+  const answerPromise = d.answer(userId, message, history);
+  const timeLeft = Math.max(1000, d.deadlineMs - (Date.now() - startedAt));
+  let timer;
+  const deadline = new Promise((resolve) => { timer = setTimeout(() => resolve(DEADLINE), timeLeft); });
+  const reply = await Promise.race([answerPromise, deadline]);
+  if (reply === DEADLINE) {
+    answerPromise.catch(() => {}); // a late reply must not become an unhandled rejection
+    log.warn('money channel answer timed out', { userId, elapsedMs: Date.now() - startedAt });
+    await send(phone, channelSay(language, 'That took too long to answer. Ask it again.'));
+    return { handled: true, kind: 'money_deadline', userId };
+  }
+  clearTimeout(timer);
 
   const out = renderReply(reply);
   await send(phone, out.text);
   if (out.link) await d.sendCta(phone, { body: channelSay(language, 'The chart is on the page.'), buttonText: channelSay(language, 'Open TwinMe'), url: out.link });
   const setup = (reply.actions || []).find((a) => a && a.kind === 'setup');
-  if (setup) await d.sendCta(phone, { body: setup.label, buttonText: channelSay(language, 'Open TwinMe'), url: `${APP_URL()}${setup.href}` });
+  if (setup) await d.sendCta(phone, { body: labelOf(setup), buttonText: channelSay(language, 'Open TwinMe'), url: `${APP_URL()}${setup.href}` });
   const kept = await d.keepOffers(userId, reply.actions || []);
   const offers = offerMessage(kept, language);
   if (offers) await d.sendButtons(phone, offers);

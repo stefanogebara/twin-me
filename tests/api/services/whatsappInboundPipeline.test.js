@@ -299,6 +299,17 @@ describe('the money twin\'s beta', () => {
     await processInboundWhatsApp({ phone: '34600000001', text: 'hello', messageId: 'wamid.m2' }, { send, provider: 'kapso' });
     expect(handleMoneyInbound).not.toHaveBeenCalled();
   });
+  it('says a plain apology and reports the failure when the money channel itself throws', async () => {
+    process.env.MONEY_WHATSAPP_USER_IDS = 'u-money';
+    channelRows = [{ user_id: 'u-money', preferences: {} }];
+    handleMoneyInbound.mockRejectedValue(new Error('ledger connection reset'));
+    const send = vi.fn().mockResolvedValue({ success: true });
+    const r = await processInboundWhatsApp({ phone: '34600000000', text: 'how much is left', messageId: 'wamid.m3' }, { send, provider: 'kapso' });
+    expect(send).toHaveBeenCalledWith('34600000000', 'Something went wrong on my side. Ask again in a moment.');
+    expect(r.handled).toBe(false);
+    expect(r.reason).toBe('money_channel_error');
+    delete process.env.MONEY_WHATSAPP_USER_IDS;
+  });
 });
 
 describe('toWhatsAppMarkdown', () => {

@@ -64,9 +64,32 @@ describe('a message on the channel', () => {
     expect(deps.answer).not.toHaveBeenCalled();
     expect(r.kind).toBe('money_mute');
   });
+  it('does not count stop or start as an answered morning line', async () => {
+    await handleMoneyInbound({ phone: '34600000000', text: 'para', messageId: 'wamid.3b' }, { userId: 'u1', send, deps });
+    expect(deps.markReplied).not.toHaveBeenCalled();
+  });
   it('records that the person wrote, for the morning line\'s measure', async () => {
     await handleMoneyInbound({ phone: '34600000000', text: 'hi', messageId: 'wamid.4' }, { userId: 'u1', send, deps });
     expect(deps.markReplied).toHaveBeenCalledWith('u1');
+  });
+});
+
+describe('a channel deadline', () => {
+  it('says so and stops waiting when the ledger takes too long, sending no offers or links', async () => {
+    deps.deadlineMs = 20;
+    deps.answer = vi.fn(() => new Promise(() => {})); // never resolves
+    const r = await handleMoneyInbound({ phone: '34600000000', text: 'how much on groceries', messageId: 'wamid.20' }, { userId: 'u1', send, deps });
+    expect(send).toHaveBeenCalledTimes(1);
+    expect(send).toHaveBeenCalledWith('34600000000', 'That took too long to answer. Ask it again.');
+    expect(deps.sendCta).not.toHaveBeenCalled();
+    expect(deps.sendButtons).not.toHaveBeenCalled();
+    expect(r).toEqual({ handled: true, kind: 'money_deadline', userId: 'u1' });
+  });
+  it('answers normally when the ledger is fast, deadline or not', async () => {
+    deps.deadlineMs = 20;
+    const r = await handleMoneyInbound({ phone: '34600000000', text: 'how much on groceries', messageId: 'wamid.21' }, { userId: 'u1', send, deps });
+    expect(send).toHaveBeenCalledWith('34600000000', 'Groceries took 120,40 €.');
+    expect(r.kind).toBe('money_chat');
   });
 });
 
@@ -92,6 +115,7 @@ describe('offers on the channel', () => {
     expect(deps.act).toHaveBeenCalledWith('u1', action);
     expect(send).toHaveBeenCalledWith('34600000000', expect.stringMatching(/not yours/));
     expect(deps.answer).not.toHaveBeenCalled();
+    expect(deps.offerSaid).toHaveBeenCalledWith('u1', OFFER, expect.stringMatching(/not yours/));
     expect(r.kind).toBe('money_act');
   });
   it('says so when the offer was already taken', async () => {
@@ -110,6 +134,12 @@ describe('offers on the channel', () => {
   it('asks the ledger when a bare number has no fresh offers behind it', async () => {
     deps.recentOffers.mockResolvedValue([]);
     await handleMoneyInbound({ phone: '34600000000', text: '2', messageId: 'wamid.10' }, { userId: 'u1', send, deps });
+    expect(deps.answer).toHaveBeenCalled();
+  });
+  it('never reads a forwarded bare number as an offer choice, even with fresh offers on screen', async () => {
+    deps.recentOffers.mockResolvedValue([{ id: OFFER, position: 0, action }]);
+    await handleMoneyInbound({ phone: '34600000000', text: '1', context: { forwarded: true }, messageId: 'wamid.10b' }, { userId: 'u1', send, deps });
+    expect(deps.takeOffer).not.toHaveBeenCalled();
     expect(deps.answer).toHaveBeenCalled();
   });
   it('gives the ledger\'s own refusal when the ledger moved', async () => {
