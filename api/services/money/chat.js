@@ -28,6 +28,7 @@
 import { complete, stream as streamComplete, TIER_CHAT } from '../llmGateway.js';
 import { windowLines, weekAverageLine, costliestDayLine, cheapestDayLine, monthPaceLine, weekdayLine, spendWindows, breakdown, eur, NO_NAME } from './windows.js';
 import { askedLines, askedDays, askedWindows } from './asked.js';
+import { listReturnsClosing } from './returns.js';
 import { tripDays } from './when.js';
 import { balances, describeBetweenPeople, monthBetweenPeople, describeMonthBetweenPeople, splitFindings, MIN_WAYS, MAX_WAYS } from './bizum.js';
 import crypto from 'node:crypto';
@@ -146,14 +147,15 @@ export async function gather(userId, now = new Date()) {
     settled(categorySpend(userId, { month: thisMonth }), { month: thisMonth, total: 0, read: 0, groups: [] }),
     settled(categorySpend(userId, { month: lastMonth }), { month: lastMonth, total: 0, read: 0, groups: [] }),
   ]);
-  return assemble({ transactions, segments, forecast: cast, recurring, readings, facts, questions, places, categories, lastCategories, accounts, language, now });
+  const returns = await settled(listReturnsClosing(userId, now, { within: 14 }), []);
+  return assemble({ transactions, segments, forecast: cast, recurring, readings, facts, questions, places, categories, lastCategories, accounts, language, now, returns });
 }
 
 /**
  * The pure half of gathering: the same rows, learned and indexed. Tests hand rows straight
  * to this and skip the database.
  */
-export function assemble({ transactions: rawTransactions = [], segments = [], forecast: cast = null, recurring = [], readings = [], facts = [], questions = null, places = [], categories = null, lastCategories = null, accounts = [], language = null, now = new Date() } = {}) {
+export function assemble({ transactions: rawTransactions = [], segments = [], forecast: cast = null, recurring = [], readings = [], facts = [], questions = null, places = [], categories = null, lastCategories = null, accounts = [], language = null, now = new Date(), returns = [] } = {}) {
   /* The same rule the month page uses decides which transfers are spending, so a share the
      twin quotes and the hero above it are the same euros. */
   const transactions = markCounted(rawTransactions, facts);
@@ -169,7 +171,7 @@ export function assemble({ transactions: rawTransactions = [], segments = [], fo
   const byId = new Map(transactions.map((t) => [t.id, t]));
   const open = [...(questions?.opening || []), ...(questions?.fromLedger || [])];
   return {
-    now, transactions, byId, segments, forecast: cast, recurring, readings, facts, roles,
+    now, transactions, byId, segments, forecast: cast, recurring, readings, facts, roles, returns: returns || [],
     questions: open, places: places || [], placeByKey, categoryOf, categories, lastCategories, accounts: accounts || [], language: language || null, profiles, patterns, predictions,
   };
 }
@@ -480,6 +482,8 @@ export function contextText(ctx) {
   /* Money between people: who sent what, who paid back, what is still open (bizum.js). */
   const between = describeBetweenPeople(balances(ctx.transactions, ctx.facts, { now: ctx.now }));
   if (between.length) lines.push('Between people, 90 days: ' + between.join(' '));
+  /* The return windows a receipt stated, closing within two weeks (idea 1). */
+  if (ctx.returns?.length) lines.push('Return windows closing: ' + ctx.returns.map((r) => `${r.merchant} ${eur(r.amount)} until ${dayMonth(`${r.until}T12:00:00Z`)} (${r.days_left === 0 ? 'today' : `${r.days_left} day${r.days_left === 1 ? '' : 's'}`})`).join('; ') + '.');
   /* The month to and from people, totalled: asked who got Bizums this month, the model
      listed five people and said the ledger had no total (2026-09-20). */
   lines.push(...describeMonthBetweenPeople(monthBetweenPeople(ctx.transactions, ctx.now, ctx.roles || new Map())));
@@ -531,6 +535,7 @@ export const RULES = [
   'When the question names a weekday, a night, a weekend, a date, a stretch between two dates or "since" a date, the line beginning "Asked stretch" holds exactly that stretch: quote its total, count and largest, and its kinds and places. Asked what a week costs on average, quote the line beginning "Average week", never the last seven days. A comparison of two stretches is the two lines side by side; never work out the difference.',
   'A line is about the days it names and no others: never give a line\'s numbers for a different day, weekend or stretch. When the stretch asked about has no line, say the ledger cannot tell for those days. The month\'s costliest day and the spend by day of the week over the last full weeks are lines of their own: quote them for "which day" questions, never the per-day line of the last seven.',
   'Asked whether somebody sent or paid this month, answer from the line beginning "From people this month" (or "To people this month"): a name missing there did not, this month, whatever the 90-day line says; then say when they last did, from "last on". Asked about a place over several months or "since" a month, quote the line beginning "Whole ledger by place" and say since when the ledger goes back; this month\'s figure is never the answer to a longer question. "Average per day" and the cheapest day are lines of their own.',
+  'Asked whether something can still be returned, or what closes soon, quote the line beginning "Return windows closing"; without it, say the receipts the ledger holds state no return window.',
   'Asked how much went to people, by Bizum or by transfer, this month, or what came from them, quote the lines beginning "To people this month" and "From people this month": they hold the totals and each person. Asked for a graph of a stretch named in the question, ask for the week figure: it draws that stretch, a bar per day.',
   'Asked whether they can afford an amount, answer yes or no in the first sentence against today\'s number (the line for today, or the one beginning "Left for"), then give those numbers; repeat the amount they named as they wrote it.',
   'A place is only ever itself: never say one place is, looks like or counts as another (a Lidl is not a Mercadona). Asked about a place none of the lines hold, say nothing was seen there. "A payment without a name" is a payment the bank sent without a name: say so in those words, never as a place called unknown.',

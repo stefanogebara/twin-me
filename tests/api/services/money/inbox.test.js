@@ -144,3 +144,14 @@ it('keeps future/unpaid/unsupported payment claims out of spending', () => {
   const forged = gateReceipt({ kind: 'receipt', amount: 10, payment_status: 'paid', paid_evidence: 'Paid 10 EUR' }, 'Invoice due 10 EUR');
   expect(receiptToSighting(forged, { emailId: 'unconfirmed' })).toBeNull();
 });
+
+describe('the return window rides on the receipt', () => {
+  it('is kept in raw_json when the email states one, as a date from the purchase', () => {
+    const receipt = { kind: 'receipt', payment_status: 'paid', paid_evidence: 'paid', merchant: 'Zara', amount: 39.95, currency: 'EUR', date: '2026-09-10T10:00:00.000Z', items: [], order_ref: null, plan: null, previous_amount: null, next_charge_at: null, confidence: 0.8 };
+    const text = 'Zara. Total paid 39,95 EUR. You can return your items within 30 days.';
+    const row = receiptToSighting(receipt, { emailId: 'e1', from: 'noreply@zara.com', subject: 'Your order', receivedAt: '2026-09-10T10:05:00.000Z', text });
+    expect(row.raw_json).toMatchObject({ return_until: '2026-10-10', return_days: 30 });
+    const bare = receiptToSighting(receipt, { emailId: 'e1', from: 'noreply@zara.com', subject: 'Your order', receivedAt: '2026-09-10T10:05:00.000Z' });
+    expect(bare.raw_json.return_until).toBeUndefined();
+  });
+});

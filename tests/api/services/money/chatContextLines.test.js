@@ -18,3 +18,14 @@ describe('context lines', () => {
     expect(text).toMatch(/^Left for the \d+ days until the month ends, after what is spent and spoken for: 550,00 EUR \(from what they said comes in\)\.$/m);
   });
 });
+
+describe('the return windows in the context', () => {
+  it('is one line the model can quote, and none without a window', async () => {
+    const { assemble, contextText } = await import('../../../../api/services/money/chat.js');
+    const now = new Date('2026-09-21T10:00:00Z');
+    const tx = { id: 'a', occurred_at: '2026-09-20T10:00:00Z', amount: -5, currency: 'EUR', merchant_raw: 'Lidl', merchant_key: 'lidl' };
+    const withWindow = contextText(assemble({ transactions: [tx], now, language: 'en', returns: [{ merchant: 'Zara', amount: 39.95, until: '2026-09-24', days_left: 3, transaction_id: null }] }));
+    expect(withWindow).toMatch(/Return windows closing: Zara 39,95 EUR until 24 Sep \(3 days\)\./);
+    expect(contextText(assemble({ transactions: [tx], now, language: 'en' }))).not.toMatch(/Return windows/);
+  });
+});

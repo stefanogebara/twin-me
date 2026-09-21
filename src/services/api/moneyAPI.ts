@@ -66,6 +66,8 @@ export type MoneyToday = {
   days_left: number | null; today_events: { title: string; amount: number }[]; sentence: string | null; why: string | null;
   /* The standing charges that land today or tomorrow, already inside the day's number. */
   charges_soon?: { name: string | null; amount: number; when: 'today' | 'tomorrow' }[];
+  /* The return windows on receipts that close within a week. */
+  returns_closing?: { merchant: string; amount: number; until: string; days_left: number }[];
   /* What the screen needs to say the line itself, in the reader's own language. */
   basis_label?: string | null; spent?: number | null; committed?: number | null; calendar_ahead?: number | null;
   shape?: { weekday: number; ratio: number } | null;

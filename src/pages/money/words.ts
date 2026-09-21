@@ -95,6 +95,17 @@ export function seenWords(t: T, sources: string[] | undefined, posted: boolean):
   return '';
 }
 
+/** The return window on a receipt, said once near its end: the shop's own words made a date. */
+export function returnsClosingWords(t: T, list: { merchant: string; amount: number; until: string; days_left: number }[] | undefined): string | null {
+  const items = (list || []).filter((r) => r && r.merchant);
+  if (!items.length) return null;
+  const when = (d: number) => (d <= 0 ? t('today') : d === 1 ? t('tomorrow') : t('in {n} days', { n: d }));
+  const name = (r: { merchant: string }) => merchantLabel({ merchant_key: r.merchant });
+  if (items.length === 1) return t('The return window on {name}, {amount}, closes {when}.', { name: name(items[0]), amount: euro(items[0].amount), when: when(items[0].days_left) });
+  const names = items.length === 2 ? t('{a} and {b}', { a: name(items[0]), b: name(items[1]) }) : t('{a}, {b} and {n} more', { a: name(items[0]), b: name(items[1]), n: items.length - 2 });
+  return t('The return windows on {names} close {when}.', { names, when: when(items[items.length - 1].days_left) });
+}
+
 /** The charge before it lands, said once: named, dated, and already off today's number. */
 export function chargesSoonWords(t: T, charges: { name: string | null; amount: number; when: 'today' | 'tomorrow' }[] | undefined): string | null {
   const list = (charges || []).filter((c) => c.amount > 0);
