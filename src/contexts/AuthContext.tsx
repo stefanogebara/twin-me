@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useRef, ReactNode } from 'react';
-import { setAccessToken, getAccessToken, clearAccessToken, authFetch, getDesktopFreshAccessToken } from '../services/api/apiBase';
+import { setAccessToken, getAccessToken, clearAccessToken, authFetch, getDesktopFreshAccessToken, markNoSession } from '../services/api/apiBase';
 import { queryClient } from '@/lib/queryClient';
 import { singleFlight } from '@/utils/singleFlight';
 import { shouldSyncTimezone, getLastSyncedTimezone, markTimezoneSynced } from '@/utils/timezoneSync';
@@ -171,7 +171,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           // was firing on /waitlist, /beta, /download, /s/:id and 404s,
           // breaking every public funnel page for signed-out visitors;
           // see tests/session-bounce.test.ts).
-          const hadPriorSession = getCachedUser() !== null;
+                    markNoSession();
+const hadPriorSession = getCachedUser() !== null;
           // Wipe any stale cached user so ProtectedRoute kicks in before API
           // calls hit the page and show 401 error banners.
           resetAuthState();
@@ -201,7 +202,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     const token = getAccessToken();
 
     if (!token) {
-      setUser(null);
+            markNoSession();
+setUser(null);
       setAuthToken(null);
       localStorage.removeItem('auth_user');
       setIsLoaded(true);

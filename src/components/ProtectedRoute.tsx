@@ -45,11 +45,19 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   /* And for the account's dictionary: a page in the wrong language for a frame is the
      "greeted in English on a Portuguese account" bug again (M3-2, 2026-09-19). */
   const dictionaryReady = useDictReady(langOf(user));
-  if (!isLoaded || !dictionaryReady) {
+  const inMoney = location.pathname === '/money' || location.pathname.startsWith('/money/');
+  /* Money paints before the verify lands for a person this browser already knows (the cached
+     user from an earlier session): the page mounts from its kept snapshot and its reads wait
+     for the token (accessTokenReady). Verify still runs; if it fails, `user` is cleared and
+     the redirect below happens, and a refresh that fails sends the person to sign in itself.
+     This is what the verify round trip cost Today on every load (M2-A, 2026-09-22). */
+  const paintsEarly = !isLoaded && inMoney && user != null;
+  if ((!isLoaded && !paintsEarly) || !dictionaryReady) {
     return (
       <Wait />
     );
   }
+  if (paintsEarly) return <>{children}</>;
 
   // Auth is loaded - now we can make a decision
   if (isSignedIn) {
@@ -73,7 +81,6 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
     /* Money is the product (2026-09-19). A new person who lands anywhere else is sent to
        /money, which carries its own onboarding; the soul-signature flow stays reachable at
        its own addresses for whoever goes there on purpose, and is never the front door. */
-    const inMoney = location.pathname === '/money' || location.pathname.startsWith('/money/');
     if (needsOnboarding && !inMoney && location.pathname !== '/soul-reveal' && location.pathname !== '/onboarding/wow') {
       return <Navigate to="/money" replace />;
     }
