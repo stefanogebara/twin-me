@@ -14,9 +14,11 @@ const ROOT = new URL('../../', import.meta.url).pathname;
 const config = JSON.parse(fs.readFileSync(`${ROOT}vercel.json`, 'utf8'));
 
 /** Exit 0 skips the build; exit 1 builds it. */
-const run = (ref) => {
+const run = (ref, range = 'HEAD HEAD') => {
   try {
-    const out = execFileSync('bash', ['scripts/ci/vercel-ignore.sh'], { cwd: ROOT, encoding: 'utf8', env: { ...process.env, VERCEL_GIT_COMMIT_REF: ref } });
+    /* An empty range by default, so the answer does not depend on what this tree's last
+       commit happened to touch; a test that wants a real diff passes one. */
+    const out = execFileSync('bash', ['scripts/ci/vercel-ignore.sh'], { cwd: ROOT, encoding: 'utf8', env: { ...process.env, VERCEL_GIT_COMMIT_REF: ref, VERCEL_IGNORE_RANGE: range } });
     return { code: 0, out: out.trim() };
   } catch (e) { return { code: e.status, out: String(e.stdout || '').trim() }; }
 };
@@ -38,9 +40,17 @@ describe('what Vercel builds', () => {
     expect(run('bisect/anything').out).toMatch(/deployment experiment/);
   });
 
-  it('builds main, because this working tree carries code', () => {
-    /* The suite runs on a branch whose diff against its parent touches code. */
-    expect(run('main').code).toBe(1);
+  it('builds main when the range touches code, and skips it when the range is empty', () => {
+    expect(run('main', 'HEAD HEAD')).toMatchObject({ code: 0 });
+    expect(run('main', 'HEAD HEAD').out).toMatch(/only docs, tests or workflows/);
+  });
+
+  it('builds a branch whose change touches the money pages, so the rendered page can be walked', () => {
+    /* A commit on this repository known to touch src/pages/money: the term strip (#490). */
+    const strip = execFileSync('git', ['log', '--format=%H', '-1', '--', 'src/pages/money/views/plan/TermStrip.tsx'], { cwd: ROOT, encoding: 'utf8' }).trim();
+    const got = run('claude/anything', `${strip}^ ${strip}`);
+    expect(got).toMatchObject({ code: 1 });
+    expect(got.out).toMatch(/changes the money pages/);
   });
 
   it('is executable and says which way it went', () => {

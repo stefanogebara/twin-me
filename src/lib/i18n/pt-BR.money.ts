@@ -5,6 +5,7 @@ export const PT_BR_MONEY: Record<string, string> = {
   "It gives your answers work context. A payment still needs your explanation to count as work.": "Dá contexto do seu trabalho. Para considerar um pagamento como profissional, você precisa explicá-lo.",
   "Open conversation": "Abrir conversa",
   "Over your budget": "Acima do seu orçamento",
+  "Safe to spend today": "Para gastar hoje",
   "Today's estimate": "Estimativa para hoje",
   "Bank account": "Conta bancária",
   "Card ending {last4}": "Cartão com final {last4}",
