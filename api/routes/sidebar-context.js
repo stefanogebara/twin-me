@@ -7,7 +7,7 @@
  */
 
 import express from 'express';
-import { google } from 'googleapis';
+import { calendarClient, gmailClient } from '../services/google/api.js';
 import { authenticateUser } from '../middleware/auth.js';
 import { getValidAccessToken as getCentralizedToken } from '../services/tokenRefreshService.js';
 import { get as cacheGet, set as cacheSet } from '../services/redisClient.js';
@@ -26,9 +26,7 @@ async function fetchTodayEvents(userId) {
   const tokenResult = await getCentralizedToken(userId, 'google_calendar');
   if (!tokenResult.success) return null;
 
-  const auth = new google.auth.OAuth2();
-  auth.setCredentials({ access_token: tokenResult.accessToken });
-  const calendar = google.calendar({ version: 'v3', auth });
+  const calendar = calendarClient(tokenResult.accessToken);
 
   const now = new Date();
   const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
@@ -78,9 +76,7 @@ async function fetchRecentEmails(userId) {
   const tokenResult = await getCentralizedToken(userId, 'google_calendar');
   if (!tokenResult.success) return null;
 
-  const auth = new google.auth.OAuth2();
-  auth.setCredentials({ access_token: tokenResult.accessToken });
-  const gmail = google.gmail({ version: 'v1', auth });
+  const gmail = gmailClient(tokenResult.accessToken);
 
   // List the 5 most recent messages in INBOX
   const listRes = await gmail.users.messages.list({

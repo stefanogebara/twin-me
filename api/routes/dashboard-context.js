@@ -13,7 +13,7 @@
  */
 
 import express from 'express';
-import { google } from 'googleapis';
+import { calendarClient } from '../services/google/api.js';
 import { supabaseAdmin } from '../services/database.js';
 import { authenticateUser } from '../middleware/auth.js';
 import { get as cacheGet, set as cacheSet, CACHE_TTL, CACHE_KEYS } from '../services/redisClient.js';
@@ -121,9 +121,7 @@ async function fetchNextEvents(userId) {
   const tokenResult = await getCentralizedToken(userId, 'google_calendar');
   if (!tokenResult.success) return null;
 
-  const auth = new google.auth.OAuth2();
-  auth.setCredentials({ access_token: tokenResult.accessToken });
-  const calendar = google.calendar({ version: 'v3', auth });
+  const calendar = calendarClient(tokenResult.accessToken);
 
   const now = new Date();
   const endOfTomorrow = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 2);

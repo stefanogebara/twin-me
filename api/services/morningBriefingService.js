@@ -217,10 +217,8 @@ async function fetchTodayCalendarEvents(userId) {
     const tokenResult = await getValidAccessToken(userId, 'google_calendar');
     if (!tokenResult.success || !tokenResult.accessToken) return [];
 
-    const { google } = await import('googleapis');
-    const auth = new google.auth.OAuth2();
-    auth.setCredentials({ access_token: tokenResult.accessToken });
-    const calendar = google.calendar({ version: 'v3', auth });
+    const { calendarClient } = await import('./google/api.js');
+    const calendar = calendarClient(tokenResult.accessToken);
 
     const now = new Date();
     const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());

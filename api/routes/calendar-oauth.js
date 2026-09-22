@@ -9,7 +9,7 @@
  */
 
 import express from 'express';
-import { google } from 'googleapis';
+import { calendarClient } from '../services/google/api.js';
 import { supabaseAdmin } from '../services/database.js';
 import { authenticateUser } from '../middleware/auth.js';
 import { decryptToken, encryptToken, encryptState } from '../services/encryption.js';
@@ -205,10 +205,7 @@ router.get('/events', authenticateUser, async (req, res) => {
     }
 
     // Initialize Google Calendar API client
-    const auth = new google.auth.OAuth2();
-    auth.setCredentials({ access_token: accessToken });
-
-    const calendar = google.calendar({ version: 'v3', auth });
+    const calendar = calendarClient(accessToken);
 
     // Calculate time range: now to end of tomorrow
     const now = new Date();
@@ -407,10 +404,7 @@ router.post('/sync', authenticateUser, async (req, res) => {
     }
 
     // Initialize Google Calendar API client
-    const auth = new google.auth.OAuth2();
-    auth.setCredentials({ access_token: accessToken });
-
-    const calendar = google.calendar({ version: 'v3', auth });
+    const calendar = calendarClient(accessToken);
 
     // Calculate time range
     const now = new Date();

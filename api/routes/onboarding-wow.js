@@ -12,7 +12,7 @@
  * always moves forward.
  */
 import express from 'express';
-import { google } from 'googleapis';
+import { gmailClient } from '../services/google/api.js';
 import { authenticateUser } from '../middleware/auth.js';
 import { getValidAccessToken as getGoogleToken } from '../services/tokenRefreshService.js';
 import { generateWowDrafts, buildVoiceRead } from '../services/onboardingWow.js';
@@ -32,9 +32,7 @@ async function fetchInboxThreads(userId) {
   const token = await getGoogleToken(userId, 'google_calendar'); // Gmail shares the Google token
   if (!token?.success || !token.accessToken) return [];
 
-  const auth = new google.auth.OAuth2();
-  auth.setCredentials({ access_token: token.accessToken });
-  const gmail = google.gmail({ version: 'v1', auth });
+  const gmail = gmailClient(token.accessToken);
 
   const list = await gmail.users.messages.list({
     userId: 'me',
