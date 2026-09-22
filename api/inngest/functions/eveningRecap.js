@@ -12,7 +12,8 @@
  * Cost: ~$0.0003 per trigger (one TIER_ANALYSIS LLM call)
  */
 
-import { inngest, EVENTS } from '../../services/inngestClient.js';
+import { EVENTS } from '../../services/inngestClient.js';
+import { createTwinFunction } from '../twinFunction.js';
 import { complete, TIER_ANALYSIS } from '../../services/llmGateway.js';
 import { getBlocks } from '../../services/coreMemoryService.js';
 import { getAutonomyBySkillName, logAgentAction } from '../../services/autonomyService.js';
@@ -25,7 +26,7 @@ const log = createLogger('EveningRecap');
 
 const COOLDOWN_HOURS = 18; // Once per day max
 
-export const eveningRecapFunction = inngest.createFunction(
+export const eveningRecapFunction = createTwinFunction(
   {
     id: 'evening-recap',
     name: 'Daily Evening Recap',

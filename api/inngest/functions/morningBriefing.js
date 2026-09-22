@@ -11,7 +11,8 @@
  * Phase 2 will add: WhatsApp delivery, Telegram delivery, push notifications.
  */
 
-import { inngest, EVENTS } from '../../services/inngestClient.js';
+import { EVENTS } from '../../services/inngestClient.js';
+import { createTwinFunction } from '../twinFunction.js';
 import { complete, TIER_ANALYSIS } from '../../services/llmGateway.js';
 import { getBlocks } from '../../services/coreMemoryService.js';
 import { supabaseAdmin } from '../../services/database.js';
@@ -21,7 +22,7 @@ import { createLogger } from '../../services/logger.js';
 
 const log = createLogger('MorningBriefing');
 
-export const morningBriefingFunction = inngest.createFunction(
+export const morningBriefingFunction = createTwinFunction(
   {
     id: 'morning-briefing',
     name: 'Daily Morning Briefing',

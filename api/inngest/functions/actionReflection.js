@@ -21,7 +21,8 @@
  * Cron: daily 5am UTC
  */
 
-import { inngest, EVENTS } from '../../services/inngestClient.js';
+import { EVENTS } from '../../services/inngestClient.js';
+import { createTwinFunction } from '../twinFunction.js';
 import { complete, TIER_EXTRACTION } from '../../services/llmGateway.js';
 import { addMemory } from '../../services/memoryStreamService.js';
 import { storeProcedure } from '../../services/proceduralMemoryService.js';
@@ -38,7 +39,7 @@ const ACCEPTANCE_DOWNGRADE_THRESHOLD = 0.2;
 const LOOKBACK_DAYS = 7;
 const AUTONOMY_LOOKBACK_DAYS = 14;
 
-export const actionReflectionFunction = inngest.createFunction(
+export const actionReflectionFunction = createTwinFunction(
   { id: 'action-reflection', name: 'Action Reflection Engine', retries: 1, concurrency: { limit: 1, key: 'event.data.userId' }, triggers: [{ event: EVENTS.ACTION_REFLECTION }] },
   async ({ event, step }) => {
     const { userId } = event.data;

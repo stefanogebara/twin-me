@@ -16,7 +16,8 @@
  * Schedule: Weekly (triggered by cron, Sundays 3am UTC)
  */
 
-import { inngest, EVENTS } from '../../services/inngestClient.js';
+import { EVENTS } from '../../services/inngestClient.js';
+import { createTwinFunction } from '../twinFunction.js';
 import { getBlocks } from '../../services/coreMemoryService.js';
 import { generateEmbedding } from '../../services/embeddingService.js';
 import { supabaseAdmin } from '../../services/database.js';
@@ -51,7 +52,7 @@ function cosineSimilarity(a, b) {
   return dotProduct / denominator;
 }
 
-export const personalityValidationFunction = inngest.createFunction(
+export const personalityValidationFunction = createTwinFunction(
   {
     id: 'personality-validation',
     name: 'Personality Anchor Validation',
