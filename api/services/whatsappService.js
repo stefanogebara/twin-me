@@ -1,22 +1,20 @@
 /**
- * WhatsApp Service — Kapso.ai SDK with Meta Cloud API Fallback
+ * WhatsApp Service — Kapso.ai SDK
  * ==============================================================
- * Uses kapso.ai WhatsApp API (cheaper, better DX, WhatsApp Flows)
- * with automatic fallback to direct Meta Cloud API if Kapso is
- * not configured.
+ * Sends via kapso.ai's WhatsApp Cloud API proxy (cheaper, better DX,
+ * WhatsApp Flows). Z-API and Evolution remain as separate self-hosted/
+ * unofficial providers for numbers outside the Kapso WABA (see USE_ZAPI /
+ * USE_EVOLUTION below). The direct Meta Cloud API fallback was removed
+ * 2026-09-22: it never had a working access token (invalidated by a
+ * password change) and logged zero successful sends in whatsapp_outbound_log.
  *
  * Kapso env vars:
  *   KAPSO_API_KEY — kapso.ai API key
  *   KAPSO_PHONE_NUMBER_ID — WhatsApp phone number ID on Kapso
- *
- * Fallback env vars (direct Meta Cloud API):
- *   TWINME_WHATSAPP_PHONE_NUMBER_ID
- *   TWINME_WHATSAPP_ACCESS_TOKEN
- *   TWINME_WHATSAPP_VERIFY_TOKEN
- *   TWINME_WHATSAPP_WEBHOOK_SECRET
+ *   KAPSO_WEBHOOK_SECRET — inbound webhook HMAC secret (verified in
+ *     api/routes/whatsapp-kapso-webhook.js, not in this file)
  */
 
-import crypto from 'crypto';
 import axios from 'axios';
 import { createLogger } from './logger.js';
 import { supabaseAdmin } from '../config/supabase.js';
@@ -42,7 +40,6 @@ async function logOutbound(row) {
   }
 }
 
-const GRAPH_API_VERSION = 'v21.0';
 const USE_KAPSO = !!process.env.KAPSO_API_KEY;
 
 // Z-API (unofficial WhatsApp-Web HTTP API) — the active provider for the
@@ -253,7 +250,7 @@ function providerConfigured(name) {
 }
 
 /**
- * Send a text message via WhatsApp (Kapso or Meta Cloud API fallback).
+ * Send a text message via WhatsApp (Z-API, Evolution, or Kapso — priority chain below).
  *
  * SAFETY: When TWINME_DISABLE_OUTBOUND_SEND=true, returns a no-op success.
  * Set this in any test environment that fires real webhook payloads —
@@ -306,7 +303,7 @@ export async function sendWhatsAppMessage(recipientPhone, text, opts = {}) {
   // delivered). .trim() guards a pasted trailing newline in the env var.
   if (USE_KAPSO) {
     const apiKey = process.env.KAPSO_API_KEY?.trim();
-    const phoneNumberId = process.env.KAPSO_PHONE_NUMBER_ID || process.env.TWINME_WHATSAPP_PHONE_NUMBER_ID;
+    const phoneNumberId = process.env.KAPSO_PHONE_NUMBER_ID;
 
     if (apiKey && phoneNumberId) {
       try {
@@ -342,7 +339,7 @@ export async function sendWhatsAppMessage(recipientPhone, text, opts = {}) {
         return { success: true, messageId: data?.messages?.[0]?.id, provider: 'kapso' };
       } catch (err) {
         const errMsg = err.response?.data?.error?.message || err.response?.data?.error || err.message;
-        log.warn('Kapso send failed, falling back to Meta Cloud API', {
+        log.error('Kapso send failed', {
           error: errMsg,
           status: err.response?.status,
           body: err.response?.data,
@@ -358,86 +355,14 @@ export async function sendWhatsAppMessage(recipientPhone, text, opts = {}) {
           http_status: err.response?.status || null,
           raw_error: err.response?.data || null,
         });
-        // Fall through to Meta Cloud API
+        return { success: false, error: errMsg };
       }
     }
   }
 
-  // Fallback: direct Meta Cloud API
-  const phoneNumberId = process.env.TWINME_WHATSAPP_PHONE_NUMBER_ID;
-  const accessToken = process.env.TWINME_WHATSAPP_ACCESS_TOKEN;
-
-  if (!phoneNumberId || !accessToken) {
-    log.warn('WhatsApp not configured — no Kapso API key and no Meta Cloud API env vars');
-    return { success: false, error: 'whatsapp_not_configured' };
-  }
-
-  log.info('WhatsApp send entry', {
-    recipientPhone,
-    recipientStartsWithPlus: recipientPhone?.startsWith?.('+'),
-    recipientLen: recipientPhone?.length,
-    textLen: text?.length,
-    useKapso: USE_KAPSO,
-    phoneIdSuffix: phoneNumberId?.slice(-6),
-    accessTokenLen: accessToken?.length || 0,
-  });
-
-  try {
-    const url = `https://graph.facebook.com/${GRAPH_API_VERSION}/${phoneNumberId}/messages`;
-    const { data, status } = await axios.post(url, {
-      messaging_product: 'whatsapp',
-      to: recipientPhone,
-      type: 'text',
-      text: { body: text },
-    }, {
-      headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
-    });
-
-    // audit-2026-05-27: diagnose the silent-no-delivery case. Meta returns
-    // 200 with messages[0].id but the recipient sees nothing — often a
-    // 24h-customer-window or wrong-phone_number_id problem. Surfacing the
-    // full response lets us see Meta's own status hints (e.g. warning,
-    // message_status, contacts.input vs contacts.wa_id mismatch).
-    log.info('WhatsApp Meta send response', {
-      httpStatus: status,
-      messages: data?.messages,
-      contacts: data?.contacts,
-    });
-    logOutbound({
-      recipient: recipientPhone,
-      recipient_input: recipientPhone,
-      text_preview: text?.slice(0, 120) || null,
-      text_len: text?.length || 0,
-      provider: 'meta',
-      success: true,
-      message_id: data?.messages?.[0]?.id || null,
-      wa_id: data?.contacts?.[0]?.wa_id || null,
-      http_status: status,
-      raw_response: data || null,
-    });
-
-    return { success: true, messageId: data.messages?.[0]?.id, provider: 'meta' };
-  } catch (err) {
-    const errMsg = err.response?.data?.error?.message || err.message;
-    log.error('Failed to send WhatsApp message', {
-      recipientPhone,
-      error: errMsg,
-      metaError: err.response?.data?.error,
-      httpStatus: err.response?.status,
-    });
-    logOutbound({
-      recipient: recipientPhone,
-      recipient_input: recipientPhone,
-      text_preview: text?.slice(0, 120) || null,
-      text_len: text?.length || 0,
-      provider: 'meta',
-      success: false,
-      error_message: errMsg,
-      http_status: err.response?.status || null,
-      raw_error: err.response?.data || null,
-    });
-    return { success: false, error: errMsg };
-  }
+  // No provider configured (or Kapso configured without a phone number id).
+  log.warn('WhatsApp not configured — no Z-API, Evolution, or Kapso env vars set');
+  return { success: false, error: 'whatsapp_not_configured' };
 }
 
 /**
@@ -469,7 +394,7 @@ export async function sendWhatsAppCtaButton(recipientPhone, { body, buttonText, 
     return linkFallback();
   }
   const apiKey = process.env.KAPSO_API_KEY?.trim();
-  const phoneNumberId = process.env.KAPSO_PHONE_NUMBER_ID || process.env.TWINME_WHATSAPP_PHONE_NUMBER_ID;
+  const phoneNumberId = process.env.KAPSO_PHONE_NUMBER_ID;
   if (!apiKey || !phoneNumberId) return linkFallback();
 
   try {
@@ -535,7 +460,7 @@ export async function sendWhatsAppList(recipientPhone, { body, buttonText, secti
 
   if (!USE_KAPSO) return textFallback();
   const apiKey = process.env.KAPSO_API_KEY?.trim();
-  const phoneNumberId = process.env.KAPSO_PHONE_NUMBER_ID || process.env.TWINME_WHATSAPP_PHONE_NUMBER_ID;
+  const phoneNumberId = process.env.KAPSO_PHONE_NUMBER_ID;
   if (!apiKey || !phoneNumberId) return textFallback();
 
   try {
@@ -595,7 +520,7 @@ export async function sendWhatsAppButtons(recipientPhone, { body, buttons } = {}
 
   if (!USE_KAPSO) return textFallback();
   const apiKey = process.env.KAPSO_API_KEY?.trim();
-  const phoneNumberId = process.env.KAPSO_PHONE_NUMBER_ID || process.env.TWINME_WHATSAPP_PHONE_NUMBER_ID;
+  const phoneNumberId = process.env.KAPSO_PHONE_NUMBER_ID;
   if (!apiKey || !phoneNumberId || !(buttons || []).length) return textFallback();
 
   try {
@@ -720,7 +645,7 @@ export async function sendWhatsAppTemplate(recipientPhone, templateName, languag
   }
 
   const client = await getKapsoClient();
-  const phoneNumberId = process.env.KAPSO_PHONE_NUMBER_ID || process.env.TWINME_WHATSAPP_PHONE_NUMBER_ID;
+  const phoneNumberId = process.env.KAPSO_PHONE_NUMBER_ID;
   if (!client || !phoneNumberId) {
     return { success: false, error: 'kapso_client_unavailable' };
   }
@@ -819,7 +744,7 @@ export async function downloadWhatsAppMedia(mediaId) {
   }
 
   if (!USE_KAPSO) {
-    log.warn('downloadWhatsAppMedia: Kapso not configured (no Meta-direct fallback implemented)');
+    log.warn('downloadWhatsAppMedia: Kapso not configured');
     return null;
   }
   try {
@@ -828,7 +753,7 @@ export async function downloadWhatsAppMedia(mediaId) {
       log.warn('downloadWhatsAppMedia: Kapso client has no media.download');
       return null;
     }
-    const phoneNumberId = process.env.KAPSO_PHONE_NUMBER_ID || process.env.TWINME_WHATSAPP_PHONE_NUMBER_ID;
+    const phoneNumberId = process.env.KAPSO_PHONE_NUMBER_ID;
     const buf = await client.media.download({ mediaId, phoneNumberId, as: 'arrayBuffer' });
     const buffer = Buffer.from(buf);
     if (buffer.length > MAX_MEDIA_BYTES) {
@@ -852,48 +777,15 @@ export async function downloadWhatsAppMedia(mediaId) {
 export async function markMessageAsRead(messageId) {
   if (process.env.TWINME_DISABLE_OUTBOUND_SEND === 'true') return;
   if (!messageId) return;
-
-  if (USE_KAPSO) {
-    try {
-      const client = await getKapsoClient();
-      const phoneNumberId = process.env.KAPSO_PHONE_NUMBER_ID || process.env.TWINME_WHATSAPP_PHONE_NUMBER_ID;
-      if (client?.messages?.markRead && phoneNumberId) {
-        await client.messages.markRead({ phoneNumberId, messageId });
-        return;
-      }
-    } catch {
-      // fall through to Meta direct
-    }
-  }
-
-  const phoneNumberId = process.env.TWINME_WHATSAPP_PHONE_NUMBER_ID;
-  const accessToken = process.env.TWINME_WHATSAPP_ACCESS_TOKEN;
-  if (!phoneNumberId || !accessToken) return;
+  if (!USE_KAPSO) return;
 
   try {
-    await axios.post(
-      `https://graph.facebook.com/${GRAPH_API_VERSION}/${phoneNumberId}/messages`,
-      { messaging_product: 'whatsapp', status: 'read', message_id: messageId },
-      { headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' }, timeout: 3000 }
-    );
+    const client = await getKapsoClient();
+    const phoneNumberId = process.env.KAPSO_PHONE_NUMBER_ID;
+    if (client?.messages?.markRead && phoneNumberId) {
+      await client.messages.markRead({ phoneNumberId, messageId });
+    }
   } catch {
     // Non-fatal
   }
-}
-
-/**
- * Verify Meta webhook signature (SHA256 HMAC).
- */
-export function verifyWebhookSignature(signature, rawBody) {
-  const secret = process.env.TWINME_WHATSAPP_WEBHOOK_SECRET;
-  if (!secret || !signature) return false;
-
-  const expected = crypto.createHmac('sha256', secret).update(rawBody).digest('hex');
-  const sigHash = signature.replace('sha256=', '');
-
-  const sigBuf = Buffer.from(sigHash);
-  const expBuf = Buffer.from(expected);
-  if (sigBuf.length !== expBuf.length) return false;
-
-  return crypto.timingSafeEqual(sigBuf, expBuf);
 }

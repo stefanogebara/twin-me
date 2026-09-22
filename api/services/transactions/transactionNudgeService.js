@@ -36,7 +36,7 @@ import { createLogger } from '../logger.js';
 
 const log = createLogger('tx-nudge');
 
-// Mirror of the audit-table writer in whatsapp-twinme-webhook.js. Inlined
+// Mirror of the audit-table writer in whatsappInboundPipeline.js. Inlined
 // rather than imported because that file owns webhook routing + we want to
 // keep the dependency direction one-way (transactions don't depend on
 // webhook code). Hash truncated SHA-256 of the merchant message — never
@@ -201,7 +201,7 @@ export async function maybeNudgeForTransactions(userId, transactionIds) {
         .eq('user_id', userId).eq('channel', 'whatsapp').maybeSingle(),
     ]);
 
-    // Mirror the gates in whatsapp-twinme-webhook.js — same product surface,
+    // Mirror the gates in whatsappInboundPipeline.js — same product surface,
     // same controls. Without these, the env kill switch only stops webhook
     // traffic and the per-user opt-out is silently ignored on tx-driven path.
     const purchaseMsg = `${merchant} (${amount})`;

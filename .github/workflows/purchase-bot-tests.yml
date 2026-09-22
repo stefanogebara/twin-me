@@ -7,8 +7,11 @@ name: Purchase Bot Unit Tests
 #   2. tests/unit/purchase-bot-logic.test.js — pure-function tests for
 #      timezone/moment classification, intent regex, language detection.
 #
-# E2E suites (purchase-bot-e2e + purchase-bot-c8-prod-e2e) need either a
-# live local backend or production webhook secrets — those run manually.
+# E2E coverage of this flow used to live in purchase-bot-e2e + purchase-bot-c8-*
+# specs, which hit the Meta-direct webhook. That webhook was removed 2026-09-22
+# (dead code — 0 successful sends in 120 days, WhatsApp is Kapso-only now) and
+# those specs went with it. There is no live-backend E2E suite for this flow
+# today; it runs (Kapso-routed) through whatsappInboundPipeline.js instead.
 
 on:
   push:
@@ -21,7 +24,7 @@ on:
       - 'api/services/githubExtraction.js'
       - 'api/services/observationFetchers/calendar.js'
       - 'api/services/extractionOrchestrator.js'
-      - 'api/routes/whatsapp-twinme-webhook.js'
+      - 'api/services/whatsappInboundPipeline.js'
       - 'tests/unit/extractor-upsert-regression.test.js'
       - 'tests/unit/purchase-bot-logic.test.js'
       - '.github/workflows/purchase-bot-tests.yml'
@@ -34,7 +37,7 @@ on:
       - 'api/services/githubExtraction.js'
       - 'api/services/observationFetchers/calendar.js'
       - 'api/services/extractionOrchestrator.js'
-      - 'api/routes/whatsapp-twinme-webhook.js'
+      - 'api/services/whatsappInboundPipeline.js'
       - 'tests/unit/extractor-upsert-regression.test.js'
       - 'tests/unit/purchase-bot-logic.test.js'
   workflow_dispatch:
