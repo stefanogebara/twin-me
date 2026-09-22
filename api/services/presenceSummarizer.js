@@ -8,9 +8,10 @@
  * through llmGateway (analysis tier). Reads and writes through presenceStore.
  */
 
-import { saveConversationSummary, addFacts, recordElderAssent, saveFact } from './presenceStore.js';
+import { saveConversationSummary, addFacts, recordElderAssent, saveFact, listActivePeople } from './presenceStore.js';
 import { createLogger } from './logger.js';
 import { distressTripwire } from './presenceTripwire.js';
+import { escalationInstruction } from './presenceAutonomy.js';
 
 const log = createLogger('PresenceSummarizer');
 
@@ -21,6 +22,51 @@ export const PREFERRED_NAME_QUESTION = 'Como ela gosta de ser chamada';
 const BASE_FIELDS = '{"summary": "2-3 warm, specific sentences em português do Brasil about how she was and what she shared", "her_recap": "ONE short warm sentence addressed to HER, in the same language she spoke, naming what you talked about — e.g. "Falamos do seu passeio e do kebab em Madri." Never mention worries, health, or anything you are reporting to her family.", "needs_family": ["each item that needs a real person, em português do Brasil; empty array if none"], "urgency": "high if she mentioned pain, a fall, being unwell, confusion, or asked for help; otherwise normal", "learned_facts": [{"question": "short topic label, em português do Brasil", "answer": "one specific autobiographical fact SHE stated about her own life, em português do Brasil, worth remembering for future conversations"}], "unknown_people": ["names of people she mentioned whose relationship to her is unclear from the conversation"]';
 
 const FIRST_CALL_FIELDS = ', "assent": "yes if she clearly agreed to talk with the presence again; no if she declined; unclear otherwise", "preferred_name": "what she said she likes to be called, or empty", "preferred_time": "the time of day she said is good to call, in her words, or empty"';
+
+/**
+ * She calls people by the names she has always used — "a Rê", "o tio Zé", "a
+ * dona Cida" — while the map holds Renata, José, Aparecida. Comparing the two
+ * needs the honorific and the accents gone, or every call files a familiar
+ * person as a stranger and the family gets the same question card forever.
+ */
+const HONORIFICS = /^(a|o|as|os|seu|sr|sra|senhor|senhora|dona|dom|tia|tio|vo|vov|vovo|vovô|vovó|prima|primo|meu|minha)\s+/;
+
+function nameKey(value) {
+  let key = String(value || '')
+    .normalize('NFD').replace(/\p{Diacritic}/gu, '')
+    .toLowerCase().replace(/[^a-z0-9\s]/g, ' ').replace(/\s+/g, ' ').trim();
+  let stripped = true;
+  while (stripped) {
+    const next = key.replace(HONORIFICS, '');
+    stripped = next !== key;
+    key = next;
+  }
+  return key;
+}
+
+/** Every way the family map lets her name one of its people. */
+function knownNameKeys(people) {
+  const keys = new Set();
+  for (const person of people) {
+    for (const value of [person.name, person.called_by]) {
+      const key = nameKey(value);
+      if (!key) continue;
+      keys.add(key);
+      // "tio Zé" also answers to "Zé"; a first name also answers on its own.
+      for (const word of key.split(' ')) if (word.length > 2) keys.add(word);
+    }
+  }
+  return keys;
+}
+
+/** The map as the summarizer reads it, or '' when there is nobody on it. */
+function familyMapForPrompt(people) {
+  if (people.length === 0) return '';
+  const lines = people
+    .map((p) => `- ${p.name}${p.relation ? ` (${p.relation})` : ''}${p.called_by ? `, que ela chama de "${p.called_by}"` : ''}`)
+    .join('\n');
+  return `\nThe family map — these people are KNOWN. Never list any of them in unknown_people, however she said the name (a nickname, an honorific such as "tia" or "dona", or a first name alone):\n${lines}\n`;
+}
 
 /**
  * @param {string} conversationId
@@ -41,6 +87,12 @@ export async function summarizeConversation(conversationId, presence, transcript
   const { complete, TIER_ANALYSIS } = await import('./llmGateway.js');
   const caredFor = presence.cared_for_name?.trim() || 'She';
 
+  // A failed read is logged, not thrown: the summary matters more than the
+  // matching, and an unfiltered ask card is recoverable where a lost call is not.
+  const { data: peopleRows, error: peopleError } = await listActivePeople(presence.id);
+  if (peopleError) log.error('Family map not read; people she named may become ask cards again', { presenceId: presence.id, error: peopleError.message });
+  const people = peopleRows || [];
+
   const text = transcript
     .map((t) => `${t.role === 'user' ? caredFor : 'AI presence'}: ${t.content}`)
     .join('\n')
@@ -52,14 +104,11 @@ export async function summarizeConversation(conversationId, presence, transcript
     userId: presence.owner_user_id,
     system: `You process a voice conversation between an older adult and her family's AI presence. The family is Brazilian: everything they read must be em português do Brasil. Reply with STRICT JSON only: ${BASE_FIELDS}${firstCall ? FIRST_CALL_FIELDS : ''}}.
 
-needs_family must include, in plain family-facing language:
-- any request, question or practical need she raised;
-- any health mention, pain, worry or confusion;
-- emotional withdrawal: if she went quiet, gave one-word answers, or ended the conversation shortly after a specific topic, say so and name the topic. A family wants to know this more than anything else in the call. Report it even when nothing was explicitly asked of them.
+${escalationInstruction(presence.autonomy_escalation)}
 
 Every needs_family entry is a plain sentence a family member reads on their phone. Never prefix a category label; never use capitals for emphasis. Write "Ela ficou quieta depois que a Presença falou da comida da mãe dela, e não falou mais." — not "RETRAIMENTO EMOCIONAL: ..."
 ${firstCall ? '\nThis was her FIRST call: the presence introduced itself and asked whether it may talk with her again. Report her answer in "assent" exactly as she gave it; never assume a yes.\n' : ''}
-Max 6 learned_facts, max 3 unknown_people. Never invent content not in the transcript.`,
+${familyMapForPrompt(people)}\nMax 6 learned_facts, max 3 unknown_people. Never invent content not in the transcript.`,
     messages: [{ role: 'user', content: text }],
     maxTokens: 450,
     temperature: 0.3,
@@ -81,7 +130,10 @@ Max 6 learned_facts, max 3 unknown_people. Never invent content not in the trans
     needsFamily = Array.isArray(parsed.needs_family) ? parsed.needs_family.map((s) => String(s).slice(0, 500)).slice(0, 10) : [];
     urgency = parsed.urgency === 'high' ? 'high' : 'normal';
     learnedFacts = Array.isArray(parsed.learned_facts) ? parsed.learned_facts.slice(0, 6) : [];
-    unknownPeople = Array.isArray(parsed.unknown_people) ? parsed.unknown_people.map((s) => String(s).slice(0, 80)).slice(0, 3) : [];
+    const known = knownNameKeys(people);
+    unknownPeople = Array.isArray(parsed.unknown_people)
+      ? parsed.unknown_people.map((s) => String(s).slice(0, 80)).filter((name) => { const key = nameKey(name); return key && !known.has(key); }).slice(0, 3)
+      : [];
     if (firstCall) {
       assent = ['yes', 'no', 'unclear'].includes(parsed.assent) ? parsed.assent : 'unclear';
       preferredName = String(parsed.preferred_name || '').trim().slice(0, 120);

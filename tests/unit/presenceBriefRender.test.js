@@ -70,7 +70,8 @@ describe('renderCallBrief', () => {
     expect(prompt).toMatch(/what she likes to be called/i);
     expect(prompt).not.toMatch(/NOTES FROM THE FAMILY/);
     expect(prompt).not.toMatch(/WHAT YOU REMEMBER FROM RECENT CONVERSATIONS/);
-    expect(firstMessage).toMatch(/uma inteligência artificial que Ana criou/);
+    expect(firstMessage).toMatch(/intelig[êe]ncia artificial/);
+    expect(firstMessage).toContain('Ana');
   });
 
   it('delivers family notes as coming from their author, never as its own words', () => {
@@ -123,5 +124,140 @@ describe('the emergency contact (Phase 2, T8)', () => {
   it('says nothing about it when no contact is set', () => {
     const { prompt } = renderCallBrief({ presence });
     expect(prompt).not.toMatch(/vou avisar/);
+  });
+});
+
+/**
+ * When she told us something matters as much as what she told us. An undated
+ * bullet is read as true now, so a cough from three weeks ago comes back as
+ * today's cough. Dates also let her hear "você me contou" instead of a fact
+ * asserted out of nowhere. (Instinct keeps its memory as dated bullets for the
+ * same reason; read 2026-09-21.)
+ */
+describe('facts carry the day she said them', () => {
+  const said = (answer, isoDay) => ({
+    kind: 'biography', question: 'O que ela contou', answer, confidence: 'committed', created_at: `${isoDay}T09:00:00.000Z`,
+  });
+
+  it('dates what she has told us, in Brazilian Portuguese', () => {
+    const { prompt } = renderCallBrief({
+      presence,
+      facts: [said('Está com uma tosse', '2026-09-01')],
+      now: new Date('2026-09-21T12:00:00.000Z'),
+    });
+    expect(prompt).toContain('Está com uma tosse (ela contou em 1 de setembro)');
+  });
+
+  it('says how long ago, so a three-week-old worry is not heard as today', () => {
+    const { prompt } = renderCallBrief({
+      presence,
+      facts: [said('Está com uma tosse', '2026-09-01')],
+      now: new Date('2026-09-21T12:00:00.000Z'),
+    });
+    expect(prompt).toMatch(/Nothing here is necessarily still true/i);
+    expect(prompt).toMatch(/never assert a dated fact as if it were today/i);
+  });
+
+  it('leaves the family-written anchors undated — nobody "contou" them on a call', () => {
+    const { prompt } = renderCallBrief({
+      presence,
+      facts: [{ kind: 'anchor', question: 'Um lugar', answer: 'Ubatuba', created_at: '2026-08-30T09:00:00.000Z' }],
+      now: new Date('2026-09-21T12:00:00.000Z'),
+    });
+    expect(prompt).toContain('Um lugar: Ubatuba');
+  });
+
+  it('renders a fact with no date exactly as before', () => {
+    const { prompt } = renderCallBrief({
+      presence,
+      facts: [{ kind: 'biography', question: 'O que ela contou', answer: 'Gosta de macarrão', confidence: 'committed' }],
+    });
+    expect(prompt).toContain('- Gosta de macarrão\n');
+    expect(prompt).not.toMatch(/Gosta de macarrão \(/);
+  });
+
+  it('dates the memories of recent conversations', () => {
+    const { prompt } = renderCallBrief({
+      presence,
+      recentConversations: [{ started_at: '2026-09-19T10:00:00.000Z', summary: 'Falamos do passeio dela.' }],
+      now: new Date('2026-09-21T12:00:00.000Z'),
+    });
+    expect(prompt).toContain('Falamos do passeio dela. (19 de setembro)');
+  });
+});
+
+/**
+ * Autonomy calibration reaches the call: whether the presence opens a worry it
+ * remembers, or waits for her. The rule about death and loss holds either way.
+ */
+describe('the family sets how much the presence does on its own', () => {
+  it('waits for her by default', () => {
+    const { prompt } = renderCallBrief({ presence });
+    expect(prompt).toMatch(/Do not raise it\. Wait for her to bring it up/);
+  });
+
+  it('may ask once when the family chose that', () => {
+    const { prompt } = renderCallBrief({ presence: { ...presence, autonomy_initiative: 'ask' } });
+    expect(prompt).toMatch(/you may ask ONCE, gently/);
+    expect(prompt).not.toMatch(/Do not raise it/);
+  });
+
+  it('never turns a death into a question, whichever the family chose', () => {
+    for (const autonomy_initiative of ['ask', 'wait']) {
+      const { prompt } = renderCallBrief({ presence: { ...presence, autonomy_initiative } });
+      expect(prompt).toMatch(/Never ask about someone who has died/);
+    }
+  });
+});
+
+/**
+ * Nobody says "como você está hoje?" to their grandmother. The register was
+ * written Portuguese — full sentences, no contractions, no particles — and no
+ * voice model rescues a sentence a person would not say out loud.
+ */
+describe('the Presence speaks, it does not read aloud', () => {
+  it('opens the way a person opens a phone call', () => {
+    const { firstMessage } = renderCallBrief({ presence });
+
+    expect(firstMessage).toContain('Sofia');
+    expect(firstMessage).toContain('Ana');
+    expect(firstMessage).not.toMatch(/Como você está hoje/);
+    expect(firstMessage).toMatch(/tudo bem|tudo bom/i);
+  });
+
+  it('still says plainly that it is an AI on the first call, in spoken words', () => {
+    const { firstMessage } = renderCallBrief({ presence, firstCall: true });
+
+    expect(firstMessage).toMatch(/intelig[êe]ncia artificial/i);
+    expect(firstMessage).not.toMatch(/Estou aqui para conversar/);
+  });
+
+  it('keeps the fallback greeting when no names are known', () => {
+    const { firstMessage } = renderCallBrief({ presence: { id: 'p2', cared_for_name: '', caller_name: '', tone: '' } });
+    expect(firstMessage).toMatch(/Oi, ela!/);
+  });
+
+  it('teaches the spoken register with the contractions people actually use', () => {
+    const { prompt } = renderCallBrief({ presence });
+
+    expect(prompt).toMatch(/COMO SE FALA/);
+    for (const word of ['cê', 'tá', 'tô', 'pra', 'né']) {
+      expect(prompt).toContain(word);
+    }
+  });
+
+  it('names the formal constructions to avoid, with a spoken replacement', () => {
+    const { prompt } = renderCallBrief({ presence });
+
+    expect(prompt).toMatch(/Como você está hoje/);          // quoted as the wrong way
+    expect(prompt).toMatch(/NUNCA|Nunca diga/);
+    expect(prompt).toMatch(/gostaria|Poderia/);
+  });
+
+  it('allows a fragment, and allows saying almost nothing', () => {
+    const { prompt } = renderCallBrief({ presence });
+
+    expect(prompt).toMatch(/pedaço de frase|frase pela metade|fragmento/i);
+    expect(prompt).toMatch(/"Ah, é\?"|"Que bom\."|"Hum-hum\."/);
   });
 });

@@ -630,6 +630,21 @@ button.pc-search-icons {
   align-items: start;
 }
 
+/* A focused page reached from a row — the voice setup — where a back link
+   stands in for the nav rail. One column, centred, same 820px measure.
+   Without this its content lands in the 200px sidebar track and reads one
+   word per line at full width (2026-09-21). */
+/* The back link that stands in for the nav rail, with the breathing room the
+   rail would otherwise have given the page title. */
+.presence-cosmos .pc-voice-back {
+  margin-bottom: 28px;
+}
+
+.presence-cosmos .pc-shell--single {
+  grid-template-columns: minmax(0, 820px);
+  justify-content: center;
+}
+
 .presence-cosmos .pc-side {
   position: sticky;
   top: 48px;
@@ -990,6 +1005,31 @@ select.pc-input {
   transform: translateY(-50%);
   pointer-events: none;
   color: var(--c-ink-2);
+}
+
+/* A select that is a row's one action: the button's 32 height, sized to its
+   own longest choice, so the row keeps its shape and the value stays read as
+   the row's current state. (Autonomy calibration, 2026-09-21.) */
+.presence-cosmos .pc-select--inrow {
+  display: inline-block;
+}
+
+.presence-cosmos .pc-input--inrow {
+  width: auto;
+  height: 32px;
+  padding: 0 34px 0 10px;
+  max-width: 248px;
+}
+
+.presence-cosmos .pc-select--inrow svg {
+  right: 10px;
+}
+
+@media (max-width: 767px) {
+  .presence-cosmos .pc-input--inrow {
+    max-width: 168px;
+    text-overflow: ellipsis;
+  }
 }
 
 /* ---- switch: a 44x26 pill, ink when on, a 20px page-colour knob ---- */

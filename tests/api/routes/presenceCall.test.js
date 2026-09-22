@@ -24,6 +24,7 @@ const { store, log, llm, brief, voiceService, relay } = vi.hoisted(() => ({
     saveConversationSummary: vi.fn(),
     addFacts: vi.fn(),
     recordElderAssent: vi.fn(),
+    listActivePeople: vi.fn(),
   },
   log: { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() },
   llm: { complete: vi.fn() },

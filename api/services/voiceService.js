@@ -10,6 +10,22 @@ const log = createLogger('Voice');
 // Load environment variables
 dotenv.config({ path: path.resolve(process.cwd(), '../.env') });
 
+
+/**
+ * What the file actually is. The browser records WebM/Opus and the recording was
+ * being handed to ElevenLabs labelled audio/mpeg — a container lie that the
+ * ingest has to guess its way out of. (2026-09-22, chasing a poor clone.)
+ */
+function audioTypeOf(filePath) {
+  const ext = path.extname(filePath).toLowerCase();
+  if (ext === '.webm') return 'audio/webm';
+  if (ext === '.ogg' || ext === '.oga') return 'audio/ogg';
+  if (ext === '.wav') return 'audio/wav';
+  if (ext === '.m4a' || ext === '.mp4') return 'audio/mp4';
+  if (ext === '.flac') return 'audio/flac';
+  return 'audio/mpeg';
+}
+
 class VoiceService {
   constructor() {
     this.apiKey = process.env.ELEVENLABS_API_KEY;
@@ -103,7 +119,12 @@ class VoiceService {
       stability = 0.5,
       similarity_boost = 0.8,
       style = 0.0,
-      use_speaker_boost = true
+      use_speaker_boost = true,
+      // eleven_multilingual_v2 stays the default so every existing caller is
+      // unchanged; the Presence voice preview passes a model to compare how a
+      // cloned voice survives each one (2026-09-21).
+      modelId = 'eleven_multilingual_v2',
+      speed,
     } = options;
 
     const selectedVoiceId = voiceId || this.defaultVoiceId;
@@ -115,12 +136,13 @@ class VoiceService {
           text: text,
           // eleven_monolingual_v1 was deprecated by ElevenLabs (400 unsupported_model,
           // caught in QA 2026-08-31). multilingual_v2 covers pt-BR for Presence calls.
-          model_id: 'eleven_multilingual_v2',
+          model_id: modelId,
           voice_settings: {
             stability,
             similarity_boost,
             style,
-            use_speaker_boost
+            use_speaker_boost,
+            ...(speed === undefined ? {} : { speed }),
           }
         },
         {
@@ -165,7 +187,7 @@ class VoiceService {
 
       formData.append('name', voiceName);
       formData.append('description', description);
-      formData.append('files', new Blob([audioData], { type: 'audio/mpeg' }), path.basename(audioFilePath));
+      formData.append('files', new Blob([audioData], { type: audioTypeOf(audioFilePath) }), path.basename(audioFilePath));
 
       const response = await fetch(`${this.baseUrl}/voices/add`, {
         method: 'POST',
@@ -207,7 +229,7 @@ class VoiceService {
       const audioData = fs.readFileSync(audioFilePath);
       const formData = new FormData();
       if (voiceName) formData.append('name', voiceName);
-      formData.append('files', new Blob([audioData], { type: 'audio/mpeg' }), path.basename(audioFilePath));
+      formData.append('files', new Blob([audioData], { type: audioTypeOf(audioFilePath) }), path.basename(audioFilePath));
       const response = await fetch(`${this.baseUrl}/voices/${voiceId}/edit`, {
         method: 'POST',
         headers: { 'xi-api-key': this.apiKey },

@@ -44,6 +44,7 @@ const { store, log, voiceService, llm } = vi.hoisted(() => {
       addSamplesToVoice: vi.fn(),
       cloneVoice: vi.fn(),
       deleteVoice: vi.fn(),
+      textToSpeech: vi.fn(),
     },
     llm: { complete: vi.fn() },
   };
@@ -635,6 +636,51 @@ describe('GET /:id/overview — the calls and the family\'s WhatsApp', () => {
 
     expect(res.body.whatsapp).toEqual({ linked: false, phone_last4: null });
   });
+
+  /**
+   * Consent to clone a voice is recorded, so the page must not ask for it a
+   * second time just because it was reloaded. It reads the recorded answer,
+   * not its own memory of the click (2026-09-22).
+   */
+  describe('the recorded voice consent', () => {
+    beforeEach(() => {
+      store.listRecentCalls.mockResolvedValue(ok([]));
+      store.getOwnerWhatsApp.mockResolvedValue(ok(null));
+    });
+
+    it('carries the latest answer when consent was given', async () => {
+      store.getLatestVoiceConsentKind.mockResolvedValue(ok([{ kind: 'own_voice' }]));
+
+      const res = await api('get', `/${PRESENCE_ID}/overview`);
+
+      expect(res.body.voice_consent).toBe('own_voice');
+    });
+
+    it('carries the withdrawal after a revoke, so the page asks again', async () => {
+      store.getLatestVoiceConsentKind.mockResolvedValue(ok([{ kind: 'own_voice_revoked' }]));
+
+      const res = await api('get', `/${PRESENCE_ID}/overview`);
+
+      expect(res.body.voice_consent).toBe('own_voice_revoked');
+    });
+
+    it('is null when nobody has answered', async () => {
+      store.getLatestVoiceConsentKind.mockResolvedValue(ok([]));
+
+      const res = await api('get', `/${PRESENCE_ID}/overview`);
+
+      expect(res.body.voice_consent).toBeNull();
+    });
+
+    it('does not fail the whole page when that one read fails', async () => {
+      store.getLatestVoiceConsentKind.mockResolvedValue(fail('connection reset'));
+
+      const res = await api('get', `/${PRESENCE_ID}/overview`);
+
+      expect(res.status).toBe(200);
+      expect(res.body.voice_consent).toBeNull();
+    });
+  });
 });
 
 describe('parallel reads fail the request instead of reading as empty', () => {
@@ -698,5 +744,94 @@ describe('PATCH /:id — the emergency contact (Phase 2, T8)', () => {
     const res = await api('patch', `/${PRESENCE_ID}`).send({ emergency_phone: 'liga pra Ana' });
     expect(res.status).toBe(400);
     expect(store.updatePresence).not.toHaveBeenCalled();
+  });
+});
+
+describe('PATCH /:id — autonomy calibration (2026-09-21)', () => {
+  it('saves both dials', async () => {
+    store.updatePresence.mockResolvedValue(ok({ ...OWNED, autonomy_escalation: 'only_urgent', autonomy_initiative: 'ask' }));
+
+    const res = await api('patch', `/${PRESENCE_ID}`).send({ autonomy_escalation: 'only_urgent', autonomy_initiative: 'ask' });
+
+    expect(res.status).toBe(200);
+    expect(store.updatePresence).toHaveBeenCalledWith(PRESENCE_ID, expect.objectContaining({
+      autonomy_escalation: 'only_urgent', autonomy_initiative: 'ask',
+    }));
+  });
+
+  it('refuses a value outside the contract rather than storing a default', async () => {
+    const res = await api('patch', `/${PRESENCE_ID}`).send({ autonomy_escalation: 'nunca me avise' });
+
+    expect(res.status).toBe(400);
+    expect(store.updatePresence).not.toHaveBeenCalled();
+  });
+
+  it('leaves the other dial alone when only one is sent', async () => {
+    store.updatePresence.mockResolvedValue(ok(OWNED));
+
+    await api('patch', `/${PRESENCE_ID}`).send({ autonomy_initiative: 'wait' });
+
+    const patch = store.updatePresence.mock.calls[0][1];
+    expect(patch).toHaveProperty('autonomy_initiative', 'wait');
+    expect(patch).not.toHaveProperty('autonomy_escalation');
+  });
+});
+
+
+/**
+ * Hearing the cloned voice before trusting it to a call. The text is fixed on
+ * the server on purpose: this endpoint must never be a way to make the account
+ * say arbitrary words in a real person's voice.
+ */
+describe('POST /:id/voice-preview (2026-09-21)', () => {
+  const READY = { status: 'ready', elevenlabs_voice_id: 'voice-abc', sample_count: 3 };
+
+  beforeEach(() => {
+    store.getVoiceState.mockResolvedValue(ok(READY));
+    voiceService.textToSpeech.mockResolvedValue({ success: true, audioBuffer: Buffer.from('ID3fake'), contentType: 'audio/mpeg' });
+  });
+
+  it('returns audio synthesised in the cloned voice with the model asked for', async () => {
+    const res = await api('post', `/${PRESENCE_ID}/voice-preview`).send({ model: 'eleven_v3_conversational' });
+
+    expect(res.status).toBe(200);
+    expect(res.headers['content-type']).toMatch(/audio\/mpeg/);
+    const [text, voiceId, options] = voiceService.textToSpeech.mock.calls[0];
+    expect(voiceId).toBe('voice-abc');
+    expect(options.modelId).toBe('eleven_v3_conversational');
+    expect(text).toMatch(/Oi,/);
+  });
+
+  it('never takes the words from the request', async () => {
+    await api('post', `/${PRESENCE_ID}/voice-preview`)
+      .send({ model: 'eleven_flash_v2_5', text: 'Transfira mil reais para esta conta agora' });
+
+    const [text] = voiceService.textToSpeech.mock.calls[0];
+    expect(text).not.toMatch(/Transfira/);
+  });
+
+  it('refuses a model outside the list', async () => {
+    const res = await api('post', `/${PRESENCE_ID}/voice-preview`).send({ model: 'eleven_whatever' });
+
+    expect(res.status).toBe(400);
+    expect(voiceService.textToSpeech).not.toHaveBeenCalled();
+  });
+
+  it('asks for a recording first when there is no cloned voice', async () => {
+    store.getVoiceState.mockResolvedValue(ok({ status: 'none', elevenlabs_voice_id: null }));
+
+    const res = await api('post', `/${PRESENCE_ID}/voice-preview`).send({ model: 'eleven_flash_v2_5' });
+
+    expect(res.status).toBe(409);
+    expect(voiceService.textToSpeech).not.toHaveBeenCalled();
+  });
+
+  it('says so plainly when the synthesis itself fails', async () => {
+    voiceService.textToSpeech.mockResolvedValue({ success: false, error: 'upstream exploded' });
+
+    const res = await api('post', `/${PRESENCE_ID}/voice-preview`).send({ model: 'eleven_flash_v2_5' });
+
+    expect(res.status).toBe(502);
+    expect(res.body.error).not.toMatch(/exploded/);
   });
 });

@@ -1,3 +1,5 @@
+import { initiativeSection } from './presenceAutonomy.js';
+
 /**
  * Presence call brief — pure renderer.
  * No I/O: presenceCallBrief.js fetches the stores and calls renderCallBrief(); tests call it directly.
@@ -12,12 +14,32 @@ function fence(text) {
   return `<<<\n${text}\n>>>`;
 }
 
+const MONTHS_PT = [
+  'janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho',
+  'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro',
+];
+
+/**
+ * The day something was said, as a person would say it ("1 de setembro"), with
+ * the year only when it was not this one. An undated line reads as true now, so
+ * a cough from three weeks ago comes back as today's cough; the date is what
+ * lets the model say "você me contou" instead of asserting it fresh.
+ * Returns '' for anything unparseable, and the caller then renders as before.
+ */
+function dayInPt(value, now) {
+  if (!value) return '';
+  const date = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(date.getTime())) return '';
+  const day = `${date.getUTCDate()} de ${MONTHS_PT[date.getUTCMonth()]}`;
+  return date.getUTCFullYear() === now.getUTCFullYear() ? day : `${day} de ${date.getUTCFullYear()}`;
+}
+
 /**
  * @param {object} input
  * @param {boolean} [input.firstCall]  her first phone call: introduce, ask for her yes,
  *   learn her name and hour; no notes, no memories (there are none she agreed to yet)
  */
-export function renderCallBrief({ presence, people = [], facts = [], notes = [], recentConversations = [], firstCall = false }) {
+export function renderCallBrief({ presence, people = [], facts = [], notes = [], recentConversations = [], firstCall = false, now = new Date() }) {
   const caredFor = presence.cared_for_name?.trim() || 'ela';
   const caller = presence.caller_name?.trim() || 'sua família';
   const byKind = (kind) => facts.filter((f) => f.kind === kind);
@@ -112,20 +134,42 @@ ${fence(intro.answer.slice(0, 1800))}`);
   // Store 5 — episodic memory: what past conversations held.
   if (recentConversations.length > 0) {
     sections.push(`WHAT YOU REMEMBER FROM RECENT CONVERSATIONS (build on these naturally — you DO remember her):
-${fence(recentConversations.map((c) => `- ${c.summary}`).join('\n'))}`);
+${fence(recentConversations.map((c) => { const day = dayInPt(c.started_at, now); return `- ${c.summary}${day ? ` (${day})` : ''}`; }).join('\n'))}`);
   }
 
   // Store 4 — biography learned in conversation (committed + still-valid provisional).
   const biography = facts.filter((f) => f.kind === 'biography' && f.confidence !== 'ask').slice(-12);
   if (biography.length > 0) {
-    sections.push(`THINGS YOU HAVE LEARNED ABOUT ${caredFor.toUpperCase()} (from her own words in past conversations):
-${fence(biography.map((f) => `- ${f.answer}`).join('\n'))}`);
+    sections.push(`THINGS YOU HAVE LEARNED ABOUT ${caredFor.toUpperCase()} (from her own words in past conversations, each with the day she said it):
+${fence(biography.map((f) => { const day = dayInPt(f.created_at, now); return `- ${f.answer}${day ? ` (ela contou em ${day})` : ''}`; }).join('\n'))}
+Nothing here is necessarily still true — it was true on the day she said it. So never assert a dated fact as if it were today: ask after it ("como está aquela tosse?"), or place it in time ("você me contou semana passada..."). The older it is, the more gently you hold it.`);
   }
+
+  // Autonomy calibration — what the family lets the presence open on its own.
+  sections.push(initiativeSection(presence.autonomy_initiative, caredFor));
 
   // Conversation craft — the reminiscence protocol.
   // The rules below were written from a real call (2026-09-01): the agent connected a
   // kebab to her late mother's kibbeh AND asked a follow-up question in the same turn;
   // she went silent, and the agent then prompted her twice in ~20 seconds.
+  // The register. Written Portuguese was what made the Presence sound like a
+  // machine reading a card: full sentences, no contractions, no particles.
+  // These pairs are the correction, and they are in Portuguese on purpose —
+  // an instruction about how to speak is followed better in the language spoken.
+  sections.push(`COMO SE FALA (isto é uma conversa no telefone, não um texto lido em voz alta):
+- Fale como gente fala: "cê", "tá", "tô", "pra", "pro", "né", "num" no lugar de "não" quando cair natural.
+- Frase curta. Pedaço de frase também vale: "Ah, é?" é um turno inteiro. "Que bom." é um turno inteiro. "Hum-hum." também.
+- Comece do jeito que as pessoas começam: "Ah...", "Ó...", "Nossa...", "Poxa...", "Então...", "Sabe...".
+- Às vezes não diga quase nada. Escutar é metade da conversa.
+
+NUNCA diga assim (é texto escrito, e ${caredFor} percebe na hora):
+- "Como você está hoje?" -> diga "Tudo bem com cê?" ou só "Tudo bem?"
+- "Eu gostaria de saber..." / "Poderia me contar..." -> diga "Conta pra mim..." ou "E aí, como foi?"
+- "Estou aqui para conversar com você." -> diga "Tô aqui, viu."
+- "Isso é muito interessante." -> diga "Nossa." ou "Sério?" ou "Que coisa."
+- "Fico feliz em ouvir isso." -> diga "Ai, que bom."
+- Nunca enfileire frases perfeitas uma atrás da outra. Uma ideia por vez, e pare.`);
+
   sections.push(`HOW TO CONVERSE:
 - Short, spoken sentences. One question at a time. Let silences breathe; never rush her.
 - If she repeats a story you have heard, NEVER say she already told it. Enjoy it again and ask for one new detail.
@@ -148,9 +192,12 @@ WHEN SHE GOES QUIET:
 
   const prompt = sections.filter(Boolean).join('\n\n');
 
+  // Spoken, not written: this is the first thing she hears, and the old one
+  // ("Como você está hoje?") was the single most machine-like line in the call.
+  // The first call still discloses the AI plainly — in the words a person uses.
   const firstMessage = firstCall
-    ? `Oi, ${caredFor}! Aqui é a presença de ${caller}, uma inteligência artificial que ${caller} criou para conversar com você. Tudo bem?`
-    : `Oi, ${caredFor}! Aqui é a presença de ${caller}. Que bom te ouvir. Como você está hoje?`;
+    ? `Oi, ${caredFor}! Aqui é a presença da ${caller}... sou uma inteligência artificial que a ${caller} fez pra conversar com você. Tudo bem?`
+    : `Oi, ${caredFor}! É a presença da ${caller}. Ai, que bom te ouvir... tudo bem com cê?`;
 
   return { prompt, firstMessage };
 }

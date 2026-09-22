@@ -9,7 +9,7 @@ const PRESENCE = { id: '11111111-1111-4111-8111-111111111111', owner_user_id: 'u
 const ok = (data) => ({ data, error: null });
 
 const { store, log, llm } = vi.hoisted(() => ({
-  store: { saveConversationSummary: vi.fn(), addFacts: vi.fn(), recordElderAssent: vi.fn(), saveFact: vi.fn() },
+  store: { saveConversationSummary: vi.fn(), addFacts: vi.fn(), recordElderAssent: vi.fn(), saveFact: vi.fn(), listActivePeople: vi.fn() },
   log: { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() },
   llm: { complete: vi.fn() },
 }));
@@ -105,5 +105,97 @@ describe('the distress tripwire (Phase 2, T8)', () => {
 
     expect(result.urgency).toBe('high');
     expect(result.needsFamily).toEqual(['Ela pediu o remédio.']);
+  });
+});
+
+/**
+ * She calls people by the names she has always called them: "a Rê", "o tio Zé",
+ * "a dona Cida". The map holds Renata, José, Aparecida. Without the map in front
+ * of it the summarizer files each of them as a stranger, and the family gets the
+ * same `Quem é "Rê"?` card after every single call.
+ */
+describe('people she names are matched against the family map', () => {
+  const people = [
+    { name: 'Renata', relation: 'filha', called_by: 'Rê' },
+    { name: 'José', relation: 'irmão', called_by: 'tio Zé' },
+    { name: 'Aparecida', relation: 'vizinha', called_by: '' },
+  ];
+
+  beforeEach(() => {
+    store.listActivePeople.mockResolvedValue(ok(people));
+  });
+
+  it('puts the map in the prompt, with the names she uses', async () => {
+    await summarizeConversation('c-1', PRESENCE, transcript);
+
+    const { system } = llm.complete.mock.calls[0][0];
+    expect(system).toContain('Renata');
+    expect(system).toContain('Rê');
+    expect(system).toContain('tio Zé');
+  });
+
+  it('drops a name that is on the map, however she said it', async () => {
+    reply({ unknown_people: ['Rê', 'o tio Zé', 'APARECIDA', 'Marlene'] });
+
+    await summarizeConversation('c-1', PRESENCE, transcript);
+
+    const asks = store.addFacts.mock.calls[0][0].filter((r) => r.confidence === 'ask');
+    expect(asks).toHaveLength(1);
+    expect(asks[0].question).toContain('Marlene');
+  });
+
+  it('matches across accents and honorifics', async () => {
+    reply({ unknown_people: ['Jose', 'dona Aparecida', 'a Renata'] });
+
+    await summarizeConversation('c-1', PRESENCE, transcript);
+
+    const rows = store.addFacts.mock.calls;
+    expect(rows).toHaveLength(0);
+  });
+
+  it('still raises the ask when the map cannot be read', async () => {
+    store.listActivePeople.mockResolvedValue({ data: null, error: new Error('down') });
+    reply({ unknown_people: ['Marlene'] });
+
+    await summarizeConversation('c-1', PRESENCE, transcript);
+
+    const asks = store.addFacts.mock.calls[0][0].filter((r) => r.confidence === 'ask');
+    expect(asks).toHaveLength(1);
+  });
+});
+
+/**
+ * The escalation dial moves what joins her own words in the family digest.
+ * It never moves whether she is heard: pain, a fall or a cry for help clear
+ * every bar, and the tripwire raises the urgency regardless.
+ */
+describe('how much the family hears is the family\'s choice', () => {
+  it('asks for what a person would act on by default', async () => {
+    await summarizeConversation('c-1', PRESENCE, transcript);
+
+    expect(llm.complete.mock.calls[0][0].system).toMatch(/what a person would want to act on/);
+  });
+
+  it('asks for everything, good days included, when the family wants everything', async () => {
+    await summarizeConversation('c-1', { ...PRESENCE, autonomy_escalation: 'everything' }, transcript);
+
+    expect(llm.complete.mock.calls[0][0].system).toMatch(/including a good day/);
+  });
+
+  it('keeps only what needs a person today when the family asked for that', async () => {
+    await summarizeConversation('c-1', { ...PRESENCE, autonomy_escalation: 'only_urgent' }, transcript);
+
+    const { system } = llm.complete.mock.calls[0][0];
+    expect(system).toMatch(/ONLY:/);
+    expect(system).toMatch(/An empty list is the right answer for an ordinary call/);
+  });
+
+  it('still raises the urgency from her own words, at the quietest setting', async () => {
+    const fell = [{ role: 'user', content: 'Eu caí no banheiro ontem.' }];
+
+    const result = await summarizeConversation('c-1', { ...PRESENCE, autonomy_escalation: 'only_urgent' }, fell);
+
+    expect(result.urgency).toBe('high');
+    expect(result.needsFamily.length).toBeGreaterThan(0);
   });
 });

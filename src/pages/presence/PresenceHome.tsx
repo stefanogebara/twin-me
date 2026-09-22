@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   AlertCircle,
+  Bell,
   CalendarClock,
   Check,
   ChevronDown,
@@ -40,6 +41,9 @@ import {
   type PresenceReadiness,
   type CompanionOverview,
   type PresenceMember,
+  type PresencePatch,
+  type PresenceEscalation,
+  type PresenceInitiative,
 } from '@/services/api/presenceAPI';
 import LedgerOrb from '@/components/LedgerOrb';
 import BrandMark from '@/components/brand/Mark';
@@ -200,8 +204,23 @@ const SECTIONS: Record<PresencePage, string[]> = {
   conversations: ['conversations'],
   notes: ['notes'],
   people: ['asks', 'people'],
-  settings: ['link', 'whatsapp', 'voice', 'settings', 'members'],
+  settings: ['link', 'whatsapp', 'voice', 'autonomy', 'settings', 'members'],
 };
+
+/**
+ * Autonomy calibration: the two things the Presence decides without asking.
+ * The words are the family's, not the model's; the instructions they map to
+ * live once in api/services/presenceAutonomy.js.
+ */
+const ESCALATION_CHOICES: Array<{ value: PresenceEscalation; label: string }> = [
+  { value: 'everything', label: 'Tudo, até os dias comuns' },
+  { value: 'when_it_matters', label: 'O que pede atenção' },
+  { value: 'only_urgent', label: 'Só o que precisa de alguém hoje' },
+];
+const INITIATIVE_CHOICES: Array<{ value: PresenceInitiative; label: string }> = [
+  { value: 'wait', label: 'Espera ela tocar no assunto' },
+  { value: 'ask', label: 'Pergunta uma vez, com jeito' },
+];
 
 const ROLE_LABEL: Record<PresenceMember['role'], string> = { owner: 'Você', family: 'Familiar', companion: 'Cuidadora' };
 export default function PresenceHome({ page = 'home' }: { page?: PresencePage }) {
@@ -237,6 +256,7 @@ export default function PresenceHome({ page = 'home' }: { page?: PresencePage })
   const [emergencyName, setEmergencyName] = useState('');
   const [emergencyPhone, setEmergencyPhone] = useState('');
   const [emergencyBusy, setEmergencyBusy] = useState(false);
+  const [autonomyBusy, setAutonomyBusy] = useState(false);
   const [scheduleOpen, setScheduleOpen] = useState(false);
   const [hourDraft, setHourDraft] = useState(DEFAULT_HOUR);
   const [daysDraft, setDaysDraft] = useState<number[]>(WEEKDAYS);
@@ -425,7 +445,7 @@ export default function PresenceHome({ page = 'home' }: { page?: PresencePage })
 
   const voiceLine = voiceReady
     ? `As ligações dela usam a sua voz${voice?.sample_count ? ` (${voice.sample_count} ${voice.sample_count === 1 ? 'amostra' : 'amostras'})` : ''}.`
-    : 'Em breve: a sua voz nas ligações dela. Por enquanto, ela ouve uma voz padrão, calorosa.';
+    : 'Três trechos curtos, e ela passa a ouvir você. Por enquanto, é uma voz brasileira padrão.';
 
   /** The old plate's ledger, as the title's one grey line. Every part states a
    *  real count or says plainly that there is none. */
@@ -599,6 +619,21 @@ export default function PresenceHome({ page = 'home' }: { page?: PresencePage })
       setError('emergency', serverLine ? err.message : SAVE_FAILED);
     }
     setEmergencyBusy(false);
+  }
+
+  /** One autonomy dial, saved as it is chosen: two values, both reversible. */
+  async function saveAutonomy(patch: PresencePatch) {
+    setAutonomyBusy(true);
+    setError('autonomy', null);
+    try {
+      await presenceAPI.patch(presence.id, patch);
+      trackEvent('presence_autonomy_saved', patch as Record<string, string>);
+      await load();
+    } catch (err) {
+      const serverLine = err instanceof PresenceApiError && err.status === 400 && !/^HTTP \d+$/.test(err.message);
+      setError('autonomy', serverLine ? err.message : SAVE_FAILED);
+    }
+    setAutonomyBusy(false);
   }
 
   function openScheduleEditor() {
@@ -1363,27 +1398,37 @@ export default function PresenceHome({ page = 'home' }: { page?: PresencePage })
               <h2 className="pc-sechead-title">A sua voz</h2>
               <p className="pc-sechead-line">Como soam as ligações dela.</p>
             </div>
-            {voiceReady ? (
-              <ul className="pc-list">
+            <ul className="pc-list">
+              <li className="pc-row">
+                <span className="pc-row-icon" aria-hidden="true"><BrandMark name="elevenlabs" size={18} /></span>
+                <div className="pc-row-text">
+                  <p className="pc-row-title">{voiceReady ? 'A sua voz' : 'Gravar a sua voz'}</p>
+                  <p className="pc-row-line">{voiceLine}</p>
+                </div>
+                {isOwner ? (
+                  <div className="pc-row-action">
+                    <Link className="pc-btn pc-btn--ghost" to="/presence/voice">
+                      {voiceReady ? 'Ouvir e ajustar' : 'Gravar'} <ChevronRight size={14} aria-hidden="true" />
+                    </Link>
+                  </div>
+                ) : <span />}
+              </li>
+              {voiceReady && isOwner ? (
                 <li className="pc-row">
-                  <span className="pc-row-icon" aria-hidden="true"><BrandMark name="elevenlabs" size={18} /></span>
+                  <span className="pc-row-icon" aria-hidden="true"><Trash2 /></span>
                   <div className="pc-row-text">
-                    <p className="pc-row-title">A sua voz</p>
-                    <p className="pc-row-line">{voiceLine}</p>
+                    <p className="pc-row-title">Remover a minha voz</p>
+                    <p className="pc-row-line">Ela é apagada, e as ligações voltam para uma voz padrão.</p>
                   </div>
                   <div className="pc-row-action">
                     <button className="pc-btn pc-btn--danger" onClick={removeVoice} disabled={voiceBusy}>
-                      {voiceBusy ? <Loader2 className="pc-spin" size={14} /> : <Trash2 size={14} />} Remover a minha voz
+                      {voiceBusy ? <Loader2 className="pc-spin" size={14} /> : <Trash2 size={14} />} Remover
                     </button>
                   </div>
                 </li>
-                {errorRow('voice')}
-              </ul>
-            ) : (
-              <div className="pc-list">
-                <p className="pc-empty">{voiceLine}</p>
-              </div>
-            )}
+              ) : null}
+              {errorRow('voice')}
+            </ul>
           </section>
 )}
 
@@ -1392,6 +1437,64 @@ export default function PresenceHome({ page = 'home' }: { page?: PresencePage })
 
           {isOwner && (
           <>
+          {show('autonomy') && (
+<section className="pc-appsection" id="autonomy">
+            <div className="pc-sechead">
+              <h2 className="pc-sechead-title">O que ela faz sozinha</h2>
+              <p className="pc-sechead-line">Duas decisões que a Presença toma sem perguntar.</p>
+            </div>
+            <ul className="pc-list">
+              <li className="pc-row">
+                <span className="pc-row-icon" aria-hidden="true"><Bell /></span>
+                <div className="pc-row-text">
+                  <p className="pc-row-title">O que você recebe depois da ligação</p>
+                  <p className="pc-row-line">Dor, queda ou um pedido de ajuda chegam sempre, em qualquer escolha.</p>
+                </div>
+                {isOwner ? (
+                  <div className="pc-row-action">
+                    <span className="pc-select pc-select--inrow">
+                      <select
+                        className="pc-input pc-input--inrow"
+                        aria-label="O que você recebe depois da ligação"
+                        value={presence.autonomy_escalation ?? 'when_it_matters'}
+                        disabled={autonomyBusy}
+                        onChange={(e) => saveAutonomy({ autonomy_escalation: e.target.value as PresenceEscalation })}
+                      >
+                        {ESCALATION_CHOICES.map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}
+                      </select>
+                      <ChevronDown aria-hidden="true" />
+                    </span>
+                  </div>
+                ) : <span />}
+              </li>
+              <li className="pc-row">
+                <span className="pc-row-icon" aria-hidden="true"><MessageCircle /></span>
+                <div className="pc-row-text">
+                  <p className="pc-row-title">Se ela falou de uma dor ou de uma tristeza</p>
+                  <p className="pc-row-line">Nunca puxa assunto sobre quem se foi, em qualquer escolha.</p>
+                </div>
+                {isOwner ? (
+                  <div className="pc-row-action">
+                    <span className="pc-select pc-select--inrow">
+                      <select
+                        className="pc-input pc-input--inrow"
+                        aria-label="Se ela falou de uma dor ou de uma tristeza"
+                        value={presence.autonomy_initiative ?? 'wait'}
+                        disabled={autonomyBusy}
+                        onChange={(e) => saveAutonomy({ autonomy_initiative: e.target.value as PresenceInitiative })}
+                      >
+                        {INITIATIVE_CHOICES.map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}
+                      </select>
+                      <ChevronDown aria-hidden="true" />
+                    </span>
+                  </div>
+                ) : <span />}
+              </li>
+              {errorRow('autonomy')}
+            </ul>
+          </section>
+)}
+
           {show('settings') && (
 <section className="pc-appsection" id="settings">
             <div className="pc-sechead">

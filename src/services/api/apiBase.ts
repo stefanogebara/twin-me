@@ -129,6 +129,32 @@ export function setAccessToken(token: string | null) {
   pushTokenToDesktop(token);
 }
 
+/**
+ * The app's real token refresher, handed in by AuthContext so API clients can
+ * recover from an expired access token without duplicating the refresh call.
+ *
+ * It must be AuthContext's single-flight version: refresh tokens rotate, so two
+ * refreshers racing invalidate each other. Registering the shared one keeps
+ * every retry behind the same lock, and keeps the session latch that stops
+ * hammering /auth/refresh once the cookie is genuinely gone. (2026-09-22:
+ * presence voice samples were lost to a 401 nobody retried.)
+ */
+let tokenRefresher: (() => Promise<boolean>) | null = null;
+
+export function setTokenRefresher(fn: (() => Promise<boolean>) | null): void {
+  tokenRefresher = fn;
+}
+
+/** True when a fresh access token is now in place and the call is worth repeating. */
+export async function refreshForRetry(): Promise<boolean> {
+  if (!tokenRefresher) return false;
+  try {
+    return await tokenRefresher();
+  } catch {
+    return false;
+  }
+}
+
 export function getAccessToken(): string | null {
   return currentAccessToken;
 }

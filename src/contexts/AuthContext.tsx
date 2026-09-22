@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useRef, ReactNode } from 'react';
-import { setAccessToken, getAccessToken, clearAccessToken, authFetch, getDesktopFreshAccessToken } from '../services/api/apiBase';
+import { setAccessToken, getAccessToken, clearAccessToken, authFetch, getDesktopFreshAccessToken, setTokenRefresher } from '../services/api/apiBase';
 import { queryClient } from '@/lib/queryClient';
 import { singleFlight } from '@/utils/singleFlight';
 import { shouldSyncTimezone, getLastSyncedTimezone, markTimezoneSynced } from '@/utils/timezoneSync';
@@ -443,6 +443,15 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     refreshSingleFlightRef.current = singleFlight(() => refreshImplRef.current());
   }
   const refreshAccessToken = (): Promise<boolean> => refreshSingleFlightRef.current!();
+
+  // Hand the single-flight refresher to the API clients, so a call that meets an
+  // expired token can refresh and retry through the same lock instead of failing.
+  useEffect(() => {
+    setTokenRefresher(refreshAccessToken);
+    return () => setTokenRefresher(null);
+    // refreshAccessToken is stable: it delegates through refreshSingleFlightRef.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Set up automatic token refresh before expiration
   useEffect(() => {

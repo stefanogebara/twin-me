@@ -193,7 +193,7 @@ describe('presenceStore', () => {
         ['order', 'created_at'],
       ]);
       expect(facts.ops).toEqual([
-        ['select', 'kind, question, answer, confidence, expires_at'],
+        ['select', 'kind, question, answer, confidence, expires_at, created_at'],
         ['eq', 'presence_id', PRESENCE_ID],
         ['eq', 'status', 'active'],
         ['or', expect.stringMatching(/^expires_at\.is\.null,expires_at\.gt\.\d{4}-\d{2}-\d{2}T/)],
@@ -342,7 +342,7 @@ describe('presenceStore', () => {
 
       expect(calls[0].table).toBe('presences');
       expect(calls[0].ops).toEqual([
-        ['select', 'id, owner_user_id, cared_for_name, caller_name, tone, elder_phone, call_hour, call_days, call_timezone, elder_assent_at'],
+        ['select', 'id, owner_user_id, cared_for_name, caller_name, tone, elder_phone, call_hour, call_days, call_timezone, elder_assent_at, autonomy_escalation, autonomy_initiative'],
         ['eq', 'status', 'active'],
         ['not', 'elder_phone', 'is', null],
       ]);

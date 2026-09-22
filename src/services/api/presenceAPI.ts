@@ -6,7 +6,7 @@
  * local source of truth and syncs best-effort; it catches and shows, it never
  * blocks on the network.
  */
-import { API_URL, authFetch, getAuthHeaders } from './apiBase';
+import { API_URL, authFetch, getAuthHeaders, refreshForRetry } from './apiBase';
 
 export class PresenceApiError extends Error {
   status: number;
@@ -36,10 +36,21 @@ export interface PresenceRecord {
   /** Whom the presence says it will tell "agora" when she speaks of pain, a fall, or asks for help. */
   emergency_name?: string | null;
   emergency_phone?: string | null;
+  /** Autonomy calibration: how much of a call the family hears, and whether the
+   *  presence opens a worry it remembers or waits for her (2026-09-21). */
+  autonomy_escalation?: PresenceEscalation;
+  autonomy_initiative?: PresenceInitiative;
 }
 
+/** Mirrors ESCALATION / INITIATIVE in api/services/presenceAutonomy.js. */
+export type PresenceEscalation = 'everything' | 'when_it_matters' | 'only_urgent';
+export type PresenceInitiative = 'ask' | 'wait';
+
+/** The models a cloned voice can be auditioned through (PREVIEW_MODELS on the server). */
+export type PresenceVoiceModel = 'eleven_v3_conversational' | 'eleven_flash_v2_5' | 'eleven_multilingual_v2';
+
 /** The fields the family may change on PATCH; the server validates each. */
-export type PresencePatch = Partial<Pick<PresenceRecord, 'cared_for_name' | 'relationship' | 'caller_name' | 'tone' | 'status' | 'elder_phone' | 'call_hour' | 'call_days' | 'call_timezone' | 'emergency_name' | 'emergency_phone'>>;
+export type PresencePatch = Partial<Pick<PresenceRecord, 'cared_for_name' | 'relationship' | 'caller_name' | 'tone' | 'status' | 'elder_phone' | 'call_hour' | 'call_days' | 'call_timezone' | 'emergency_name' | 'emergency_phone' | 'autonomy_escalation' | 'autonomy_initiative'>>;
 
 export interface PresenceCall {
   id: string;
@@ -82,12 +93,16 @@ async function errorOf(response: Response): Promise<PresenceApiError> {
 }
 
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
+  const send = () => authFetch(path, {
+    ...options,
+    headers: { 'Content-Type': 'application/json', ...(options?.headers || {}) },
+  });
   let response: Response;
   try {
-    response = await authFetch(path, {
-      ...options,
-      headers: { 'Content-Type': 'application/json', ...(options?.headers || {}) },
-    });
+    response = await send();
+    // An access token that expired while the page sat open is recoverable:
+    // refresh through AuthContext's single flight and repeat the call once.
+    if (response.status === 401 && await refreshForRetry()) response = await send();
   } catch (err) {
     throw new PresenceApiError(0, err instanceof Error ? err.message : 'network');
   }
@@ -97,11 +112,20 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
 
 /** Multipart: the browser must set the boundary itself, so the JSON content-type is stripped. */
 async function upload<T>(path: string, form: FormData): Promise<T> {
-  const headers: Record<string, string> = { ...getAuthHeaders() };
-  delete headers['Content-Type'];
+  // Headers are rebuilt per attempt: the retry must carry the NEW token, and
+  // the browser must set the multipart boundary itself, so no Content-Type.
+  const send = () => {
+    const headers: Record<string, string> = { ...getAuthHeaders() };
+    delete headers['Content-Type'];
+    return fetch(`${API_URL}${path}`, { method: 'POST', headers, body: form });
+  };
   let response: Response;
   try {
-    response = await fetch(`${API_URL}${path}`, { method: 'POST', headers, body: form });
+    response = await send();
+    // Uploads are the calls most likely to meet an expired token — a voice note
+    // or a recording is made minutes after the page loaded — and the most
+    // expensive to lose, because the audio only existed in that tab.
+    if (response.status === 401 && await refreshForRetry()) response = await send();
   } catch (err) {
     throw new PresenceApiError(0, err instanceof Error ? err.message : 'network');
   }
@@ -192,6 +216,24 @@ export const presenceAPI = {
     form.append('audio', audio, 'sample.webm');
     form.append('sample_seconds', String(sampleSeconds));
     return upload<VoiceSampleResult>(`/presence/${id}/voice-samples`, form);
+  },
+
+  /** Hear the cloned voice through one model. Returns the audio itself, not JSON. */
+  voicePreview: async (id: string, model: PresenceVoiceModel): Promise<Blob> => {
+    const send = () => fetch(`${API_URL}/presence/${id}/voice-preview`, {
+      method: 'POST',
+      headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
+      body: JSON.stringify({ model }),
+    });
+    let response: Response;
+    try {
+      response = await send();
+      if (response.status === 401 && await refreshForRetry()) response = await send();
+    } catch (err) {
+      throw new PresenceApiError(0, err instanceof Error ? err.message : 'network');
+    }
+    if (!response.ok) throw await errorOf(response);
+    return response.blob();
   },
 
   revokeVoice: (id: string) =>
@@ -311,6 +353,8 @@ export interface PresenceOverview {
   calls: PresenceCall[];
   /** The family member's own WhatsApp, as linked in messaging_channels. */
   whatsapp: { linked: boolean; phone_last4: string | null };
+  /** The latest recorded answer about cloning their own voice; null if never asked. */
+  voice_consent: 'own_voice' | 'own_voice_revoked' | null;
 }
 
 // ====================================================================

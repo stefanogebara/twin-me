@@ -106,6 +106,7 @@ const PresencePage = lazyWithRetry(() => import("./pages/PresencePage"));
 const PresenceLandingPage = lazyWithRetry(() => import("./pages/PresenceLandingPage"));
 const PresenceLoginPage = lazyWithRetry(() => import("./pages/PresenceLoginPage"));
 const PresenceHome = lazyWithRetry(() => import("./pages/presence/PresenceHome"));
+const PresenceVoiceSetup = lazyWithRetry(() => import("./pages/presence/PresenceVoiceSetup"));
 const PresenceCallPage = lazyWithRetry(() => import("./pages/presence/PresenceCallPage"));
 const PresenceJoinPage = lazyWithRetry(() => import("./pages/presence/PresenceJoinPage"));
 
@@ -303,6 +304,14 @@ const App = () => {
               <ProtectedRoute fallbackPath="/presence/login">
                 <ErrorBoundary>
                   <PresenceHome page="settings" />
+                </ErrorBoundary>
+              </ProtectedRoute>
+            } />
+            {/* Recording the family member's own voice, and hearing it back. */}
+            <Route path="/presence/voice" element={
+              <ProtectedRoute fallbackPath="/presence/login">
+                <ErrorBoundary>
+                  <PresenceVoiceSetup />
                 </ErrorBoundary>
               </ProtectedRoute>
             } />
