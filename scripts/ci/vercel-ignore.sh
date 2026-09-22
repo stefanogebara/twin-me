@@ -21,14 +21,10 @@ case "${VERCEL_GIT_COMMIT_REF:-}" in
   main) ;;
   bisect/*) echo "build: ${VERCEL_GIT_COMMIT_REF} is a deployment experiment"; exit 1 ;;
   *)
-    # A change to what a person sees on the money pages gets a preview, so the rendered
-    # page can be walked before it reaches production: the two bugs that shipped on
-    # 2026-09-22 (a chart drawn flat, a page blind to its data) were both visible only
-    # rendered. Everything else off main is not built (decided 2026-09-22).
-    # shellcheck disable=SC2086
-    if ! git diff --quiet $RANGE -- src/pages/money src/styles/money-v2.css src/styles/register.css src/styles/register-kit.css 2>/dev/null; then
-      echo "build: ${VERCEL_GIT_COMMIT_REF} changes the money pages"; exit 1
-    fi
+    # No previews at all (D21, 2026-09-22). Branches that touched the money pages built one
+    # so a rendered page could be walked (D10); no gate ever read those previews, they are
+    # SSO-gated so nobody opens them, and thirteen of them ran in one hour at about nineteen
+    # minutes each. A preview comes back the day a gate exists that reads it.
     echo "skip: ${VERCEL_GIT_COMMIT_REF:-no branch} is not main"; exit 0 ;;
 esac
 

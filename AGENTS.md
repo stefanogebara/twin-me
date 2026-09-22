@@ -14,7 +14,8 @@
 - **Builds** (measured 2026-09-22): 600 deployments and **10,596 build minutes** in thirty
   days. 386 of them were previews of branches nobody opens (preview URLs are SSO-gated),
   6,770 minutes. `vercel.json`'s `ignoreCommand` now builds **only `main`**, and only when
-  the commit touches something the site serves. A Vercel check that reads "skipped" on a
+  the commit touches something the site serves. Since D21 (2026-09-22) no branch builds a
+  preview at all, not even one touching the money pages; `bisect/*` is the one exception. A Vercel check that reads "skipped" on a
   pull request is this working; CI is what gates a merge, not the preview.
 - **What a build actually spends** (same measurement): `vite build` finishes in **14.5 s**.
   The other **17.5 minutes** are Vercel tracing and bundling `api/index.js` into one
