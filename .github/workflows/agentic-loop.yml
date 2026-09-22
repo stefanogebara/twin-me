@@ -61,10 +61,15 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 40
     steps:
+      # LOOP_PUSH_TOKEN is a fine-grained PAT of Stefano's (contents and pull requests, this
+      # repository, 90 days; set 2026-09-22). A push and a PR made with it are a person's, so
+      # the PR's CI runs like anyone's instead of waiting for a maintainer to approve a
+      # first-time contributor (seen on #448). Without it the loop still works on the app
+      # token and names the approval command instead.
       - uses: actions/checkout@v5
         with:
           fetch-depth: 0
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.LOOP_PUSH_TOKEN || secrets.GITHUB_TOKEN }}
       - uses: actions/setup-node@v5
         with:
           node-version-file: .nvmrc
@@ -77,7 +82,8 @@ jobs:
       - name: Implement
         id: implement
         env:
-          GH_TOKEN: ${{ github.token }}
+          GH_TOKEN: ${{ secrets.LOOP_PUSH_TOKEN || github.token }}
+          LOOP_PUSH_TOKEN_SET: ${{ secrets.LOOP_PUSH_TOKEN != '' }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
         run: node scripts/agentic/implement.mjs
       - name: Inspect
