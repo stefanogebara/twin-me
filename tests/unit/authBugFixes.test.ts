@@ -44,6 +44,7 @@ const API_BASE_FILE = resolve(__dirname, '../../src/services/api/apiBase.ts');
 
 const authContextSrc = readFileSync(AUTH_CONTEXT_FILE, 'utf8');
 const authSimpleSrc = readFileSync(AUTH_SIMPLE_FILE, 'utf8');
+const authStoreSrc = readFileSync(resolve(__dirname, '../../api/services/auth/authStore.js'), 'utf8');
 const singleFlightSrc = readFileSync(SINGLE_FLIGHT_FILE, 'utf8');
 const oauthCallbackSrc = readFileSync(OAUTH_CALLBACK_FILE, 'utf8');
 const apiBaseSrc = readFileSync(API_BASE_FILE, 'utf8');
@@ -76,14 +77,15 @@ describe('Bug H11 — magic-link oauth_provider stale value fix', () => {
   it('magic-link verify updates oauth_provider for EXISTING users', () => {
     // Look for the else branch that handles existing users with an update
     // setting oauth_provider = 'magic_link'.
-    const updatesExisting = /\.update\(\s*\{\s*oauth_provider:\s*['"]magic_link['"]/.test(authSimpleSrc);
+    /* The users table is written through authStore.updateUser since M2-D (2026-09-22). */
+    const updatesExisting = /updateUser\(\s*user\.id,\s*\{\s*oauth_provider:\s*['"]magic_link['"]/.test(authSimpleSrc);
     expect(updatesExisting).toBe(true);
   });
 
   it('magic-link verify still sets oauth_provider on user CREATE (regression guard)', () => {
     // The new-user insert path must still set 'magic_link' — don't lose
     // this on refactors.
-    expect(authSimpleSrc).toMatch(/insert\(\s*\{[\s\S]{0,400}oauth_provider:\s*['"]magic_link['"][\s\S]{0,400}\}\s*\)/);
+    expect(authSimpleSrc).toMatch(/createUser\(\s*\{[\s\S]{0,400}oauth_provider:\s*['"]magic_link['"][\s\S]{0,400}\}/);
   });
 
   it('the existing-user update touches updated_at', () => {
@@ -94,13 +96,10 @@ describe('Bug H11 — magic-link oauth_provider stale value fix', () => {
   });
 
   it('the existing-user update targets users by id (not email)', () => {
-    // Defensive: matching on email instead of id is a footgun if email
-    // case-normalization ever drifts. id is the canonical FK target
-    // (memories, twin_goals, etc.).
-    const updateBlock = authSimpleSrc.match(
-      /\.update\(\s*\{\s*oauth_provider:\s*['"]magic_link['"][\s\S]{0,200}\.eq\(['"]id['"]/
-    );
-    expect(updateBlock).not.toBeNull();
+    // The route hands the id, and the store's updateUser filters on id; an email filter
+    // would touch every row sharing a stale address.
+    expect(authSimpleSrc).toMatch(/updateUser\(\s*user\.id,\s*\{\s*oauth_provider:\s*['"]magic_link['"]/);
+    expect(authStoreSrc).toMatch(/export function updateUser\(id, patch\) \{\s*return supabaseAdmin\.from\('users'\)\.update\(patch\)\.eq\('id', id\);/);
   });
 });
 

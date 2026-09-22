@@ -11,7 +11,9 @@ import { authenticateUser } from '../middleware/auth.js';
 import { buildPurchaseContext } from '../services/purchaseContextBuilder.js';
 import { generatePurchaseReflection } from '../services/purchaseReflection.js';
 import { sendWhatsAppMessage } from '../services/whatsappService.js';
-import { supabaseAdmin } from '../services/database.js';
+import { upsertUserTransactions } from '../services/transactions/userTransactionStore.js';
+import { whatsAppNumber } from '../services/messagingChannelStore.js';
+import { findUserById } from '../services/auth/authStore.js';
 // Cooldown state shared with the WhatsApp capture path (one reflection budget
 // across both sources — replan-2026-06-12). See api/services/purchaseCooldown.js.
 import { loadPurchaseCooldown, savePurchaseCooldown, COOLDOWN_MS, MAX_DAILY } from '../services/purchaseCooldown.js';
@@ -106,9 +108,7 @@ async function persistNotificationPurchase(userId, { appName, notificationText, 
       .update(`${userId}|${amount.toFixed(2)}|${(appName || '').toLowerCase()}|${day}`)
       .digest('hex').slice(0, 40)}`;
 
-    const { data, error } = await supabaseAdmin
-      .from('user_transactions')
-      .upsert([{
+    const { data, error } = await upsertUserTransactions([{
         user_id: userId,
         external_id,
         amount: -amount,
@@ -119,8 +119,7 @@ async function persistNotificationPurchase(userId, { appName, notificationText, 
         transaction_date: new Date().toISOString(),
         source: 'notification',
         account_type: 'credit_card',
-      }], { onConflict: 'user_id,external_id', ignoreDuplicates: false })
-      .select('id');
+      }]);
 
     if (error) {
       log.warn('notification purchase insert failed (non-fatal)', { userId, error: error.message });
@@ -160,9 +159,8 @@ router.post('/trigger', authenticateUser, validate({ body: V.PURCHASE_TRIGGER })
 
     // Fetch timezone + WhatsApp in parallel
     const [{ data: userRow }, { data: channel }] = await Promise.all([
-      supabaseAdmin.from('users').select('timezone').eq('id', userId).maybeSingle(),
-      supabaseAdmin.from('messaging_channels').select('channel_id')
-        .eq('user_id', userId).eq('channel', 'whatsapp').maybeSingle(),
+      findUserById(userId, 'timezone', { maybe: true }),
+      whatsAppNumber(userId),
     ]);
 
     if (!channel?.channel_id) {

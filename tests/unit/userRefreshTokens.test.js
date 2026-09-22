@@ -28,34 +28,36 @@ const authSource = readFileSync(AUTH_FILE, 'utf8');
 const migrationSource = readFileSync(MIGRATION_FILE, 'utf8');
 
 describe('user_refresh_tokens — multi-device session refactor', () => {
-  describe('auth-simple.js', () => {
-    it('references the new user_refresh_tokens table', () => {
-      expect(authSource).toMatch(/user_refresh_tokens/);
+  describe('auth-simple.js, through api/services/auth/authStore.js (M2-D, 2026-09-22)', () => {
+    /* The table calls live in the store now; the route calls the store by name. Both are read,
+       so a regression on either side (the route stops persisting, or the store stops filtering
+       by hash) fails here. */
+    const storeSource = readFileSync(resolve(__dirname, '../../api/services/auth/authStore.js'), 'utf8');
+
+    it('the store owns the user_refresh_tokens table', () => {
+      expect(storeSource).toMatch(/from\('user_refresh_tokens'\)/);
+      expect(authSource).not.toMatch(/\.from\(/);
     });
 
     it('inserts into user_refresh_tokens on signup/signin', () => {
-      // At least one .from('user_refresh_tokens').insert pattern must exist
-      const pattern = /from\(['"]user_refresh_tokens['"]\)\s*\.?\s*\n?\s*\.insert/;
-      expect(authSource).toMatch(pattern);
+      expect(authSource).toMatch(/insertRefreshToken\(/);
+      expect(storeSource).toMatch(/from\('user_refresh_tokens'\)\.insert\(row\)/);
     });
 
     it('refresh handler selects from user_refresh_tokens by token_hash', () => {
-      // Must SELECT from the new table, filtering by token_hash, before
-      // falling back to the legacy column.
-      const hasNewTableLookup =
-        /from\(['"]user_refresh_tokens['"]\)[\s\S]{0,200}\.eq\(['"]token_hash['"]/.test(authSource);
-      expect(hasNewTableLookup).toBe(true);
+      expect(authSource).toMatch(/findRefreshToken\(tokenHash\)/);
+      expect(storeSource).toMatch(/from\('user_refresh_tokens'\)\.select\([^)]*\)\.eq\('token_hash', hash\)\.single\(\)/);
     });
 
     it('preserves legacy users.refresh_token_hash fallback for in-flight cookies', () => {
       // Backward-compat: tokens issued before the migration must still work.
-      expect(authSource).toMatch(/refresh_token_hash/);
+      expect(authSource).toMatch(/findUserByLegacyRefreshHash\(/);
+      expect(storeSource).toMatch(/eq\('refresh_token_hash', hash\)/);
     });
 
     it('logout deletes a specific row (not a column null-out)', () => {
-      // Logout must .delete() from user_refresh_tokens — not just null the column.
-      const pattern = /from\(['"]user_refresh_tokens['"]\)[\s\S]{0,200}\.delete\(/;
-      expect(authSource).toMatch(pattern);
+      expect(authSource).toMatch(/deleteRefreshTokenByHash\(rtHash\)/);
+      expect(storeSource).toMatch(/from\('user_refresh_tokens'\)\.delete\(\)\.eq\('token_hash', hash\)/);
     });
 
     it('captures device_label from user-agent header', () => {

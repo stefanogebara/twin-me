@@ -22,7 +22,7 @@
 
 import express from 'express';
 import { verifyCronSecret } from '../middleware/verifyCronSecret.js';
-import { supabaseAdmin } from '../services/database.js';
+import { forgetWebhookEventsBefore } from '../services/billing/billingStore.js';
 import { createLogger } from '../services/logger.js';
 import { logCronExecution } from '../services/cronLogger.js';
 
@@ -39,11 +39,7 @@ router.all('/', async (req, res) => {
 
     const cutoffIso = new Date(Date.now() - RETENTION_DAYS * 24 * 60 * 60 * 1000).toISOString();
 
-    const { data, error } = await supabaseAdmin
-      .from('stripe_webhook_events')
-      .delete({ count: 'exact' })
-      .lt('received_at', cutoffIso)
-      .select('event_id', { count: 'exact' });
+    const { data, error } = await forgetWebhookEventsBefore(cutoffIso);
 
     if (error) {
       log.error('cleanup failed', { code: error.code, message: error.message });

@@ -1,6 +1,7 @@
 import express from 'express';
 import jwt from 'jsonwebtoken';
-import { supabaseAdmin } from '../services/database.js';
+import { pingRead, memoryCount, lastIngestionRun, llmCallsSince } from '../services/opsStore.js';
+import { databaseAvailable } from '../services/account/accountStore.js';
 import { getCircuitBreakerStatus, resetCircuitBreaker } from '../services/llmGateway.js';
 import { verifyCronSecret } from '../middleware/verifyCronSecret.js';
 import { authenticateUser } from '../middleware/auth.js';
@@ -85,12 +86,12 @@ router.get('/', async (req, res) => {
   // 1. Database connectivity gate — use user_memories (lighter; avoids users
   //    table churn). Timeout-guarded so a hanging DB yields 503, not a hung
   //    request.
-  if (!supabaseAdmin) {
+  if (!databaseAvailable()) {
     checks.database.connected = false;
     checks.database.error = 'supabaseAdmin not initialized';
   } else {
     const ping = await probeWithTimeout(
-      supabaseAdmin.from('user_memories').select('id').limit(1)
+      pingRead()
     );
     if (ping === PROBE_TIMED_OUT) {
       checks.database.connected = false;
@@ -115,23 +116,13 @@ router.get('/', async (req, res) => {
   const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
   const [memResult, ingResult, llmResult] = await Promise.all([
     probeWithTimeout(
-      supabaseAdmin
-        .from('user_memories')
-        .select('*', { count: 'exact', head: true })
+      memoryCount()
     ),
     probeWithTimeout(
-      supabaseAdmin
-        .from('ingestion_health_log')
-        .select('run_at, duration_ms, users_processed, observations_stored, errors')
-        .order('run_at', { ascending: false })
-        .limit(1)
-        .single()
+      lastIngestionRun()
     ),
     probeWithTimeout(
-      supabaseAdmin
-        .from('llm_usage_log')
-        .select('*', { count: 'exact', head: true })
-        .gte('created_at', oneHourAgo)
+      llmCallsSince(oneHourAgo)
     ),
   ]);
 

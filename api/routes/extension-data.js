@@ -11,7 +11,7 @@
 
 import express from 'express';
 import { authenticateUser } from '../middleware/auth.js';
-import { supabaseAdmin } from '../config/supabase.js';
+import { insertCapture, upsertCaptures, upsertPlatformConnection, webCaptures, extensionCaptures, deleteExtensionCaptures } from '../services/extension/extensionStore.js';
 import { ingestWebObservations } from '../services/observationIngestion.js';
 import { createLogger } from '../services/logger.js';
 import { validate, z } from '../middleware/validate.js';
@@ -170,17 +170,13 @@ router.post('/capture/:platform', authenticateUser, validate({ params: PLATFORM 
 
     const dataType = mapEventType(capturedData.data_type || capturedData.eventType || 'capture', platform);
 
-    const { data, error } = await supabaseAdmin
-      .from('user_platform_data')
-      .insert({
+    const { data, error } = await insertCapture({
         user_id: userId,
         platform: platform.toLowerCase(),
         data_type: dataType,
         raw_data: capturedData,
         extracted_at: new Date().toISOString()
-      })
-      .select()
-      .single();
+      });
 
     if (error) {
       log.error(`Failed to store ${platform} data:`, error);
@@ -392,13 +388,7 @@ router.post('/batch', authenticateUser, validate({ body: BATCH }), async (req, r
     const rowErrors = [];
 
     await Promise.all(chunks.map(async (chunk) => {
-      const { data: chunkData, error: chunkErr } = await supabaseAdmin
-        .from('user_platform_data')
-        .upsert(chunk, {
-          onConflict: 'user_id,platform,data_type,source_url',
-          ignoreDuplicates: false,
-        })
-        .select('id');
+      const { data: chunkData, error: chunkErr } = await upsertCaptures(chunk);
 
       if (!chunkErr) {
         if (chunkData) landed.push(...chunkData);
@@ -414,13 +404,7 @@ router.post('/batch', authenticateUser, validate({ body: BATCH }), async (req, r
         chunkSize: chunk.length,
       });
       for (const rec of chunk) {
-        const { data: rowData, error: rowErr } = await supabaseAdmin
-          .from('user_platform_data')
-          .upsert(rec, {
-            onConflict: 'user_id,platform,data_type,source_url',
-            ignoreDuplicates: false,
-          })
-          .select('id');
+        const { data: rowData, error: rowErr } = await upsertCaptures(rec);
         if (rowErr) {
           rowErrors.push({
             code: rowErr.code,
@@ -556,10 +540,7 @@ router.post('/batch', authenticateUser, validate({ body: BATCH }), async (req, r
       // (instagram_sessions) and is intentionally not surfaced here.
       if (streamPlatform === 'netflix') {
         const nowIso = new Date().toISOString();
-        supabaseAdmin
-          .from('platform_connections')
-          .upsert(
-            {
+        upsertPlatformConnection({
               user_id: userId,
               platform: 'netflix',
               status: 'connected',
@@ -567,9 +548,7 @@ router.post('/batch', authenticateUser, validate({ body: BATCH }), async (req, r
               last_sync_at: nowIso,
               connected_at: nowIso,
               metadata: { source: 'browser_extension' },
-            },
-            { onConflict: 'user_id,platform' }
-          )
+            })
           .then(({ error }) => {
             if (error) log.warn('Surface netflix connection failed (non-fatal):', error.message);
           });
@@ -612,13 +591,7 @@ router.post('/batch', authenticateUser, validate({ body: BATCH }), async (req, r
  */
 async function quickBrowsingAnalysis(userId) {
   const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
-  const { data: webData } = await supabaseAdmin
-    .from('user_platform_data')
-    .select('raw_data, data_type')
-    .eq('user_id', userId)
-    .eq('platform', 'web')
-    .gte('extracted_at', sevenDaysAgo)
-    .limit(300);
+  const { data: webData } = await webCaptures(userId, sevenDaysAgo, { columns: 'raw_data, data_type' });
 
   if (!webData) return { topCategories: [], topTopics: [], topDomains: [], recentSearches: [], pageCount: 0, searchCount: 0 };
 
@@ -656,13 +629,7 @@ router.get('/stats', authenticateUser, async (req, res) => {
   const userId = req.user.id;
 
   try {
-    const { data, error } = await supabaseAdmin
-      .from('user_platform_data')
-      .select('platform, data_type, raw_data, extracted_at')
-      .eq('user_id', userId)
-      .like('data_type', 'extension_%')
-      .order('extracted_at', { ascending: false })
-      .limit(500);
+    const { data, error } = await extensionCaptures(userId);
 
     if (error) throw error;
 
@@ -724,13 +691,7 @@ router.delete('/clear/:platform', authenticateUser, validate({ params: PLATFORM 
   const { platform } = req.params;
 
   try {
-    const { data, error } = await supabaseAdmin
-      .from('user_platform_data')
-      .delete()
-      .eq('user_id', userId)
-      .eq('platform', platform)
-      .like('data_type', 'extension_%')
-      .select();
+    const { data, error } = await deleteExtensionCaptures(userId, platform);
 
     if (error) throw error;
 
@@ -764,14 +725,7 @@ router.post('/analyze', authenticateUser, validate({ body: z.object({}).passthro
   try {
     // Get recent web browsing data
     const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
-    const { data: webData, error } = await supabaseAdmin
-      .from('user_platform_data')
-      .select('raw_data, data_type, extracted_at')
-      .eq('user_id', userId)
-      .eq('platform', 'web')
-      .gte('extracted_at', sevenDaysAgo)
-      .order('extracted_at', { ascending: false })
-      .limit(300);
+    const { data: webData, error } = await webCaptures(userId, sevenDaysAgo, { columns: 'raw_data, data_type, extracted_at', newestFirst: true });
 
     if (error) throw error;
 

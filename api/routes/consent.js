@@ -6,7 +6,7 @@ import express from 'express';
 // query was 500ing with an RLS denial. authenticateUser middleware already
 // gates the route — bypassing RLS at the DB level is the correct pattern
 // (same as every other backend route under api/routes/).
-import { supabaseAdmin as supabase } from '../config/supabase.js';
+import { listConsents, grantConsent, revokeConsent } from '../services/consentStore.js';
 import { authenticateUser } from '../middleware/auth.js';
 import { createLogger } from '../services/logger.js';
 import { validate } from '../middleware/validate.js';
@@ -24,11 +24,7 @@ router.get('/', async (req, res) => {
   try {
     const userId = req.user.id;
 
-    const { data: consents, error } = await supabase
-      .from('user_consents')
-      .select('*')
-      .eq('user_id', userId)
-      .order('created_at', { ascending: false });
+    const { data: consents, error } = await listConsents(userId);
 
     if (error) {
       log.error('Failed to fetch consents:', error);
@@ -54,10 +50,7 @@ router.post('/', validate({ body: V.CONSENT_GIVE }), async (req, res) => {
 
     const ip_address = req.ip || req.headers['x-forwarded-for'] || null;
 
-    const { data: consent, error } = await supabase
-      .from('user_consents')
-      .upsert(
-        {
+    const { data: consent, error } = await grantConsent({
           user_id: userId,
           consent_type,
           platform: platform || null,
@@ -67,11 +60,7 @@ router.post('/', validate({ body: V.CONSENT_GIVE }), async (req, res) => {
           revoked_at: null,
           ip_address,
           updated_at: new Date().toISOString(),
-        },
-        { onConflict: 'user_id,consent_type,platform' }
-      )
-      .select()
-      .single();
+        });
 
     if (error) {
       log.error('Failed to grant consent:', error);
@@ -91,18 +80,11 @@ router.delete('/:consentType/:platform', validate({ params: V.CONSENT_PARAMS }),
     const userId = req.user.id;
     const { consentType, platform } = req.params;
 
-    const { data: consent, error } = await supabase
-      .from('user_consents')
-      .update({
+    const { data: consent, error } = await revokeConsent(userId, consentType, platform, {
         granted: false,
         revoked_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
-      })
-      .eq('user_id', userId)
-      .eq('consent_type', consentType)
-      .eq('platform', platform)
-      .select()
-      .single();
+      });
 
     if (error) {
       log.error('Failed to revoke consent:', error);

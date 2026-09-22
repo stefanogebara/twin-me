@@ -9,7 +9,7 @@
 import { Router } from 'express';
 import rateLimit from 'express-rate-limit';
 import bcrypt from 'bcrypt';
-import { supabaseAdmin } from '../services/database.js';
+import { findApplicationByEmail, insertApplication, updateApplicationByEmail, updateApplicationById, upsertWaitlist, findUserByEmail, findUserById, createUser } from '../services/beta/betaStore.js';
 import { createInviteCode } from '../services/betaInviteService.js';
 import { authenticateUser } from '../middleware/auth.js';
 import { createLogger } from '../services/logger.js';
@@ -73,11 +73,7 @@ router.post('/signup', signupLimiter, validate({ body: V.BETA_SIGNUP }), async (
     const safeReason = reason ? String(reason).trim().slice(0, 2000) : null;
 
     // --- Check for existing application ---
-    const { data: existing } = await supabaseAdmin
-      .from('beta_applications')
-      .select('id, invite_code, status')
-      .eq('email', normalizedEmail)
-      .single();
+    const { data: existing } = await findApplicationByEmail(normalizedEmail, 'id, invite_code, status');
 
     if (existing) {
       // Already applied -- return existing invite code if approved
@@ -104,9 +100,7 @@ router.post('/signup', signupLimiter, validate({ body: V.BETA_SIGNUP }), async (
     });
 
     // --- Create the application record ---
-    const { error: insertErr } = await supabaseAdmin
-      .from('beta_applications')
-      .insert({
+    const { error: insertErr } = await insertApplication({
         name: trimmedName,
         email: normalizedEmail,
         platforms: safePlatforms,
@@ -122,11 +116,7 @@ router.post('/signup', signupLimiter, validate({ body: V.BETA_SIGNUP }), async (
     }
 
     // --- Auto-create user account if they don't have one ---
-    const { data: existingUser } = await supabaseAdmin
-      .from('users')
-      .select('id')
-      .eq('email', normalizedEmail)
-      .single();
+    const { data: existingUser } = await findUserByEmail(normalizedEmail, 'id');
 
     let userId = existingUser?.id;
     if (!userId) {
@@ -139,16 +129,12 @@ router.post('/signup', signupLimiter, validate({ body: V.BETA_SIGNUP }), async (
       const firstName = nameParts[0] || '';
       const lastName = nameParts.slice(1).join(' ') || '';
 
-      const { data: newUser, error: userErr } = await supabaseAdmin
-        .from('users')
-        .insert({
+      const { data: newUser, error: userErr } = await createUser({
           email: normalizedEmail,
           password_hash: randomPassword,
           first_name: firstName.slice(0, 100),
           last_name: lastName.slice(0, 100),
-        })
-        .select('id')
-        .single();
+        }, 'id');
 
       if (userErr) {
         // Non-fatal: the invite code is still valid, user can sign up manually
@@ -160,19 +146,11 @@ router.post('/signup', signupLimiter, validate({ body: V.BETA_SIGNUP }), async (
 
     // Link application to user
     if (userId) {
-      await supabaseAdmin
-        .from('beta_applications')
-        .update({ user_id: userId })
-        .eq('email', normalizedEmail);
+      await updateApplicationByEmail(normalizedEmail, { user_id: userId });
     }
 
     // Also add to waitlist for tracking (upsert)
-    await supabaseAdmin
-      .from('beta_waitlist')
-      .upsert(
-        { email: normalizedEmail, name: trimmedName, source: 'beta_signup' },
-        { onConflict: 'email' }
-      ).then(() => {}).catch(quietly('beta/upsert', () => {}));
+    await upsertWaitlist({ email: normalizedEmail, name: trimmedName, source: 'beta_signup' }).then(() => {}).catch(quietly('beta/upsert', () => {}));
 
     log.info('Beta application approved', {
       email: normalizedEmail,
@@ -202,22 +180,14 @@ router.get('/status', authenticateUser, async (req, res) => {
       return res.status(401).json({ success: false, error: 'Not authenticated' });
     }
 
-    const { data: user } = await supabaseAdmin
-      .from('users')
-      .select('id, email, invite_code_id')
-      .eq('id', userId)
-      .single();
+    const { data: user } = await findUserById(userId, 'id, email, invite_code_id');
 
     if (!user) {
       return res.status(404).json({ success: false, error: 'User not found' });
     }
 
     // Check if they have an application
-    const { data: application } = await supabaseAdmin
-      .from('beta_applications')
-      .select('status, platforms, created_at, approved_at')
-      .eq('email', user.email)
-      .single();
+    const { data: application } = await findApplicationByEmail(user.email, 'status, platforms, created_at, approved_at');
 
     // Check if they redeemed an invite code
     const isBetaUser = !!user.invite_code_id;
@@ -247,11 +217,7 @@ router.post('/activate', authenticateUser, validate({ body: V.BETA_ACTIVATE }), 
 
     const normalizedEmail = email.trim().toLowerCase();
 
-    const { data: application } = await supabaseAdmin
-      .from('beta_applications')
-      .select('id, status, invite_code')
-      .eq('email', normalizedEmail)
-      .single();
+    const { data: application } = await findApplicationByEmail(normalizedEmail, 'id, status, invite_code');
 
     if (!application) {
       return res.status(404).json({ success: false, error: 'No application found for this email' });
@@ -271,14 +237,11 @@ router.post('/activate', authenticateUser, validate({ body: V.BETA_ACTIVATE }), 
       maxUses: 1,
     });
 
-    await supabaseAdmin
-      .from('beta_applications')
-      .update({
+    await updateApplicationById(application.id, {
         status: 'approved',
         invite_code: invite.code,
         approved_at: new Date().toISOString(),
-      })
-      .eq('id', application.id);
+      });
 
     res.json({
       success: true,

@@ -27,6 +27,7 @@ import express from 'express';
 import { authenticateUser } from '../middleware/auth.js';
 import { addPlatformObservation, addMemory } from '../services/memoryStreamService.js';
 import { createLogger } from '../services/logger.js';
+import { whatsAppMemoryCount } from '../services/opsStore.js';
 
 const log = createLogger('WhatsAppImport');
 
@@ -309,13 +310,7 @@ router.get('/status', authenticateUser, async (req, res) => {
   const userId = req.user.id;
 
   try {
-    const { supabaseAdmin } = await import('../services/database.js');
-    const { count } = await supabaseAdmin
-      .from('user_memories')
-      .select('id', { count: 'exact', head: true })
-      .eq('user_id', userId)
-      .eq('memory_type', 'platform_data')
-      .like('content', '%WhatsApp%');
+    const { count } = await whatsAppMemoryCount(userId);
 
     res.json({ imported: (count || 0) > 0, memoryCount: count || 0 });
   } catch (err) {

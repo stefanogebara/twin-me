@@ -20,7 +20,8 @@
  */
 
 import express from 'express';
-import { supabaseAdmin } from '../services/database.js';
+import { whatsAppChannels } from '../services/messagingChannelStore.js';
+import { usersWithTransactionsSince } from '../services/transactions/userTransactionStore.js';
 import { verifyCronSecret } from '../middleware/verifyCronSecret.js';
 import { sendWhatsAppMessage, sendWhatsAppTemplate } from '../services/whatsappService.js';
 import { createLogger } from '../services/logger.js';
@@ -54,11 +55,7 @@ router.all('/', async (req, res) => {
     }
 
     // WhatsApp-linked users.
-    const { data: channels, error: chErr } = await supabaseAdmin
-      .from('messaging_channels')
-      .select('user_id, channel_id')
-      .eq('channel', 'whatsapp')
-      .limit(500);
+    const { data: channels, error: chErr } = await whatsAppChannels({ limit: 500 });
     if (chErr) throw new Error(`channels query failed: ${chErr.message}`);
     if (!channels?.length) {
       return res.json({ success: true, nagged: 0, reason: 'no whatsapp channels' });
@@ -69,11 +66,7 @@ router.all('/', async (req, res) => {
     // queries or an RPC — not worth it at this scale).
     const userIds = [...new Set(channels.map((c) => c.user_id))];
     const cutoff = new Date(Date.now() - STALE_DAYS * 86400_000).toISOString().slice(0, 10);
-    const { data: freshTx, error: txErr } = await supabaseAdmin
-      .from('user_transactions')
-      .select('user_id')
-      .in('user_id', userIds)
-      .gte('transaction_date', cutoff);
+    const { data: freshTx, error: txErr } = await usersWithTransactionsSince(userIds, cutoff);
     if (txErr) throw new Error(`transactions query failed: ${txErr.message}`);
 
     const freshUsers = new Set((freshTx || []).map((r) => r.user_id));

@@ -1,7 +1,7 @@
 // api/routes/email-unsubscribe.js
 // One-click email opt-out. GET /api/email/unsubscribe?uid=<userId>&token=<hmac>
 import express from 'express';
-import { supabaseAdmin } from '../services/database.js';
+import { updateUser } from '../services/auth/authStore.js';
 import { verifyUnsubscribeToken } from '../services/emailService.js';
 import { createLogger } from '../services/logger.js';
 
@@ -17,10 +17,7 @@ router.get('/unsubscribe', async (req, res) => {
     return res.status(400).send(page('Invalid or expired unsubscribe link.', false));
   }
 
-  const { error } = await supabaseAdmin
-    .from('users')
-    .update({ email_digest_unsubscribed: true })
-    .eq('id', uid);
+  const { error } = await updateUser(uid, { email_digest_unsubscribed: true });
 
   if (error) {
     log.error('DB error:', error.message);

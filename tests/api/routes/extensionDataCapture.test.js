@@ -49,19 +49,25 @@ vi.mock('../../../api/services/observationIngestion.js', () => ({
 }));
 
 // auth middleware's email-verification check dynamically imports services/database.js
-vi.mock('../../../api/services/database.js', () => ({
-  supabaseAdmin: {
-    from: vi.fn(() => ({
-      select: vi.fn().mockReturnThis(),
-      eq: vi.fn().mockReturnThis(),
-      single: vi.fn().mockResolvedValue({
-        data: { email_verified: true, created_at: new Date().toISOString() },
-        error: null,
-      }),
-    })),
-  },
-  serverDb: {},
-}));
+/* The captures are written through api/services/extension/extensionStore.js, which reads the
+   client from services/database.js (M2-D, 2026-09-22); the auth middleware reads the same
+   module for its users lookup. One builder answers both: a users read says the person is
+   verified, and anything else records the insert and answers through singleMock. */
+vi.mock('../../../api/services/database.js', () => {
+  const builderFor = (table) => {
+    const b = {
+      insert: (...args) => { insertMock(...args); return b; },
+      upsert: () => b,
+      select: () => b,
+      eq: () => b,
+      single: (...args) => (table === 'users'
+        ? Promise.resolve({ data: { email_verified: true, created_at: new Date().toISOString() }, error: null })
+        : singleMock(...args)),
+    };
+    return b;
+  };
+  return { supabaseAdmin: { from: (table) => builderFor(table) }, serverDb: {} };
+});
 
 const TEST_USER = '167c27b5-a40b-49fb-8d00-deb1b1c57f4d';
 const signToken = () => jwt.sign({ id: TEST_USER }, 'test-secret', { expiresIn: '1h' });

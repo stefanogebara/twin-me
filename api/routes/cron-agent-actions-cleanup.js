@@ -19,7 +19,7 @@
 
 import express from 'express';
 import { verifyCronSecret } from '../middleware/verifyCronSecret.js';
-import { supabaseAdmin } from '../services/database.js';
+import { staleActions, expireActions } from '../services/agentActionStore.js';
 import { logCronExecution } from '../services/cronLogger.js';
 import { createLogger } from '../services/logger.js';
 
@@ -48,12 +48,7 @@ router.all('/', async (req, res) => {
     const cutoffIso = new Date(Date.now() - TTL_DAYS * 24 * 60 * 60 * 1000).toISOString();
 
     // 1. Fetch pending proposals older than cutoff. Cap the batch size.
-    const { data: stale, error: fetchErr } = await supabaseAdmin
-      .from('agent_actions')
-      .select('id')
-      .is('user_response', null)
-      .lt('created_at', cutoffIso)
-      .limit(MAX_EXPIRATIONS_PER_RUN);
+    const { data: stale, error: fetchErr } = await staleActions(cutoffIso, { limit: MAX_EXPIRATIONS_PER_RUN });
 
     if (fetchErr) {
       log.error('Failed to fetch stale proposals', { error: fetchErr.message });
@@ -73,14 +68,11 @@ router.all('/', async (req, res) => {
 
     // 2. Batch soft-expire them. outcome_data captures the reason so the
     //    audit trail survives a later forensic review.
-    const { error: updateErr, count } = await supabaseAdmin
-      .from('agent_actions')
-      .update({
+    const { error: updateErr, count } = await expireActions(staleIds, {
         user_response: 'expired',
         resolved_at: new Date().toISOString(),
         outcome_data: { reason: 'ttl_expired', ttl_days: TTL_DAYS, expired_at: new Date().toISOString() },
-      }, { count: 'exact' })
-      .in('id', staleIds);
+      });
 
     if (updateErr) {
       log.error('Failed to update stale proposals', { error: updateErr.message, batchSize: staleIds.length });

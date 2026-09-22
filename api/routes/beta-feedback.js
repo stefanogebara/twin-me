@@ -13,7 +13,7 @@
 
 import { Router } from 'express';
 import { authenticateUser } from '../middleware/auth.js';
-import { supabaseAdmin } from '../services/database.js';
+import { insertFeedback } from '../services/beta/betaStore.js';
 import { createLogger } from '../services/logger.js';
 import { validate } from '../middleware/validate.js';
 import * as V from './stayingSchemas.js';
@@ -33,9 +33,7 @@ router.post('/feedback', authenticateUser, validate({ body: V.BETA_FEEDBACK }), 
     const validCategories = ['bug', 'feature', 'general', 'ux'];
     const safeCategory = validCategories.includes(category) ? category : 'general';
 
-    const { error } = await supabaseAdmin
-      .from('beta_feedback')
-      .insert({
+    const { error } = await insertFeedback({
         user_id: userId,
         category: safeCategory,
         message: message.trim().slice(0, 2000),
