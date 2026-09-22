@@ -3,7 +3,7 @@
  * a number of its own. Four things cross it: the analyst's findings, the patterns it worked
  * out, what the person said, and the conversation on Ask (2026-09-16).
  */
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 const addMemory = vi.fn();
 vi.mock('../../../../api/services/memoryStreamService.js', () => ({ addMemory: (...a) => addMemory(...a) }));
@@ -151,5 +151,24 @@ describe('tellTwinFacts and tellTwinTurn', () => {
     addMemory.mockReset();
     expect(await tellTwinTurn('user-1', { role: 'you', text: '' })).toEqual({ written: 0 });
     expect(addMemory).not.toHaveBeenCalled();
+  });
+});
+
+describe('the bridge while the twin is parked', () => {
+  const OLD = process.env.LEGACY_TWIN_ENABLED;
+  beforeEach(() => { addMemory.mockReset(); addMemory.mockResolvedValue({ id: 'm1' }); });
+  afterEach(() => { if (OLD === undefined) delete process.env.LEGACY_TWIN_ENABLED; else process.env.LEGACY_TWIN_ENABLED = OLD; });
+
+  it('writes nothing when LEGACY_TWIN_ENABLED is false', async () => {
+    process.env.LEGACY_TWIN_ENABLED = 'false';
+    expect(await tellTwinTurn('u1', { role: 'person', text: 'How much did I spend last night?' })).toEqual({ written: 0 });
+    expect(await tellTwin('u1', [finding])).toMatchObject({ written: 0 });
+    expect(addMemory).not.toHaveBeenCalled();
+  });
+
+  it('writes as before when the twin is not parked', async () => {
+    delete process.env.LEGACY_TWIN_ENABLED;
+    expect(await tellTwinTurn('u1', { role: 'person', text: 'How much did I spend last night?' })).toEqual({ written: 1 });
+    expect(addMemory).toHaveBeenCalledTimes(1);
   });
 });
