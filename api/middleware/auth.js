@@ -27,7 +27,14 @@ export async function blacklistToken(token, expiresInSeconds) {
       rememberBlacklist(key, true);
       return;
     }
-  } catch {}
+  } catch (error) {
+    /* Decided 2026-09-22 (M1-4): the blacklist fails OPEN, never closed. An access token
+       lives 30 minutes (2 h on mobile) and the refresh token's revocation is in the database,
+       so a Redis outage costs at most one token lifetime of a stolen token; failing closed
+       would turn every Redis outage into a total outage for every signed-in person. What it
+       must never be is silent: this used to be an empty catch. */
+    log.warn('token blacklist write fell back to this instance only', { error: error.message });
+  }
   inMemoryBlacklist.set(key, Date.now() + expiresInSeconds * 1000);
   rememberBlacklist(key, true);
 }
@@ -60,7 +67,9 @@ async function askBlacklist(key) {
       const client = getRedisClient();
       return await client.exists(key) === 1;
     }
-  } catch {}
+  } catch (error) {
+    log.warn('token blacklist read fell back to this instance only', { error: error.message });
+  }
   const expiry = inMemoryBlacklist.get(key);
   if (!expiry) return false;
   if (Date.now() > expiry) { inMemoryBlacklist.delete(key); return false; }

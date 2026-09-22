@@ -37,6 +37,12 @@ test('Today paints a figure within budget, and the page is one read', async ({ p
   expect(warm.money.length, 'money requests to paint Today').toBeLessThanOrEqual(8);
   expect(warm.painted, 'Today warm paint').toBeLessThan(6000);
   expect(cold.painted, 'Today cold paint').toBeLessThan(20000);
+  /* Today's word budget is 180 (decided 2026-09-22; the register asks for about 150 and
+     the page measured 173 on real data after the day's cuts). Counted on the person's own
+     ledger, which is the only place the count means anything. */
+  const words = (await page.locator('main').innerText()).trim().split(/\s+/).length;
+  testInfo.annotations.push({ type: 'today_words', description: String(words) });
+  expect(words, 'Today word budget').toBeLessThanOrEqual(180);
   for (const step of ['.la[role="dialog"]']) for (let i = 0; i < 4 && (await page.locator(step).count()); i += 1) { await page.keyboard.press('Escape'); await page.waitForTimeout(250); }
 });
 

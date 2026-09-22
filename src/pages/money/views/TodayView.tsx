@@ -28,7 +28,7 @@ export default function TodayView({ m }: { m: MoneyAccount }) {
           <section className={`mv-hero${loaded && !empty && today && today.amount !== null ? ' mv-hero--orb' : ''}`} id="month">
             {/* The line that says what the figure is stands above it; the month moved into the
                 band's own label, where the month's figures are (critic, 2026-09-22). */}
-            <p className="mv-eyebrow">{loaded && !empty && today && today.amount !== null ? (today.over ? t('Over your budget') : t("Today's estimate")) : monthLabel}</p>
+            <p className="mv-eyebrow">{loaded && !empty && today && today.amount !== null ? (today.over ? t('Over your budget') : t('Safe to spend today')) : monthLabel}</p>
             {!loaded ? (
               /* The first seconds of a new account are the month being read; an ellipsis
                  where the number goes read as a broken figure to a stranger. */
