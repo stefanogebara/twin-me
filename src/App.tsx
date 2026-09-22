@@ -8,6 +8,7 @@ import { useEffect, useRef, lazy, Suspense } from "react";
 import Wait from "@/components/Wait";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import { lazyWithRetry } from "@/lib/lazyWithRetry";
+import LegacyTwinGate from "@/components/LegacyTwinGate";
 import { LoadingProvider } from "./contexts/LoadingContext";
 import { ErrorProvider } from "./contexts/ErrorContext";
 import { AnalyticsProvider, useAnalytics } from "./contexts/AnalyticsContext";
@@ -178,6 +179,10 @@ const App = () => {
                       <SidebarProvider>
                       <NavigationProvider>
           <Suspense fallback={<Wait />}>
+          {/* The retired twin's pages render one quiet line and the way to /money while the
+              twin is parked; the Route lines below stay until M2-B deletes the pages with them
+              (src/lib/legacyTwin.ts, 2026-09-22). */}
+          <LegacyTwinGate>
           <Routes>
             {/* Authentication */}
             <Route path="/auth" element={<CustomAuth />} />
@@ -735,6 +740,7 @@ const App = () => {
             {/* Catch-all */}
             <Route path="*" element={<NotFound />} />
           </Routes>
+          </LegacyTwinGate>
           </Suspense>
                     </NavigationProvider>
                       </SidebarProvider>

@@ -37,9 +37,14 @@ describe('money first', () => {
     expect(gate.slice(0, 400)).toMatch(/<Navigate to="\/money" replace \/>/);
     expect(gate.slice(0, 400)).not.toMatch(/<Navigate to="\/soul-reveal"/);
   });
-  it('keeps the twin one link away, never the door', () => {
+  it('has no door into the parked twin, and the parked twin has one back', () => {
+    /* OW1 kept the twin one link away. Since 2026-09-22 (M1-A) that link would have led to a
+       parked page, so the money pages carry no link into the twin, and the parked page
+       carries the one back. */
     const money = readFileSync('src/pages/money/MoneyV2Page.tsx', 'utf8');
-    expect(money).toMatch(/<Link to="\/today">/);
+    expect(money).not.toMatch(/<Link to="\/(today|talk-to-twin|identity|soul-signature)"/);
+    const parked = readFileSync('src/pages/Parked.tsx', 'utf8');
+    expect(parked).toMatch(/<Link to="\/money"/);
   });
 });
 

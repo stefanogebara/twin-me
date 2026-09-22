@@ -118,52 +118,12 @@
   },
   "crons": [
     {
-      "path": "/api/cron/ingest-observations",
-      "schedule": "*/30 * * * *"
-    },
-    {
-      "path": "/api/cron/memory-archive",
-      "schedule": "0 3 * * *"
-    },
-    {
-      "path": "/api/cron/soul-signature-regen",
-      "schedule": "0 6 * * *"
-    },
-    {
-      "path": "/api/cron/memory-forgetting",
-      "schedule": "0 3 * * 0"
-    },
-    {
-      "path": "/api/cron/email-digest",
-      "schedule": "0 9 * * 1"
-    },
-    {
-      "path": "/api/cron/prospective-check",
-      "schedule": "*/15 * * * *"
-    },
-    {
       "path": "/api/cron/stripe-webhook-events-cleanup",
       "schedule": "0 4 * * 0"
     },
     {
       "path": "/api/cron/health-monitor",
       "schedule": "30 4 * * *"
-    },
-    {
-      "path": "/api/cron/deliver-insights",
-      "schedule": "0 * * * *"
-    },
-    {
-      "path": "/api/cron/morning-briefing",
-      "schedule": "0 10 * * *"
-    },
-    {
-      "path": "/api/cron/twin-summary-refresh",
-      "schedule": "0 6 * * *"
-    },
-    {
-      "path": "/api/cron/nudge-inactive",
-      "schedule": "0 14 * * *"
     },
     {
       "path": "/api/cron/agent-actions-cleanup",
