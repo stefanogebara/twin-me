@@ -11,6 +11,15 @@
 - **maxDuration**: 60s (was 120s — halves GB-hour cost)
 - **Deploys**: ONE per push (disabled GitHub Action duplicate). Batch commits before pushing.
 - **New crons**: Must justify frequency. Default to hourly or daily, not every-N-minutes.
+- **Builds** (measured 2026-09-22): 600 deployments and **10,596 build minutes** in thirty
+  days. 386 of them were previews of branches nobody opens (preview URLs are SSO-gated),
+  6,770 minutes. `vercel.json`'s `ignoreCommand` now builds **only `main`**, and only when
+  the commit touches something the site serves. A Vercel check that reads "skipped" on a
+  pull request is this working; CI is what gates a merge, not the preview.
+- **What a build actually spends** (same measurement): `vite build` finishes in **14.5 s**.
+  The other **17.5 minutes** are Vercel tracing and bundling `api/index.js` into one
+  serverless function, and `googleapis` alone is 186 MB of it. Cutting that is the next
+  lever; see the tracker.
 - **LLM in crons**: Always check cooldowns/conditions BEFORE calling LLM. Early return = free.
 
 ## Workflow & Task Management
