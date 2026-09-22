@@ -182,9 +182,12 @@ const PrivacyPolicy = () => {
               </li>
               <li>
                 <strong>OpenRouter</strong> (AI model gateway) - Routes AI requests
-                to language models (Claude, DeepSeek, Gemini Flash) for personality analysis and twin
-                conversations. Conversation content is sent to these models for processing but is not
-                retained by the model providers for training purposes.
+                to language models (Claude, DeepSeek, Gemini Flash) for the money chat and, in the
+                retired twin, for personality analysis. Since 22 September 2026 it also routes a merchant's
+                name on a bank line, how many payments it took and their typical amount to TypeSafe's Jev,
+                a classification model, when no places provider could say what kind of place it is; the
+                answer is kept for you alone and can be found and undone. Content sent to these models is
+                processed and not retained by the providers for training.
               </li>
               <li>
                 <strong>Vercel</strong> (hosting) - Hosts our web application and

@@ -897,7 +897,9 @@ router.post('/magic-link/request', authLimiter, validate({ body: AS.MAGIC_LINK }
   }
 });
 
-router.get('/magic-link/verify', async (req, res) => {
+/* The same limiter the sign-in routes carry: a 32-byte token cannot be guessed, but an
+   unlimited GET was a free database lookup per request (audit, 2026-09-22). */
+router.get('/magic-link/verify', authLimiter, async (req, res) => {
   const appUrl = resolveAppUrl(req);
   const rawToken = typeof req.query?.token === 'string' ? req.query.token : '';
   /* Where a signin link lands when it does not say. The money product is the front door
