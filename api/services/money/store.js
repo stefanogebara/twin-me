@@ -20,6 +20,7 @@ import { projectMonth } from './projection.js';
 import { fetchTransactions, toSighting, distinctPending, fetchBalances } from './feeds/enableBanking.js';
 import { readLedger, monthSegments } from './analyst.js';
 import { spendingRule, markCounted, personRoles } from './spending.js';
+import { judgePlace } from './judge.js';
 import { poolMerchantPriors } from './priors.js';
 import { nudgeFindings, retiredKinds, NUDGE_KINDS, expiredNudge } from './nudges.js';
 import { safeToSpend } from './allowance.js';
@@ -727,10 +728,16 @@ export async function enrichPlaces(userId, { limit = 12 } = {}) {
   const spend = new Map();
   const names = new Map();
   const cities = new Map();
+  /* What each payment cost, for the judge below: a truncated bank line says little, and
+     "four payments of about 4,50 EUR" says a great deal more (judge.js). */
+  const amounts = new Map();
   for (const r of rows) {
     spend.set(r.merchant_key, (spend.get(r.merchant_key) || 0) + Math.abs(Number(r.amount) || 0));
     if (r.merchant_raw && !names.has(r.merchant_key)) names.set(r.merchant_key, r.merchant_raw);
     if (r.merchant_city && !cities.has(r.merchant_key)) cities.set(r.merchant_key, r.merchant_city);
+    const bag = amounts.get(r.merchant_key) || [];
+    bag.push(Math.abs(Number(r.amount) || 0));
+    amounts.set(r.merchant_key, bag);
   }
   const { data: known } = await supabaseAdmin.from('money_places').select('merchant_key');
   const done = new Set((known || []).map((k) => k.merchant_key));
@@ -740,6 +747,7 @@ export async function enrichPlaces(userId, { limit = 12 } = {}) {
 
   let placed = 0;
   let unreached = 0;
+  let judgedCount = 0;
   const batch = todo.slice(0, limit);
   for (const key of batch) {
     const name = names.get(key) || key;
@@ -779,11 +787,25 @@ export async function enrichPlaces(userId, { limit = 12 } = {}) {
         provider: brand ? 'brand' : providerFor(), confidence: brand ? 0.8 : 0,
         looked_up_at: new Date().toISOString(),
       };
+    /* Nothing placed it: not the brand table, not the provider. Rather than write the miss
+       and leave the merchant reading "not read yet" for good, ask the judge. It only ever
+       fills a hole - a category from the brand table or a trusted provider answer is never
+       touched - and what it writes is marked as its own so it can be found and undone. */
+    if (!row.category) {
+      const judged = await judgePlace({ name, city: cities.get(key) || null, amounts: amounts.get(key) || [] });
+      if (judged) {
+        row.category = judged.category;
+        row.provider = 'jev';
+        row.confidence = judged.confidence;
+        row.raw = { ...(row.raw || {}), judged: { category: judged.category, confidence: judged.confidence } };
+        judgedCount += 1;
+      }
+    }
     const { error } = await supabaseAdmin.from('money_places').upsert(row, { onConflict: 'merchant_key' });
     if (error) log.warn(`place cache write failed (${key}): ${error.message}`);
-    else if (place || brand) placed += 1;
+    else if (place || brand || row.category) placed += 1;
   }
-  return { looked: batch.length, placed, unreached, left: Math.max(0, todo.length - batch.length), provider: providerFor() };
+  return { looked: batch.length, placed, judged: judgedCount, unreached, left: Math.max(0, todo.length - batch.length), provider: providerFor() };
 }
 
 /**
