@@ -6,7 +6,7 @@
  * local source of truth and syncs best-effort; it catches and shows, it never
  * blocks on the network.
  */
-import { API_URL, authFetch, getAuthHeaders } from './apiBase';
+import { API_URL, authFetch, getAuthHeaders, refreshForRetry } from './apiBase';
 
 export class PresenceApiError extends Error {
   status: number;
@@ -93,12 +93,16 @@ async function errorOf(response: Response): Promise<PresenceApiError> {
 }
 
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
+  const send = () => authFetch(path, {
+    ...options,
+    headers: { 'Content-Type': 'application/json', ...(options?.headers || {}) },
+  });
   let response: Response;
   try {
-    response = await authFetch(path, {
-      ...options,
-      headers: { 'Content-Type': 'application/json', ...(options?.headers || {}) },
-    });
+    response = await send();
+    // An access token that expired while the page sat open is recoverable:
+    // refresh through AuthContext's single flight and repeat the call once.
+    if (response.status === 401 && await refreshForRetry()) response = await send();
   } catch (err) {
     throw new PresenceApiError(0, err instanceof Error ? err.message : 'network');
   }
@@ -108,11 +112,20 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
 
 /** Multipart: the browser must set the boundary itself, so the JSON content-type is stripped. */
 async function upload<T>(path: string, form: FormData): Promise<T> {
-  const headers: Record<string, string> = { ...getAuthHeaders() };
-  delete headers['Content-Type'];
+  // Headers are rebuilt per attempt: the retry must carry the NEW token, and
+  // the browser must set the multipart boundary itself, so no Content-Type.
+  const send = () => {
+    const headers: Record<string, string> = { ...getAuthHeaders() };
+    delete headers['Content-Type'];
+    return fetch(`${API_URL}${path}`, { method: 'POST', headers, body: form });
+  };
   let response: Response;
   try {
-    response = await fetch(`${API_URL}${path}`, { method: 'POST', headers, body: form });
+    response = await send();
+    // Uploads are the calls most likely to meet an expired token — a voice note
+    // or a recording is made minutes after the page loaded — and the most
+    // expensive to lose, because the audio only existed in that tab.
+    if (response.status === 401 && await refreshForRetry()) response = await send();
   } catch (err) {
     throw new PresenceApiError(0, err instanceof Error ? err.message : 'network');
   }
@@ -207,11 +220,18 @@ export const presenceAPI = {
 
   /** Hear the cloned voice through one model. Returns the audio itself, not JSON. */
   voicePreview: async (id: string, model: PresenceVoiceModel): Promise<Blob> => {
-    const response = await fetch(`${API_URL}/presence/${id}/voice-preview`, {
+    const send = () => fetch(`${API_URL}/presence/${id}/voice-preview`, {
       method: 'POST',
       headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
       body: JSON.stringify({ model }),
-    }).catch((err) => { throw new PresenceApiError(0, err instanceof Error ? err.message : 'network'); });
+    });
+    let response: Response;
+    try {
+      response = await send();
+      if (response.status === 401 && await refreshForRetry()) response = await send();
+    } catch (err) {
+      throw new PresenceApiError(0, err instanceof Error ? err.message : 'network');
+    }
     if (!response.ok) throw await errorOf(response);
     return response.blob();
   },
