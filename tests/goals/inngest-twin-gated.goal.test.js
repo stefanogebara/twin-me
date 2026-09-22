@@ -13,9 +13,11 @@
  */
 import { describe, it, expect } from 'vitest';
 import { readFileSync, readdirSync } from 'node:fs';
-import { resolve, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { join } from 'node:path';
 
-const FUNCTIONS_DIR = resolve(process.cwd(), 'api/inngest/functions');
+/* Resolved from this file, not the working directory, so the goal holds wherever vitest runs. */
+const FUNCTIONS_DIR = fileURLToPath(new URL('../../api/inngest/functions', import.meta.url));
 
 describe('goal: every Inngest twin function is gated by createTwinFunction', () => {
   const files = readdirSync(FUNCTIONS_DIR).filter(f => f.endsWith('.js'));
