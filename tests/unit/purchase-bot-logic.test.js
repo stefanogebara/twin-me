@@ -10,7 +10,7 @@
  * convention in tests/unit/pluggySignedAmount.test.js: the real module
  * pulls in supabase + logger which we don't want in the unit harness.
  * Sources: api/services/purchaseContextBuilder.js, purchaseReflection.js,
- * api/routes/whatsapp-twinme-webhook.js (kept verbatim — if the real
+ * api/services/whatsappInboundPipeline.js (kept verbatim — if the real
  * function diverges, the regression test in extractor-upsert-regression
  * catches the source-text drift).
  */
@@ -45,7 +45,7 @@ function computeMoment(timezone = 'UTC') {
   return { hour, band, day_of_week: dayOfWeek, is_weekend, timezone, utc_iso: now.toISOString() };
 }
 
-// ─── Inlined from whatsapp-twinme-webhook.js ─────────────────────────────────
+// ─── Inlined from whatsappInboundPipeline.js ─────────────────────────────────
 const PURCHASE_INTENT_PATTERNS = [
   /\bvou\s+compra/i,
   /\bpensando\s+em\s+compra/i,

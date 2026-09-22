@@ -40,7 +40,6 @@ const ROUTE_TIMEOUTS = [
   ['/inngest', HARD_CAP_MS],
   ['/soul-signature/layers', 90_000],
   ['/onboarding/calibration', 90_000],
-  ['/whatsapp-twin/webhook', 90_000],
   ['/whatsapp-zapi/webhook', 90_000],
   ['/whatsapp-evolution/webhook', 90_000],
   ['/telegram-webhook', 90_000],

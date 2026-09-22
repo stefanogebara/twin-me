@@ -350,12 +350,11 @@ app.use('/api/presence-call', express.json({ limit: '2mb' }));
 app.use(express.json({
   limit: '100kb',
   verify: (req, _res, buf) => {
-    // Store raw body for HMAC verification on webhook routes. Must include
-    // the twin webhook path — otherwise verifyWebhookSignature is fed
-    // JSON.stringify(req.body) which is NOT byte-equivalent to Meta's payload
-    // and the HMAC always mismatches → every signed POST returns 403.
+    // Store raw body for HMAC verification on webhook routes — otherwise the
+    // signature check is fed JSON.stringify(req.body), which is NOT
+    // byte-equivalent to the provider's original payload and the HMAC always
+    // mismatches, so every signed POST returns 403.
     if (req.originalUrl.startsWith('/api/whatsapp/webhook') ||
-        req.originalUrl.startsWith('/api/whatsapp-twin/webhook') ||
         req.originalUrl.startsWith('/api/telegram/webhook') ||
         req.originalUrl.startsWith('/api/money/inbox/resend') ||
         req.originalUrl.startsWith('/api/nango-webhooks') ||
@@ -550,7 +549,6 @@ import moneyRoutes, { bankCallback } from './routes/money.js';
 import revelationsRoutes from './routes/revelations.js';
 import insightFeedbackRoutes from './routes/insight-feedback.js';
 import userRulesRoutes from './routes/user-rules.js';
-import whatsappTwinWebhookRoutes from './routes/whatsapp-twinme-webhook.js';
 import purchaseNotificationRoutes from './routes/purchase-notification.js';
 import whatsappKapsoWebhookRoutes from './routes/whatsapp-kapso-webhook.js';
 import whatsappZapiWebhookRoutes from './routes/whatsapp-zapi-webhook.js';
@@ -813,7 +811,6 @@ app.use('/api/cron/wiki-compile', cronWikiCompileRoutes); // Daily 02:00 UTC: re
 app.use('/api/cron/health-monitor', cronHealthMonitorRoutes); // Daily 04:30 UTC: scan cron_executions for the "looks healthy, does no work" pattern that hid meeting-debrief + pluggy-sync + soul-signature-regen for weeks during the 2026-05-22 audit
 app.use('/api/insights', insightFeedbackRoutes); // Insight feedback (thumbs up/down)
 app.use('/api/user-rules', userRulesRoutes); // User-curated rules the twin must obey
-app.use('/api/whatsapp-twin', whatsappTwinWebhookRoutes); // WhatsApp twin chat (live)
 app.use('/api/purchase-notification', purchaseNotificationRoutes); // Mobile purchase detection
 app.use('/api/web-push', webPushRoutes); // Web push notification subscribe/unsubscribe
 app.use('/api/telegram/webhook', telegramWebhookRoutes); // Telegram bot webhook
