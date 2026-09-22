@@ -14,6 +14,9 @@ type T = (s: string, holes?: Record<string, string | number>) => string;
 
 const dayMonth = (iso: string, locale: string) =>
   new Date(`${iso}T12:00:00Z`).toLocaleDateString(locale, { day: 'numeric', month: 'short' });
+/* Nine labels with a month in them collide at 402px, so the phone gets the day alone and
+   the line under the strip names the month when a week is tapped (2026-09-22). */
+const dayOnly = (iso: string) => String(Number(iso.slice(8, 10)));
 
 /** How many events, in words that read right at one. */
 const events = (n: number, t: T) => (n === 1 ? t('{n} class or event', { n: 1 }) : t('{n} classes and events', { n }));
@@ -52,7 +55,7 @@ export default function TermStrip({ term, t, locale }: { term: MoneyTerm; t: T; 
           >
             <b>{w.known ? w.events : ''}</b>
             <i style={{ height: w.known ? Math.max(3, Math.round(((w.events || 0) / top) * BAR_MAX)) : 3 }} />
-            <em>{dayMonth(w.start, locale)}</em>
+            <em><span className="mv-term-wide">{dayMonth(w.start, locale)}</span><span className="mv-term-narrow">{dayOnly(w.start)}</span></em>
           </button>
         ))}
       </div>
