@@ -70,16 +70,19 @@ async function main() {
   let pr;
   try { pr = sh('gh', ['pr', 'create', '--base', 'main', '--head', branch, '--title', `Loop: ${(plan.tasks?.[0]?.title || plan.reason).slice(0, 60)}`, '--body', body, '--label', 'loop']); }
   catch { pr = sh('gh', ['pr', 'view', branch, '--json', 'url', '--jq', '.url']); }
-  /* The PR's own CI does start (the pull_request event fires for a bot's PR) but waits for a
-     maintainer's approval, because github-actions[bot] counts as a first-time contributor
-     (seen on #448, 2026-09-20). A run dispatched by name does not count as the PR's checks.
-     So the stage names the one command a person runs; a LOOP_PUSH_TOKEN would remove it. */
-  /* Every workflow the PR starts waits (CI and the secret scan both), so the command approves
-     all of them, and the merge can be queued behind them with --auto. */
+  /* Pushed and opened with LOOP_PUSH_TOKEN (a person's fine-grained PAT, set 2026-09-22), the
+     PR's CI runs like anyone's. On the app token it does start but waits for a maintainer's
+     approval, because github-actions[bot] counts as a first-time contributor (seen on #448,
+     2026-09-20), and a run dispatched by name does not count as the PR's checks; that path
+     names the one command a person runs, which approves every waiting run and queues the merge. */
   const repo = process.env.GITHUB_REPOSITORY;
-  say(`The PR's runs wait for a maintainer's approval. To release them and queue the merge:\n` +
-    `  for r in $(gh run list --branch ${branch} --json databaseId,conclusion --jq '.[] | select(.conclusion=="action_required") | .databaseId'); do gh api -X POST repos/${repo}/actions/runs/$r/approve; done\n` +
-    `  gh pr merge ${pr} --squash --auto --delete-branch`);
+  if (process.env.LOOP_PUSH_TOKEN_SET === 'true') {
+    say(`Opened with the loop's own token, so its checks run on their own. When they are green:\n  gh pr merge ${pr} --squash --delete-branch`);
+  } else {
+    say(`The PR's runs wait for a maintainer's approval. To release them and queue the merge:\n` +
+      `  for r in $(gh run list --branch ${branch} --json databaseId,conclusion --jq '.[] | select(.conclusion=="action_required") | .databaseId'); do gh api -X POST repos/${repo}/actions/runs/$r/approve; done\n` +
+      `  gh pr merge ${pr} --squash --auto --delete-branch`);
+  }
   fs.writeFileSync('loop-pr.txt', pr);
   if (process.env.GITHUB_OUTPUT) fs.appendFileSync(process.env.GITHUB_OUTPUT, `pr=${pr}\nbranch=${branch}\n`);
   say(`Implemented on ${branch}: ${changed.length} files; ${pr}`);
