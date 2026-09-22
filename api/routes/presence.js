@@ -79,6 +79,8 @@ import {
 } from '../services/presenceStore.js';
 import { createLogger } from '../services/logger.js';
 import { deriveReadiness } from '../services/presenceReadiness.js';
+import { validate } from '../middleware/validate.js';
+import * as V from './stayingSchemas.js';
 
 const log = createLogger('Presence');
 const router = express.Router();
@@ -330,7 +332,7 @@ router.get('/mine', authenticateUser, async (req, res) => {
 // ====================================================================
 // POST /join/:token — accept an invite (any signed-in user)
 // ====================================================================
-router.post('/join/:token', authenticateUser, async (req, res) => {
+router.post('/join/:token', authenticateUser, validate({ params: V.PRESENCE_TOKEN }), async (req, res) => {
   try {
     const token = String(req.params.token || '');
     if (!/^[A-Za-z0-9_-]{20,64}$/.test(token)) return res.status(404).json({ success: false, error: 'Invite not found' });
@@ -365,7 +367,7 @@ router.post('/join/:token', authenticateUser, async (req, res) => {
 // ====================================================================
 // POST / — create a draft
 // ====================================================================
-router.post('/', authenticateUser, async (req, res) => {
+router.post('/', authenticateUser, validate({ body: V.PRESENCE_CREATE }), async (req, res) => {
   try {
     const body = req.body || {};
     const { data, error } = await createPresence({
@@ -389,7 +391,7 @@ router.post('/', authenticateUser, async (req, res) => {
 // ====================================================================
 // PATCH /:id — update whitelisted fields
 // ====================================================================
-router.patch('/:id', authenticateUser, async (req, res) => {
+router.patch('/:id', authenticateUser, validate({ params: V.PRESENCE_ID, body: V.PRESENCE_PATCH }), async (req, res) => {
   try {
     const owned = await loadOwned(req, res);
     if (!owned) return;
@@ -433,7 +435,7 @@ router.patch('/:id', authenticateUser, async (req, res) => {
 // ====================================================================
 // POST /:id/consent — append-only consent record
 // ====================================================================
-router.post('/:id/consent', authenticateUser, async (req, res) => {
+router.post('/:id/consent', authenticateUser, validate({ params: V.PRESENCE_ID, body: V.PRESENCE_CONSENT }), async (req, res) => {
   try {
     const owned = await loadOwned(req, res);
     if (!owned) return;
@@ -456,7 +458,7 @@ router.post('/:id/consent', authenticateUser, async (req, res) => {
 // ====================================================================
 // PUT /:id/people — replace the family map
 // ====================================================================
-router.put('/:id/people', authenticateUser, async (req, res) => {
+router.put('/:id/people', authenticateUser, validate({ params: V.PRESENCE_ID, body: V.PRESENCE_PEOPLE }), async (req, res) => {
   try {
     const owned = await loadOwned(req, res);
     if (!owned) return;
@@ -486,7 +488,7 @@ router.put('/:id/people', authenticateUser, async (req, res) => {
 // ====================================================================
 // POST /:id/facts — upsert one fact by (kind, question)
 // ====================================================================
-router.post('/:id/facts', authenticateUser, async (req, res) => {
+router.post('/:id/facts', authenticateUser, validate({ params: V.PRESENCE_ID, body: V.PRESENCE_FACT }), async (req, res) => {
   try {
     const owned = await loadOwned(req, res);
     if (!owned) return;
@@ -511,7 +513,7 @@ router.post('/:id/facts', authenticateUser, async (req, res) => {
 // ====================================================================
 // POST /:id/notes — queue a note for her next conversation
 // ====================================================================
-router.post('/:id/notes', authenticateUser, async (req, res) => {
+router.post('/:id/notes', authenticateUser, validate({ params: V.PRESENCE_ID, body: V.PRESENCE_NOTE }), async (req, res) => {
   try {
     const owned = await loadMember(req, res, 'companion');
     if (!owned) return;
@@ -531,7 +533,7 @@ router.post('/:id/notes', authenticateUser, async (req, res) => {
 // ====================================================================
 // POST /:id/call-link — create or rotate the elder call link
 // ====================================================================
-router.post('/:id/call-link', authenticateUser, async (req, res) => {
+router.post('/:id/call-link', authenticateUser, validate({ params: V.PRESENCE_ID }), async (req, res) => {
   try {
     const owned = await loadOwned(req, res);
     if (!owned) return;
@@ -627,7 +629,7 @@ router.get('/:id/readiness', authenticateUser, async (req, res) => {
 // ====================================================================
 // POST /:id/about — "Tell me about her": voice note or text → structure
 // ====================================================================
-router.post('/:id/about', authenticateUser, aboutUpload.single('audio'), async (req, res) => {
+router.post('/:id/about', authenticateUser, aboutUpload.single('audio'), validate({ params: V.PRESENCE_ID, body: V.PRESENCE_ABOUT }), async (req, res) => {
   const filePath = req.file?.path;
   try {
     const owned = await loadOwned(req, res);
@@ -762,7 +764,7 @@ router.post('/:id/about', authenticateUser, aboutUpload.single('audio'), async (
 // the sample is refused: a "queued" state had no worker behind it and the file
 // was deleted, so it was a dead end shown as progress. Consent is checked
 // first; samples are never stored server-side — the temp file is deleted after.
-router.post('/:id/voice-samples', authenticateUser, aboutUpload.single('audio'), async (req, res) => {
+router.post('/:id/voice-samples', authenticateUser, aboutUpload.single('audio'), validate({ params: V.PRESENCE_ID, body: V.PRESENCE_VOICE_SAMPLE }), async (req, res) => {
   const filePath = req.file?.path;
   try {
     const owned = await loadOwned(req, res);
@@ -840,7 +842,7 @@ router.post('/:id/voice-samples', authenticateUser, aboutUpload.single('audio'),
 // ====================================================================
 // POST /:id/voice-revoke — consent withdrawal: delete the voice for real
 // ====================================================================
-router.post('/:id/voice-revoke', authenticateUser, async (req, res) => {
+router.post('/:id/voice-revoke', authenticateUser, validate({ params: V.PRESENCE_ID }), async (req, res) => {
   try {
     const owned = await loadOwned(req, res);
     if (!owned) return;
@@ -887,7 +889,7 @@ router.post('/:id/voice-revoke', authenticateUser, async (req, res) => {
 // and her page answers "link not found". The cloned voice is deleted first; if that
 // fails it is logged and the id stays on the voice row for a later delete. Hard
 // deletion of transcripts and facts comes with export (Phase 3).
-router.delete('/:id', authenticateUser, async (req, res) => {
+router.delete('/:id', authenticateUser, validate({ params: V.PRESENCE_ID }), async (req, res) => {
   try {
     const owned = await loadOwned(req, res);
     if (!owned) return;
@@ -909,7 +911,7 @@ router.delete('/:id', authenticateUser, async (req, res) => {
 // ====================================================================
 // POST /:id/asks/:factId — answer or dismiss a "who is X?" question card
 // ====================================================================
-router.post('/:id/asks/:factId', authenticateUser, async (req, res) => {
+router.post('/:id/asks/:factId', authenticateUser, validate({ params: V.PRESENCE_ID_FACT, body: V.PRESENCE_ASK }), async (req, res) => {
   try {
     const owned = await loadMember(req, res, 'family');
     if (!owned) return;
@@ -1006,7 +1008,7 @@ router.get('/:id/members', authenticateUser, async (req, res) => {
   }
 });
 
-router.delete('/:id/members/:userId', authenticateUser, async (req, res) => {
+router.delete('/:id/members/:userId', authenticateUser, validate({ params: V.PRESENCE_ID_USER }), async (req, res) => {
   try {
     const owned = await loadOwned(req, res);
     if (!owned) return;
@@ -1022,7 +1024,7 @@ router.delete('/:id/members/:userId', authenticateUser, async (req, res) => {
   }
 });
 
-router.post('/:id/invites', authenticateUser, async (req, res) => {
+router.post('/:id/invites', authenticateUser, validate({ params: V.PRESENCE_ID, body: V.PRESENCE_INVITE }), async (req, res) => {
   try {
     const owned = await loadOwned(req, res);
     if (!owned) return;

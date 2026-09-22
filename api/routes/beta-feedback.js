@@ -15,11 +15,13 @@ import { Router } from 'express';
 import { authenticateUser } from '../middleware/auth.js';
 import { supabaseAdmin } from '../services/database.js';
 import { createLogger } from '../services/logger.js';
+import { validate } from '../middleware/validate.js';
+import * as V from './stayingSchemas.js';
 
 const log = createLogger('BetaFeedback');
 const router = Router();
 
-router.post('/feedback', authenticateUser, async (req, res) => {
+router.post('/feedback', authenticateUser, validate({ body: V.BETA_FEEDBACK }), async (req, res) => {
   try {
     const userId = req.user.id;
     const { category, message, pageUrl } = req.body;

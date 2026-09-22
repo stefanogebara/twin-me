@@ -8,6 +8,8 @@ import { Router } from 'express';
 import rateLimit from 'express-rate-limit';
 import { validateInviteCode, addToWaitlist } from '../services/betaInviteService.js';
 import { createLogger } from '../services/logger.js';
+import { validate } from '../middleware/validate.js';
+import * as V from './stayingSchemas.js';
 
 const log = createLogger('BetaPublic');
 const router = Router();
@@ -30,7 +32,7 @@ const validateLimiter = rateLimit({
 });
 
 // POST /api/beta/validate — check code validity (no auth)
-router.post('/validate', validateLimiter, async (req, res) => {
+router.post('/validate', validateLimiter, validate({ body: V.BETA_VALIDATE }), async (req, res) => {
   try {
     const { code } = req.body;
     if (!code) {
@@ -49,7 +51,7 @@ router.post('/validate', validateLimiter, async (req, res) => {
 });
 
 // POST /api/beta/waitlist — join waitlist (rate-limited, no auth)
-router.post('/waitlist', waitlistLimiter, async (req, res) => {
+router.post('/waitlist', waitlistLimiter, validate({ body: V.BETA_WAITLIST }), async (req, res) => {
   try {
     const { email, name } = req.body;
     if (!email || typeof email !== 'string' || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {

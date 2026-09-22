@@ -13,6 +13,8 @@ import express from 'express';
 import { authenticateUser } from '../middleware/auth.js';
 import { getFeatureFlags, setFeatureFlag } from '../services/featureFlagsService.js';
 import { createLogger } from '../services/logger.js';
+import { validate } from '../middleware/validate.js';
+import * as V from './stayingSchemas.js';
 
 const log = createLogger('FeatureFlagsUser');
 const router = express.Router();
@@ -51,7 +53,7 @@ router.get('/', authenticateUser, async (req, res) => {
  * POST /api/feature-flags
  * Body: { flag: string, value: boolean }
  */
-router.post('/', authenticateUser, async (req, res) => {
+router.post('/', authenticateUser, validate({ body: V.FEATURE_FLAG }), async (req, res) => {
   try {
     const { flag, value } = req.body;
     if (!USER_FLAGS.includes(flag)) {

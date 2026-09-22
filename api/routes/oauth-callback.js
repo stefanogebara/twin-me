@@ -18,6 +18,8 @@ import { createLogger } from '../services/logger.js';
 import { getAppUrl } from '../utils/oauthUtils.js';
 import { enrichGoogleProfileInBackground } from '../services/enrichment/googleGaiaProvider.js';
 import { runPostOnboardingIngestion } from '../services/observationIngestion.js';
+import { validate } from '../middleware/validate.js';
+import * as V from './stayingSchemas.js';
 
 const log = createLogger('OAuthCallback');
 
@@ -416,7 +418,7 @@ async function extractDataInBackground(userId, provider, accessToken, connectorI
  * Manual data extraction trigger endpoint
  * Allows users to manually trigger data extraction for a connected platform
  */
-router.post('/extract/:provider', authenticateUser, async (req, res) => {
+router.post('/extract/:provider', authenticateUser, validate({ params: V.PROVIDER_PARAM }), async (req, res) => {
   try {
     const { provider } = req.params;
     if (!VALID_PROVIDERS.has(provider)) {
@@ -534,7 +536,7 @@ router.get('/status/:userId', authenticateUser, async (req, res) => {
 /**
  * Disconnect a platform (delete connector and stop syncing)
  */
-router.delete('/disconnect/:provider', authenticateUser, async (req, res) => {
+router.delete('/disconnect/:provider', authenticateUser, validate({ params: V.PROVIDER_PARAM }), async (req, res) => {
   try {
     const { provider } = req.params;
     if (!VALID_PROVIDERS.has(provider)) {

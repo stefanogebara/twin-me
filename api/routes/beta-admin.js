@@ -23,6 +23,8 @@ import { sendBetaInvite } from '../services/emailService.js';
 import { findUsersNeedingNudge, sendNudgeEmails } from '../services/nudgeService.js';
 import { supabaseAdmin } from '../services/database.js';
 import { createLogger } from '../services/logger.js';
+import { validate } from '../middleware/validate.js';
+import * as V from './stayingSchemas.js';
 
 const log = createLogger('BetaAdmin');
 const router = Router();
@@ -31,7 +33,7 @@ const router = Router();
 // Authenticated (non-admin) endpoint: submit feedback
 // Mounted at /api/beta/feedback — before admin middleware
 // ============================================================
-router.post('/feedback', authenticateUser, async (req, res) => {
+router.post('/feedback', authenticateUser, validate({ body: V.BETA_FEEDBACK }), async (req, res) => {
   try {
     const userId = req.user.id;
     const { category, message, pageUrl } = req.body;

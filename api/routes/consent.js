@@ -9,6 +9,8 @@ import express from 'express';
 import { supabaseAdmin as supabase } from '../config/supabase.js';
 import { authenticateUser } from '../middleware/auth.js';
 import { createLogger } from '../services/logger.js';
+import { validate } from '../middleware/validate.js';
+import * as V from './stayingSchemas.js';
 
 const log = createLogger('Consent');
 
@@ -41,7 +43,7 @@ router.get('/', async (req, res) => {
 });
 
 // POST /api/consent - Grant consent
-router.post('/', async (req, res) => {
+router.post('/', validate({ body: V.CONSENT_GIVE }), async (req, res) => {
   try {
     const userId = req.user.id;
     const { consent_type, platform, consent_version } = req.body;
@@ -84,7 +86,7 @@ router.post('/', async (req, res) => {
 });
 
 // DELETE /api/consent/:consentType/:platform - Revoke consent
-router.delete('/:consentType/:platform', async (req, res) => {
+router.delete('/:consentType/:platform', validate({ params: V.CONSENT_PARAMS }), async (req, res) => {
   try {
     const userId = req.user.id;
     const { consentType, platform } = req.params;
