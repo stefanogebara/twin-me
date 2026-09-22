@@ -230,7 +230,12 @@ router.get('/plan', async (req, res) => {
     const now = new Date();
     const month = /^\d{4}-\d{2}$/.test(String(req.query.month || '')) ? String(req.query.month) : null;
     const start = month ? `${month}-01T00:00:00Z` : new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1)).toISOString();
-    const [cast, rows, facts] = await Promise.all([forecast(req.user.id), listTransactions(req.user.id, { since: start, limit: 5000, currency: 'EUR' }), listFacts(req.user.id)]);
+    /* includeInternal, or Plan cannot see the diary at all: `event_spend_meta` is an internal
+       kind, so the day counts and the term came back empty from a ledger that held 114 days
+       of them. The dots for events on a past day (#487) and the term strip (#490) were both
+       dead in production from the day they shipped, for this one missing argument
+       (2026-09-22). `forecast()` already reads its facts this way. */
+    const [cast, rows, facts] = await Promise.all([forecast(req.user.id), listTransactions(req.user.id, { since: start, limit: 5000, currency: 'EUR' }), listFacts(req.user.id, { includeInternal: true })]);
     const plan = monthPlan({ forecast: cast, transactions: rows, facts, month, now, isSpending: spendingRule(facts) });
     /* The term either side of this week: the same facts, no second read (2026-09-21). */
     res.json({ success: true, data: { ...plan, line: planLine(plan, { now }), term: termWeeks(facts, { now }) } });
