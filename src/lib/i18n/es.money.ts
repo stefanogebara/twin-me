@@ -828,6 +828,7 @@ export const ES_MONEY: Record<string, string> = {
   "Events a week, from your calendar. Tap a week.": "Eventos por semana, de tu calendario. Toca una semana.",
   "With class, or free.": "Con clase, o libre.",
   "{a} days with something in the diary, {b} without.": "{a} d\u00edas con algo en la agenda, {b} sin nada.",
+  "What the middle day of each costs. {n} of these {d} days cost nothing at all.": "Lo que cuesta el d\u00eda de en medio de cada uno. {n} de estos {d} d\u00edas no costaron nada.",
   "With class": "Con clase",
   "Free": "Libre",
   "Payments in thirty days": "Pagos en treinta d\u00edas",
