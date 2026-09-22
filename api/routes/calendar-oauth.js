@@ -19,6 +19,8 @@ import { getAppUrl } from '../utils/oauthUtils.js';
 import { getValidAccessToken as getCentralizedToken } from '../services/tokenRefreshService.js';
 import { createLogger } from '../services/logger.js';
 import { getGoogleWorkspaceScopes } from '../config/googleWorkspaceScopes.js';
+import { validate } from '../middleware/validate.js';
+import * as V from './stayingSchemas.js';
 
 const log = createLogger('CalendarOAuth');
 
@@ -385,7 +387,7 @@ router.get('/events', authenticateUser, async (req, res) => {
  * POST /api/calendar/sync
  * Manual sync trigger - fetches latest events and updates database
  */
-router.post('/sync', authenticateUser, async (req, res) => {
+router.post('/sync', authenticateUser, validate({ body: V.CALENDAR_SYNC }), async (req, res) => {
   try {
     const userId = req.user.id;
     const { daysAhead = 7 } = req.body;

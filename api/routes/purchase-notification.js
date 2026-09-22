@@ -19,6 +19,8 @@ import { normalizeMerchant } from '../services/transactions/merchantNormalizer.j
 import { tagTransactionsBatch } from '../services/transactions/transactionEmotionTagger.js';
 import { findLikelyDuplicate } from '../services/transactions/whatsappTransactionCapture.js';
 import { createLogger } from '../services/logger.js';
+import { validate } from '../middleware/validate.js';
+import * as V from './stayingSchemas.js';
 
 const router = Router();
 const log = createLogger('PurchaseNotification');
@@ -133,7 +135,7 @@ async function persistNotificationPurchase(userId, { appName, notificationText, 
   }
 }
 
-router.post('/trigger', authenticateUser, async (req, res) => {
+router.post('/trigger', authenticateUser, validate({ body: V.PURCHASE_TRIGGER }), async (req, res) => {
   const userId = req.user?.id;
   if (!userId) return res.status(401).json({ error: 'Unauthorized' });
 

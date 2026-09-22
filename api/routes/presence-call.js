@@ -33,6 +33,8 @@ import { summarizeConversation } from '../services/presenceSummarizer.js';
 import { relayCall } from '../services/presenceRelay.js';
 import { voiceProvider } from '../services/voiceProvider.js';
 import { createLogger } from '../services/logger.js';
+import { validate } from '../middleware/validate.js';
+import * as V from './stayingSchemas.js';
 
 const log = createLogger('PresenceCall');
 const router = express.Router();
@@ -124,7 +126,7 @@ router.get('/:token', async (req, res) => {
 // ====================================================================
 // POST /:token/assent — her "Sim, pode", before the first call
 // ====================================================================
-router.post('/:token/assent', async (req, res) => {
+router.post('/:token/assent', validate({ params: V.PRESENCE_TOKEN }), async (req, res) => {
   try {
     const presence = await loadByToken(req, res);
     if (!presence) return;
@@ -174,7 +176,7 @@ router.get('/:token/home', async (req, res) => {
 // ====================================================================
 // POST /:token/complete — client-captured transcript at session end
 // ====================================================================
-router.post('/:token/complete', async (req, res) => {
+router.post('/:token/complete', validate({ params: V.PRESENCE_TOKEN, body: V.PRESENCE_CALL_COMPLETE }), async (req, res) => {
   try {
     const presence = await loadByToken(req, res);
     if (!presence) return;

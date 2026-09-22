@@ -15,6 +15,8 @@ import { supabaseAdmin } from '../services/database.js';
 import { getUserSubscription } from '../services/subscriptionService.js';
 import { createLogger } from '../services/logger.js';
 import { assertProdAppUrl } from '../utils/prodEnvAssertions.js';
+import { validate } from '../middleware/validate.js';
+import * as V from './stayingSchemas.js';
 
 const log = createLogger('Billing');
 
@@ -278,7 +280,7 @@ function priceIdForDbPlan(dbPlan) {
 // POST /api/billing/checkout
 // jsonBody is added explicitly here — the router is mounted before the
 // global express.json() so /webhook can use raw body for Stripe signature.
-router.post('/checkout', jsonBody, authenticateToken, billingMutateLimiter, async (req, res) => {
+router.post('/checkout', jsonBody, authenticateToken, billingMutateLimiter, validate({ body: V.BILLING_CHECKOUT }), async (req, res) => {
   // Validate input BEFORE the Stripe-configured check — a malformed request
   // should always get a 400, regardless of whether the service is enabled.
   const { plan } = req.body || {};

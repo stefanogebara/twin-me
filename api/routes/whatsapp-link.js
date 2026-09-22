@@ -12,6 +12,8 @@ import { supabaseAdmin } from '../services/database.js';
 import { sendWhatsAppMessage } from '../services/whatsappService.js';
 import { requestChannelOtp, verifyChannelOtp } from '../services/messagingChannelOtpService.js';
 import { createLogger } from '../services/logger.js';
+import { validate } from '../middleware/validate.js';
+import * as V from './stayingSchemas.js';
 
 const log = createLogger('WhatsAppLink');
 const router = express.Router();
@@ -29,7 +31,7 @@ function isValidE164(phone) {
  * phone via WhatsApp. The number is NOT linked yet — receiving the code proves
  * the caller controls it. (Requires a live WhatsApp send path; dormant today.)
  */
-router.post('/link/request', authenticateUser, async (req, res) => {
+router.post('/link/request', authenticateUser, validate({ body: V.WHATSAPP_LINK_REQUEST }), async (req, res) => {
   try {
     const userId = req.user.id;
     const { phone } = req.body;
@@ -87,7 +89,7 @@ router.post('/link/request', authenticateUser, async (req, res) => {
  * Step 2 of secure linking: check the submitted code; only on success is the
  * phone linked into messaging_channels (and a confirmation sent).
  */
-router.post('/link/verify', authenticateUser, async (req, res) => {
+router.post('/link/verify', authenticateUser, validate({ body: V.WHATSAPP_LINK_VERIFY }), async (req, res) => {
   try {
     const userId = req.user.id;
     const { phone, code } = req.body;

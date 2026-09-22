@@ -10,6 +10,8 @@ import { authenticateUser } from '../middleware/auth.js';
 import { supabaseAdmin } from '../services/database.js';
 import { createLogger } from '../services/logger.js';
 import { getAllSoulSignatures } from '../services/soulSignatureService.js';
+import { validate } from '../middleware/validate.js';
+import * as V from './stayingSchemas.js';
 
 const log = createLogger('Account');
 
@@ -259,7 +261,7 @@ router.get('/language', authenticateUser, async (req, res) => {
 });
 
 /** PATCH /api/account/language { language }: one of en, es, pt-BR. */
-router.patch('/language', authenticateUser, async (req, res) => {
+router.patch('/language', authenticateUser, validate({ body: V.ACCOUNT_LANGUAGE }), async (req, res) => {
   const language = typeof req.body?.language === 'string' ? req.body.language : '';
   if (!LANGUAGES.includes(language)) return res.status(400).json({ success: false, error: 'language must be one of en, es, pt-BR' });
   try {
@@ -278,7 +280,7 @@ router.patch('/language', authenticateUser, async (req, res) => {
  * Stores the user's IANA timezone string (detected from browser).
  * Non-blocking call from the frontend after auth verification.
  */
-router.patch('/timezone', authenticateUser, async (req, res) => {
+router.patch('/timezone', authenticateUser, validate({ body: V.ACCOUNT_TIMEZONE }), async (req, res) => {
   const { timezone } = req.body;
 
   if (!timezone || typeof timezone !== 'string') {

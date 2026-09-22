@@ -13,6 +13,8 @@ import { supabaseAdmin } from '../services/database.js';
 import { createInviteCode } from '../services/betaInviteService.js';
 import { authenticateUser } from '../middleware/auth.js';
 import { createLogger } from '../services/logger.js';
+import { validate } from '../middleware/validate.js';
+import * as V from './stayingSchemas.js';
 
 const log = createLogger('BetaSignup');
 const router = Router();
@@ -40,7 +42,7 @@ const signupLimiter = rateLimit({
  * Public endpoint -- submits a beta application and auto-approves.
  * Creates a user account (if none exists) and returns an invite code.
  */
-router.post('/signup', signupLimiter, async (req, res) => {
+router.post('/signup', signupLimiter, validate({ body: V.BETA_SIGNUP }), async (req, res) => {
   try {
     const { name, email, platforms, reason } = req.body;
 
@@ -235,7 +237,7 @@ router.get('/status', authenticateUser, async (req, res) => {
  * Activates a pending beta application (currently unused since auto-approve is on).
  * Could be used by admin later.
  */
-router.post('/activate', authenticateUser, async (req, res) => {
+router.post('/activate', authenticateUser, validate({ body: V.BETA_ACTIVATE }), async (req, res) => {
   try {
     const { email } = req.body;
     if (!email) {
