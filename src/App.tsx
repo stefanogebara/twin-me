@@ -17,20 +17,15 @@ import ProtectedRoute from "./components/ProtectedRoute";
 import { NavigationProvider } from "./contexts/NavigationContext";
 import { SidebarProvider } from "./contexts/SidebarContext";
 import { useExtensionSync } from "./hooks/useExtensionSync";
-import { ThemeProvider, useTheme } from "./contexts/ThemeContext";
+import { ThemeProvider } from "./contexts/ThemeContext";
 import { LiquidGlassFilter } from "./components/LiquidGlassFilter";
-import { pickBackgroundVariant } from "./lib/backgroundVariant";
-import { SunProvider } from "./contexts/SunContext";
-import { DayNightBackground } from "./components/DayNightBackground";
 import { ClassicBackground } from "./components/ClassicBackground";
-import { BackgroundModeProvider, useBackgroundMode } from "./contexts/BackgroundModeContext";
 
 // Eager-loaded (critical path: landing, auth, 404)
 import CustomAuth from "./pages/CustomAuth";
 // Design prototypes: dev-only routes (see the /preview block below). The
 // DEV ternary lets Vite dead-code-eliminate the dynamic imports in prod, so
 // no prototype chunks are emitted at all.
-const CinematicFrame = import.meta.env.DEV ? lazyWithRetry(() => import("./pages/preview/CinematicFrame")) : () => null;
 const PresencePrototype = import.meta.env.DEV ? lazyWithRetry(() => import("./pages/preview/PresencePrototype")) : () => null;
 const PresenceDesignSystem = import.meta.env.DEV ? lazyWithRetry(() => import("./pages/preview/PresenceDesignSystem")) : () => null;
 const PresenceVoicePreview = import.meta.env.DEV ? lazyWithRetry(() => import("./pages/preview/PresenceVoicePreview")) : () => null;
@@ -149,10 +144,8 @@ const App = () => {
 
   return (
     <ThemeProvider defaultTheme="dark">
-    <BackgroundModeProvider>
-    <SunProvider>
     <LiquidGlassFilter />
-    <AppBackground />
+    <ClassicBackground />
     <div style={{ position: "relative", zIndex: 1 }}>
       <ErrorBoundary showHomeButton>
         <ErrorProvider>
@@ -209,10 +202,9 @@ const App = () => {
                 the landing now — one front door. Old links keep working. */}
             <Route path="/discover" element={<Navigate to="/" replace />} />
 
-            {/* Cinematic redesign prototypes (isolated static bundle in /public/cinematic).
-                Dev-only: 16 prototype routes were shipping in production routing
-                (product-truth-review 2026-08-09, Phase 0 item 4). In prod these
-                paths fall through to the NotFound catch-all. */}
+            {/* Design prototypes, dev-only: in prod these paths fall through to the NotFound
+                catch-all. The Claura prototypes (public/cinematic, sixteen static pages with
+                inline scripts) were deleted on 2026-09-22 when script-src lost 'unsafe-inline'. */}
             {import.meta.env.DEV && (
             <Route element={<Suspense fallback={<Wait line="" />}><Outlet /></Suspense>}>
             <Route path="/preview/stardust-hero" element={<div className="w-full min-h-screen" style={{ background: 'var(--background)' }}><StardustHero /></div>} />
@@ -224,24 +216,8 @@ const App = () => {
             <Route path="/nocturne/system" element={<Suspense fallback={<Wait line="" />}><NocturneSpec /></Suspense>} />
             <Route path="/nocturne/signature" element={<Suspense fallback={<Wait line="" />}><NocturneSignature /></Suspense>} />
             <Route path="/nocturne/twin" element={<Suspense fallback={<Wait line="" />}><NocturneTwin /></Suspense>} />
-            <Route path="/preview/landing" element={<CinematicFrame src="/cinematic/landing.html" title="Twin.me — cinematic landing" />} />
-            <Route path="/preview/dashboard" element={<CinematicFrame src="/cinematic/dashboard.html" title="Twin.me — cinematic dashboard" />} />
-            <Route path="/preview/talk" element={<CinematicFrame src="/cinematic/talk.html" title="Twin.me — cinematic talk" />} />
-            <Route path="/preview/system" element={<CinematicFrame src="/cinematic/system.html" title="Twin.me — Claura design system" />} />
-            <Route path="/preview/you" element={<CinematicFrame src="/cinematic/you.html" title="Twin.me — Soul Signature" />} />
-            <Route path="/preview/money" element={<CinematicFrame src="/cinematic/money.html" title="Twin.me — Money" />} />
-            <Route path="/preview/connect" element={<CinematicFrame src="/cinematic/connect.html" title="Twin.me — Connect" />} />
-            <Route path="/preview/onboarding" element={<CinematicFrame src="/cinematic/onboarding.html" title="Twin.me — Meet your twin" />} />
-            <Route path="/preview/settings" element={<CinematicFrame src="/cinematic/settings.html" title="Twin.me — Settings" />} />
-            <Route path="/preview/briefing" element={<CinematicFrame src="/cinematic/briefing.html" title="Twin.me — Evening briefing" />} />
-            <Route path="/preview/interview" element={<CinematicFrame src="/cinematic/interview.html" title="Twin.me — Getting to know you" />} />
-            <Route path="/preview/history" element={<CinematicFrame src="/cinematic/history.html" title="Twin.me — History import" />} />
-            <Route path="/preview/goals" element={<CinematicFrame src="/cinematic/goals.html" title="Twin.me — Goals" />} />
-            <Route path="/preview/voice" element={<CinematicFrame src="/cinematic/voice.html" title="Twin.me — Voice setup" />} />
             <Route path="/preview/presence" element={<PresencePrototype />} />
             <Route path="/preview/presence-system" element={<PresenceDesignSystem />} />
-            <Route path="/preview/pricing" element={<CinematicFrame src="/cinematic/pricing.html" title="Twin.me — Pricing" />} />
-            <Route path="/preview" element={<CinematicFrame src="/cinematic/gallery.html" title="Twin.me — Claura, all screens" />} />
             </Route>
             )}
 
@@ -752,16 +728,9 @@ const App = () => {
       </ErrorProvider>
     </ErrorBoundary>
     </div>
-    </SunProvider>
-    </BackgroundModeProvider>
     </ThemeProvider>
   );
 };
 
-const AppBackground: React.FC = () => {
-  const { mode } = useBackgroundMode();
-  const { resolvedTheme } = useTheme();
-  return pickBackgroundVariant(mode, resolvedTheme) === 'daynight' ? <DayNightBackground /> : <ClassicBackground />;
-};
 
 export default App;
