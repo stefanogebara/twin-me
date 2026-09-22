@@ -127,6 +127,41 @@ export function setAccessToken(token: string | null) {
   currentAccessToken = token;
   notifyExtensionTokenChange(token);
   pushTokenToDesktop(token);
+  if (token) { noSession = false; settleTokenWaiters(token); }
+}
+
+/* ---------------------------------------------------------------- the token's arrival */
+/* The access token lives in memory and is lost on every load; AuthContext gets a new one from
+   the refresh cookie, then verifies it, and only then did ProtectedRoute let a page mount.
+   Today now paints from its kept snapshot at once and reads as soon as the token exists,
+   without waiting for the verify round trip (M2-A, 2026-09-22). A read that leaves before the
+   token would 401 and paint a failure, so a money read waits here instead. */
+let noSession = false;
+const tokenWaiters = new Set<(token: string | null) => void>();
+function settleTokenWaiters(token: string | null) {
+  for (const waiter of [...tokenWaiters]) waiter(token);
+}
+/** The moment this page load knows there is no session to recover: every waiter gets null. */
+export function markNoSession(): void {
+  noSession = true;
+  settleTokenWaiters(null);
+}
+/** Whether this browser knew a signed-in person before this load: the cached user from AuthContext. */
+export function sessionExpected(): boolean {
+  try { return localStorage.getItem('auth_user') != null; } catch { return false; }
+}
+/**
+ * The access token, now or when it arrives; null when this load has no session, or after
+ * `timeoutMs` without one (a request made then fails as it always did).
+ */
+export function accessTokenReady(timeoutMs = 8000): Promise<string | null> {
+  if (currentAccessToken) return Promise.resolve(currentAccessToken);
+  if (noSession) return Promise.resolve(null);
+  return new Promise((resolve) => {
+    const done = (token: string | null) => { clearTimeout(timer); tokenWaiters.delete(done); resolve(token); };
+    const timer = setTimeout(() => done(null), timeoutMs);
+    tokenWaiters.add(done);
+  });
 }
 
 export function getAccessToken(): string | null {

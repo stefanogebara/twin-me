@@ -1,6 +1,6 @@
 import { expect, it, vi } from 'vitest';
 const f = vi.hoisted(() => ({ fetch: vi.fn() }));
-vi.mock('../../src/services/api/apiBase', () => ({ authFetch: f.fetch, getAuthHeaders: () => ({}), API_URL: '/api' }));
+vi.mock('../../src/services/api/apiBase', () => ({ authFetch: f.fetch, getAuthHeaders: () => ({}), getAccessToken: () => 'tok', sessionExpected: () => false, accessTokenReady: async () => 'tok', API_URL: '/api' }));
 import { moneyChat } from '../../src/services/api/moneyAPI';
 
 it.each([

@@ -32,11 +32,11 @@ import { openingQuestions, followUpQuestions, ledgerQuestions, checkCommitment, 
 import { calendarForecast, calendarFromFacts } from './calendar.js';
 import { dayIn, dayOfMonthIn } from './zone.js';
 
-import { listEuroTransactions } from './transactionRepository.js';
+import { listEuroTransactions, selectTransactions } from './transactionRepository.js';
 export { listTransactions, transactionPage } from './transactionRepository.js';
 /* Pure reads and the forecast live in their own modules since 2026-09-19 (the two import
    cycles); store.js keeps their names so no caller had to move. */
-import { INTERNAL_FACT_KINDS, listFacts, categoriesFor } from './factsRepository.js';
+import { INTERNAL_FACT_KINDS, listFacts, publicFacts, categoriesFor } from './factsRepository.js';
 export { INTERNAL_FACT_KINDS, listFacts, categoriesFor } from './factsRepository.js';
 import { forecast, months, scorePredictions } from './forecastService.js';
 import { quietly } from './quietly.js';
@@ -50,13 +50,19 @@ export async function sightingsFor(userId, transactionId) {
 }
 
 /** Recompute recurring series from the last 400 days and flag the ledger rows. */
-export async function refreshRecurring(userId, now = new Date()) {
+/**
+ * @param {{ facts?: object[], transactions?: object[] }} given every fact (with the internal
+ *   ones) and the ledger (with its rejected rows) when the caller already read them (M2-A).
+ */
+export async function refreshRecurring(userId, now = new Date(), given = {}) {
   const since = new Date(now.getTime() - 400 * 86400000).toISOString();
-  const evidence = await listEuroTransactions(userId, { since, limit: 5000, includeRejected: true });
+  const evidence = given.transactions
+    ? selectTransactions(given.transactions, { since, limit: 5000, currency: 'EUR', includeRejected: true })
+    : await listEuroTransactions(userId, { since, limit: 5000, includeRejected: true });
   const rows = evidence.filter((row) => row.verdict !== 'not_me');
   const { data: merchants } = await supabaseAdmin.from('money_merchants').select('merchant_key, platform').not('platform', 'is', null);
   const platforms = Object.fromEntries((merchants || []).map((m) => [m.merchant_key, m.platform]));
-  const facts = await listFacts(userId).catch(quietly('recurring/facts', () => []));
+  const facts = given.facts ? publicFacts(given.facts) : await listFacts(userId).catch(quietly('recurring/facts', () => []));
   const series = withoutCancelled(detectRecurring(rows, { now, platforms }), facts);
   /* The key is machine spelling ("render com"). A card should carry the name the ledger shows. */
   const names = new Map();
@@ -588,7 +594,8 @@ export function categoryOfPayment(place, channel, role = null) {
  * counts as "not read yet" rather than being quietly filed under "other" — the difference
  * between a gap and a category matters when a person is deciding whether to trust the page.
  */
-export async function categorySpend(userId, { month = null } = {}) {
+/** @param {{ month?: string|null, facts?: object[] }} options `facts`: every fact, already read, when the caller holds them (M2-A). */
+export async function categorySpend(userId, { month = null, facts: givenFacts = null } = {}) {
   let q = supabaseAdmin.from('money_transactions')
     .select('id, amount, merchant_key, merchant_raw, occurred_at, channel')
     .eq('user_id', userId).lt('amount', 0);
@@ -601,7 +608,7 @@ export async function categorySpend(userId, { month = null } = {}) {
   if (error) throw new Error(error.message);
   /* A transfer to a friend is not where the money went; it is money that moved. The same
      rule the forecast uses, so the hero and this list add up to the same euros. */
-  const facts = await listFacts(userId).catch(quietly('categories/facts', () => []));
+  const facts = givenFacts ? publicFacts(givenFacts) : await listFacts(userId).catch(quietly('categories/facts', () => []));
   const counts = spendingRule(facts);
   const roles = personRoles(facts);
   const rows = (all || []).filter(counts);
@@ -825,13 +832,14 @@ export async function enrichPlaces(userId, { limit = 12 } = {}) {
  * returned as `unmeasurable` rather than hidden, because a page that quietly drops what it
  * cannot check is a page that cannot be trusted about what it can.
  */
-export async function subscriptionUsage(userId, now = new Date()) {
+/** @param {{ transactions?: object[] }} given the ledger (with its rejected rows) when the caller already read it (M2-A). */
+export async function subscriptionUsage(userId, now = new Date(), given = {}) {
   const [series, transactions] = await Promise.all([
     supabaseAdmin.from('money_recurring').select('*').eq('user_id', userId).then((r) => {
       if (r.error) throw new Error(`Cannot read recurring commitments: ${r.error.message}`);
       return r.data || [];
     }),
-    listEuroTransactions(userId, { limit: 5000 }),
+    given.transactions ? selectTransactions(given.transactions, { limit: 5000, currency: 'EUR' }) : listEuroTransactions(userId, { limit: 5000 }),
   ]);
   if (!series.length) return { findings: [], unmeasurable: [], measured: [] };
 

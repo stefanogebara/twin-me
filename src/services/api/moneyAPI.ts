@@ -2,7 +2,16 @@
  * Money v2 API client: the ledger, its receipts, what comes back on its own, this month, the sources.
  * Spec: .claude/plans/2026-09-07-money-twin/README.md
  */
-import { authFetch, getAuthHeaders, API_URL } from './apiBase';
+import { authFetch, getAuthHeaders, getAccessToken, accessTokenReady, sessionExpected, API_URL } from './apiBase';
+
+/* A money read made before the token exists waits for it (see accessTokenReady): the page now
+   mounts ahead of the verify round trip, and a read that left first would 401 and paint a
+   failed month over a kept snapshot (M2-A, 2026-09-22). */
+const moneyFetch = async (url: string, options?: RequestInit): Promise<Response> => {
+  /* Only for a person the browser knows: a stranger's read has no token to wait for. */
+  if (!getAccessToken() && sessionExpected()) await accessTokenReady();
+  return authFetch(url, options);
+};
 import { moneyChanged } from './moneyChanges';
 
 export type MoneyTransaction = {
@@ -166,7 +175,7 @@ async function completeLedger(since?: string): Promise<MoneyTransaction[]> {
     const params = new URLSearchParams();
     if (since) params.set('since', since);
     if (cursor) params.set('cursor', cursor);
-    const res = await authFetch(`/money/ledger?${params}`);
+    const res = await moneyFetch(`/money/ledger?${params}`);
     if (!res.ok) throw new Error('The complete ledger could not be loaded. Please retry.');
     const body = await res.json();
     if (!body.success || !Array.isArray(body.data)) throw new Error('Invalid ledger response');
@@ -192,44 +201,44 @@ export type MoneyPage = {
 
 export const moneyAPI = {
   /* The page in one read: every part Today, Month and You share, and which could not be read. */
-  page: (view: 'today' | 'month' | 'you') => authFetch(`/money/page?view=${view}`).then((r) => json<MoneyPage>(r)),
-  forecast: () => authFetch('/money/forecast').then((r) => json<MoneyForecast>(r)),
+  page: (view: 'today' | 'month' | 'you') => moneyFetch(`/money/page?view=${view}`).then((r) => json<MoneyPage>(r)),
+  forecast: () => moneyFetch('/money/forecast').then((r) => json<MoneyForecast>(r)),
   ledger: completeLedger,
-  sightings: (id: string) => authFetch(`/money/transactions/${id}/sightings`).then((r) => json<MoneySighting[]>(r)),
+  sightings: (id: string) => moneyFetch(`/money/transactions/${id}/sightings`).then((r) => json<MoneySighting[]>(r)),
   verdict: (id: string, verdict: 'worth_it' | 'not_me' | null) =>
-    authFetch(`/money/transactions/${id}/verdict`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ verdict }) }).then((r) => json<MoneyTransaction>(r)).then(moneyChanged),
-  recurring: () => authFetch('/money/recurring').then((r) => json<MoneyRecurring[]>(r)),
-  months: () => authFetch('/money/months').then((r) => json<MoneyMonth[]>(r)),
-  readings: (refresh = false) => authFetch(`/money/readings${refresh ? '?refresh=1' : ''}`).then((r) => json<MoneyReading[]>(r)),
+    moneyFetch(`/money/transactions/${id}/verdict`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ verdict }) }).then((r) => json<MoneyTransaction>(r)).then(moneyChanged),
+  recurring: () => moneyFetch('/money/recurring').then((r) => json<MoneyRecurring[]>(r)),
+  months: () => moneyFetch('/money/months').then((r) => json<MoneyMonth[]>(r)),
+  readings: (refresh = false) => moneyFetch(`/money/readings${refresh ? '?refresh=1' : ''}`).then((r) => json<MoneyReading[]>(r)),
   readingVerdict: (id: string, verdict: 'true' | 'not_me' | null) =>
-    authFetch(`/money/readings/${id}/verdict`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ verdict }) }).then((r) => json<MoneyReading>(r)),
-  budget: () => authFetch('/money/bank/budget').then((r) => json<MoneyBudget>(r)),
-  today: () => authFetch('/money/today').then((r) => json<MoneyToday>(r)),
-  plan: (month?: string | null) => authFetch(`/money/plan${month ? `?month=${encodeURIComponent(month)}` : ''}`).then((r) => json<MoneyPlan>(r)),
+    moneyFetch(`/money/readings/${id}/verdict`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ verdict }) }).then((r) => json<MoneyReading>(r)),
+  budget: () => moneyFetch('/money/bank/budget').then((r) => json<MoneyBudget>(r)),
+  today: () => moneyFetch('/money/today').then((r) => json<MoneyToday>(r)),
+  plan: (month?: string | null) => moneyFetch(`/money/plan${month ? `?month=${encodeURIComponent(month)}` : ''}`).then((r) => json<MoneyPlan>(r)),
   /** A note on a day, in the person's words: a fact the ledger reads with everything else. */
   noteDay: (day: string, text: string) =>
-    authFetch('/money/questions/answer', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ questionId: null, kind: 'note', subject: `day-${day.slice(0, 10)}`, value: text }) }).then((r) => json<{ id?: string }>(r)),
-  usage: () => authFetch('/money/usage').then((r) => json<MoneyUsage>(r)),
+    moneyFetch('/money/questions/answer', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ questionId: null, kind: 'note', subject: `day-${day.slice(0, 10)}`, value: text }) }).then((r) => json<{ id?: string }>(r)),
+  usage: () => moneyFetch('/money/usage').then((r) => json<MoneyUsage>(r)),
   /** What the ledger worked out on its own; computed on the read, nothing stored. */
-  patterns: () => authFetch('/money/patterns').then((r) => json<{ findings: MoneyPattern[] }>(r)).then((d) => d.findings || []),
-  categories: (month?: string) => authFetch(`/money/categories${month ? `?month=${encodeURIComponent(month)}` : ''}`).then((r) => json<MoneyCategories>(r)),
-  places: () => authFetch('/money/places').then((r) => json<MoneyPlace[]>(r)),
+  patterns: () => moneyFetch('/money/patterns').then((r) => json<{ findings: MoneyPattern[] }>(r)).then((d) => d.findings || []),
+  categories: (month?: string) => moneyFetch(`/money/categories${month ? `?month=${encodeURIComponent(month)}` : ''}`).then((r) => json<MoneyCategories>(r)),
+  places: () => moneyFetch('/money/places').then((r) => json<MoneyPlace[]>(r)),
   /** The person's word on what kind of place a merchant is; null clears it. */
   setPlaceCategory: (merchantKey: string, category: string | null, name?: string) =>
-    authFetch(`/money/places/${encodeURIComponent(merchantKey)}/category`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ category, name }) }).then((r) => json<unknown>(r)),
+    moneyFetch(`/money/places/${encodeURIComponent(merchantKey)}/category`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ category, name }) }).then((r) => json<unknown>(r)),
   /** The kinds of place the product knows, for a person to pick from. */
   CATEGORIES: ['groceries', 'eating out', 'coffee', 'transport', 'taxi', 'fuel', 'health', 'pharmacy', 'sport', 'education', 'clothing', 'home', 'rent', 'electronics', 'entertainment', 'software', 'advertising', 'travel', 'lodging', 'cash', 'fees', 'bills', 'other'] as const,
   lookupPlaces: (limit = 12) =>
-    authFetch('/money/places/lookup', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ limit }) })
+    moneyFetch('/money/places/lookup', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ limit }) })
       .then((r) => json<{ looked: number; placed: number; left: number; provider: string }>(r)),
   /**
    * A statement export, for the months the bank's ninety-day window does not reach.
    * Raw fetch: authFetch always sets a JSON content type, and multipart needs the
    * browser to write its own boundary.
    */
-  capabilities: () => authFetch('/money/capabilities').then((r) => json<{ bank: boolean; capture: boolean; whatsapp?: boolean }>(r)),
-  statementAccounts: () => authFetch('/money/statement/accounts').then((r) => json<MoneyStatementAccount[]>(r)),
-  createStatementAccount: (name: string) => authFetch('/money/statement/accounts', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name }) }).then((r) => json<MoneyStatementAccount>(r)),
+  capabilities: () => moneyFetch('/money/capabilities').then((r) => json<{ bank: boolean; capture: boolean; whatsapp?: boolean }>(r)),
+  statementAccounts: () => moneyFetch('/money/statement/accounts').then((r) => json<MoneyStatementAccount[]>(r)),
+  createStatementAccount: (name: string) => moneyFetch('/money/statement/accounts', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name }) }).then((r) => json<MoneyStatementAccount>(r)),
   importStatement: async (file: File, accountId: string) => {
     const body = new FormData();
     body.append('file', file);
@@ -243,42 +252,42 @@ export const moneyAPI = {
     moneyChanged(undefined);
     return payload.data as { read: number; created: number; attached: number; skipped: number };
   },
-  questions: () => authFetch('/money/questions').then((r) => json<MoneyQuestions>(r)),
+  questions: () => moneyFetch('/money/questions').then((r) => json<MoneyQuestions>(r)),
   /** Places to live in, by name (districts, towns), and where a person studies or works (campuses, offices). */
-  homeSearch: (q: string) => authFetch(`/money/home/search?q=${encodeURIComponent(q)}`).then((r) => json<{ results: PlaceHit[] }>(r)).then((d) => d.results),
-  placesSearch: (q: string) => authFetch(`/money/places/search?q=${encodeURIComponent(q)}`).then((r) => json<{ results: PlaceHit[] }>(r)).then((d) => d.results),
+  homeSearch: (q: string) => moneyFetch(`/money/home/search?q=${encodeURIComponent(q)}`).then((r) => json<{ results: PlaceHit[] }>(r)).then((d) => d.results),
+  placesSearch: (q: string) => moneyFetch(`/money/places/search?q=${encodeURIComponent(q)}`).then((r) => json<{ results: PlaceHit[] }>(r)).then((d) => d.results),
   saveHome: (hit: PlaceHit) =>
-    authFetch('/money/home', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ district: hit.label, city: hit.secondary || undefined, lat: hit.lat, lng: hit.lng, place_id: hit.id, source: 'confirmed' }) }).then((r) => json<{ said: string; value: string }>(r)),
+    moneyFetch('/money/home', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ district: hit.label, city: hit.secondary || undefined, lat: hit.lat, lng: hit.lng, place_id: hit.id, source: 'confirmed' }) }).then((r) => json<{ said: string; value: string }>(r)),
   /** One row of a list answer is one fact, so a list question sends one of these per row. */
   answerQuestion: (payload: MoneyAnswer) =>
-    authFetch('/money/questions/answer', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) }).then((r) => json<MoneyFact>(r)).then(moneyChanged),
+    moneyFetch('/money/questions/answer', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) }).then((r) => json<MoneyFact>(r)).then(moneyChanged),
   skipQuestion: (id: string) =>
-    authFetch(`/money/questions/${encodeURIComponent(id)}/skip`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' }).then((r) => json<{ skipped: string }>(r)),
-  facts: () => authFetch('/money/facts').then((r) => json<MoneyFact[]>(r)),
+    moneyFetch(`/money/questions/${encodeURIComponent(id)}/skip`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' }).then((r) => json<{ skipped: string }>(r)),
+  facts: () => moneyFetch('/money/facts').then((r) => json<MoneyFact[]>(r)),
   /** Forget one thing they said; the question that produced it is asked again. */
-  deleteFact: (id: string) => authFetch(`/money/facts/${encodeURIComponent(id)}`, { method: 'DELETE' }).then((r) => json<{ deleted: boolean }>(r)).then(moneyChanged),
+  deleteFact: (id: string) => moneyFetch(`/money/facts/${encodeURIComponent(id)}`, { method: 'DELETE' }).then((r) => json<{ deleted: boolean }>(r)).then(moneyChanged),
   labelCard: (accountId: string, last4: string, type: MoneyCard['type']) =>
-    authFetch(`/money/bank/accounts/${encodeURIComponent(accountId)}/cards/${encodeURIComponent(last4)}/type`, { method: 'POST', body: JSON.stringify({ type }) }).then((r) => json<MoneyCard>(r)).then(moneyChanged),
-  accounts: () => authFetch('/money/bank/accounts').then((r) => json<MoneyAccount[]>(r)),
+    moneyFetch(`/money/bank/accounts/${encodeURIComponent(accountId)}/cards/${encodeURIComponent(last4)}/type`, { method: 'POST', body: JSON.stringify({ type }) }).then((r) => json<MoneyCard>(r)).then(moneyChanged),
+  accounts: () => moneyFetch('/money/bank/accounts').then((r) => json<MoneyAccount[]>(r)),
   /** The whole account, gone: the users row, and every money table by cascade. */
-  deleteAccount: () => authFetch('/account', { method: 'DELETE' }).then((r) => { if (!r.ok) throw new Error('That could not be deleted right now.'); }),
+  deleteAccount: () => moneyFetch('/account', { method: 'DELETE' }).then((r) => { if (!r.ok) throw new Error('That could not be deleted right now.'); }),
   /** Start a bank's consent; `back` is the money page to return to (Sources by default). */
   connect: (bank = 'Banco Santander', country = 'ES', back = '') =>
-    authFetch('/money/bank/connect', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ bank, country, back }) }).then((r) => json<{ url: string }>(r)),
+    moneyFetch('/money/bank/connect', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ bank, country, back }) }).then((r) => json<{ url: string }>(r)),
   /** The person's own receipts address: forward a receipt or invoice there and it joins the ledger. */
-  inbox: () => authFetch('/money/inbox').then((r) => json<{ address: string; domain: string; receiving: boolean }>(r)),
+  inbox: () => moneyFetch('/money/inbox').then((r) => json<{ address: string; domain: string; receiving: boolean }>(r)),
   /* The calendar lens: Google, or links pasted from Canvas and Blackboard. */
-  calendar: () => authFetch('/money/calendar').then((r) => json<MoneyCalendar>(r)),
-  calendarConnect: () => authFetch('/money/calendar/connect').then((r) => json<{ url: string }>(r)),
+  calendar: () => moneyFetch('/money/calendar').then((r) => json<MoneyCalendar>(r)),
+  calendarConnect: () => moneyFetch('/money/calendar/connect').then((r) => json<{ url: string }>(r)),
   addCalendarFeed: (url: string) =>
-    authFetch('/money/calendar/feed', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ url }) }).then((r) => json<MoneyCalendarFeed & { events: number | null; already: boolean }>(r)),
-  removeCalendarFeed: (id: string) => authFetch(`/money/calendar/feed/${encodeURIComponent(id)}`, { method: 'DELETE' }).then((r) => json<unknown>(r)),
+    moneyFetch('/money/calendar/feed', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ url }) }).then((r) => json<MoneyCalendarFeed & { events: number | null; already: boolean }>(r)),
+  removeCalendarFeed: (id: string) => moneyFetch(`/money/calendar/feed/${encodeURIComponent(id)}`, { method: 'DELETE' }).then((r) => json<unknown>(r)),
   /** Opening the page spends the read the schedule leaves for it, but only when one is due. */
-  refreshIfStale: () => authFetch('/money/bank/refresh-if-stale', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' }).then((r) => json<{ pulled: boolean; created?: number; reason?: string; needs_reconnect?: boolean }>(r)),
-  pull: () => authFetch('/money/bank/pull', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' }).then((r) => json<{ account: string; seen: number; created: number }[]>(r)),
+  refreshIfStale: () => moneyFetch('/money/bank/refresh-if-stale', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' }).then((r) => json<{ pulled: boolean; created?: number; reason?: string; needs_reconnect?: boolean }>(r)),
+  pull: () => moneyFetch('/money/bank/pull', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' }).then((r) => json<{ account: string; seen: number; created: number }[]>(r)),
   /** A key for the phone: one of the user's API keys, shown once. */
   createCaptureKey: async () => {
-    const res = await authFetch('/api-keys', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: 'Phone capture (Shortcut)' }) });
+    const res = await moneyFetch('/api-keys', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: 'Phone capture (Shortcut)' }) });
     const body = await res.json().catch(() => ({}));
     if (!res.ok || !body?.key) throw new Error(body?.error || 'Could not create a key');
     return body.key as string;
@@ -341,7 +350,7 @@ export type ChatStreamEvent =
 export const moneyChat = {
   /** The whole answer at once; the fallback when the stream is not there. */
   /** The conversation so far, oldest first. */
-  history: () => authFetch('/money/chat/history').then((r) => json<ChatTurnKept[]>(r)),
+  history: () => moneyFetch('/money/chat/history').then((r) => json<ChatTurnKept[]>(r)),
   /**
    * A photo or a file for the ledger to read: a receipt, a bill, a contract, a bank export.
    * Multipart, so the browser sets its own boundary header; the note is what was typed
@@ -359,9 +368,9 @@ export const moneyChat = {
   },
   /** Run an offer the person tapped; the ledger checks it again and says what it did. */
   act: (action: ChatAction) =>
-    authFetch('/money/chat/act', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action }) }).then((r) => json<{ done: boolean; said: string }>(r)).then((r) => r.done ? moneyChanged(r) : r),
+    moneyFetch('/money/chat/act', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action }) }).then((r) => json<{ done: boolean; said: string }>(r)).then((r) => r.done ? moneyChanged(r) : r),
   ask: (message: string, history: ChatTurn[]) =>
-    authFetch('/money/chat', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ message, history: history.slice(-10) }) })
+    moneyFetch('/money/chat', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ message, history: history.slice(-10) }) })
       .then((r) => json<ChatReply>(r)),
   /**
    * The answer as it is written. A browser's fetch streams its body, so this reads the
@@ -373,7 +382,7 @@ export const moneyChat = {
     (async () => {
       let ok = false;
       try {
-        const res = await authFetch('/money/chat/stream', {
+        const res = await moneyFetch('/money/chat/stream', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', Accept: 'text/event-stream' },
           body: JSON.stringify({ message, history: history.slice(-10) }),

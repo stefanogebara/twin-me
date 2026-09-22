@@ -44,7 +44,8 @@ describe('the calendar reaches the readers that speak for it', () => {
        cycles); store.js re-exports it, so every reader still gets the filtered list. */
     const facts = source('factsRepository.js');
     expect(facts).toMatch(/INTERNAL_FACT_KINDS[^\n]*event_spend/);
-    expect(facts).toMatch(/includeInternal \? rows : rows\.filter/);
+    expect(facts).toMatch(/includeInternal \? rows : publicFacts\(rows\)/);
+    expect(facts).toMatch(/export const publicFacts = \(rows\) => \(rows \|\| \[\]\)\.filter\(\(f\) => !INTERNAL_FACT_KINDS\.includes\(f\.kind\)\)/);
     expect(source('store.js')).toMatch(/export \{ INTERNAL_FACT_KINDS, listFacts, categoriesFor \} from '\.\/factsRepository\.js'/);
   });
 });

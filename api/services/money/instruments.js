@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { supabaseAdmin } from '../database.js';
-import { listTransactions } from './transactionRepository.js';
+import { listTransactions, selectTransactions } from './transactionRepository.js';
 
 const kind = 'card_type';
 const choice = z.enum(['credit', 'debit', 'unknown']);
@@ -17,8 +17,12 @@ export function groupCards(accounts, transactions, facts = []) {
   });
 }
 
-export async function accountsWithCards(userId, accounts) {
+/** @param {{ facts?: object[], transactions?: object[] }} given every fact and the whole ledger, when the caller already read them (M2-A). */
+export async function accountsWithCards(userId, accounts, given = {}) {
   if (!accounts.length) return [];
+  if (given.facts && given.transactions) {
+    return groupCards(accounts, selectTransactions(given.transactions, { includeRejected: true }), given.facts.filter((f) => f.kind === kind));
+  }
   const [transactions, facts] = await Promise.all([
     listTransactions(userId, { includeRejected: true }),
     supabaseAdmin.from('money_facts').select('kind,subject,value').eq('user_id', userId).eq('kind', kind),
