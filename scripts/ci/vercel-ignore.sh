@@ -11,10 +11,14 @@
 # build log, so it errors with no output at all. It is a file now, and a file can be tested.
 set -u
 
-if [ "${VERCEL_GIT_COMMIT_REF:-}" != "main" ]; then
-  echo "skip: ${VERCEL_GIT_COMMIT_REF:-no branch} is not main"
-  exit 0
-fi
+# A `bisect/` branch is how a change to what gets deployed is proven before it reaches
+# production (see the header of .vercelignore). Those keep their preview build; it is the
+# only way left to measure a build-configuration change without risking production.
+case "${VERCEL_GIT_COMMIT_REF:-}" in
+  main) ;;
+  bisect/*) echo "build: ${VERCEL_GIT_COMMIT_REF} is a deployment experiment"; exit 1 ;;
+  *) echo "skip: ${VERCEL_GIT_COMMIT_REF:-no branch} is not main"; exit 0 ;;
+esac
 
 # Nothing the site serves changed: a tracker line, a lesson, a test, a workflow.
 # A git failure (a clone too shallow for HEAD^) leaves the condition false, and builds.
