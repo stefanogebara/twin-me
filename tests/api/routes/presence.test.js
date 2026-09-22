@@ -636,6 +636,51 @@ describe('GET /:id/overview — the calls and the family\'s WhatsApp', () => {
 
     expect(res.body.whatsapp).toEqual({ linked: false, phone_last4: null });
   });
+
+  /**
+   * Consent to clone a voice is recorded, so the page must not ask for it a
+   * second time just because it was reloaded. It reads the recorded answer,
+   * not its own memory of the click (2026-09-22).
+   */
+  describe('the recorded voice consent', () => {
+    beforeEach(() => {
+      store.listRecentCalls.mockResolvedValue(ok([]));
+      store.getOwnerWhatsApp.mockResolvedValue(ok(null));
+    });
+
+    it('carries the latest answer when consent was given', async () => {
+      store.getLatestVoiceConsentKind.mockResolvedValue(ok([{ kind: 'own_voice' }]));
+
+      const res = await api('get', `/${PRESENCE_ID}/overview`);
+
+      expect(res.body.voice_consent).toBe('own_voice');
+    });
+
+    it('carries the withdrawal after a revoke, so the page asks again', async () => {
+      store.getLatestVoiceConsentKind.mockResolvedValue(ok([{ kind: 'own_voice_revoked' }]));
+
+      const res = await api('get', `/${PRESENCE_ID}/overview`);
+
+      expect(res.body.voice_consent).toBe('own_voice_revoked');
+    });
+
+    it('is null when nobody has answered', async () => {
+      store.getLatestVoiceConsentKind.mockResolvedValue(ok([]));
+
+      const res = await api('get', `/${PRESENCE_ID}/overview`);
+
+      expect(res.body.voice_consent).toBeNull();
+    });
+
+    it('does not fail the whole page when that one read fails', async () => {
+      store.getLatestVoiceConsentKind.mockResolvedValue(fail('connection reset'));
+
+      const res = await api('get', `/${PRESENCE_ID}/overview`);
+
+      expect(res.status).toBe(200);
+      expect(res.body.voice_consent).toBeNull();
+    });
+  });
 });
 
 describe('parallel reads fail the request instead of reading as empty', () => {

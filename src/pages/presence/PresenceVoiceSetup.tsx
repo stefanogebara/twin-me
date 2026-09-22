@@ -64,7 +64,8 @@ export default function PresenceVoiceSetup() {
   const navigate = useNavigate();
   const [overview, setOverview] = useState<PresenceOverview | null>(null);
   const [state, setState] = useState<'loading' | 'none' | 'ready' | 'error'>('loading');
-  const [consented, setConsented] = useState(false);
+  /** Set by the click; the recorded answer from the server is what survives a reload. */
+  const [justConsented, setJustConsented] = useState(false);
   const [consentBusy, setConsentBusy] = useState(false);
   const [rec, setRec] = useState<Rec>('idle');
   const [recording, setRecording] = useState<string | null>(null);
@@ -126,6 +127,10 @@ export default function PresenceVoiceSetup() {
   const presence = overview.presence;
   const voice = overview.voice;
   const voiceReady = voice?.status === 'ready';
+  // The recorded consent, not this component's memory of the click: a reload
+  // must not ask a second time for something already answered. A revoke writes
+  // own_voice_revoked, so the question comes back exactly when it should.
+  const consented = justConsented || overview.voice_consent === 'own_voice';
   const caller = presence.caller_name?.trim() || 'você';
 
   async function giveConsent() {
@@ -133,7 +138,7 @@ export default function PresenceVoiceSetup() {
     setError(null);
     try {
       await presenceAPI.consent(presence.id, 'own_voice', CONSENT_VERSION);
-      setConsented(true);
+      setJustConsented(true);
     } catch (err) {
       setError(err instanceof PresenceApiError ? err.message : 'Não deu para registrar agora.');
     }
@@ -211,7 +216,7 @@ export default function PresenceVoiceSetup() {
     try {
       await presenceAPI.revokeVoice(presence.id);
       setDone([]);
-      setConsented(false);
+      setJustConsented(false);
       await load();
     } catch (err) {
       setError(err instanceof PresenceApiError ? err.message : 'Não deu para remover agora.');

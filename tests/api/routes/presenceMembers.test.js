@@ -26,7 +26,7 @@ const ok = (data) => ({ data, error: null });
 
 const { store, log } = vi.hoisted(() => {
   const names = [
-    'findLivePresenceById', 'getLatestPresenceForOwner', 'getResumeDetails', 'getOverview', 'listRecentCalls', 'getOwnerWhatsApp', 'createPresence',
+    'findLivePresenceById', 'getLatestPresenceForOwner', 'getResumeDetails', 'getOverview', 'listRecentCalls', 'getOwnerWhatsApp', 'getLatestVoiceConsentKind', 'createPresence',
     'updatePresence', 'queueNote', 'listMembers', 'findMembership', 'addMember', 'removeMember', 'listPresencesForMember',
     'createInvite', 'findInviteByToken', 'acceptInvite',
   ];
@@ -60,6 +60,7 @@ beforeEach(() => {
   store.getOverview.mockResolvedValue(OVERVIEW);
   store.listRecentCalls.mockResolvedValue(ok([]));
   store.getOwnerWhatsApp.mockResolvedValue(ok(null));
+  store.getLatestVoiceConsentKind.mockResolvedValue(ok([]));
   store.queueNote.mockResolvedValue(ok({ id: 'n-2' }));
   store.listMembers.mockResolvedValue(ok([{ id: 'm-1', user_id: OWNER, role: 'owner' }]));
   store.addMember.mockResolvedValue(ok(null));

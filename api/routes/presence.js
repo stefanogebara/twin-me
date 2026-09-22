@@ -596,15 +596,19 @@ router.get('/:id/overview', authenticateUser, async (req, res) => {
     const owned = await loadMember(req, res, 'companion');
     if (!owned) return;
 
-    const [overview, calls, whatsapp] = await Promise.all([
+    const [overview, calls, whatsapp, voiceConsent] = await Promise.all([
       getOverview(owned.id),
       listRecentCalls(owned.id, 10),
       getOwnerWhatsApp(req.user.id),
+      getLatestVoiceConsentKind(owned.id),
     ]);
     const { presence, people, voice, facts, notes, conversations, error } = overview;
     if (error) throw error;
     if (calls.error) throw calls.error;
     if (whatsapp.error) throw whatsapp.error;
+    // Logged, not thrown: the whole page is worth more than this one answer,
+    // and the voice page falls back to asking for consent again.
+    if (voiceConsent.error) log.error('Voice consent not read', { presenceId: owned.id, error: voiceConsent.error.message });
 
     if (owned.role === 'companion') {
       // Notes and the needs list only: never a summary, never a transcript.
@@ -627,6 +631,9 @@ router.get('/:id/overview', authenticateUser, async (req, res) => {
       notes: notes.data || [],
       conversations: conversations.data || [],
       calls: calls.data || [],
+      // The latest of own_voice / own_voice_revoked, so /presence/voice reads the
+      // recorded answer instead of its own memory of the click (2026-09-22).
+      voice_consent: voiceConsent.error ? null : (voiceConsent.data?.[0]?.kind ?? null),
       // The family member's own number, never the whole of it back to the page.
       whatsapp: {
         linked: Boolean(whatsapp.data?.channel_id),

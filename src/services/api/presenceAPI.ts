@@ -333,6 +333,8 @@ export interface PresenceOverview {
   calls: PresenceCall[];
   /** The family member's own WhatsApp, as linked in messaging_channels. */
   whatsapp: { linked: boolean; phone_last4: string | null };
+  /** The latest recorded answer about cloning their own voice; null if never asked. */
+  voice_consent: 'own_voice' | 'own_voice_revoked' | null;
 }
 
 // ====================================================================
