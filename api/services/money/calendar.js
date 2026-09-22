@@ -28,6 +28,7 @@ import { listTransactions } from './transactionRepository.js';
 import { listFacts, categoriesFor } from './factsRepository.js';
 import { weekdayIn, partsIn, dayIn } from './zone.js';
 import { shiftDay } from './windows.js';
+import { hasRealTime } from './clock.js';
 import { quietly } from './quietly.js';
 
 const log = createLogger('MoneyCalendar');
@@ -41,6 +42,16 @@ export const LEARN_DAYS = 90;
 /** A shape is learned once it has happened this often, and paid for this often. */
 export const MIN_OCCURRENCES = 3;
 export const MIN_PAID = 2;
+
+/**
+ * How often money has to follow an event before the diary may say it costs anything.
+ *
+ * Money followed Stefano's personal trainer twice in twenty-five sessions and the product
+ * announced that the session costs 12 EUR. It does not: he pays the trainer elsewhere and
+ * those two payments were a vending machine and one unnamed line. Two occurrences out of
+ * twenty-five is not a habit, and a count alone cannot tell the difference (2026-09-22).
+ */
+export const MIN_PAID_RATE = 1 / 3;
 /** Learn again when the last pass is older than this. */
 export const LEARN_STALE_MS = 12 * 60 * 60 * 1000;
 /** How far ahead the snapshot kept for the forecast reaches. */
@@ -173,13 +184,30 @@ export function spendable(event) {
   return !TIMETABLE_WORDS.test(String(event.title || ''));
 }
 
+/** Before it started, while it ran, or after it ended. */
+export function sideOf(event, when) {
+  if (when < ms(event.start)) return 'before';
+  if (when > ms(event.end || event.start)) return 'after';
+  return 'during';
+}
+
 export function joinEventsToPayments(events, transactions) {
   const pairs = [];
-  const evs = (events || []).filter(spendable);
+  /* An all-day entry is a label on a date, not something a person attends, and `distance`
+     gives it the whole day: a birthday swallowed 103 EUR of OpenAI and a 100 EUR transfer
+     eleven hours away from it (2026-09-22). It joins nothing. */
+  const evs = (events || []).filter((e) => spendable(e) && !e.all_day);
   for (const t of transactions || []) {
     if (!(num(t.amount) < 0)) continue;
     if (CHANNELS_NOT_SPENDING.has(t.channel)) continue;
     if (t.verdict === 'not_me') continue;
+    /* A payment the bank booked without an hour carries noon UTC, which is two in the
+       afternoon in Madrid. Joined as if it were a real time, every date-only subscription
+       landed inside whatever was in the diary at two: Twilio, Fly.io and Openrouter became
+       the cost of a therapy appointment, and every hour-long work block "cost" whatever the
+       bank happened to book that day. Twenty-six of thirty-five joins on a real ledger were
+       this one artifact (2026-09-22). No hour, no join. */
+    if (!hasRealTime(t)) continue;
     const when = ms(t.occurred_at);
     /* The margin is already in the window; a payment outside it belongs to no event.
        Inside two windows, the event that started closer to the payment wins. */
@@ -188,7 +216,7 @@ export function joinEventsToPayments(events, transactions) {
       if (distance(ev, when) !== 0) continue;
       if (!best || Math.abs(ms(ev.start) - when) < Math.abs(ms(best.start) - when)) best = ev;
     }
-    if (best) pairs.push({ event: best, transaction: t });
+    if (best) pairs.push({ event: best, transaction: t, side: sideOf(best, when) });
   }
   return pairs;
 }
@@ -221,8 +249,10 @@ export function learnShapes(events, transactions, { categoryOf = () => null, now
   const pairs = joinEventsToPayments(past, transactions);
   const spendByEvent = new Map();
   const categoriesByEvent = new Map();
-  for (const { event, transaction } of pairs) {
+  const sidesByEvent = new Map();
+  for (const { event, transaction, side } of pairs) {
     spendByEvent.set(event.id, (spendByEvent.get(event.id) || 0) + Math.abs(num(transaction.amount)));
+    if (side) { const b = sidesByEvent.get(event.id) || new Map(); b.set(side, (b.get(side) || 0) + 1); sidesByEvent.set(event.id, b); }
     const cat = categoryOf(transaction);
     if (cat) {
       const bag = categoriesByEvent.get(event.id) || new Map();
@@ -234,11 +264,12 @@ export function learnShapes(events, transactions, { categoryOf = () => null, now
   const byShape = new Map();
   for (const ev of past) {
     const key = shapeKey(ev);
-    const s = byShape.get(key) || { key, label: shapeLabel(key), occurrences: 0, paid: 0, spends: [], categories: new Map(), weekdays: new Map(), last: null };
+    const s = byShape.get(key) || { key, label: shapeLabel(key), occurrences: 0, paid: 0, spends: [], categories: new Map(), sides: new Map(), weekdays: new Map(), last: null };
     s.occurrences += 1;
     const spent = spendByEvent.get(ev.id) || 0;
     if (spent > 0) { s.paid += 1; s.spends.push(round2(spent)); }
     for (const [cat, amt] of categoriesByEvent.get(ev.id) || []) s.categories.set(cat, (s.categories.get(cat) || 0) + amt);
+    for (const [side, n] of sidesByEvent.get(ev.id) || []) s.sides.set(side, (s.sides.get(side) || 0) + n);
     const wd = weekdayIn(ev.start);
     s.weekdays.set(wd, (s.weekdays.get(wd) || 0) + 1);
     if (!s.last || ms(ev.start) > ms(s.last)) s.last = ev.start;
@@ -248,12 +279,16 @@ export function learnShapes(events, transactions, { categoryOf = () => null, now
   const learned = [];
   for (const s of byShape.values()) {
     if (s.occurrences < MIN_OCCURRENCES || s.paid < MIN_PAID) continue;
+    /* Twice in twenty-five is not what a thing costs. */
+    if (s.paid / s.occurrences < MIN_PAID_RATE) continue;
     const cats = [...s.categories.entries()].sort((a, b) => b[1] - a[1]).slice(0, 3).map(([c]) => c);
     learned.push({
       key: s.key,
       label: s.label,
       occurrences: s.occurrences,
       paid: s.paid,
+      /* Where the money fell: money after a training session is not the price of training. */
+      mostly: [...s.sides.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] || null,
       median: round2(median(s.spends)),
       p25: round2(quantile(s.spends, 0.25)),
       p75: round2(quantile(s.spends, 0.75)),
@@ -300,12 +335,15 @@ export function expectFor(shape) {
   const few = shape.paid < 4 || shape.p25 === shape.p75;
   const low = few ? round2(shape.median * 0.6) : shape.p25;
   const high = few ? round2(shape.median * 1.4) : shape.p75;
-  const noun = shape.paid === 1 ? 'time' : 'times';
+  /* What the ledger actually saw: money followed this kind of day so many times out of so
+     many, and fell mostly on one side of it. "A session costs 12 EUR" was never true of a
+     personal trainer paid elsewhere; "money followed 5 of 12 times, after it" is. */
+  const when = shape.mostly === 'before' ? ' before it' : shape.mostly === 'after' ? ' after it' : '';
   return {
     amount: shape.median,
     low,
     high,
-    basis: `${shape.paid} similar ${noun} before, usually around ${shape.median.toFixed(2).replace('.', ',')} EUR.`,
+    basis: `money followed ${shape.paid} of ${shape.occurrences} times${when}, usually around ${shape.median.toFixed(2).replace('.', ',')} EUR.`,
   };
 }
 

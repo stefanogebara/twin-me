@@ -47,7 +47,9 @@ function itemWords(i: MoneyPlanItem, t: T): string {
   if (i.kind === 'charge') return i.cadence && CADENCE_WORD[i.cadence] ? t(CADENCE_WORD[i.cadence]) : t('Comes back');
   if (i.kind === 'commitment') return t('You said this is due');
   if (i.kind === 'income') return i.said ? t('Comes in') : `${t('Comes in, seen before, not said')}${i.confidence != null ? t(', {pct}% on time', { pct: Math.round(i.confidence * 100) }) : ''}`;
-  return i.amount > 0 ? t('A day like this usually costs') : t('In the diary');
+  /* Not "this costs": money that lands near an event is not the price of the event
+     (2026-09-22, a personal trainer paid elsewhere was said to cost 12 EUR). */
+  return i.amount > 0 ? t('Money usually follows this') : t('In the diary');
 }
 
 /** The one grey line for a day. Computed from the cell, nothing guessed. */

@@ -40,7 +40,7 @@ export function stillToCome(t: T, locale: string, f: MoneyForecast): Ahead[] {
   for (const e of f.calendar_items || []) {
     const amount = Number(e.amount ?? e.expected?.amount) || 0;
     const on = String(e.day || e.on || '').slice(0, 10);
-    if (amount > 0 && on) rows.push({ on, name: e.title || e.label || t('In the diary'), amount: -Math.abs(amount), kind: 'diary', why: t('In the diary; this kind of day usually costs about this') });
+    if (amount > 0 && on) rows.push({ on, name: e.title || e.label || t('In the diary'), amount: -Math.abs(amount), kind: 'diary', why: t('In the diary; money usually follows a day like this') });
   }
   return rows.filter((r) => Number.isFinite(r.amount) && r.on).sort((a, b) => (a.on < b.on ? -1 : a.on > b.on ? 1 : Math.abs(b.amount) - Math.abs(a.amount))).slice(0, 8);
 }
