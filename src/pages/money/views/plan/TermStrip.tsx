@@ -28,6 +28,11 @@ export function termLine(term: MoneyTerm, t: T): string {
   return t('{n} weeks of your calendar, read and counted.', { n: seen.length });
 }
 
+/* The tallest bar, in pixels. A percentage would not resolve: the bar sits in a grid row
+   the content sizes, so `height: 60%` fell back to the 3px minimum and every week drew
+   flat (2026-09-22). */
+const BAR_MAX = 104;
+
 export default function TermStrip({ term, t, locale }: { term: MoneyTerm; t: T; locale: string }) {
   const [picked, setPicked] = useState<MoneyTermWeek | null>(null);
   const top = Math.max(1, ...term.weeks.map((w) => w.events || 0));
@@ -46,7 +51,7 @@ export default function TermStrip({ term, t, locale }: { term: MoneyTerm; t: T; 
             aria-label={w.known ? t('Week of {day}, {n}', { day: dayMonth(w.start, locale), n: events(w.events ?? 0, t) }) : t('Week of {day}, not read', { day: dayMonth(w.start, locale) })}
           >
             <b>{w.known ? w.events : ''}</b>
-            <i style={{ height: w.known ? `${Math.max(3, ((w.events || 0) / top) * 100)}%` : '3px' }} />
+            <i style={{ height: w.known ? Math.max(3, Math.round(((w.events || 0) / top) * BAR_MAX)) : 3 }} />
             <em>{dayMonth(w.start, locale)}</em>
           </button>
         ))}
