@@ -634,6 +634,12 @@ button.pc-search-icons {
    stands in for the nav rail. One column, centred, same 820px measure.
    Without this its content lands in the 200px sidebar track and reads one
    word per line at full width (2026-09-21). */
+/* The back link that stands in for the nav rail, with the breathing room the
+   rail would otherwise have given the page title. */
+.presence-cosmos .pc-voice-back {
+  margin-bottom: 28px;
+}
+
 .presence-cosmos .pc-shell--single {
   grid-template-columns: minmax(0, 820px);
   justify-content: center;

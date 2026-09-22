@@ -225,7 +225,7 @@ export default function PresenceVoiceSetup() {
     <main className="presence-cosmos pc-app dsh" id="main-content">
       <div className="pc-shell pc-shell--single">
         <div className="pc-col">
-        <Link className="pc-btn pc-btn--ghost" to="/presence/settings">
+        <Link className="pc-btn pc-btn--ghost pc-voice-back" to="/presence/settings">
           <ArrowLeft size={14} aria-hidden="true" /> Configurações
         </Link>
 
