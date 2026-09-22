@@ -132,7 +132,7 @@ export const weekPhrase = (t: T, week: unknown) => (typeof week === 'string' && 
 /** What the allowance sends, beyond its number. */
 export type Allowance = {
   amount: number | null; basis: 'balance' | 'income' | 'typical' | 'student_prior' | null; basis_label?: string | null;
-  horizon?: { day: string | null; days: number; source: string | null } | null; balance?: { amount: number; banks: string[] } | null;
+  horizon?: { day: string | null; days: number; source: string | null } | null; balance?: { amount: number; banks: string[]; reported?: number; adjustment?: number } | null;
   base?: number | null; keep?: number | null; free: number | null; over: boolean; days_left: number | null;
   spent?: number | null; committed?: number | null; calendar_ahead?: number | null;
   shape?: { weekday: number; ratio: number } | null;
