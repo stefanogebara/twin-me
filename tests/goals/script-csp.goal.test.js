@@ -44,5 +44,10 @@ describe('scripts come only from files the CSP names', () => {
     expect(sources).not.toContain("'unsafe-eval'");
     expect(sources.filter((s) => !s.startsWith("'"))).toEqual(['https://us-assets.i.posthog.com', 'https://us.i.posthog.com']);
     expect(sources).toContain("'self'");
+    /* A worker made from a blob falls back to script-src and was blocked on the live site the
+       day the inline allowance left (2026-09-22); the blob's code came from our own script, so
+       worker-src says so, and only that. */
+    const workerSrc = csp.value.split(';').map((d) => d.trim()).find((d) => d.startsWith('worker-src '));
+    expect(workerSrc).toBe("worker-src 'self' blob:");
   });
 });
