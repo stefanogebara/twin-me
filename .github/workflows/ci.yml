@@ -77,6 +77,16 @@ jobs:
           SUPABASE_SERVICE_ROLE_KEY: ci-stub-service-role-key
         run: npx vitest run --config vitest.money.config.ts --coverage
 
+      # ---- Coverage floor for everything the product reaches (M0-C, 2026-09-22) ----
+      # The reach set (scripts/ci/staying-roots.txt) plus src/, over the whole suite;
+      # the floor in vitest.staying.config.ts can only rise.
+      - name: Staying-set coverage floor
+        env:
+          SUPABASE_URL: https://ci-stub.supabase.co
+          SUPABASE_ANON_KEY: ci-stub-anon-key
+          SUPABASE_SERVICE_ROLE_KEY: ci-stub-service-role-key
+        run: npx vitest run --config vitest.staying.config.ts --coverage
+
       # ---- Baseline-freeze gate (audit 2026-06 M0.5) ----
       # Replaces the old non-blocking lint+tsc steps. Runs eslint + tsc once and
       # counts errors plus route files with direct Supabase access (.from). These

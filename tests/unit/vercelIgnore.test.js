@@ -45,12 +45,12 @@ describe('what Vercel builds', () => {
     expect(run('main', 'HEAD HEAD').out).toMatch(/only docs, tests or workflows/);
   });
 
-  it('builds a branch whose change touches the money pages, so the rendered page can be walked', () => {
+  it('skips a branch even when its change touches the money pages (D21: no previews until a gate reads them)', () => {
     /* A commit on this repository known to touch src/pages/money: the term strip (#490). */
     const strip = execFileSync('git', ['log', '--format=%H', '-1', '--', 'src/pages/money/views/plan/TermStrip.tsx'], { cwd: ROOT, encoding: 'utf8' }).trim();
     const got = run('claude/anything', `${strip}^ ${strip}`);
-    expect(got).toMatchObject({ code: 1 });
-    expect(got.out).toMatch(/changes the money pages/);
+    expect(got).toMatchObject({ code: 0 });
+    expect(got.out).toMatch(/not main/);
   });
 
   it('is executable and says which way it went', () => {
