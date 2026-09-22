@@ -215,7 +215,9 @@ export default function PlanPage() {
             return (
               <section className="mv-section" id="classdays">
                 <h2>{t('With class, or free.')}</h2>
-                <p className="mv-sub">{t('{a} days with something in the diary, {b} without.', { a: s.withDays, b: s.freeDays })}</p>
+                {/* The middle day of each, not the average: on a real ledger two big days
+                    moved the average into a pattern that was not there (2026-09-22). */}
+                <p className="mv-sub">{t('What the middle day of each costs. {n} of these {d} days cost nothing at all.', { n: s.withFree + s.freeFree, d: s.withDays + s.freeDays })}</p>
                 <div className="mv-split">
                   <div className="mv-split-row"><span>{t('With class')}</span><i style={{ width: `${(s.withClass / top) * 100}%` }} /><b className="mv-figures">{euro(s.withClass)}</b></div>
                   <div className="mv-split-row"><span>{t('Free')}</span><i className="is-free" style={{ width: `${(s.free / top) * 100}%` }} /><b className="mv-figures">{euro(s.free)}</b></div>
