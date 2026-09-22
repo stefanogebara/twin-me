@@ -39,3 +39,19 @@ describe('the report card', () => {
     expect(renderSummary(gradeRuns(perfect))).toMatch(/Automatic financial writes remain disabled/);
   });
 });
+
+describe('the streak', () => {
+  const run = (...conclusions) => conclusions.map((conclusion, i) => ({ sha: `s${i}`, url: `u${i}`, jobs: [{ name: 'Unit suite, no retries', conclusion }] }));
+  it('counts the passes since the last failure, newest first', () => {
+    expect(gradeRuns(run('success', 'success', 'success')).at(0).streak).toBe(3);
+    expect(gradeRuns(run('success', 'failure', 'success')).at(0).streak).toBe(1);
+    expect(gradeRuns(run('failure', 'success', 'success')).at(0).streak).toBe(0);
+    expect(gradeRuns([]).length).toBe(0);
+  });
+  it('says the streak in the summary, so a ten-night gate reads itself', () => {
+    const line = renderSummary(gradeRuns(run('success', 'success')));
+    expect(line).toContain('2 in a row');
+    expect(renderSummary(gradeRuns(run('failure')))).not.toContain('in a row');
+  });
+});
+

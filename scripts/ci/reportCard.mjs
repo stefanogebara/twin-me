@@ -7,6 +7,11 @@
  * shadow rule stands whatever the grade: nothing that touches money_* tables or the bank is
  * ever automated on a test streak (autonomous_writes is false and is not a parameter).
  *
+ * A grade also carries its streak: how many of the most recent nights passed without a
+ * break. A pass rate cannot answer "ten green nights in a row", which is what M0-2 asks
+ * before `--retry=2` comes out of CI, and counting that by hand every morning is how a
+ * gate quietly stops being checked (2026-09-22).
+ *
  * @param {Array<{sha: string, url: string, jobs: Array<{name: string, conclusion: string|null}>}>} runs
  *   completed workflow runs, newest first, each with its jobs
  */
@@ -23,10 +28,13 @@ export function gradeRuns(runs = []) {
         .map((j) => ({ passed: j.conclusion === 'success', sha: run.sha, url: run.url })))
       .slice(0, WINDOW);
     const rate = observations.length ? observations.filter((o) => o.passed).length / observations.length : null;
+    let streak = 0;
+    for (const o of observations) { if (!o.passed) break; streak += 1; }
     return {
       task_type: name,
       runs: observations.length,
       pass_rate: rate === null ? null : Math.round(rate * 1000) / 1000,
+      streak,
       review_eligible: observations.length >= WINDOW && rate >= ELIGIBLE_AT,
       needs_attention: rate !== null && rate < ATTENTION_BELOW,
       autonomous_writes: false,
@@ -41,6 +49,7 @@ export function renderSummary(grades = []) {
   return grades.map((g) => {
     const rate = g.pass_rate === null ? 'unrated' : `${Math.round(g.pass_rate * 100)}% passed`;
     const standing = g.review_eligible ? 'eligible for unattended runs' : g.needs_attention ? 'NEEDS ATTENTION' : `not yet eligible (${g.runs}/${WINDOW} nights)`;
-    return `${g.task_type}: ${g.runs} completed nights, ${rate}; ${standing}.`;
+    const run = g.streak ? `, ${g.streak} in a row` : '';
+    return `${g.task_type}: ${g.runs} completed nights, ${rate}${run}; ${standing}.`;
   }).join('\n') + '\nAutomatic financial writes remain disabled whatever the grade.\n';
 }
