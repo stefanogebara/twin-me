@@ -578,3 +578,4 @@ With the API on another port, every request with an Authorization header is prec
 
 Six blocking Google Fonts stylesheets, five of them for retired systems, held the first API request for four seconds on a slow link; the fix was to serve the one family the register uses from `public/fonts`. A third-party `<link rel="stylesheet">` in the head is on the critical path of every screen, whatever the page itself does.
 
+A percentage height only resolves against a definite row, so `height: 97%` on a bar inside a grid column the content sizes fell back to `min-height: 3px`: the term strip merged to production with all nine weeks drawn as one grey line. Nothing catches that — the build passes, the tests pass, the number above each bar is correct. A chart's geometry has to be looked at rendered, and a bar's height is safer computed in pixels in the component (as the prototype did) than delegated to a percentage.
