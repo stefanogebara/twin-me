@@ -46,6 +46,16 @@ export function allowanceWords(a: Allowance, t: T, locale: string): string | nul
   if (!basis || !past) return a.sentence ?? null;
 
   const daysWord = days === 1 ? t('{n} day', { n: 1 }) : t('{n} days', { n: days });
+  if (a.over && a.basis === 'balance' && base !== null && base < 0) {
+    /* The bank itself is short (see allowance.js): say what it has and what is still to book. */
+    const parts: string[] = [t('{amount} there', { amount: euro(a.balance?.reported ?? 0) })];
+    if ((a.balance?.adjustment || 0) > 0) parts.push(t('{amount} of payments not booked yet', { amount: euro(a.balance?.adjustment || 0) }));
+    if ((a.committed || 0) > 0) parts.push(t('{amount} still to be charged', { amount: euro(a.committed || 0) }));
+    const line = parts.length > 1
+      ? t('{bank} is {amount} short: {parts}.', { bank: bankNames(a, t), amount: euro(Math.abs(base)), parts: parts.join(t(', and ')) })
+      : t('{bank} is {amount} short, with {days} to go.', { bank: bankNames(a, t), amount: euro(Math.abs(base)), days: daysWord });
+    return line.charAt(0).toUpperCase() + line.slice(1);
+  }
   if (a.over) {
     return t('That is {amount} {past}, with {days} to go.', { amount: euro(Math.abs(a.free || 0)), past, days: daysWord });
   }

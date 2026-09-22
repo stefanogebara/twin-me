@@ -141,6 +141,17 @@ describe('the day rests on the balance when the bank has said one', () => {
     expect(a.sentence).toMatch(/^That is 200,00/);
   });
 
+  it('says the bank itself is short when payments it has not booked take it below zero', () => {
+    /* 157,31 EUR reported, 330,13 EUR of phone-seen payments the bank has not booked: the
+       old line said "172,82 EUR past the 172,82 EUR in your bank" (2026-09-23). */
+    const phone = { amount: -330.13, currency: 'EUR', occurred_at: '2026-09-09T12:00:00Z', posted_at: null, account_id: null };
+    const a = safeToSpend({ cast: cast({ days_left: 7 }), facts: [], accounts: [account(157.31, { last_pulled_at: '2026-09-09T13:00:00Z' })], transactions: [phone], now: NOW });
+    expect(a.over).toBe(true);
+    expect(a.base).toBe(-172.82);
+    expect(a.balance).toMatchObject({ reported: 157.31, adjustment: 330.13 });
+    expect(a.sentence.replace(/[\u00a0\u202f]/g, ' ')).toBe('Santander is 172,82 \u20ac short: 157,31 \u20ac there, and 330,13 \u20ac of payments not booked yet.');
+  });
+
   it('falls back to the budget without a fresh balance, unchanged', () => {
     const a = safeToSpend({ cast: cast(), facts: [{ kind: 'income', amount: 1000 }], accounts: [account(447.98, { balance_at: '2026-08-01T10:00:00Z' })], now: NOW });
     expect(a.basis).toBe('income');

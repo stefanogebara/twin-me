@@ -295,7 +295,19 @@ export function safeToSpend({ cast = null, segments = [], facts = [], accounts =
     : `over ${daysText(days)}`;
 
   let sentence;
-  if (over) {
+  if (over && basis === 'balance' && base < 0) {
+    /* The bank itself is short: what it reports minus the payments it has not booked is below
+       zero. "172,82 EUR past the 172,82 EUR in your bank" was the old line on that day
+       (2026-09-23), the same figure twice and neither the bank's number. Say what the bank
+       has, what is still to book, and what is still to come off. */
+    const where = balance.banks.join(' and ');
+    const parts = [`${money(balance.reported)} there`];
+    if (balance.adjustment > 0) parts.push(`${money(balance.adjustment)} of payments not booked yet`);
+    if (committed > 0) parts.push(`${money(committed)} still to be charged`);
+    sentence = parts.length > 1
+      ? `${where.charAt(0).toUpperCase()}${where.slice(1)} is ${money(base)} short: ${parts.join(', and ')}.`
+      : `${where.charAt(0).toUpperCase()}${where.slice(1)} is ${money(base)} short, with ${daysText(days)} to go.`;
+  } else if (over) {
     sentence = `That is ${money(Math.abs(free))} past ${bareBasis}, with ${daysText(days)} to go.`;
   } else {
     sentence = `${basisWord}${spoken.length ? `, after ${spoken.join(' and ')}` : ''}, ${until}.`;

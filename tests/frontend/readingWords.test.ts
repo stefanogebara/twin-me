@@ -192,6 +192,16 @@ describe("the day's own line", () => {
     expect(shaped).not.toContain('Friday');
   });
 
+  it('says the bank itself is short, as the ledger does, and then in Spanish and Portuguese', () => {
+    const short = { ...base, basis: 'balance' as const, base: -172.82, free: -172.82, over: true, committed: 0, keep: null,
+      balance: { amount: -172.82, banks: ['your bank'], reported: 157.31, adjustment: 330.13 } };
+    expect(words(allowanceWords(short, en, 'en-GB'))).toBe('Your bank is # short: # there, and # of payments not booked yet.');
+    expect(plain(allowanceWords(short, es, 'es-ES'))).toBe('En tu banco faltan 172,82 \u20ac: hay 157,31 \u20ac, y 330,13 \u20ac en pagos a\u00fan sin contabilizar.');
+    expect(plain(allowanceWords(short, pt, 'pt-BR'))).toMatch(/^Em .* faltam 172,82 \u20ac: h\u00e1 157,31 \u20ac, e 330,13 \u20ac em pagamentos ainda n\u00e3o lan\u00e7ados\.$/);
+    const bare = { ...short, balance: { amount: -172.82, banks: ['your bank'], reported: -172.82, adjustment: 0 } };
+    expect(words(allowanceWords(bare, en, 'en-GB'))).toBe('Your bank is # short, with # days to go.');
+  });
+
   /* Portuguese fuses the preposition into the article: de + os is dos, never "de os". The
      over-spent line glued a bare phrase after a bare preposition and read "acima de os
      1750,00 EUR" (2026-09-18), so each basis carries its own "past" wording. */
