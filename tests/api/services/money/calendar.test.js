@@ -563,3 +563,35 @@ describe('money has to follow often enough to be a cost', () => {
     expect(cal.expectFor(shape).basis).toMatch(/money followed 12 of 25 times after it/);
   });
 });
+
+describe('which week is busiest is computed, not ranked by the model', () => {
+  const { calendarLines } = cal;
+  const now = new Date('2026-09-22T09:00:00Z');
+  /* Stefano's own term on 2026-09-22: 6, 5, 14, 15, 19, 18 this week, 17, 13, 10. Asked
+     which week had the most classes, the model answered "17, the highest in the weeks read". */
+  const days = (() => {
+    const out = {};
+    const counts = { '2026-08-17': 6, '2026-08-24': 5, '2026-08-31': 14, '2026-09-07': 15, '2026-09-14': 19, '2026-09-21': 18, '2026-09-28': 17, '2026-10-05': 13, '2026-10-12': 10 };
+    for (let t = Date.parse('2026-06-24T12:00:00Z'); t < Date.parse('2026-08-17T12:00:00Z'); t += 86400000) out[new Date(t).toISOString().slice(0, 10)] = 0;
+    for (const [monday, n] of Object.entries(counts)) {
+      const base = Date.parse(`${monday}T12:00:00Z`);
+      for (let i = 0; i < 7; i += 1) out[new Date(base + i * 86400000).toISOString().slice(0, 10)] = i === 0 ? n : 0;
+    }
+    return out;
+  })();
+  const facts = [{ kind: META_KIND, subject: 'meta', value: JSON.stringify({ learned_at: '2026-09-22T02:26:00Z', snapshot: [], past: [], days }) }];
+
+  it('says the busiest and the quietest week, and tells the model not to rank them itself', () => {
+    const line = calendarLines(facts, { now }).find((l) => l.startsWith('Of the weeks read'));
+    expect(line).toContain('busiest is last week with 19 events');
+    expect(line).toContain('quietest is week of 2026-08-24 with 5');
+    expect(line).toMatch(/not work out which week is busiest yourself/);
+  });
+
+  it('says nothing of the kind when every week read holds the same', () => {
+    const flat = {};
+    for (let t = Date.parse('2026-06-24T12:00:00Z'); t <= Date.parse('2026-10-23T12:00:00Z'); t += 86400000) flat[new Date(t).toISOString().slice(0, 10)] = 1;
+    const same = [{ kind: META_KIND, subject: 'meta', value: JSON.stringify({ learned_at: '2026-09-22T02:26:00Z', snapshot: [], past: [], days: flat }) }];
+    expect(calendarLines(same, { now }).some((l) => l.startsWith('Of the weeks read'))).toBe(false);
+  });
+});

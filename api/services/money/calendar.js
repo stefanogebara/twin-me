@@ -502,6 +502,12 @@ export function calendarLines(facts, { now = new Date() } = {}) {
     const say = (w) => (w.current ? 'this week' : w.offset === 1 ? 'next week' : w.offset === -1 ? 'last week' : `week of ${w.start}`);
     const known = term.weeks.filter((w) => w.known);
     lines.push(`Diary week by week (Monday to Sunday, how many events): ${known.map((w) => `${say(w)} ${w.events}`).join('; ')}. Weeks not in that list have not been read from the calendar; say so rather than guessing at them.`);
+    /* Which week is the busiest is computed, never ranked by the model: asked on a real term
+       it answered "17, the highest in the weeks read" while the list held 19 and 18
+       (2026-09-22). The ledger does the arithmetic and the sentence carries the answer. */
+    if (term.busiest && term.quietest && term.busiest.start !== term.quietest.start) {
+      lines.push(`Of the weeks read, the busiest is ${say(term.busiest)} with ${term.busiest.events} events and the quietest is ${say(term.quietest)} with ${term.quietest.events}. Do not work out which week is busiest yourself; those two are the answer.`);
+    }
   }
   return lines;
 }

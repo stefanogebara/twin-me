@@ -135,9 +135,13 @@ export const SCENARIOS = [
 
   /* the term, week by week (2026-09-22): before the diary's day counts reached the context,
      the chat held the next seven days and nothing wider, and said it could not know */
-  { id: 'next-week-busy', kind: 'ask', message: 'How busy is next week?', route: 'model', figures: { only: [] }, actions: { none: true }, avoid: [/(cannot|can't|could not) (know|tell|say)|n[ãa]o (sei|posso saber)|no (puedo|s[e\u00e9]) saber/i], maxSentences: 3 },
+  /* The avoid list is a refusal to answer, not an honest caveat: "the ledger can't tell
+     what those events cost" is the right thing to add and failed this scenario (2026-09-22). */
+  { id: 'next-week-busy', kind: 'ask', message: 'How busy is next week?', route: 'model', figures: { only: [] }, actions: { none: true }, mention: [/\d+\s*(events|classes|aulas|eventos|clases)/i], avoid: [/(cannot|can't|could not) (know|tell|say) how busy/i], maxSentences: 3 },
   { id: 'quiet-week', kind: 'ask', message: 'Is next week quieter than this one?', route: 'model', figures: { only: [] }, actions: { none: true }, maxSentences: 3 },
-  { id: 'busiest-week', kind: 'ask', message: 'Which week has the most classes?', route: 'model', figures: { only: [] }, actions: { none: true }, maxSentences: 3 },
+  /* It answered "17, the highest in the weeks read" on a term holding 19 and 18: the ledger
+     computes which week is busiest now, and the reply has to carry that count. */
+  { id: 'busiest-week', kind: 'ask', message: 'Which week has the most classes?', route: 'model', figures: { only: [] }, actions: { none: true }, mention: [/\b19\b/], maxSentences: 3 },
 
   /* corrections */
   { id: 'not-mine-flatmate', kind: 'correction', message: 'The LIDL MAD MERCAD payment is not mine, my flatmate used my card', route: 'model', figures: { only: [] }, actions: { some: ['not_me'] }, maxSentences: 3 },
