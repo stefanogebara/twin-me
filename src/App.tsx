@@ -33,18 +33,11 @@ const StardustHero = import.meta.env.DEV ? lazyWithRetry(() => import("./compone
 const StardustLanding = import.meta.env.DEV ? lazyWithRetry(() => import("./pages/StardustLanding")) : () => null;
 // Nocturne — design-system rebuild preview (design/nocturne branch). Public
 // routes on purpose: the flagship must be judgeable on a real deploy.
-const NocturneLanding = lazyWithRetry(() => import("./pages/nocturne/NocturneLanding"));
 const NocturneSpec = lazyWithRetry(() => import("./pages/nocturne/NocturneSpec"));
-const NocturneSignature = lazyWithRetry(() => import("./pages/nocturne/NocturneSignature"));
-const NocturneTwin = lazyWithRetry(() => import("./pages/nocturne/NocturneTwin"));
 // audit-2026-05-13 H1: route-local Suspense fallback for /talk-to-twin so
 // mobile users see the chat shell (header + composer placeholder) within
 // the first paint instead of waiting on a centered loading spinner.
-import { TalkToTwinSkeleton } from "./pages/components/TalkToTwinSkeleton";
-
 // Lazy-loaded pages (code-split into separate chunks).
-const loadTalkToTwin = () => import("./pages/TalkToTwin");
-const loadTodayPage = () => import("./pages/TodayPage");
 const MoneyV2Page = lazyWithRetry(() => import("./pages/money/MoneyV2Page"));
 /* Money is the product (M3-2, 2026-09-19): the marketing front door, the OAuth return, the
    404 and the legacy twin's sidebar were in the entry chunk of every screen; each is its own
@@ -60,38 +53,17 @@ const loadPlanPage = () => import("./pages/money/PlanPage");
 const MoneySetupPage = lazyWithRetry(loadMoneySetupPage);
 const MoneyChatPage = lazyWithRetry(loadMoneyChatPage);
 const PlanPage = lazyWithRetry(loadPlanPage);
-const loadMoneyInsightsPage = () => import("./pages/MoneyInsightsPage");
-
 const Settings = lazyWithRetry(() => import("./pages/Settings"));
-const VoiceSetupPage = lazyWithRetry(() => import("./pages/VoiceSetupPage"));
 const InstantTwinOnboarding = lazyWithRetry(() => import("./pages/InstantTwinOnboarding"));
-const BrainPage = lazyWithRetry(() => import("./pages/BrainPage"));
-const DataExportsPage = lazyWithRetry(() => import("./pages/DataExportsPage"));
-const TalkToTwin = lazy(loadTalkToTwin);
 const AdminLLMCosts = lazyWithRetry(() => import("./pages/AdminLLMCosts"));
 const AdminBetaDashboard = lazyWithRetry(() => import("./pages/AdminBetaDashboard"));
 const AdminBetaPage = lazyWithRetry(() => import("./pages/AdminBetaPage"));
 const PrivacyPolicy = lazyWithRetry(() => import("./pages/PrivacyPolicy"));
 const TermsOfService = lazyWithRetry(() => import("./pages/TermsOfService"));
-const PortfolioPage = lazyWithRetry(() => import("./pages/PortfolioPage"));
 const NewDiscoverFlow = lazyWithRetry(() => import("./pages/onboarding/NewDiscoverFlow"));
-const OnboardingWowPage = lazyWithRetry(() => import("./pages/onboarding/OnboardingWowPage"));
 const WaitlistPage = lazyWithRetry(() => import("./pages/WaitlistPage"));
 const BetaSignupPage = lazyWithRetry(() => import("./pages/BetaSignupPage"));
 const GmailCallback = lazyWithRetry(() => import("./pages/oauth/GmailCallback"));
-const SpotifyInsightsPage = lazyWithRetry(() => import("./pages/insights/SpotifyInsightsPage"));
-const CalendarInsightsPage = lazyWithRetry(() => import("./pages/insights/CalendarInsightsPage"));
-const YouTubeInsightsPage = lazyWithRetry(() => import("./pages/insights/YouTubeInsightsPage"));
-const WebBrowsingInsightsPage = lazyWithRetry(() => import("./pages/insights/WebBrowsingInsightsPage"));
-const DiscordInsightsPage = lazyWithRetry(() => import("./pages/insights/DiscordInsightsPage"));
-const PrivacySpectrumDashboard = lazyWithRetry(() => import("./pages/PrivacySpectrumDashboard"));
-const MemoryHealth = lazyWithRetry(() => import("./pages/MemoryHealth"));
-const EvalDashboard = lazyWithRetry(() => import("./pages/EvalDashboard"));
-const IdentityPage = lazyWithRetry(() => import("./pages/IdentityPage"));
-const LifeStoryPage = lazyWithRetry(() => import("./pages/LifeStoryPage"));
-const FidelityPage = lazyWithRetry(() => import("./pages/FidelityPage"));
-const MoneyInsightsPage = lazy(loadMoneyInsightsPage);
-const TodayPage = lazy(loadTodayPage);
 const PricingPage = lazyWithRetry(() => import("./pages/PricingPage"));
 const PresencePage = lazyWithRetry(() => import("./pages/PresencePage"));
 const PresenceLandingPage = lazyWithRetry(() => import("./pages/PresenceLandingPage"));
@@ -190,7 +162,6 @@ const App = () => {
 
             {/* Legacy path redirects */}
             <Route path="/home" element={<Navigate to="/money" replace />} />
-            <Route path="/chat" element={<Navigate to="/talk-to-twin" replace />} />
             <Route path="/custom-auth" element={<CustomAuth />} />
             <Route path="/oauth/callback" element={<OAuthCallback />} />
             <Route path="/auth/callback" element={<OAuthCallback />} />
@@ -200,7 +171,6 @@ const App = () => {
             <Route path="/" element={<Index />} />
             {/* hero-inversion 2026-08: /discover's email-enrichment reveal IS
                 the landing now — one front door. Old links keep working. */}
-            <Route path="/discover" element={<Navigate to="/" replace />} />
 
             {/* Design prototypes, dev-only: in prod these paths fall through to the NotFound
                 catch-all. The Claura prototypes (public/cinematic, sixteen static pages with
@@ -210,12 +180,9 @@ const App = () => {
             <Route path="/preview/stardust-hero" element={<div className="w-full min-h-screen" style={{ background: 'var(--background)' }}><StardustHero /></div>} />
             <Route path="/preview/stardust" element={<StardustLanding />} />
             <Route path="/preview/presence-voice" element={<PresenceVoicePreview />} />
-            <Route path="/nocturne" element={<Suspense fallback={<Wait line="" />}><NocturneLanding /></Suspense>} />
             {/* The register's living spec. /nocturne/system is its old address and keeps working. */}
             <Route path="/system" element={<Suspense fallback={<Wait line="" />}><NocturneSpec /></Suspense>} />
             <Route path="/nocturne/system" element={<Suspense fallback={<Wait line="" />}><NocturneSpec /></Suspense>} />
-            <Route path="/nocturne/signature" element={<Suspense fallback={<Wait line="" />}><NocturneSignature /></Suspense>} />
-            <Route path="/nocturne/twin" element={<Suspense fallback={<Wait line="" />}><NocturneTwin /></Suspense>} />
             <Route path="/preview/presence" element={<PresencePrototype />} />
             <Route path="/preview/presence-system" element={<PresenceDesignSystem />} />
             </Route>
@@ -225,17 +192,7 @@ const App = () => {
                 (the 12-card feed) and BriefingPage both rendered the same
                 MorningBriefingCard as /today — three homes collapsed to one. */}
             <Route path="/dashboard" element={<Navigate to="/money" replace />} />
-            <Route path="/briefing" element={<Navigate to="/today" replace />} />
             {/* Today — the one home: brief + action inbox + twin composer. */}
-            <Route path="/today" element={
-              <ProtectedRoute>
-                <SidebarLayout>
-                  <ErrorBoundary>
-                    <TodayPage />
-                  </ErrorBoundary>
-                </SidebarLayout>
-              </ProtectedRoute>
-            } />
             <Route path="/presence" element={<PresenceLandingPage />} />
             <Route path="/presence/login" element={<PresenceLoginPage />} />
             {/* Elder channel: public, token-authed. She has no account. */}
@@ -298,124 +255,27 @@ const App = () => {
               </ProtectedRoute>
             } />
             {/* Twin Insight Pages */}
-            <Route path="/insights/spotify" element={
-              <ProtectedRoute>
-                <SidebarLayout>
-                  <ErrorBoundary>
-                    <SpotifyInsightsPage />
-                  </ErrorBoundary>
-                </SidebarLayout>
-              </ProtectedRoute>
-            } />
-            <Route path="/insights/calendar" element={
-              <ProtectedRoute>
-                <SidebarLayout>
-                  <ErrorBoundary>
-                    <CalendarInsightsPage />
-                  </ErrorBoundary>
-                </SidebarLayout>
-              </ProtectedRoute>
-            } />
-            <Route path="/insights/youtube" element={
-              <ProtectedRoute>
-                <SidebarLayout>
-                  <ErrorBoundary>
-                    <YouTubeInsightsPage />
-                  </ErrorBoundary>
-                </SidebarLayout>
-              </ProtectedRoute>
-            } />
-            <Route path="/insights/web" element={
-              <ProtectedRoute>
-                <SidebarLayout>
-                  <ErrorBoundary>
-                    <WebBrowsingInsightsPage />
-                  </ErrorBoundary>
-                </SidebarLayout>
-              </ProtectedRoute>
-            } />
-            <Route path="/insights/discord" element={
-              <ProtectedRoute>
-                <SidebarLayout>
-                  <ErrorBoundary>
-                    <DiscordInsightsPage />
-                  </ErrorBoundary>
-                </SidebarLayout>
-              </ProtectedRoute>
-            } />
             {/* Soul Signature → redirect to Identity (canonical "Who You Are" page) */}
-            <Route path="/soul-signature" element={<Navigate to="/identity" replace />} />
-            <Route path="/me" element={<Navigate to="/identity" replace />} />
-            <Route path="/you" element={<Navigate to="/identity" replace />} />
 
             {/* Phase 1: /interview (the older deep-interview page) removed —
                 two parallel interview systems collapsed to one; /story is the
                 single "tell the twin about yourself" surface. */}
-            <Route path="/interview" element={<Navigate to="/story" replace />} />
 
             {/* Story Chapters — chaptered life-story interview */}
-            <Route path="/story" element={
-              <ProtectedRoute>
-                <SidebarLayout>
-                  <ErrorBoundary>
-                    <LifeStoryPage />
-                  </ErrorBoundary>
-                </SidebarLayout>
-              </ProtectedRoute>
-            } />
 
             {/* Twin Fidelity — test-retest battery (R4) */}
-            <Route path="/fidelity" element={
-              <ProtectedRoute>
-                <SidebarLayout>
-                  <ErrorBoundary>
-                    <FidelityPage />
-                  </ErrorBoundary>
-                </SidebarLayout>
-              </ProtectedRoute>
-            } />
 
             {/* Who You Are — identity explorer */}
-            <Route path="/identity" element={
-              <ProtectedRoute>
-                <SidebarLayout>
-                  <ErrorBoundary>
-                    <IdentityPage />
-                  </ErrorBoundary>
-                </SidebarLayout>
-              </ProtectedRoute>
-            } />
 
             {/* Twins Brain Explorer */}
-            <Route path="/brain" element={
-              <ProtectedRoute>
-                <SidebarLayout>
-                  <ErrorBoundary>
-                    <BrainPage />
-                  </ErrorBoundary>
-                </SidebarLayout>
-              </ProtectedRoute>
-            } />
-            <Route path="/memories" element={<Navigate to="/brain" replace />} />
 
             {/* GDPR data-export uploads (Discord/LinkedIn/Instagram) */}
-            <Route path="/data-exports" element={
-              <ProtectedRoute>
-                <SidebarLayout>
-                  <ErrorBoundary>
-                    <DataExportsPage />
-                  </ErrorBoundary>
-                </SidebarLayout>
-              </ProtectedRoute>
-            } />
 
 
             {/* One-interface (2026-06-12): the /wiki knowledge-graph page was
                 removed (1 opted-in user of 21). Wiki COMPILATION + twin-chat
                 injection ("MY KNOWLEDGE BASE") are untouched — ask your twin
                 "what do you know about me?" instead. Old links land on chat. */}
-            <Route path="/wiki" element={<Navigate to="/talk-to-twin" replace />} />
-            <Route path="/knowledge" element={<Navigate to="/talk-to-twin" replace />} />
             {/* Phase 1 (product-truth-review 2026-08-09): GoalsPage removed —
                 fully orphaned (zero in-app links), 29 of 42 goal suggestions
                 never accepted. The twin still tracks goals and raises them in
@@ -423,8 +283,6 @@ const App = () => {
                 added nothing. TwinSoulPage (directive CRUD) likewise orphaned —
                 directives are managed via chat corrections; a Settings section
                 can host the list if demand appears. */}
-            <Route path="/goals" element={<Navigate to="/today" replace />} />
-            <Route path="/twin-soul" element={<Navigate to="/settings" replace />} />
 
             {/* Financial-Emotional Twin — bank statement upload + emotional tagging (Phase 2) */}
             <Route path="/money" element={
@@ -487,21 +345,11 @@ const App = () => {
             } />
 
             {/* Money insights — narrative read of correlation patterns, subscriptions, trades, timeline (Phase 4.4) */}
-            <Route path="/money/insights" element={
-              <ProtectedRoute>
-                <SidebarLayout>
-                  <ErrorBoundary>
-                    <MoneyInsightsPage />
-                  </ErrorBoundary>
-                </SidebarLayout>
-              </ProtectedRoute>
-            } />
 
             {/* Meeting prep lives in the twin now (one-interface, 2026-06-12):
                 briefings still generate via cron-meeting-prep and arrive via
                 WhatsApp + NextMeetingCard on Home; the /meetings list page was
                 a founder-only viewer (1 user in 21) and was removed. */}
-            <Route path="/meetings" element={<Navigate to="/talk-to-twin" replace />} />
 
             {/* Platform Connection — accessible at both /connect (nav) and /get-started (legacy) */}
             {["/connect", "/get-started"].map(path => (
@@ -515,33 +363,11 @@ const App = () => {
                 </ProtectedRoute>
               } />
             ))}
-            <Route path="/connect-data" element={<Navigate to="/get-started" replace />} />
-            <Route path="/connections" element={<Navigate to="/get-started" replace />} />
-            <Route path="/onboarding/connect" element={<Navigate to="/connect" replace />} />
-            <Route path="/memory-explorer" element={<Navigate to="/brain" replace />} />
 
 
             {/* Settings */}
-            <Route path="/settings" element={
-              <ProtectedRoute>
-                <SidebarLayout>
-                  <ErrorBoundary>
-                    <Settings />
-                  </ErrorBoundary>
-                </SidebarLayout>
-              </ProtectedRoute>
-            } />
 
             {/* askjo-inspired voice bridge — WhatsApp link flow (Phase 1) */}
-            <Route path="/settings/voice" element={
-              <ProtectedRoute>
-                <SidebarLayout>
-                  <ErrorBoundary>
-                    <VoiceSetupPage />
-                  </ErrorBoundary>
-                </SidebarLayout>
-              </ProtectedRoute>
-            } />
 
             <Route path="/pricing" element={
               <ProtectedRoute>
@@ -554,7 +380,6 @@ const App = () => {
             } />
 
             {/* Legacy onboarding routes */}
-            <Route path="/welcome" element={<Navigate to="/get-started" replace />} />
 
             {/* Phase 2 (product-truth-review 2026-08-09): ONE onboarding.
                 Three flows selling two different products collapsed into the
@@ -562,85 +387,35 @@ const App = () => {
                 you") -> /onboarding/wow (the retention hook: drafts in your
                 voice) -> /today. OnboardingFlow (welcome/interview/platforms/
                 awakening) deleted; its job is covered by NewDiscoverFlow. */}
-            <Route path="/onboarding" element={<Navigate to="/soul-reveal" replace />} />
 
             {/* Onboarding "wow" — second wow after the soul reveal: voice read
                 + first drafted replies, then into Today. Full-screen moment
                 (no sidebar). Degrades gracefully without Gmail. */}
-            <Route path="/onboarding/wow" element={
-              <ProtectedRoute>
-                <ErrorBoundary>
-                  <OnboardingWowPage />
-                </ErrorBoundary>
-              </ProtectedRoute>
-            } />
 
             {/* Cinematic Soul Reveal - post-onboarding discovery flow */}
-            <Route path="/soul-reveal" element={
-              <ProtectedRoute>
-                <ErrorBoundary>
-                  <NewDiscoverFlow />
-                </ErrorBoundary>
-              </ProtectedRoute>
-            } />
 
 
             {/* Public Soul Card - redirects to Portfolio */}
-            <Route path="/s/:userId" element={
-              <ErrorBoundary>
-                <PortfolioPage />
-              </ErrorBoundary>
-            } />
 
             {/* Public Portfolio Page - Premium shareable profile */}
-            <Route path="/p/:userId" element={
-              <ErrorBoundary>
-                <PortfolioPage />
-              </ErrorBoundary>
-            } />
 
             {/* Soul Journal */}
-            <Route path="/journal" element={<Navigate to="/brain" replace />} />
 
             {/* One-interface (2026-06-12): the /inbox proposal page was removed —
                 proposals now live in the thread (twin chat sees PENDING_ACTIONS;
                 WhatsApp delivers + resolves yes/skip replies). agent_actions and
                 all approval endpoints are untouched. Old links land on chat. */}
-            <Route path="/inbox" element={<Navigate to="/today" replace />} />
-            <Route path="/departments" element={<Navigate to="/talk-to-twin" replace />} />
 
             {/* Privacy Spectrum Dashboard */}
-            <Route path="/settings/privacy" element={<Navigate to="/privacy-spectrum" replace />} />
-            <Route path="/privacy-spectrum" element={
-              <ProtectedRoute>
-                <SidebarLayout>
-                  <ErrorBoundary>
-                    <PrivacySpectrumDashboard />
-                  </ErrorBoundary>
-                </SidebarLayout>
-              </ProtectedRoute>
-            } />
 
             {/* Chat with Twin -- H1: route-local Suspense with a chat-shape
                 skeleton so the composer placeholder is visible from the
                 first paint on mobile (the global fallback was hiding the
                 input region for >3.5s on slow connections). */}
-            <Route path="/talk-to-twin" element={
-              <ProtectedRoute>
-                <SidebarLayout>
-                  <ErrorBoundary>
-                    <Suspense fallback={<TalkToTwinSkeleton />}>
-                      <TalkToTwin />
-                    </Suspense>
-                  </ErrorBoundary>
-                </SidebarLayout>
-              </ProtectedRoute>
-            } />
 
             {/* Phase 1 (2026-08-10): desktop is no longer the bet — the
                 Hummingbird /widget panel, /download, and /desktop-handoff are
                 gone. Any straggler desktop installs land on the web chat. */}
-            <Route path="/widget" element={<Navigate to="/talk-to-twin" replace />} />
 
             {/* Admin: LLM Cost Monitor */}
             <Route path="/admin/llm-costs" element={
@@ -676,27 +451,8 @@ const App = () => {
             } />
 
             {/* Memory Health — admin/debug tool, moved to /admin/memory-health */}
-            <Route path="/memory-health" element={<Navigate to="/admin/memory-health" replace />} />
-            <Route path="/admin/memory-health" element={
-              <ProtectedRoute requireAdmin>
-                <SidebarLayout>
-                  <ErrorBoundary>
-                    <MemoryHealth />
-                  </ErrorBoundary>
-                </SidebarLayout>
-              </ProtectedRoute>
-            } />
 
             {/* Twin Eval Tool (internal) */}
-            <Route path="/eval" element={
-              <ProtectedRoute requireAdmin>
-                <SidebarLayout>
-                  <ErrorBoundary>
-                    <EvalDashboard />
-                  </ErrorBoundary>
-                </SidebarLayout>
-              </ProtectedRoute>
-            } />
 
             <Route path="/download" element={<Navigate to="/" replace />} />
 
@@ -709,8 +465,6 @@ const App = () => {
 
             {/* Legacy route redirects */}
             <Route path="/landing" element={<Navigate to="/" replace />} />
-            <Route path="/portfolio" element={<Navigate to="/" replace />} />
-            <Route path="/insights/web-browsing" element={<Navigate to="/insights/web" replace />} />
 
 
             {/* Catch-all */}

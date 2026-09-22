@@ -91,7 +91,8 @@ describe('the money pages have their words in every language', () => {
 
   it('reads a real set of keys', () => {
     expect(keys.length).toBeGreaterThan(300);
-    expect(keys).toContain('Today');
+    /* 'Today' left with the retired figures (2026-09-22); the page title is the key every money page hands to t(). */
+    expect(keys).toContain('Money');
   });
 
   for (const lang of ['es', 'pt-BR'] as const) {

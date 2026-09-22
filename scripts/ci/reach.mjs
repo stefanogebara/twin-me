@@ -16,7 +16,10 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
-const IMPORT_RE = /(?:import|export)\s+(?:[\s\S]*?\s+from\s+)?['"](\.{1,2}\/[^'"]+)['"]|import\(\s*['"](\.{1,2}\/[^'"]+)['"]\s*\)/g;
+/* The `from` clause is optional (a side-effect import has none) and bounded to one statement:
+   `[\s\S]*?` let the engine run from `import './x.css'` to a later statement's `from`, so the
+   side-effect import was never seen and the stylesheet counted as unreachable (2026-09-22). */
+const IMPORT_RE = /(?:import|export)\s+(?:[^;'"]*?\s+from\s+)?['"](\.{1,2}\/[^'"]+)['"]|import\(\s*['"](\.{1,2}\/[^'"]+)['"]\s*\)/g;
 
 /** The relative import specifiers in one source file. */
 export function importsOf(source) {
