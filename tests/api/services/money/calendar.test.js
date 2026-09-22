@@ -128,13 +128,35 @@ describe('joinEventsToPayments', () => {
   it('prefers the closer of two events', () => {
     const a = ev('a', 'Coffee', '2026-09-01T09:00:00Z', '2026-09-01T09:30:00Z');
     const b = ev('b', 'Lunch', '2026-09-01T13:00:00Z', '2026-09-01T14:00:00Z');
-    const [pair] = joinEventsToPayments([a, b], [pay('p', '2026-09-01T12:00:00Z', -12, 'bar')]);
+    /* 12:20, not 12:00: noon UTC is the hour the bank writes when it has none. */
+    const [pair] = joinEventsToPayments([a, b], [pay('p', '2026-09-01T12:20:00Z', -12, 'bar')]);
     expect(pair.event.id).toBe('b');
   });
-  it('joins an all-day event by date', () => {
+
+  it('never joins a payment that carries only the hour the bank booked it', () => {
+    /* Noon UTC is two in the afternoon in Madrid, so a date-only subscription used to land
+       inside whatever was in the diary at two: Twilio and Fly.io became the cost of therapy
+       and every work block "cost" whatever the bank booked that day (2026-09-22). */
+    const block = ev('w', 'Code review', '2026-09-01T12:00:00Z', '2026-09-01T13:00:00Z');
+    expect(joinEventsToPayments([block], [pay('p', '2026-09-01T12:00:00.000Z', -11.5, 'openrouter')])).toEqual([]);
+    /* The same payment an hour later, with a real time, still joins. */
+    expect(joinEventsToPayments([block], [pay('p', '2026-09-01T12:40:00Z', -11.5, 'openrouter')])).toHaveLength(1);
+  });
+
+  it('an all-day entry joins nothing: it is a label on a date, not something attended', () => {
+    /* A birthday swallowed 103 EUR of OpenAI and a 100 EUR transfer eleven hours from it. */
     const trip = ev('t', 'Trip to Toledo', '2026-08-30T00:00:00Z', '2026-08-31T00:00:00Z', { all_day: true });
-    const [pair] = joinEventsToPayments([trip], [pay('p', '2026-08-30T16:00:00Z', -22, 'renfe')]);
-    expect(pair.event.id).toBe('t');
+    expect(joinEventsToPayments([trip], [pay('p', '2026-08-30T16:00:00Z', -22, 'renfe')])).toEqual([]);
+  });
+
+  it('says which side of the event the money fell on', () => {
+    const session = ev('s', 'Murilo Personal', '2026-09-15T16:30:00Z', '2026-09-15T17:30:00Z');
+    const sides = [
+      joinEventsToPayments([session], [pay('a', '2026-09-15T16:10:00Z', -5, 'bar')])[0].side,
+      joinEventsToPayments([session], [pay('b', '2026-09-15T17:00:00Z', -5, 'bar')])[0].side,
+      joinEventsToPayments([session], [pay('c', '2026-09-15T18:20:00Z', -5, 'bar')])[0].side,
+    ];
+    expect(sides).toEqual(['before', 'during', 'after']);
   });
 });
 
@@ -172,7 +194,7 @@ describe('expectFor and aheadFrom', () => {
     expect(e.amount).toBe(38.2);
     expect(e.low).toBeLessThan(e.amount);
     expect(e.high).toBeGreaterThan(e.amount);
-    expect(e.basis).toMatch(/3 similar times before, usually around 38,20 EUR/);
+    expect(e.basis).toMatch(/money followed 3 of 4 times, usually around 38,20 EUR/);
     expect(expectFor(null)).toBeNull();
   });
   it('reads the week ahead with expectations, free days and a total', () => {
@@ -195,7 +217,7 @@ describe('the persisted form', () => {
   const facts = [
     { kind: FACT_KIND, subject: 'dinner with the', value: JSON.stringify({ label: 'dinner with the', occurrences: 4, paid: 3, median: 38.2, p25: 36, p75: 40, categories: ['restaurant'] }) },
     { kind: META_KIND, subject: '', value: JSON.stringify({ learned_at: '2026-09-08T11:00:00Z', routine: 'About 2 events a week.', snapshot: [
-      { id: 'f1', label: 'dinner with the', title: 'Dinner with the flat', start: '2026-09-10T19:30:00Z', end: '2026-09-10T22:00:00Z', all_day: false, expected: { amount: 38.2, low: 22.92, high: 53.48, basis: '3 similar times before, usually around 38,20 EUR.' } },
+      { id: 'f1', label: 'dinner with the', title: 'Dinner with the flat', start: '2026-09-10T19:30:00Z', end: '2026-09-10T22:00:00Z', all_day: false, expected: { amount: 38.2, low: 22.92, high: 53.48, basis: 'money followed 3 of 4 times, usually around 38,20 EUR.' } },
       { id: 'f9', label: 'dentist', title: 'Dentist', start: '2026-10-02T10:00:00Z', end: '2026-10-02T11:00:00Z', all_day: false, expected: { amount: 60, low: 36, high: 84, basis: '2 similar times before, usually around 60,00 EUR.' } },
       { id: 'gone', label: 'dinner with the', title: 'Dinner with the flat', start: '2026-09-03T19:30:00Z', end: '2026-09-03T22:00:00Z', all_day: false, expected: null },
     ] }) },
@@ -505,5 +527,39 @@ describe('the term in a prompt', () => {
   it('says nothing about the term when the diary has not been read', () => {
     const bare = [{ kind: META_KIND, subject: 'meta', value: JSON.stringify({ learned_at: '2026-09-23T06:00:00Z', snapshot: [], past: [] }) }];
     expect(calendarLines(bare, { now }).some((l) => l.startsWith('Diary week by week'))).toBe(false);
+  });
+});
+
+describe('money has to follow often enough to be a cost', () => {
+  const { learnShapes, MIN_PAID_RATE } = cal;
+  const now = new Date('2026-09-20T12:00:00Z');
+  /* Twenty-five personal training sessions, money after two of them: a vending machine and
+     one unnamed line. The trainer is paid elsewhere. The product used to announce that a
+     session costs 12 EUR (2026-09-22, Stefano's own ledger). */
+  const sessions = []; const payments = [];
+  for (let i = 0; i < 25; i += 1) {
+    const day = new Date(Date.UTC(2026, 6, 1) + i * 3 * 86400000).toISOString().slice(0, 10);
+    sessions.push({ id: `s${i}`, title: 'Murilo Personal', start: `${day}T16:30:00Z`, end: `${day}T17:30:00Z`, location: null, attendees_count: 0, recurring: null, all_day: false });
+    if (i === 23) payments.push({ id: 'p1', occurred_at: `${day}T17:27:00Z`, amount: -5, merchant_key: 'ab servicios', merchant_raw: 'AB Servicios', channel: 'card' });
+    if (i === 24) payments.push({ id: 'p2', occurred_at: `${day}T17:20:00Z`, amount: -19, merchant_key: 'unknown', merchant_raw: null, channel: 'card' });
+  }
+
+  it('says nothing about a session money follows twice in twenty-five times', () => {
+    expect(MIN_PAID_RATE).toBeGreaterThan(2 / 25);
+    expect(learnShapes(sessions, payments, { now })).toEqual([]);
+  });
+
+  it('still learns a kind of day money follows most times', () => {
+    const often = payments.concat(sessions.slice(0, 10).map((s, i) => ({
+      id: `q${i}`, occurred_at: s.start.replace('16:30', '17:45'), amount: -12, merchant_key: 'la tasca', merchant_raw: 'La Tasca', channel: 'card',
+    })));
+    const [shape] = learnShapes(sessions, often, { now });
+    /* Ten new ones plus the two that were already there. */
+    expect(shape.paid).toBe(12);
+    expect(shape.occurrences).toBe(25);
+    /* Ten of twenty-five clears a third. The money fell after the session, and the sentence
+       says so rather than calling it the price of the session. */
+    expect(shape.mostly).toBe('after');
+    expect(cal.expectFor(shape).basis).toMatch(/money followed 12 of 25 times after it/);
   });
 });
