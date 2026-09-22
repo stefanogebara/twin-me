@@ -11,11 +11,12 @@
  * llmBudgetGuard daily hard limit is the ultimate backstop.
  */
 
-import { inngest, EVENTS } from '../../services/inngestClient.js';
+import { EVENTS } from '../../services/inngestClient.js';
+import { createTwinFunction } from '../twinFunction.js';
 import { runObservationIngestion } from '../../services/observationIngestion.js';
 import { runUserPostProcess } from '../../services/userPostProcess.js';
 
-export const userObservationIngestionFunction = inngest.createFunction(
+export const userObservationIngestionFunction = createTwinFunction(
   {
     id: 'observation-ingestion-user',
     name: 'Per-User Observation Ingestion',

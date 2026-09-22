@@ -21,7 +21,8 @@
  * the per-user concurrency key plus retries: 1.
  */
 
-import { inngest, EVENTS } from '../../services/inngestClient.js';
+import { EVENTS } from '../../services/inngestClient.js';
+import { createTwinFunction } from '../twinFunction.js';
 import { profileEnrichmentService } from '../../services/profileEnrichmentService.js';
 import { createLogger } from '../../services/logger.js';
 
@@ -56,7 +57,7 @@ export async function enrichAndSaveProfile({ userId, email, fullName = null }) {
   return { userId, enriched: true, source: data.source || 'unknown' };
 }
 
-export const profileEnrichmentFunction = inngest.createFunction(
+export const profileEnrichmentFunction = createTwinFunction(
   {
     id: 'profile-enrichment',
     name: 'New-User Profile Enrichment',

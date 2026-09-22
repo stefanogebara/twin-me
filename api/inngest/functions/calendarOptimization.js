@@ -9,7 +9,8 @@
  * Cost: ~$0.002 per suggestion (TIER_EXTRACTION)
  */
 
-import { inngest, EVENTS } from '../../services/inngestClient.js';
+import { EVENTS } from '../../services/inngestClient.js';
+import { createTwinFunction } from '../twinFunction.js';
 import { complete, TIER_EXTRACTION } from '../../services/llmGateway.js';
 import { getBlocks } from '../../services/coreMemoryService.js';
 import { normalizeHealthScore } from '../../services/moodAssessmentService.js';
@@ -27,7 +28,7 @@ const CALENDAR_PROVIDERS = ['google_calendar', 'outlook'];
 const MIN_EVENT_THRESHOLD = 3;
 const MAX_RECOVERY_SCORE = 50;
 
-export const calendarOptimizationFunction = inngest.createFunction(
+export const calendarOptimizationFunction = createTwinFunction(
   {
     id: 'calendar-optimization',
     name: 'Calendar Optimization',

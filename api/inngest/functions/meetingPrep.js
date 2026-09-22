@@ -10,7 +10,8 @@
  * Cost: ~$0.003 per briefing (TIER_EXTRACTION)
  */
 
-import { inngest, EVENTS } from '../../services/inngestClient.js';
+import { EVENTS } from '../../services/inngestClient.js';
+import { createTwinFunction } from '../twinFunction.js';
 import { complete, TIER_EXTRACTION } from '../../services/llmGateway.js';
 import { getBlocks } from '../../services/coreMemoryService.js';
 import { retrieveMemories } from '../../services/memoryStreamService.js';
@@ -21,7 +22,7 @@ import { createLogger } from '../../services/logger.js';
 
 const log = createLogger('MeetingPrep');
 
-export const meetingPrepFunction = inngest.createFunction(
+export const meetingPrepFunction = createTwinFunction(
   {
     id: 'meeting-prep',
     name: 'Meeting Prep Briefing',

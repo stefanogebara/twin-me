@@ -20,6 +20,7 @@
  */
 
 import { inngest, EVENTS } from '../../services/inngestClient.js';
+import { createTwinFunction } from '../twinFunction.js';
 import { complete, TIER_EXTRACTION } from '../../services/llmGateway.js';
 import { getBlocks } from '../../services/coreMemoryService.js';
 import { normalizeHealthScore } from '../../services/moodAssessmentService.js';
@@ -34,7 +35,7 @@ const log = createLogger('IntelligentTriggers');
 
 const COOLDOWN_HOURS = 20;
 
-export const intelligentTriggersFunction = inngest.createFunction(
+export const intelligentTriggersFunction = createTwinFunction(
   { id: 'intelligent-triggers', name: 'Intelligent Triggers Check', retries: 1, concurrency: { limit: 1, key: 'event.data.userId' }, triggers: [{ event: EVENTS.INTELLIGENT_TRIGGERS }] },
   async ({ event, step }) => {
     const { userId } = event.data;

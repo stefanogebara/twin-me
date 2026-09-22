@@ -9,7 +9,8 @@
  * Cost: ~$0.01 per reflection (DeepSeek tier).
  */
 
-import { inngest, EVENTS } from '../../services/inngestClient.js';
+import { EVENTS } from '../../services/inngestClient.js';
+import { createTwinFunction } from '../twinFunction.js';
 import {
   getRecentConversationMessages,
   generateSessionReflection,
@@ -17,7 +18,7 @@ import {
 } from '../../services/sessionReflectionService.js';
 import { generateRecentContext, generateGoalsBlock } from '../../services/coreMemoryService.js';
 
-export const sessionReflectionFunction = inngest.createFunction(
+export const sessionReflectionFunction = createTwinFunction(
   {
     id: 'session-reflection',
     name: 'Post-Session Twin Reflection',

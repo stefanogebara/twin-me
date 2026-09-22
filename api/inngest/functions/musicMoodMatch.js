@@ -11,7 +11,8 @@
  * Cost: ~$0.0001 per trigger (one TIER_EXTRACTION LLM call)
  */
 
-import { inngest, EVENTS } from '../../services/inngestClient.js';
+import { EVENTS } from '../../services/inngestClient.js';
+import { createTwinFunction } from '../twinFunction.js';
 import { complete, TIER_EXTRACTION } from '../../services/llmGateway.js';
 import { getBlocks } from '../../services/coreMemoryService.js';
 import { assessMood } from '../../services/moodAssessmentService.js';
@@ -35,7 +36,7 @@ const GENRE_ENERGY_MAP = {
   power: ['edm', 'dance', 'electronic', 'house', 'techno', 'dubstep', 'drum-and-bass', 'metal', 'punk', 'hardcore'],
 };
 
-export const musicMoodMatchFunction = inngest.createFunction(
+export const musicMoodMatchFunction = createTwinFunction(
   {
     id: 'music-mood-match',
     name: 'Music Mood Match',

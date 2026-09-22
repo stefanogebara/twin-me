@@ -9,7 +9,8 @@
  * Cost: ~$0.0003 per draft (TIER_ANALYSIS — stylometric matching doesn't need Sonnet)
  */
 
-import { inngest, EVENTS } from '../../services/inngestClient.js';
+import { EVENTS } from '../../services/inngestClient.js';
+import { createTwinFunction } from '../twinFunction.js';
 import { complete, TIER_ANALYSIS } from '../../services/llmGateway.js';
 import { getBlocks } from '../../services/coreMemoryService.js';
 import { getAutonomyBySkillName, logAgentAction } from '../../services/autonomyService.js';
@@ -49,7 +50,7 @@ function scoreEmail(email) {
   return score;
 }
 
-export const smartEmailDraftFunction = inngest.createFunction(
+export const smartEmailDraftFunction = createTwinFunction(
   {
     id: 'smart-email-draft',
     name: 'Smart Email Draft',
