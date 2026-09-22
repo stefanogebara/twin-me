@@ -47,12 +47,8 @@ const NocturneTwin = lazyWithRetry(() => import("./pages/nocturne/NocturneTwin")
 import { TalkToTwinSkeleton } from "./pages/components/TalkToTwinSkeleton";
 
 // Lazy-loaded pages (code-split into separate chunks).
-// audit-2026-05-15 H12: MoneyPage chunk is one of the heaviest (147 KB raw)
-// and was showing the global flower-pulse Suspense fallback for ~3s on cold
-// cache. Adding it to the warmup list so navigation doesn't block.
 const loadTalkToTwin = () => import("./pages/TalkToTwin");
 const loadTodayPage = () => import("./pages/TodayPage");
-const loadMoneyPage = () => import("./pages/MoneyPage");
 const MoneyV2Page = lazyWithRetry(() => import("./pages/money/MoneyV2Page"));
 /* Money is the product (M3-2, 2026-09-19): the marketing front door, the OAuth return, the
    404 and the legacy twin's sidebar were in the entry chunk of every screen; each is its own
@@ -98,7 +94,6 @@ const EvalDashboard = lazyWithRetry(() => import("./pages/EvalDashboard"));
 const IdentityPage = lazyWithRetry(() => import("./pages/IdentityPage"));
 const LifeStoryPage = lazyWithRetry(() => import("./pages/LifeStoryPage"));
 const FidelityPage = lazyWithRetry(() => import("./pages/FidelityPage"));
-const MoneyPage = lazy(loadMoneyPage);
 const MoneyInsightsPage = lazy(loadMoneyInsightsPage);
 const TodayPage = lazy(loadTodayPage);
 const PricingPage = lazyWithRetry(() => import("./pages/PricingPage"));
