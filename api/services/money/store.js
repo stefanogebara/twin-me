@@ -20,7 +20,7 @@ import { projectMonth } from './projection.js';
 import { fetchTransactions, toSighting, distinctPending, fetchBalances } from './feeds/enableBanking.js';
 import { readLedger, monthSegments } from './analyst.js';
 import { spendingRule, markCounted, personRoles } from './spending.js';
-import { judgePlace } from './judge.js';
+import { judgePlace, shouldJudge } from './judge.js';
 import { poolMerchantPriors } from './priors.js';
 import { nudgeFindings, retiredKinds, NUDGE_KINDS, expiredNudge } from './nudges.js';
 import { safeToSpend } from './allowance.js';
@@ -694,7 +694,7 @@ export async function listPlaces(userId) {
 export async function setPlaceCategory(userId, merchantKey, category, { name = null } = {}) {
   if (category) {
     const { error } = await supabaseAdmin.from('money_place_overrides')
-      .upsert({ user_id: userId, merchant_key: merchantKey, category, created_at: new Date().toISOString() }, { onConflict: 'user_id,merchant_key' });
+      .upsert({ user_id: userId, merchant_key: merchantKey, category, source: 'person', confidence: null, created_at: new Date().toISOString() }, { onConflict: 'user_id,merchant_key' });
     if (error) throw new Error(error.message);
   } else {
     const { error } = await supabaseAdmin.from('money_place_overrides').delete().eq('user_id', userId).eq('merchant_key', merchantKey);
@@ -741,6 +741,10 @@ export async function enrichPlaces(userId, { limit = 12 } = {}) {
   }
   const { data: known } = await supabaseAdmin.from('money_places').select('merchant_key');
   const done = new Set((known || []).map((k) => k.merchant_key));
+  /* What this person has already said, or already been told: the judge is never asked about
+     a merchant they have a word on, and never overwrites one. */
+  const { data: mine } = await supabaseAdmin.from('money_place_overrides').select('merchant_key').eq('user_id', userId);
+  const theirs = new Set((mine || []).map((m) => m.merchant_key));
   const todo = [...spend.keys()]
     .filter((k) => !done.has(k))
     .sort((a, b) => spend.get(b) - spend.get(a));
@@ -787,23 +791,26 @@ export async function enrichPlaces(userId, { limit = 12 } = {}) {
         provider: brand ? 'brand' : providerFor(), confidence: brand ? 0.8 : 0,
         looked_up_at: new Date().toISOString(),
       };
-    /* Nothing placed it: not the brand table, not the provider. Rather than write the miss
-       and leave the merchant reading "not read yet" for good, ask the judge. It only ever
-       fills a hole - a category from the brand table or a trusted provider answer is never
-       touched - and what it writes is marked as its own so it can be found and undone. */
-    if (!row.category) {
-      const judged = await judgePlace({ name, city: cities.get(key) || null, amounts: amounts.get(key) || [] });
-      if (judged) {
-        row.category = judged.category;
-        row.provider = 'jev';
-        row.confidence = judged.confidence;
-        row.raw = { ...(row.raw || {}), judged: { category: judged.category, confidence: judged.confidence } };
-        judgedCount += 1;
-      }
-    }
     const { error } = await supabaseAdmin.from('money_places').upsert(row, { onConflict: 'merchant_key' });
     if (error) log.warn(`place cache write failed (${key}): ${error.message}`);
-    else if (place || brand || row.category) placed += 1;
+    else if (place || brand) placed += 1;
+    /* Nothing placed it: not the brand table, not the provider. Rather than write the miss
+       and leave the merchant reading "not read yet" for good, ask the judge.
+       It answers for THIS person and nobody else. The shared row keeps only what a provider
+       said (migration 20260915), and the question the judge is asked carries this person's
+       payment count and typical amount, so its answer is an inference from one ledger and
+       belongs in that ledger. `source` keeps it distinct from the person's own word, which
+       overwrites it whenever they say otherwise. */
+    if (shouldJudge({ category: row.category, hasOwnWord: theirs.has(key) })) {
+      const judged = await judgePlace({ name, city: cities.get(key) || null, amounts: amounts.get(key) || [] });
+      if (judged) {
+        const { error: judgedError } = await supabaseAdmin.from('money_place_overrides').insert(
+          { user_id: userId, merchant_key: key, category: judged.category, source: 'jev', confidence: judged.confidence, created_at: new Date().toISOString() },
+        );
+        if (judgedError) log.warn(`judged category not kept (${key}): ${judgedError.message}`);
+        else { judgedCount += 1; placed += 1; }
+      }
+    }
   }
   return { looked: batch.length, placed, judged: judgedCount, unreached, left: Math.max(0, todo.length - batch.length), provider: providerFor() };
 }
