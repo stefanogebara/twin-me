@@ -33,6 +33,11 @@ describe('what Vercel builds', () => {
     expect(run('codex/anything').out).toMatch(/not main/);
   });
 
+  it('builds a bisect branch, so a change to what gets deployed can be proven first', () => {
+    expect(run('bisect/api-orphan-functions')).toMatchObject({ code: 1 });
+    expect(run('bisect/anything').out).toMatch(/deployment experiment/);
+  });
+
   it('builds main, because this working tree carries code', () => {
     /* The suite runs on a branch whose diff against its parent touches code. */
     expect(run('main').code).toBe(1);
