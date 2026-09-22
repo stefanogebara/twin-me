@@ -11,6 +11,7 @@
  */
 
 import { createLogger } from '../logger.js';
+import { quietly } from '../quietly.js';
 
 const log = createLogger('SocialProfileScraper');
 
@@ -229,7 +230,7 @@ async function extractHackerNews(url, existingData) {
       const itemPromises = submittedIds.slice(0, 15).map(id =>
         fetch('https://hacker-news.firebaseio.com/v0/item/' + id + '.json', { signal: controller.signal })
           .then(r => r.ok ? r.json() : null)
-          .catch(() => null)
+          .catch(quietly('social-profile-scraper/r-json', () => null))
       );
 
       const items = await Promise.all(itemPromises);

@@ -21,6 +21,7 @@ import { editInsights } from './insightEditor.js';
 import { supabaseAdmin } from './database.js';
 import { vectorToString } from './embeddingService.js';
 import { createLogger } from './logger.js';
+import { quietly } from './quietly.js';
 
 const log = createLogger('Chronotype');
 
@@ -127,7 +128,7 @@ async function fetchActivityHours(userId, timeZone) {
         chunk.map((id) =>
           fetch(`${GMAIL_BASE}/messages/${id}?format=minimal`, { headers })
             .then((r) => (r.ok ? r.json() : null))
-            .catch(() => null),
+            .catch(quietly('chronotype/r-json', () => null)),
         ),
       );
       for (const msg of results) {
@@ -154,7 +155,7 @@ async function fetchMeetingHours(userId, timeZone) {
     const now = new Date();
     const start = new Date(now.getTime() - WINDOW_DAYS * 86400_000);
     const q = `?timeMin=${start.toISOString()}&timeMax=${now.toISOString()}&singleEvents=true&orderBy=startTime&maxResults=2500`;
-    const result = await client.get(`/calendars/primary/events${q}`).catch(() => ({ items: [] }));
+    const result = await client.get(`/calendars/primary/events${q}`).catch(quietly('chronotype/client-get', () => ({ items: [] })));
     const items = Array.isArray(result?.items) ? result.items : [];
     const hours = [];
     for (const e of items) {

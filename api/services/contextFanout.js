@@ -32,6 +32,8 @@
  * @param {{ onDegrade?: (reason: string) => void }} [opts]
  * @returns {Promise<{ contextResults: any[], circuitBreakerTripped: boolean, degradationReason: string|null }>}
  */
+import { quietly } from './quietly.js';
+
 export async function raceContextFanout(fetchPromises, defaults, timeoutMs, { onDegrade } = {}) {
   // Track resolved values via microtasks so the breaker can use them without
   // waiting. Microtasks (Promise.then) are always processed before macrotasks
@@ -39,7 +41,7 @@ export async function raceContextFanout(fetchPromises, defaults, timeoutMs, { on
   // when the global timeout fires.
   const resolvedValues = new Array(fetchPromises.length).fill(undefined);
   fetchPromises.forEach((p, i) => {
-    p.then(v => { resolvedValues[i] = v; }).catch(() => { resolvedValues[i] = defaults[i]; });
+    p.then(v => { resolvedValues[i] = v; }).catch(quietly('context-fanout/p', () => { resolvedValues[i] = defaults[i]; }));
   });
 
   // A per-leg timeout must degrade ONLY that leg, not abort the whole fan-out.

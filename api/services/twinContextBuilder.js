@@ -117,6 +117,7 @@ import {
   instagramExportLearn,
 } from './exports/chat/instagram.js';
 import { renderRecentPlatformDigest } from './recentPlatformDigest.js';
+import { quietly } from './quietly.js';
 
 // Desktop activity context (P1 wire-the-loop): the pure section builder
 // lives in desktopActivityContext.js (this file is too heavy to import in
@@ -1277,7 +1278,7 @@ async function _refreshPlatformData(userId, platforms, cacheKey) {
   try {
     const data = {};
     const results = await Promise.all(
-      platforms.map(p => _fetchSinglePlatform(userId, p).catch(() => null))
+      platforms.map(p => _fetchSinglePlatform(userId, p).catch(quietly('twin-context-builder/_fetch-single-platform', () => null)))
     );
     results.forEach(result => { if (result) Object.assign(data, result); });
     platformDataCache.set(cacheKey, { data, timestamp: Date.now() });
@@ -1303,7 +1304,7 @@ async function _fetchSpotifyData(userId) {
 
       // Run ALL 5 Spotify calls in parallel (P2: was serial currently-playing first)
       const [currentRes, recentRes, topShortRes, topMedRes, topLongRes] = await Promise.all([
-        axios.get('https://api.spotify.com/v1/me/player/currently-playing', { headers, timeout: PLATFORM_TIMEOUT }).catch(() => ({ data: null })),
+        axios.get('https://api.spotify.com/v1/me/player/currently-playing', { headers, timeout: PLATFORM_TIMEOUT }).catch(quietly('twin-context-builder/axios-get', () => ({ data: null }))),
         axios.get('https://api.spotify.com/v1/me/player/recently-played?limit=10', { headers, timeout: PLATFORM_TIMEOUT }),
         axios.get('https://api.spotify.com/v1/me/top/artists?limit=5&time_range=short_term', { headers, timeout: PLATFORM_TIMEOUT }),
         axios.get('https://api.spotify.com/v1/me/top/artists?limit=5&time_range=medium_term', { headers, timeout: PLATFORM_TIMEOUT }),

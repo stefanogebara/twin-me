@@ -56,6 +56,7 @@ import { generateEmbedding } from './embeddingService.js';
 import { autoLinkMemory } from './memoryLinksService.js';
 
 import { createLogger } from './logger.js';
+import { quietly } from './quietly.js';
 
 const log = createLogger('ReflectionEngine');
 
@@ -690,7 +691,7 @@ async function runExpertAnalysis(userId, expert, formattedObservations, depth, i
               log.warn('autoLinkMemory fire-and-forget error', { error: err })
             );
           }
-        }).catch(() => {});
+        }).catch(quietly('reflection-engine/log-warn', () => {}));
       }
     }
 

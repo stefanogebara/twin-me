@@ -14,6 +14,8 @@
  * inclusive/exclusive ISO strings — we pass them as N-days-ago to
  * now-plus-end-of-day so "this week" maps cleanly.
  */
+import { quietly } from '../../quietly.js';
+
 
 const DEFAULT_DAYS = 7;
 const MAX_DAYS = 90;
@@ -64,7 +66,7 @@ export async function getMeetingBreakdown(client, params = {}) {
 
   const result = await client
     .get(`/calendars/primary/events${query}`)
-    .catch(() => ({ items: [] }));
+    .catch(quietly('get-meeting-breakdown/get', () => ({ items: [] })));
   const items = Array.isArray(result?.items) ? result.items : [];
 
   // Exclude declined/cancelled/transparent (available) events — they

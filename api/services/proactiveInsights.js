@@ -36,6 +36,7 @@ const log = createLogger('ProactiveInsights');
 
 // Import the research-tuned prompt template and parameters
 import { INSIGHT_PROMPT_TEMPLATE, INSIGHT_TEMPERATURE, INSIGHT_MAX_TOKENS, MEMORIES_TO_SCAN, REFLECTIONS_TO_INCLUDE, DEDUP_THRESHOLD } from '../../twin-research/insight-config.js';
+import { quietly } from './quietly.js';
 
 // replan-2026-06-10 Track A: the "first insight MUST be a nudge" production
 // wrapper is gone — 20/20 stored nudges were never engaged, only 19% followed.
@@ -453,7 +454,7 @@ async function generateProactiveInsights(userId) {
     // runs unchanged.
     let stored = 0;
     let skippedUngrounded = 0;
-    const editorEnabled = (await getFeatureFlags(userId).catch(() => ({}))).insight_editor === true;
+    const editorEnabled = (await getFeatureFlags(userId).catch(quietly('proactive-insights/get-feature-flags', () => ({})))).insight_editor === true;
     const candidatesForEditor = [];
     for (const item of insights.slice(0, 3)) {
       if (!item.insight || item.insight.length < 10) continue;
@@ -650,7 +651,7 @@ async function generateProactiveInsights(userId) {
     // widening past canary: add a ~7-day cadence guard to bound the Whoop +
     // calendar fetches.)
     try {
-      const flags = await getFeatureFlags(userId).catch(() => ({}));
+      const flags = await getFeatureFlags(userId).catch(quietly('proactive-insights/get-feature-flags-2', () => ({})));
       if (flags.stress_leaderboard === true) {
         const { generateStressLeaderboardInsight } = await import('./biometricSocialCorrelation.js');
         const sl = await generateStressLeaderboardInsight(userId, { logOnly: false });
@@ -664,7 +665,7 @@ async function generateProactiveInsights(userId) {
     // flag. Whoop-free: runs on Google Drive + Calendar, so it works for any
     // Google user, not just the few with wearables. Same Editor-voiced path.
     try {
-      const flags = await getFeatureFlags(userId).catch(() => ({}));
+      const flags = await getFeatureFlags(userId).catch(quietly('proactive-insights/get-feature-flags-3', () => ({})));
       if (flags.work_rhythm === true) {
         const { generateWorkspaceRhythmInsight } = await import('./workspaceRhythm.js');
         const wr = await generateWorkspaceRhythmInsight(userId, { logOnly: false });
@@ -678,7 +679,7 @@ async function generateProactiveInsights(userId) {
     // universal Whoop-free insight: does a packed calendar push your email into
     // the evening? Reads only message timestamps. Same Editor-voiced path.
     try {
-      const flags = await getFeatureFlags(userId).catch(() => ({}));
+      const flags = await getFeatureFlags(userId).catch(quietly('proactive-insights/get-feature-flags-4', () => ({})));
       if (flags.email_tempo === true) {
         const { generateEmailTempoInsight } = await import('./emailTempo.js');
         const et = await generateEmailTempoInsight(userId, { logOnly: false });
@@ -692,7 +693,7 @@ async function generateProactiveInsights(userId) {
     // meetings scheduled against your natural active hours? Reads only message
     // timestamps + event start hours. Same Editor-voiced path.
     try {
-      const flags = await getFeatureFlags(userId).catch(() => ({}));
+      const flags = await getFeatureFlags(userId).catch(quietly('proactive-insights/get-feature-flags-5', () => ({})));
       if (flags.chronotype === true) {
         const { generateChronotypeInsight } = await import('./chronotype.js');
         const ch = await generateChronotypeInsight(userId, { logOnly: false });
@@ -706,7 +707,7 @@ async function generateProactiveInsights(userId) {
     // Do packed meeting days slow your email replies? Heaviest insight (reads
     // thread structure, capped); reads only timestamps + the SENT label.
     try {
-      const flags = await getFeatureFlags(userId).catch(() => ({}));
+      const flags = await getFeatureFlags(userId).catch(quietly('proactive-insights/get-feature-flags-6', () => ({})));
       if (flags.reply_latency === true) {
         const { generateReplyLatencyInsight } = await import('./replyLatency.js');
         const rl = await generateReplyLatencyInsight(userId, { logOnly: false });
@@ -720,7 +721,7 @@ async function generateProactiveInsights(userId) {
     // First-party, API-free: where your attention pools (by dwell) vs where you
     // click most. Reads our own user_platform_data, names domains only.
     try {
-      const flags = await getFeatureFlags(userId).catch(() => ({}));
+      const flags = await getFeatureFlags(userId).catch(quietly('proactive-insights/get-feature-flags-7', () => ({})));
       if (flags.attention_gravity === true) {
         const { generateAttentionGravityInsight } = await import('./attentionGravity.js');
         const ag = await generateAttentionGravityInsight(userId, { logOnly: false });
@@ -734,7 +735,7 @@ async function generateProactiveInsights(userId) {
     // curiosity_signature flag. What your effort/curiosity keeps circling,
     // synthesized from your searches + page topics + titles. First-party.
     try {
-      const flags = await getFeatureFlags(userId).catch(() => ({}));
+      const flags = await getFeatureFlags(userId).catch(quietly('proactive-insights/get-feature-flags-8', () => ({})));
       if (flags.curiosity_signature === true) {
         const { generateCuriositySignatureInsight } = await import('./curiositySignature.js');
         const cs = await generateCuriositySignatureInsight(userId, { logOnly: false });

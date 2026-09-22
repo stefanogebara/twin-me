@@ -25,6 +25,7 @@ import { getValidAccessToken } from '../tokenRefreshService.js';
 import { deliverInsight } from '../messageRouter.js';
 import { supabaseAdmin } from '../database.js';
 import { createLogger } from '../logger.js';
+import { quietly } from '../quietly.js';
 
 const log = createLogger('MeetingPrepService');
 
@@ -221,16 +222,16 @@ async function buildUserContext(userId, eventSummary, attendeeCount = 0) {
       `meeting ${eventSummary} upcoming context priorities`,
       5,
       { weights: [0.8, 0.7, 1.0] },
-    ).catch(() => []);
+    ).catch(quietly('meeting-prep-service/retrieve-memories', () => []));
     return { recentMemories: memories.map((m) => m.content).slice(0, 5) };
   }
 
   // Solo appointment — two retrievals, deduped, deeper.
   const keywordQuery = deriveMemoryQuery(eventSummary);
   const [byTitle, byKeyword] = await Promise.all([
-    retrieveMemories(userId, eventSummary, 6, { weights: [0.5, 0.7, 1.0] }).catch(() => []),
+    retrieveMemories(userId, eventSummary, 6, { weights: [0.5, 0.7, 1.0] }).catch(quietly('meeting-prep-service/retrieve-memories-2', () => [])),
     keywordQuery && keywordQuery !== eventSummary
-      ? retrieveMemories(userId, keywordQuery, 6, { weights: [0.4, 0.7, 1.0] }).catch(() => [])
+      ? retrieveMemories(userId, keywordQuery, 6, { weights: [0.4, 0.7, 1.0] }).catch(quietly('meeting-prep-service/retrieve-memories-3', () => []))
       : Promise.resolve([]),
   ]);
 
@@ -370,7 +371,7 @@ export async function generateBriefingForChat(userId, params) {
     const briefing = await generateBriefingForEvent(userId, gcalEvent);
 
     if (eventId) {
-      await storeBriefing(userId, eventId, gcalEvent.etag, briefing, briefing, gcalEvent).catch(() => {});
+      await storeBriefing(userId, eventId, gcalEvent.etag, briefing, briefing, gcalEvent).catch(quietly('meeting-prep-service/store-briefing', () => {}));
     }
 
     return { success: true, briefing };

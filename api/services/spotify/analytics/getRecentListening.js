@@ -18,6 +18,8 @@
  * of when they happened — Spotify doesn't accept a date range here.
  * So "recent" is window-of-recent-plays, not "last N days".
  */
+import { quietly } from '../../quietly.js';
+
 
 const ENDPOINT_RECENTLY_PLAYED = '/v1/me/player/recently-played?limit=50';
 const ENDPOINT_TOP_ARTISTS = '/v1/me/top/artists?limit=10&time_range=short_term';
@@ -49,8 +51,8 @@ export async function getRecentListening(client, params = {}) {
   // Fire both in parallel — they're independent endpoints and Spotify
   // doesn't rate-limit at this volume.
   const [recentlyPlayed, topArtistsResp] = await Promise.all([
-    client.get(ENDPOINT_RECENTLY_PLAYED).catch(() => ({ items: [] })),
-    client.get(ENDPOINT_TOP_ARTISTS).catch(() => ({ items: [] })),
+    client.get(ENDPOINT_RECENTLY_PLAYED).catch(quietly('get-recent-listening/client-get', () => ({ items: [] }))),
+    client.get(ENDPOINT_TOP_ARTISTS).catch(quietly('get-recent-listening/client-get-2', () => ({ items: [] }))),
   ]);
 
   const items = Array.isArray(recentlyPlayed?.items) ? recentlyPlayed.items : [];

@@ -15,6 +15,7 @@ import { get as cacheGet, set as cacheSet } from '../redisClient.js';
 import { supabaseAdmin } from '../database.js';
 import { createLogger } from '../logger.js';
 import crypto from 'crypto';
+import { quietly } from '../quietly.js';
 
 const log = createLogger('PersonalityOracle');
 
@@ -234,7 +235,7 @@ export async function getOracleDraft(userId, userMessage, topMemories = []) {
         log.info(`Oracle draft from ${isDPO ? 'DPO' : 'SFT'} model (${modelId.slice(-12)})`);
 
         // Cache the draft
-        cacheSet(cacheKey, draft, CACHE_TTL).catch(() => {});
+        cacheSet(cacheKey, draft, CACHE_TTL).catch(quietly('personality-oracle/cache-set', () => {}));
 
         return draft;
       } catch (innerErr) {

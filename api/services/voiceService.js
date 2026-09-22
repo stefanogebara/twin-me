@@ -4,6 +4,7 @@ import path from 'path';
 import dotenv from 'dotenv';
 import OpenAI from 'openai';
 import { createLogger } from './logger.js';
+import { quietly } from './quietly.js';
 
 const log = createLogger('Voice');
 
@@ -174,7 +175,7 @@ class VoiceService {
       });
 
       if (!response.ok) {
-        const detail = await response.json().catch(() => ({}));
+        const detail = await response.json().catch(quietly('voice-service/response-json', () => ({})));
         return {
           success: false,
           error: detail?.detail || `ElevenLabs returned ${response.status}`
@@ -214,7 +215,7 @@ class VoiceService {
         body: formData
       });
       if (!response.ok) {
-        const detail = await response.json().catch(() => ({}));
+        const detail = await response.json().catch(quietly('voice-service/response-json-2', () => ({})));
         return { success: false, error: detail?.detail || `ElevenLabs returned ${response.status}` };
       }
       return { success: true };

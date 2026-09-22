@@ -19,6 +19,7 @@
 import crypto from 'node:crypto';
 import { merchantKey } from '../captureParser.js';
 import { parseNarrative, channelFrom, cardFrom, prettyMerchant } from '../narrative.js';
+import { quietly } from '../../quietly.js';
 
 const BASE = process.env.ENABLE_BANKING_BASE_URL || 'https://api.enablebanking.com';
 
@@ -69,7 +70,7 @@ export function applicationEnvironment() {
   if (!environmentPromise) {
     environmentPromise = api('/application')
       .then((j) => String(j?.environment || 'UNKNOWN').toUpperCase())
-      .catch(() => { environmentPromise = null; return 'UNKNOWN'; });
+      .catch(quietly('enable-banking/api', () => { environmentPromise = null; return 'UNKNOWN'; }));
   }
   return environmentPromise;
 }

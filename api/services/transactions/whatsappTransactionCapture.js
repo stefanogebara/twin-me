@@ -32,6 +32,7 @@ import { tagTransactionsBatch } from './transactionEmotionTagger.js';
 import { getFeatureFlags } from '../featureFlagsService.js';
 import { checkPurchaseCooldown, bumpPurchaseCooldown } from '../purchaseCooldown.js';
 import { createLogger } from '../logger.js';
+import { quietly } from '../quietly.js';
 
 const log = createLogger('WhatsAppTxCapture');
 
@@ -472,7 +473,7 @@ export async function tryCaptureTransaction(userId, parsed, opts = {}) {
     }
 
     const weeklyCount = result.stored
-      ? await countMerchantThisWeek(userId, result.txRow.merchant_normalized).catch(() => 0)
+      ? await countMerchantThisWeek(userId, result.txRow.merchant_normalized).catch(quietly('whatsapp-transaction-capture/count-merchant-this-week', () => 0))
       : 0;
     let reply = buildConfirmationMessage(result.txRow, { weeklyCount, duplicate: result.duplicate });
 
@@ -480,7 +481,7 @@ export async function tryCaptureTransaction(userId, parsed, opts = {}) {
     // with the mobile notification path so total reflection volume stays
     // bounded (5 min cooldown, 2/day) regardless of capture source.
     if (result.stored && result.txRow.amount < 0) {
-      const refl = await maybeAppendReflection(userId, extraction.tx, opts).catch(() => null);
+      const refl = await maybeAppendReflection(userId, extraction.tx, opts).catch(quietly('whatsapp-transaction-capture/maybe-append-reflection', () => null));
       if (refl) reply += `\n\n${refl}`;
     }
 
