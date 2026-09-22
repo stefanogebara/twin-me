@@ -21,6 +21,7 @@ import {
   type PresenceOverview,
   type PresenceVoiceModel,
 } from '@/services/api/presenceAPI';
+import LedgerOrb from '@/components/LedgerOrb';
 import '@/styles/presence-cosmos.css';
 
 /** The consent text, versioned: what the person agreed to is what was on screen. */
@@ -286,20 +287,34 @@ export default function PresenceVoiceSetup() {
               {PASSAGES.map((passage) => {
                 const isDone = done.includes(passage.id);
                 const isThis = recording === passage.id;
+                // Building the voice at ElevenLabs takes many seconds. Until this
+                // row said so, it sat on "Parar" with a frozen timer and read as
+                // hung — the one moment on this page where nothing is visibly
+                // happening and something very much is.
+                const isSending = isThis && rec === 'sending';
+                const isCapturing = isThis && rec === 'recording';
                 return (
                   <li className="pc-row" key={passage.id}>
-                    <span className="pc-row-icon" aria-hidden="true">
-                      {isDone ? <Check /> : <Mic />}
+                    <span className="pc-row-icon" aria-hidden={isCapturing || isSending ? undefined : true}>
+                      {isCapturing ? <LedgerOrb state="listening" size={20} label="Gravando" />
+                        : isSending ? <LedgerOrb state="working" size={20} label="Montando a sua voz" />
+                        : isDone ? <Check /> : <Mic />}
                     </span>
                     <div className="pc-row-text">
                       <p className="pc-row-title">{passage.label}</p>
-                      <p className="pc-row-line">{isThis ? passage.hint : passage.text}</p>
+                      <p className="pc-row-line">
+                        {isSending ? 'Montando a sua voz. Isso leva alguns segundos.'
+                          : isCapturing ? passage.hint
+                          : passage.text}
+                      </p>
                     </div>
                     <div className="pc-row-action">
-                      {isThis ? (
+                      {isCapturing ? (
                         <button className="pc-btn pc-btn--danger" onClick={stopRecording}>
                           <Square size={14} /> Parar · {seconds}s
                         </button>
+                      ) : isSending ? (
+                        <button className="pc-btn pc-btn--ghost" disabled>Enviando</button>
                       ) : (
                         <button
                           className="pc-btn pc-btn--ghost"
@@ -325,7 +340,8 @@ export default function PresenceVoiceSetup() {
             <div className="pc-sechead">
               <h2 className="pc-sechead-title" id="hear-head">Ouça você mesmo</h2>
               <p className="pc-sechead-line">
-                A mesma frase que {caller} usa para abrir a ligação, na sua voz, em cada modelo.
+                Isto não é a sua gravação. É a Presença falando com a sua voz, dizendo a frase
+                com que ela abre a ligação — a mesma, em cada modelo.
               </p>
             </div>
             <ul className="pc-list">
