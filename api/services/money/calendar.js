@@ -455,6 +455,16 @@ export function calendarLines(facts, { now = new Date() } = {}) {
     lines.push('Kinds of event and what they cost: ' + learned.slice(0, 8).map((s) => `"${s.label}" ${s.occurrences} times, paid ${s.paid}, usually ${fmt(s.median)}${s.categories?.length ? ` (${s.categories.join(', ')})` : ''}`).join('; ') + '.');
   }
   if (routine) lines.push(`Routine: ${routine}`);
+  /* The term week by week, so "how busy is next week" and "is next week quiet" can be
+     answered at all: before this the chat held the next seven days and nothing wider, and
+     said it could not know (2026-09-22). A week that has not been read is left out, and the
+     line says so, because an absent week is not an empty one. */
+  const term = termWeeks(facts, { now });
+  if (term) {
+    const say = (w) => (w.current ? 'this week' : w.offset === 1 ? 'next week' : w.offset === -1 ? 'last week' : `week of ${w.start}`);
+    const known = term.weeks.filter((w) => w.known);
+    lines.push(`Diary week by week (Monday to Sunday, how many events): ${known.map((w) => `${say(w)} ${w.events}`).join('; ')}. Weeks not in that list have not been read from the calendar; say so rather than guessing at them.`);
+  }
   return lines;
 }
 

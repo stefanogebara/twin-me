@@ -479,3 +479,31 @@ describe('the term as weeks', () => {
     expect(termWeeks(facts({ '2026-09-22': 3 }), { now })).toBe(null);
   });
 });
+
+describe('the term in a prompt', () => {
+  const { calendarLines } = cal;
+  const now = new Date('2026-09-23T10:00:00Z');
+  const days = (() => {
+    const out = {};
+    for (let t = Date.parse('2026-06-25T12:00:00Z'); t <= Date.parse('2026-10-24T12:00:00Z'); t += 86400000) {
+      const d = new Date(t).toISOString().slice(0, 10);
+      out[d] = new Date(t).getUTCDay() === 2 ? 3 : 0;
+    }
+    return out;
+  })();
+  const facts = [{ kind: META_KIND, subject: 'meta', value: JSON.stringify({ learned_at: '2026-09-23T06:00:00Z', snapshot: [], past: [], days }) }];
+
+  it('says the weeks it has read, by name for the three that have one', () => {
+    const line = calendarLines(facts, { now }).find((l) => l.startsWith('Diary week by week'));
+    expect(line).toContain('last week 3');
+    expect(line).toContain('this week 3');
+    expect(line).toContain('next week 3');
+    expect(line).toContain('week of 2026-08-17 3');
+    expect(line).toContain('have not been read');
+  });
+
+  it('says nothing about the term when the diary has not been read', () => {
+    const bare = [{ kind: META_KIND, subject: 'meta', value: JSON.stringify({ learned_at: '2026-09-23T06:00:00Z', snapshot: [], past: [] }) }];
+    expect(calendarLines(bare, { now }).some((l) => l.startsWith('Diary week by week'))).toBe(false);
+  });
+});
