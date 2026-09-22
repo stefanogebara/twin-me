@@ -22,10 +22,10 @@ initPostHog();
 // buffer any early errors and load + init Sentry at idle (services/sentryLazy.ts).
 if (import.meta.env.VITE_SENTRY_DSN) {
   installEarlyErrorBuffer();
-  if (typeof window !== 'undefined' && 'requestIdleCallback' in window) {
+  if ('requestIdleCallback' in window) {
     window.requestIdleCallback(() => { void loadSentry(); }, { timeout: 4000 });
   } else {
-    window.setTimeout(() => { void loadSentry(); }, 2000);
+    setTimeout(() => { void loadSentry(); }, 2000);
   }
 }
 

@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { ClipboardCopy, Check, Plus, Layers, Send, RefreshCw } from 'lucide-react';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { authFetch } from '@/services/api/apiBase';

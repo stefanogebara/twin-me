@@ -12,7 +12,6 @@ import type { MoneyAccount } from '../useMoneyAccount';
 import Wait from '../../../components/Wait';
 import HomeAsk from '../HomeAsk';
 import TotalRow from '../figures/TotalRow';
-import { KindTile } from '../Carved';
 import { todayHere, localDay, allowanceWords } from '../readingWords';
 import { ordinalDay, pct, chargesSoonWords, returnsClosingWords } from '../words';
 import Readings from './Readings';

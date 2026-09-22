@@ -14,12 +14,19 @@ const DISMISSED_KEY = 'pwa_install_dismissed';
 const VISIT_COUNT_KEY = 'pwa_visit_count';
 const MIN_VISITS_DESKTOP = 3;
 
+/** The browser's install offer, held until the person asks for it (not in lib.dom yet). */
+interface BeforeInstallPromptEvent extends Event {
+  prompt(): Promise<void>;
+  userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>;
+}
+
 const PWAInstallPrompt: React.FC = () => {
   const location = useLocation();
-  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+  const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [visible, setVisible] = useState(false);
 
-  const isChatPage = location.pathname === '/talk-to-twin';
+  /* Ask is the chat now (2026-09-22); the banner would sit on its message field. */
+  const isChatPage = location.pathname === '/money/chat';
 
   useEffect(() => {
     // Don't show on chat page — overlaps the message input
@@ -43,7 +50,7 @@ const PWAInstallPrompt: React.FC = () => {
 
     const handler = (e: Event) => {
       e.preventDefault();
-      setDeferredPrompt(e);
+      setDeferredPrompt(e as BeforeInstallPromptEvent);
       setVisible(true);
     };
 

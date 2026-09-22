@@ -7,7 +7,7 @@
  * heading on the list's ink rule.
  */
 
-import React, { useEffect, useState, useCallback, useMemo } from 'react';
+import { useEffect, useState, useCallback, useMemo } from 'react';
 import { RefreshCw, ArrowUpDown } from 'lucide-react';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { authFetch, isAbortError } from '@/services/api/apiBase';

@@ -111,7 +111,7 @@ export const SAYERS: Record<string, Sayer> = {
     return { sentence, detail: week ? `${base} ${t('It was {week}.', { week })}` : base };
   },
 
-  delta_silence: ({ r, t, locale, num, keep }) => {
+  delta_silence: ({ t, locale, num, keep }) => {
     const days = n(num.days_since); const away = n(num.away_days); const gap = n(num.usual_gap_days);
     const times = n(num.times); const amount = n(num.typical_amount);
     const name = s(num.name);

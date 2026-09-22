@@ -313,5 +313,5 @@ Return ONLY the briefing text, nothing else.`;
   if (stats.insightsReady > 0) {
     return `Your twin has ${stats.insightsReady} new insight${stats.insightsReady > 1 ? 's' : ''} ready for you based on recent activity.`;
   }
-  return `Your twin has learned ${stats.memoriesLearned} things about you so far. See what it\'s picked up.`;
+  return `Your twin has learned ${stats.memoriesLearned} things about you so far. See what it's picked up.`;
 }

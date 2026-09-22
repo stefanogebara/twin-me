@@ -609,7 +609,7 @@ async function registerWebhooksIfSupported(userId, provider, accessToken) {
         break;
 
       case 'google_gmail':
-      case 'gmail':
+      case 'gmail': {
         // Gmail supports push notifications via Pub/Sub
         log.info(`Setting up Gmail push notifications...`);
         const gmailResult = await setupGmailPushNotifications(userId, accessToken);
@@ -620,6 +620,7 @@ async function registerWebhooksIfSupported(userId, provider, accessToken) {
           log.warn(`Gmail push setup failed:`, gmailResult.error);
         }
         break;
+      }
 
       case 'discord':
         // Discord does NOT support outgoing webhooks for user events

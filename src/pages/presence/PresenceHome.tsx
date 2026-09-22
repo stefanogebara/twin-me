@@ -12,7 +12,6 @@ import {
   Loader2,
   MessageCircle,
   MessageSquare,
-  Mic,
   Pause,
   Phone,
   PhoneIncoming,

@@ -170,7 +170,8 @@ const OAuthCallback = () => {
 
         // Determine OAuth flow type from encrypted state prefix or sessionStorage
         // All state is now encrypted with a flow type prefix: "auth.", "arctic.", "connector.", "entertainment.", "health."
-        let stateData = null;
+        /* What the OAuth state parameter carried, or what sessionStorage remembers of the connect. */
+        let stateData: { provider?: string; platform?: string; userId?: string | null; timestamp?: number; redirectAfterAuth?: string } | null = null;
         let isConnectorOAuth = false;
         let isAuthOAuth = false;
         let flowType: string | null = null;
@@ -394,7 +395,7 @@ const OAuthCallback = () => {
               if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.sendMessage) {
                 try {
                   const runtime = chrome.runtime;
-                  runtime.sendMessage(
+                  runtime.sendMessage?.(
                     CHROME_EXTENSION_ID,
                     { type: 'SET_AUTH_TOKEN', token: data.token },
                     () => {
@@ -500,7 +501,7 @@ const OAuthCallback = () => {
               if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.sendMessage) {
                 try {
                   const runtime = chrome.runtime;
-                  runtime.sendMessage(
+                  runtime.sendMessage?.(
                     CHROME_EXTENSION_ID,
                     { type: 'SET_AUTH_TOKEN', token: data.token },
                     () => {

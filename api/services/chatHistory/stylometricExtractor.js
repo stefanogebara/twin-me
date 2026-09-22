@@ -26,7 +26,7 @@ const log = createLogger('StylometricExtractor');
 // ── Emoji detection ──────────────────────────────────────────────────────────
 
 // Broad Unicode emoji range (covers most emoji blocks)
-const EMOJI_RE = /[\u{1F300}-\u{1F9FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}\u{1F000}-\u{1F02F}\u{1F0A0}-\u{1F0FF}\u{1F100}-\u{1F1FF}\u{FE00}-\u{FE0F}]/gu;
+const EMOJI_RE = /\p{Extended_Pictographic}|[\u{FE00}-\u{FE0F}]/gu;
 
 function extractEmojis(text) {
   return text.match(EMOJI_RE) || [];

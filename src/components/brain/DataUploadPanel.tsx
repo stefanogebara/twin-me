@@ -310,7 +310,7 @@ interface DataUploadPanelProps {
   onImportComplete?: (importRecord: Partial<DataImport>) => void;
 }
 
-export function DataUploadPanel({ userId, onImportComplete }: DataUploadPanelProps) {
+export function DataUploadPanel({ onImportComplete }: DataUploadPanelProps) {
   const [step, setStep] = useState<Step>('idle');
   const [selectedPlatform, setSelectedPlatform] = useState<PlatformConfig | null>(null);
   const [dragging, setDragging] = useState(false);

@@ -39,7 +39,7 @@ const SURFACED_FETCH_LIMIT = 60;
 const MIN_INSIGHT_LEN = 12;
 
 // ── Voice linter (deterministic safety net + test oracle) ───────────────────
-const EMOJI_RE = /[\u{1F000}-\u{1FAFF}\u{2600}-\u{27BF}\u{2190}-\u{21FF}\u{2B00}-\u{2BFF}️]/u;
+const EMOJI_RE = /\p{Extended_Pictographic}|[\u{2190}-\u{21FF}\u{2B00}-\u{2BFF}]|\u{FE0F}/u;
 // Imperative chore verbs — the "do homework" tells the twin must never use.
 const COMMAND_RE = /\b(archive|triage|block(?:\s+(?:off|out|\d|\dh|an?|some|two|the))|lock\s+in|carve\s+out|set\s+(?:a|an|up)\b|schedule\s+(?:a|an|some)\b|take\s+\d+\s*(?:min|minute)|clear\s+(?:the|your)\b|pick\s+one\b|protect\s+it\b|cement\s+the\b|push\s+one\b|cut\s+back\b|start\s+(?:by|with)\b|make\s+sure\s+to\b|try\s+to\b)/i;
 const AGENT_SPEAK_RE = /\b(department|proposal|approve|execute|workflow)\b/i;

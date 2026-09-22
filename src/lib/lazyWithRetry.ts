@@ -45,6 +45,7 @@ export function withChunkReload<T>(load: () => Promise<T>): () => Promise<T> {
 }
 
 /** `lazy`, with one reload when the page's code is missing. */
-export function lazyWithRetry<T extends ComponentType<unknown>>(load: () => Promise<{ default: T }>) {
+/** P is the component's props, inferred from the module's default export, so a page with props types as itself. */
+export function lazyWithRetry<P extends object = object>(load: () => Promise<{ default: ComponentType<P> }>) {
   return lazy(withChunkReload(load));
 }

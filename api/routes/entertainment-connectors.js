@@ -410,7 +410,7 @@ router.post('/oauth/callback', oauthCallbackLimiter, async (req, res) => {
 
     // Exchange authorization code for access token based on provider
     switch (platform) {
-      case 'spotify':
+      case 'spotify': {
         const spotifyConfig = PLATFORM_CONFIGS.spotify;
         const spotifyTokenResponse = await fetch(spotifyConfig.tokenUrl, {
           method: 'POST',
@@ -453,8 +453,9 @@ router.post('/oauth/callback', oauthCallbackLimiter, async (req, res) => {
         refreshToken = spotifyTokens.refresh_token;
         expiresIn = spotifyTokens.expires_in;
         break;
+      }
 
-      case 'discord':
+      case 'discord': {
         const discordTokenResponse = await fetch('https://discord.com/api/oauth2/token', {
           method: 'POST',
           headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -478,8 +479,9 @@ router.post('/oauth/callback', oauthCallbackLimiter, async (req, res) => {
         refreshToken = discordTokens.refresh_token;
         expiresIn = discordTokens.expires_in;
         break;
+      }
 
-      case 'github':
+      case 'github': {
         const githubTokenResponse = await fetch('https://github.com/login/oauth/access_token', {
           method: 'POST',
           headers: {
@@ -511,10 +513,11 @@ router.post('/oauth/callback', oauthCallbackLimiter, async (req, res) => {
         refreshToken = githubTokens.refresh_token; // GitHub may not provide refresh tokens
         expiresIn = githubTokens.expires_in; // GitHub tokens don't expire by default
         break;
+      }
 
       case 'youtube':
       case 'google_gmail':
-      case 'google_calendar':
+      case 'google_calendar': {
         const googleTokenResponse = await fetch('https://oauth2.googleapis.com/token', {
           method: 'POST',
           headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -539,6 +542,7 @@ router.post('/oauth/callback', oauthCallbackLimiter, async (req, res) => {
         refreshToken = googleTokens.refresh_token;
         expiresIn = googleTokens.expires_in;
         break;
+      }
 
       default:
         return res.status(400).json({

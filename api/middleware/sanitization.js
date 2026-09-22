@@ -71,6 +71,7 @@ function sanitizeValue(value, options = {}) {
   }
 
   // Remove null bytes and control characters
+  // eslint-disable-next-line no-control-regex -- stripping control characters is the point
   value = value.replace(/\x00/g, '').replace(/[\x00-\x1F\x7F]/g, '');
 
   // Basic XSS protection

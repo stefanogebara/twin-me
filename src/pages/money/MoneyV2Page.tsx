@@ -19,7 +19,7 @@ import MonthView from './views/MonthView';
 import YouView from './views/YouView';
 import AccountView from './views/AccountView';
 
-export default function MoneyV2Page(props: { view?: MoneyView } = {}) {
+export default function MoneyV2Page(props: { view?: MoneyView }) {
   const { user } = useAuth();
   return <MoneyForAccount key={user?.id || 'signed-out'} {...props} userId={user?.id || null} />;
 }

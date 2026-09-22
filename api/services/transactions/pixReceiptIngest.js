@@ -182,7 +182,7 @@ export async function handleReceiptImage(userId, image) {
       inserted: result.inserted,
       reply:
         `Got it: ${fmtBRL(amountNum)} ${signedAmount < 0 ? 'to' : 'from'} ${counterparty} ` +
-        `on ${isoDate}. Saved to your money picture. Reply if something\'s off.`,
+        `on ${isoDate}. Saved to your money picture. Reply if something's off.`,
     };
   } catch (err) {
     log.error(`receipt ingest failed for user ${userId}: ${err.message}`);

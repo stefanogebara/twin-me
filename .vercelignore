@@ -13,7 +13,6 @@ dist
 _archive/
 docs/
 browser-extension/
-api/mcp-server/
 .claude/
 *.md
 !README.md
