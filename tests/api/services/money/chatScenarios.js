@@ -133,6 +133,12 @@ export const SCENARIOS = [
   { id: 'parents-income', kind: 'statement', message: 'My parents send me 1750 on the first of every month.', route: 'model', figures: { only: [] }, actions: { some: ['remember', 'answer', 'person'], optional: true }, maxSentences: 4 },
   { id: 'gift-corte-ingles', kind: 'statement', message: 'El Corte Ingles was a gift for my sister, not something for me.', route: 'model', figures: { only: [] }, actions: { some: ['remember', 'recategorise', 'not_me'] }, maxSentences: 4 },
 
+  /* the term, week by week (2026-09-22): before the diary's day counts reached the context,
+     the chat held the next seven days and nothing wider, and said it could not know */
+  { id: 'next-week-busy', kind: 'ask', message: 'How busy is next week?', route: 'model', figures: { only: [] }, actions: { none: true }, avoid: [/(cannot|can't|could not) (know|tell|say)|n[ãa]o (sei|posso saber)|no (puedo|s[e\u00e9]) saber/i], maxSentences: 3 },
+  { id: 'quiet-week', kind: 'ask', message: 'Is next week quieter than this one?', route: 'model', figures: { only: [] }, actions: { none: true }, maxSentences: 3 },
+  { id: 'busiest-week', kind: 'ask', message: 'Which week has the most classes?', route: 'model', figures: { only: [] }, actions: { none: true }, maxSentences: 3 },
+
   /* corrections */
   { id: 'not-mine-flatmate', kind: 'correction', message: 'The LIDL MAD MERCAD payment is not mine, my flatmate used my card', route: 'model', figures: { only: [] }, actions: { some: ['not_me'] }, maxSentences: 3 },
   { id: 'not-a-subscription', kind: 'correction', message: 'That is wrong, Higgsfield is not a subscription, I paid it once.', route: 'model', figures: { only: [] }, actions: { some: ['not_me', 'remember', 'recategorise'] }, avoid: [/you are right that it is a subscription/i], maxSentences: 4 },
