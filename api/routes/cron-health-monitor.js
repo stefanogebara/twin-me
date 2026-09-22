@@ -38,7 +38,7 @@
 
 import express from 'express';
 import { verifyCronSecret } from '../middleware/verifyCronSecret.js';
-import { supabaseAdmin } from '../services/database.js';
+import { recentCronExecutions } from '../services/opsStore.js';
 import { logCronExecution } from '../services/cronLogger.js';
 import { createLogger } from '../services/logger.js';
 
@@ -149,12 +149,7 @@ router.all('/', async (req, res) => {
     // "didn't run at all" as a separate concern (handled below) so we
     // base the scan on what DID run.
     const sinceIso = new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString();
-    const { data: recentRuns, error: fetchErr } = await supabaseAdmin
-      .from('cron_executions')
-      .select('job_name, status, result_data, executed_at, error_message')
-      .gte('executed_at', sinceIso)
-      .order('executed_at', { ascending: false })
-      .limit(2000);
+    const { data: recentRuns, error: fetchErr } = await recentCronExecutions(sinceIso, { limit: 2000 });
 
     if (fetchErr) {
       log.error('Failed to read cron_executions', { message: fetchErr.message });

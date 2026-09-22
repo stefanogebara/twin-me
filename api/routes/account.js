@@ -7,7 +7,7 @@
 
 import express from 'express';
 import { authenticateUser } from '../middleware/auth.js';
-import { supabaseAdmin } from '../services/database.js';
+import { databaseAvailable, deleteUser, exportMessages, exportReads, findUserById, updateUser } from '../services/account/accountStore.js';
 import { createLogger } from '../services/logger.js';
 import { getAllSoulSignatures } from '../services/soulSignatureService.js';
 import { validate } from '../middleware/validate.js';
@@ -63,26 +63,19 @@ router.delete('/', authenticateUser, async (req, res) => {
       return res.status(400).json({ success: false, error: 'User ID not found in token' });
     }
 
-    if (!supabaseAdmin) {
+    if (!databaseAvailable()) {
       return res.status(503).json({ success: false, error: 'Database unavailable' });
     }
 
     // Verify user exists before deletion
-    const { data: user, error: fetchError } = await supabaseAdmin
-      .from('users')
-      .select('id, email')
-      .eq('id', userId)
-      .single();
+    const { data: user, error: fetchError } = await findUserById(userId, 'id, email');
 
     if (fetchError || !user) {
       return res.status(404).json({ success: false, error: 'User not found' });
     }
 
     // Delete user - CASCADE handles all related tables
-    const { error: deleteError } = await supabaseAdmin
-      .from('users')
-      .delete()
-      .eq('id', userId);
+    const { error: deleteError } = await deleteUser(userId);
 
     if (deleteError) {
       log.error('Database error:', deleteError.message);
@@ -115,7 +108,7 @@ router.get('/export', authenticateUser, async (req, res) => {
       return res.status(400).json({ success: false, error: 'User ID not found in token' });
     }
 
-    if (!supabaseAdmin) {
+    if (!databaseAvailable()) {
       return res.status(503).json({ success: false, error: 'Database unavailable' });
     }
 
@@ -134,46 +127,23 @@ router.get('/export', authenticateUser, async (req, res) => {
       behavioralPatternsResult,
       reflectionHistoryResult,
       privacySettingsResult,
-    ] = await Promise.all([
-      // Core profile
-      supabaseAdmin.from('users').select('id, email, name, first_name, last_name, avatar_url, created_at, updated_at').eq('id', userId).single(),
-      // Platform connections (exclude tokens)
-      supabaseAdmin.from('platform_connections').select('platform, status, connected_at, last_sync_at').eq('user_id', userId),
-      // Platform data summaries
-      supabaseAdmin.from('user_platform_data').select('platform, data_type, data, extracted_at').eq('user_id', userId).order('extracted_at', { ascending: false }).limit(50000),
-      // Soul signature (history — GDPR export wants every row, not just the latest)
+    ] = await Promise.all((() => {
+      /* Every table a person's data lives in, read through accountStore; the soul signature
+         history has its own service and keeps its place in the list. */
+      const reads = exportReads(userId);
+      return [
+        ...reads.slice(0, 3),
       getAllSoulSignatures(userId, { columns: 'archetype_name, archetype_subtitle, narrative, defining_traits, color_scheme, is_public, reveal_level, created_at, updated_at' }).then(data => ({ data })),
-      // Personality scores
-      supabaseAdmin.from('personality_scores').select('openness, conscientiousness, extraversion, agreeableness, neuroticism, data_sources, created_at').eq('user_id', userId),
-      // Twin conversations
-      supabaseAdmin.from('twin_conversations').select('id, title, context_type, message_count, created_at, updated_at').eq('user_id', userId).order('created_at', { ascending: false }),
-      // Enriched profile
-      supabaseAdmin.from('enriched_profiles').select('full_name, company, title, location, bio, interests, social_links, discovered_photo, is_confirmed, created_at').eq('user_id', userId),
-      // Onboarding calibration
-      supabaseAdmin.from('onboarding_calibration').select('conversation_history, insights, archetype_hint, personality_summary, completed_at').eq('user_id', userId),
-      // Memories
-      supabaseAdmin.from('user_memories').select('memory_type, content, source, importance, created_at').eq('user_id', userId).order('created_at', { ascending: false }).limit(50000),
-      // Big Five
-      supabaseAdmin.from('big_five_scores').select('openness, conscientiousness, extraversion, agreeableness, neuroticism, assessment_type, created_at').eq('user_id', userId),
-      // Behavioral patterns
-      supabaseAdmin.from('behavioral_patterns').select('pattern_type, description, confidence, platforms, first_observed, last_observed').eq('user_id', userId).limit(200),
-      // Reflection history
-      supabaseAdmin.from('reflection_history').select('reflection_type, content, platforms_used, created_at').eq('user_id', userId).order('created_at', { ascending: false }).limit(200),
-      // Privacy settings
-      supabaseAdmin.from('privacy_settings').select('cluster_visibility, sharing_preferences, updated_at').eq('user_id', userId),
-    ]);
+        ...reads.slice(3),
+      ];
+    })());
 
     // For twin messages, we need a different approach since subquery in .eq doesn't work
     // Fetch conversation IDs first, then messages
     const conversationIds = (twinConversationsResult.data || []).map(c => c.id);
     let messages = [];
     if (conversationIds.length > 0) {
-      const { data: msgData } = await supabaseAdmin
-        .from('twin_messages')
-        .select('conversation_id, role, content, created_at')
-        .in('conversation_id', conversationIds)
-        .order('created_at', { ascending: false })
-        .limit(50000);
+      const { data: msgData } = await exportMessages(conversationIds);
       messages = msgData || [];
     }
 
@@ -227,11 +197,7 @@ router.get('/export', authenticateUser, async (req, res) => {
  */
 router.get('/timezone', authenticateUser, async (req, res) => {
   try {
-    const { data, error } = await supabaseAdmin
-      .from('users')
-      .select('timezone')
-      .eq('id', req.user.id)
-      .single();
+    const { data, error } = await findUserById(req.user.id, 'timezone');
 
     if (error) {
       log.warn('Failed to fetch timezone', { userId: req.user.id, error: error.message });
@@ -251,7 +217,7 @@ const LANGUAGES = ['en', 'es', 'pt-BR'];
 /** GET /api/account/language: the language they chose, or null when never asked. */
 router.get('/language', authenticateUser, async (req, res) => {
   try {
-    const { data, error } = await supabaseAdmin.from('users').select('preferred_language').eq('id', req.user.id).single();
+    const { data, error } = await findUserById(req.user.id, 'preferred_language');
     if (error) return res.status(500).json({ success: false, error: 'Failed to fetch language' });
     return res.json({ success: true, language: data?.preferred_language ?? null, languages: LANGUAGES });
   } catch (err) {
@@ -265,7 +231,7 @@ router.patch('/language', authenticateUser, validate({ body: V.ACCOUNT_LANGUAGE 
   const language = typeof req.body?.language === 'string' ? req.body.language : '';
   if (!LANGUAGES.includes(language)) return res.status(400).json({ success: false, error: 'language must be one of en, es, pt-BR' });
   try {
-    const { error } = await supabaseAdmin.from('users').update({ preferred_language: language }).eq('id', req.user.id);
+    const { error } = await updateUser(req.user.id, { preferred_language: language });
     if (error) return res.status(500).json({ success: false, error: 'Failed to update language' });
     return res.json({ success: true, language });
   } catch (err) {
@@ -295,10 +261,7 @@ router.patch('/timezone', authenticateUser, validate({ body: V.ACCOUNT_TIMEZONE 
   }
 
   try {
-    const { error } = await supabaseAdmin
-      .from('users')
-      .update({ timezone })
-      .eq('id', req.user.id);
+    const { error } = await updateUser(req.user.id, { timezone });
 
     if (error) {
       log.warn('Failed to update timezone', { userId: req.user.id, error: error.message });

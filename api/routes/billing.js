@@ -11,7 +11,7 @@
 import express from 'express';
 import Stripe from 'stripe';
 import { authenticateToken, userRateLimit } from '../middleware/auth.js';
-import { supabaseAdmin } from '../services/database.js';
+import { recordWebhookEvent, forgetWebhookEvent, upsertSubscription, findSubscriptionByStripeId, findSubscriptionForUser, updateSubscriptionForUser, findUserById } from '../services/billing/billingStore.js';
 import { getUserSubscription } from '../services/subscriptionService.js';
 import { createLogger } from '../services/logger.js';
 import { assertProdAppUrl } from '../utils/prodEnvAssertions.js';
@@ -85,9 +85,7 @@ function periodEndIso(stripeSub) {
 // The table is created by database/supabase/migrations/20260515_create_stripe_webhook_events.sql.
 
 async function markEventReceived(eventId, eventType) {
-  const { error } = await supabaseAdmin
-    .from('stripe_webhook_events')
-    .insert({ event_id: eventId, event_type: eventType });
+  const { error } = await recordWebhookEvent(eventId, eventType);
 
   if (!error) return 'inserted';
   if (error.code === '23505') return 'duplicate';
@@ -102,10 +100,7 @@ async function rollbackEventReceived(eventId) {
   // Only the first delivery's INSERT lands; on subsequent retries the
   // INSERT short-circuits before processing, so deleting here is always
   // safe.
-  const { error } = await supabaseAdmin
-    .from('stripe_webhook_events')
-    .delete()
-    .eq('event_id', eventId);
+  const { error } = await forgetWebhookEvent(eventId);
   if (error) {
     log.warn('webhook: idempotency rollback failed', {
       eventId, code: error.code, message: error.message,
@@ -154,27 +149,26 @@ router.post('/webhook', express.raw({ type: 'application/json' }), async (req, r
           break;
         }
         const stripeSub = await stripe.subscriptions.retrieve(session.subscription);
-        await supabaseAdmin.from('user_subscriptions').upsert({
+        await upsertSubscription({
           user_id: userId, plan, status: 'active',
           stripe_customer_id: session.customer,
           stripe_subscription_id: session.subscription,
           stripe_price_id: stripeSub.items.data[0].price.id,
           current_period_end: periodEndIso(stripeSub),
           updated_at: new Date().toISOString(),
-        }, { onConflict: 'user_id' });
+        });
         break;
       }
       case 'customer.subscription.updated': {
         const sub = event.data.object;
-        const { data: existing } = await supabaseAdmin
-          .from('user_subscriptions').select('user_id').eq('stripe_subscription_id', sub.id).single();
+        const { data: existing } = await findSubscriptionByStripeId(sub.id);
         if (existing) {
-          await supabaseAdmin.from('user_subscriptions').update({
+          await updateSubscriptionForUser(existing.user_id, {
             status: sub.status,
             current_period_end: periodEndIso(sub),
             cancel_at_period_end: sub.cancel_at_period_end,
             updated_at: new Date().toISOString(),
-          }).eq('user_id', existing.user_id);
+          });
         }
         break;
       }
@@ -182,13 +176,12 @@ router.post('/webhook', express.raw({ type: 'application/json' }), async (req, r
         const invoice = event.data.object;
         const sub = invoice.subscription;
         if (sub) {
-          const { data: existing } = await supabaseAdmin
-            .from('user_subscriptions').select('user_id').eq('stripe_subscription_id', sub).single();
+          const { data: existing } = await findSubscriptionByStripeId(sub);
           if (existing) {
-            await supabaseAdmin.from('user_subscriptions').update({
+            await updateSubscriptionForUser(existing.user_id, {
               status: 'past_due',
               updated_at: new Date().toISOString(),
-            }).eq('user_id', existing.user_id);
+            });
             log.warn('Payment failed', { userId: existing.user_id, invoice: invoice.id });
           }
         }
@@ -196,14 +189,13 @@ router.post('/webhook', express.raw({ type: 'application/json' }), async (req, r
       }
       case 'customer.subscription.deleted': {
         const sub = event.data.object;
-        const { data: existing } = await supabaseAdmin
-          .from('user_subscriptions').select('user_id').eq('stripe_subscription_id', sub.id).single();
+        const { data: existing } = await findSubscriptionByStripeId(sub.id);
         if (existing) {
-          await supabaseAdmin.from('user_subscriptions').update({
+          await updateSubscriptionForUser(existing.user_id, {
             plan: 'free', status: 'canceled',
             stripe_subscription_id: null,
             updated_at: new Date().toISOString(),
-          }).eq('user_id', existing.user_id);
+          });
         }
         break;
       }
@@ -298,10 +290,8 @@ router.post('/checkout', jsonBody, authenticateToken, billingMutateLimiter, vali
   }
 
   try {
-    const { data: existingSub } = await supabaseAdmin
-      .from('user_subscriptions').select('stripe_customer_id').eq('user_id', req.user?.id).single();
-    const { data: user } = await supabaseAdmin
-      .from('users').select('email, first_name').eq('id', req.user?.id).single();
+    const { data: existingSub } = await findSubscriptionForUser(req.user?.id, 'stripe_customer_id');
+    const { data: user } = await findUserById(req.user?.id, 'email, first_name');
 
     let customerId = existingSub?.stripe_customer_id;
     if (!customerId) {
@@ -319,10 +309,7 @@ router.post('/checkout', jsonBody, authenticateToken, billingMutateLimiter, vali
       // signup, but if it didn't, plain UPDATE would write zero rows and the
       // customer ID would be lost. Upsert guarantees the row exists, and is
       // race-safe because both racers end up writing the same customer ID.
-      await supabaseAdmin.from('user_subscriptions').upsert(
-        { user_id: req.user?.id, stripe_customer_id: customerId },
-        { onConflict: 'user_id' },
-      );
+      await upsertSubscription({ user_id: req.user?.id, stripe_customer_id: customerId });
     }
 
     const session = await stripe.checkout.sessions.create({
@@ -359,8 +346,7 @@ router.post('/portal', jsonBody, authenticateToken, billingMutateLimiter, async 
     return res.status(503).json({ error: 'Billing not configured' });
   }
   try {
-    const { data: sub } = await supabaseAdmin
-      .from('user_subscriptions').select('stripe_customer_id').eq('user_id', req.user?.id).single();
+    const { data: sub } = await findSubscriptionForUser(req.user?.id, 'stripe_customer_id');
     if (!sub?.stripe_customer_id) return res.status(400).json({ error: 'No billing account found' });
 
     const session = await stripe.billingPortal.sessions.create({

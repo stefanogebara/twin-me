@@ -29,9 +29,7 @@ const pendingCodes = new Map();
 // refresh token to user_refresh_tokens (the table /auth/refresh validates against).
 const persistedRefreshTokens = [];
 
-vi.mock('../../../api/config/supabase.js', () => ({
-  supabase: {},
-  supabaseAdmin: {
+const fakeAdmin = {
     from: (table) => {
       if (table === 'pending_auth_codes') {
         return {
@@ -75,8 +73,11 @@ vi.mock('../../../api/config/supabase.js', () => ({
         update: () => ({ eq: async () => ({ data: null, error: null }) }),
       };
     },
-  },
-}));
+};
+/* The sign-in tables moved into api/services/auth/authStore.js, which reads the client from
+   services/database.js; the middleware still reads config/supabase.js. One fake, both doors. */
+vi.mock('../../../api/config/supabase.js', () => ({ supabase: {}, supabaseAdmin: fakeAdmin }));
+vi.mock('../../../api/services/database.js', () => ({ supabaseAdmin: fakeAdmin }));
 
 const TEST_USER = '167c27b5-a40b-49fb-8d00-deb1b1c57f4d';
 const signToken = () =>

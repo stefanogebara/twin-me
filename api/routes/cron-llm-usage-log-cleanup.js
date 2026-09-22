@@ -17,7 +17,7 @@
 
 import express from 'express';
 import { verifyCronSecret } from '../middleware/verifyCronSecret.js';
-import { supabaseAdmin } from '../services/database.js';
+import { deleteLlmUsageBefore } from '../services/opsStore.js';
 import { createLogger } from '../services/logger.js';
 import { logCronExecution } from '../services/cronLogger.js';
 
@@ -34,11 +34,7 @@ router.all('/', async (req, res) => {
 
     const cutoffIso = new Date(Date.now() - RETENTION_DAYS * 24 * 60 * 60 * 1000).toISOString();
 
-    const { data, error } = await supabaseAdmin
-      .from('llm_usage_log')
-      .delete({ count: 'exact' })
-      .lt('created_at', cutoffIso)
-      .select('created_at', { count: 'exact' });
+    const { data, error } = await deleteLlmUsageBefore(cutoffIso);
 
     if (error) {
       log.error('cleanup failed', { code: error.code, message: error.message });

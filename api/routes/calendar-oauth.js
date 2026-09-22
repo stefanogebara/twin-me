@@ -10,7 +10,7 @@
 
 import express from 'express';
 import { calendarClient } from '../services/google/api.js';
-import { supabaseAdmin } from '../services/database.js';
+import { upsertCalendarEvent, deleteCalendarEvents, markCalendarSync, findCalendarConnection, disconnectCalendar } from '../services/calendar/calendarStore.js';
 import { authenticateUser } from '../middleware/auth.js';
 import { decryptToken, encryptToken, encryptState } from '../services/encryption.js';
 import { lifeEventInferenceService } from '../services/lifeEventInferenceService.js';
@@ -289,9 +289,7 @@ router.get('/events', authenticateUser, async (req, res) => {
       // Upsert events to calendar_events table (if it exists)
       let storeErrors = 0;
       for (const event of events) {
-        const { error: upsertErr } = await supabaseAdmin
-          .from('calendar_events')
-          .upsert({
+        const { error: upsertErr } = await upsertCalendarEvent({
             user_id: userId,
             google_event_id: event.id,
             title: event.title,
@@ -303,8 +301,6 @@ router.get('/events', authenticateUser, async (req, res) => {
             event_type: event.type,
             attendees: event.attendees,
             synced_at: new Date().toISOString()
-          }, {
-            onConflict: 'user_id,google_event_id'
           });
         if (upsertErr) storeErrors++;
       }
@@ -313,9 +309,7 @@ router.get('/events', authenticateUser, async (req, res) => {
     }
 
     // Update last sync time in platform_connections
-    const { error: syncUpdateErr } = await supabaseAdmin
-      .from('platform_connections')
-      .update({
+    const { error: syncUpdateErr } = await markCalendarSync(userId, {
         last_sync_at: new Date().toISOString(),
         last_sync_status: 'success',
         last_sync_error: null,
@@ -324,9 +318,7 @@ router.get('/events', authenticateUser, async (req, res) => {
           last_sync_status: 'success',
           event_count: events.length
         }
-      })
-      .eq('user_id', userId)
-      .eq('platform', 'google_calendar');
+      });
 
     if (syncUpdateErr) {
       log.warn('Failed to update last_sync:', syncUpdateErr.message);
@@ -484,9 +476,7 @@ router.post('/sync', authenticateUser, validate({ body: V.CALENDAR_SYNC }), asyn
       events.push(transformedEvent);
 
       // Store in database
-      const { error: eventUpsertErr } = await supabaseAdmin
-        .from('calendar_events')
-        .upsert({
+      const { error: eventUpsertErr } = await upsertCalendarEvent({
           user_id: userId,
           google_event_id: transformedEvent.id,
           title: transformedEvent.title,
@@ -498,16 +488,12 @@ router.post('/sync', authenticateUser, validate({ body: V.CALENDAR_SYNC }), asyn
           event_type: transformedEvent.type,
           attendees: transformedEvent.attendees,
           synced_at: new Date().toISOString()
-        }, {
-          onConflict: 'user_id,google_event_id'
         });
       if (eventUpsertErr) log.warn(`Failed to store event ${transformedEvent.id}:`, eventUpsertErr.message);
     }
 
     // Update platform connection
-    const { error: manualSyncErr } = await supabaseAdmin
-      .from('platform_connections')
-      .update({
+    const { error: manualSyncErr } = await markCalendarSync(userId, {
         last_sync_at: new Date().toISOString(),
         last_sync_status: 'success',
         last_sync_error: null,
@@ -517,9 +503,7 @@ router.post('/sync', authenticateUser, validate({ body: V.CALENDAR_SYNC }), asyn
           event_count: events.length,
           sync_type: 'manual'
         }
-      })
-      .eq('user_id', userId)
-      .eq('platform', 'google_calendar');
+      });
 
     if (manualSyncErr) {
       log.warn('Failed to update connection after sync:', manualSyncErr.message);
@@ -551,9 +535,7 @@ router.post('/sync', authenticateUser, validate({ body: V.CALENDAR_SYNC }), asyn
     log.error('Error:', error);
 
     // Update sync status to failed
-    const { error: failStatusErr } = await supabaseAdmin
-      .from('platform_connections')
-      .update({
+    const { error: failStatusErr } = await markCalendarSync(req.user.id, {
         last_sync_at: new Date().toISOString(),
         last_sync_status: 'failed',
         metadata: {
@@ -561,9 +543,7 @@ router.post('/sync', authenticateUser, validate({ body: V.CALENDAR_SYNC }), asyn
           last_sync_status: 'failed',
           error: process.env.NODE_ENV !== 'production' ? error.message : 'Internal server error'
         }
-      })
-      .eq('user_id', req.user.id)
-      .eq('platform', 'google_calendar');
+      });
 
     if (failStatusErr) {
       log.warn('Failed to mark sync as failed:', failStatusErr.message);
@@ -585,12 +565,7 @@ router.get('/status', authenticateUser, async (req, res) => {
   try {
     const userId = req.user.id;
 
-    const { data: connection, error } = await supabaseAdmin
-      .from('platform_connections')
-      .select('*')
-      .eq('user_id', userId)
-      .eq('platform', 'google_calendar')
-      .single();
+    const { data: connection, error } = await findCalendarConnection(userId);
 
     if (error || !connection) {
       return res.json({
@@ -641,11 +616,7 @@ router.delete('/disconnect', authenticateUser, async (req, res) => {
     log.info(`Disconnecting for user: ${userId}`);
 
     // Update connection status
-    const { error: disconnectErr } = await supabaseAdmin
-      .from('platform_connections')
-      .update({ connected: false })
-      .eq('user_id', userId)
-      .eq('platform', 'google_calendar');
+    const { error: disconnectErr } = await disconnectCalendar(userId);
 
     if (disconnectErr) {
       log.error('Failed to update connection status:', disconnectErr.message);
@@ -653,10 +624,7 @@ router.delete('/disconnect', authenticateUser, async (req, res) => {
     }
 
     // Optionally delete cached events
-    const { error: eventsDeleteErr } = await supabaseAdmin
-      .from('calendar_events')
-      .delete()
-      .eq('user_id', userId);
+    const { error: eventsDeleteErr } = await deleteCalendarEvents(userId);
     if (eventsDeleteErr) log.warn(`Failed to delete events:`, eventsDeleteErr.message);
     else log.info(`Deleted cached events for user: ${userId}`);
 

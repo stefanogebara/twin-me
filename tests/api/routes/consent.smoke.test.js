@@ -51,16 +51,14 @@ vi.mock('../../../api/config/supabase.js', () => {
   return { supabaseAdmin: client, supabase: client, default: client };
 });
 
-vi.mock('../../../api/services/database.js', () => ({
-  supabaseAdmin: {
-    from: vi.fn(() => ({
-      select: vi.fn().mockReturnThis(),
-      eq: vi.fn().mockReturnThis(),
-      single: vi.fn().mockResolvedValue({ data: { email_verified: true, created_at: new Date().toISOString() }, error: null }),
-    })),
-  },
-  serverDb: {},
-}));
+/* The consent rows are read and written through api/services/consentStore.js, which takes the
+   client from services/database.js (M2-D, 2026-09-22); the auth middleware reads the same
+   module for its users lookup. The consent client answers every table but users. */
+vi.mock('../../../api/services/database.js', () => {
+  const client = makeConsentClient();
+  const users = { select: () => users, eq: () => users, single: async () => ({ data: { email_verified: true, created_at: new Date().toISOString() }, error: null }) };
+  return { supabaseAdmin: { from: (table) => (table === 'users' ? users : client.from(table)) }, serverDb: {} };
+});
 
 const TEST_USER = '167c27b5-a40b-49fb-8d00-deb1b1c57f4d';
 const signToken = () => jwt.sign({ id: TEST_USER }, 'test-secret', { expiresIn: '1h' });

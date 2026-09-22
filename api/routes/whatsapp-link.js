@@ -8,7 +8,7 @@
 
 import express from 'express';
 import { authenticateUser } from '../middleware/auth.js';
-import { supabaseAdmin } from '../services/database.js';
+import { linkWhatsApp, whatsAppLink, unlinkWhatsApp } from '../services/messagingChannelStore.js';
 import { sendWhatsAppMessage } from '../services/whatsappService.js';
 import { requestChannelOtp, verifyChannelOtp } from '../services/messagingChannelOtpService.js';
 import { createLogger } from '../services/logger.js';
@@ -126,12 +126,7 @@ router.post('/link/verify', authenticateUser, validate({ body: V.WHATSAPP_LINK_V
     }
 
     // Ownership proven — now link the channel.
-    const { error: dbError } = await supabaseAdmin
-      .from('messaging_channels')
-      .upsert(
-        { user_id: userId, channel: 'whatsapp', channel_id: phone, is_enabled: true },
-        { onConflict: 'user_id,channel' }
-      );
+    const { error: dbError } = await linkWhatsApp(userId, phone);
 
     if (dbError) {
       log.error('Failed to upsert messaging_channels after verify', { userId, error: dbError.message });
@@ -166,12 +161,7 @@ router.post('/link/verify', authenticateUser, validate({ body: V.WHATSAPP_LINK_V
  */
 router.get('/status', authenticateUser, async (req, res) => {
   try {
-    const { data } = await supabaseAdmin
-      .from('messaging_channels')
-      .select('channel_id, is_enabled, created_at')
-      .eq('user_id', req.user.id)
-      .eq('channel', 'whatsapp')
-      .single();
+    const { data } = await whatsAppLink(req.user.id);
 
     return res.json({
       success: true,
@@ -192,11 +182,7 @@ router.get('/status', authenticateUser, async (req, res) => {
  */
 router.delete('/unlink', authenticateUser, async (req, res) => {
   try {
-    await supabaseAdmin
-      .from('messaging_channels')
-      .delete()
-      .eq('user_id', req.user.id)
-      .eq('channel', 'whatsapp');
+    await unlinkWhatsApp(req.user.id);
 
     log.info('WhatsApp unlinked', { userId: req.user.id });
     return res.json({ success: true });

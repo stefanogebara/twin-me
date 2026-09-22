@@ -3,7 +3,6 @@ import crypto from 'crypto';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcrypt';
 import rateLimit from 'express-rate-limit';
-import { supabase, supabaseAdmin } from '../config/supabase.js';
 import { encryptToken, encryptState, decryptState } from '../services/encryption.js';
 import * as betaInviteService from '../services/betaInviteService.js';
 import { inngest, EVENTS } from '../services/inngestClient.js';
@@ -14,6 +13,11 @@ import { validate } from '../middleware/validate.js';
 import * as AS from './authSchemas.js';
 import { authenticateUser } from '../middleware/auth.js';
 import { computeIsAdmin } from '../services/adminAccess.js';
+import {
+  findUserByEmail, findUserById, findUserByLegacyRefreshHash, findUserByVerificationToken, createUser, updateUser, clearLegacyRefreshHash,
+  insertRefreshToken, findRefreshToken, deleteRefreshTokenById, deleteRefreshTokenByHash, rotateRefreshToken,
+  insertMagicLink, findMagicLink, consumeMagicLink, insertPendingAuthCode, findPendingAuthCode, deletePendingAuthCode, upsertPlatformConnection,
+} from '../services/auth/authStore.js';
 
 const log = createLogger('Auth');
 
@@ -269,9 +273,7 @@ function deriveDeviceLabel(req) {
 async function persistRefreshToken({ userId, tokenHash, deviceLabel }) {
   const expiresAt = new Date(Date.now() + REFRESH_TOKEN_TTL_MS).toISOString();
 
-  const { error: insertErr } = await supabaseAdmin
-    .from('user_refresh_tokens')
-    .insert({
+  const { error: insertErr } = await insertRefreshToken({
       user_id: userId,
       token_hash: tokenHash,
       device_label: deviceLabel,
@@ -283,10 +285,7 @@ async function persistRefreshToken({ userId, tokenHash, deviceLabel }) {
 
   // Legacy fallback during rollout — write the latest hash to the users column
   // so pre-migration refresh handlers still work if we have to roll back.
-  const { error: legacyErr } = await supabaseAdmin
-    .from('users')
-    .update({ refresh_token_hash: tokenHash })
-    .eq('id', userId);
+  const { error: legacyErr } = await updateUser(userId, { refresh_token_hash: tokenHash });
   if (legacyErr) {
     log.warn('Failed to update legacy refresh_token_hash', { error: legacyErr, userId });
   }
@@ -410,11 +409,7 @@ router.post('/signup', authLimiter, validate({ body: AS.SIGNUP }), async (req, r
     const normalizedEmail = email.trim().toLowerCase();
 
     // Check if user exists
-    const { data: existingUser } = await supabaseAdmin
-      .from('users')
-      .select('id')
-      .eq('email', normalizedEmail)
-      .single();
+    const { data: existingUser } = await findUserByEmail(normalizedEmail, 'id');
 
     if (existingUser) {
       return res.status(400).json({ error: 'User already exists' });
@@ -445,16 +440,12 @@ router.post('/signup', authLimiter, validate({ body: AS.SIGNUP }), async (req, r
     const hashedPassword = await bcrypt.hash(password, 12);
 
     // Create user
-    const { data: newUser, error: insertError } = await supabaseAdmin
-      .from('users')
-      .insert({
+    const { data: newUser, error: insertError } = await createUser({
         email: normalizedEmail,
         password_hash: hashedPassword,
         first_name: (firstName || '').trim().slice(0, 100),
         last_name: (lastName || '').trim().slice(0, 100)
-      })
-      .select()
-      .single();
+      });
 
     if (insertError) {
       log.error('Database error', { error: insertError });
@@ -479,13 +470,10 @@ router.post('/signup', authLimiter, validate({ body: AS.SIGNUP }), async (req, r
     // Generate email verification token and store it
     const verificationToken = crypto.randomBytes(32).toString('hex');
     const tokenExpiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(); // 7 days
-    await supabaseAdmin
-      .from('users')
-      .update({
+    await updateUser(newUser.id, {
         email_verification_token: verificationToken,
         email_verification_token_expires_at: tokenExpiresAt,
-      })
-      .eq('id', newUser.id);
+      });
 
     // Send verification email (optional — don't block signup if RESEND_API_KEY is missing)
     try {
@@ -558,11 +546,7 @@ router.post('/signin', authLimiter, validate({ body: AS.SIGNIN }), async (req, r
     }
 
     // Get user
-    const { data: user, error: fetchError } = await supabaseAdmin
-      .from('users')
-      .select('id, email, first_name, last_name, password_hash, created_at, email_verified, oauth_provider, timezone, preferred_language')
-      .eq('email', normalizedEmail)
-      .single();
+    const { data: user, error: fetchError } = await findUserByEmail(normalizedEmail, 'id, email, first_name, last_name, password_hash, created_at, email_verified, oauth_provider, timezone, preferred_language');
 
     if (fetchError || !user) {
       await trackAuthFailure(normalizedEmail);
@@ -629,11 +613,7 @@ router.get('/verify', authenticateUser, async (req, res) => {
       }
     }
 
-    const { data: user, error: fetchError } = await supabaseAdmin
-      .from('users')
-      .select('id, email, first_name, last_name, created_at, email_verified, oauth_provider, timezone, preferred_language')
-      .eq('id', userId)
-      .single();
+    const { data: user, error: fetchError } = await findUserById(userId, 'id, email, first_name, last_name, created_at, email_verified, oauth_provider, timezone, preferred_language');
 
     if (fetchError || !user) {
       return res.status(401).json({ error: 'Invalid token' });
@@ -675,24 +655,16 @@ router.post('/refresh', refreshLimiter, validate({ body: AS.REFRESH }), async (r
     let user = null;
     let tokenRowId = null; // non-null => use new-table rotation path
 
-    const { data: tokenRow } = await supabaseAdmin
-      .from('user_refresh_tokens')
-      .select('id, user_id, expires_at')
-      .eq('token_hash', tokenHash)
-      .single();
+    const { data: tokenRow } = await findRefreshToken(tokenHash);
 
     if (tokenRow) {
       // Reject expired rows
       if (new Date(tokenRow.expires_at) < new Date()) {
-        await supabaseAdmin.from('user_refresh_tokens').delete().eq('id', tokenRow.id);
+        await deleteRefreshTokenById(tokenRow.id);
         return res.status(401).json({ error: 'Invalid refresh token' });
       }
       tokenRowId = tokenRow.id;
-      const { data: userRow } = await supabaseAdmin
-        .from('users')
-        .select('id, email, first_name, last_name, created_at, email_verified, oauth_provider, timezone, preferred_language')
-        .eq('id', tokenRow.user_id)
-        .single();
+      const { data: userRow } = await findUserById(tokenRow.user_id, 'id, email, first_name, last_name, created_at, email_verified, oauth_provider, timezone, preferred_language');
       user = userRow || null;
     }
 
@@ -701,11 +673,7 @@ router.post('/refresh', refreshLimiter, validate({ body: AS.REFRESH }), async (r
     // successful rotation below.
     // TODO(post-rollout): remove this block after users.refresh_token_hash is dropped.
     if (!user) {
-      const { data: legacyUser } = await supabaseAdmin
-        .from('users')
-        .select('id, email, first_name, last_name, created_at, email_verified, oauth_provider, timezone, preferred_language')
-        .eq('refresh_token_hash', tokenHash)
-        .single();
+      const { data: legacyUser } = await findUserByLegacyRefreshHash(tokenHash, 'id, email, first_name, last_name, created_at, email_verified, oauth_provider, timezone, preferred_language');
       user = legacyUser || null;
     }
 
@@ -724,16 +692,11 @@ router.post('/refresh', refreshLimiter, validate({ body: AS.REFRESH }), async (r
       // /refresh calls racing on the same device can't both succeed and
       // orphan the second device's cookie. The loser returns 401 below.
       const newExpiresAt = new Date(Date.now() + REFRESH_TOKEN_TTL_MS).toISOString();
-      const { data: rotated, error: rotateErr } = await supabaseAdmin
-        .from('user_refresh_tokens')
-        .update({
+      const { data: rotated, error: rotateErr } = await rotateRefreshToken(tokenRowId, tokenHash, {
           token_hash: newHash,
           last_used_at: new Date().toISOString(),
           expires_at: newExpiresAt,
-        })
-        .eq('id', tokenRowId)
-        .eq('token_hash', tokenHash) // must still match the hash we read
-        .select('id');
+        });
       if (rotateErr) {
         log.error('Failed to rotate user_refresh_tokens row', { error: rotateErr });
         return res.status(500).json({ error: 'Internal server error' });
@@ -745,10 +708,7 @@ router.post('/refresh', refreshLimiter, validate({ body: AS.REFRESH }), async (r
       }
 
       // Mirror to legacy column during rollout so rollbacks keep working.
-      await supabaseAdmin
-        .from('users')
-        .update({ refresh_token_hash: newHash })
-        .eq('id', user.id);
+      await updateUser(user.id, { refresh_token_hash: newHash });
     } else {
       // Legacy-token migration: create a new per-device row going forward.
       const persistedMigration = await persistRefreshToken({
@@ -814,11 +774,7 @@ router.post('/magic-link/request', authLimiter, validate({ body: AS.MAGIC_LINK }
     // Beta gate (same logic as OAuth): existing user passes; new user
     // needs invite code OR pre-invited email. Failure here doesn't
     // disclose existence — log + return generic success.
-    const { data: existingUser } = await supabaseAdmin
-      .from('users')
-      .select('id, email')
-      .eq('email', emailRaw)
-      .maybeSingle();
+    const { data: existingUser } = await findUserByEmail(emailRaw, 'id, email', { maybe: true });
 
     let gatePassed = !!existingUser;
     if (!gatePassed && betaInviteService.isBetaGateEnabled()) {
@@ -844,9 +800,7 @@ router.post('/magic-link/request', authLimiter, validate({ body: AS.MAGIC_LINK }
     const expiresAt = new Date(Date.now() + MAGIC_LINK_TTL_MS).toISOString();
     const ip = req.ip || req.headers['x-forwarded-for'] || null;
 
-    const { error: insertErr } = await supabaseAdmin
-      .from('magic_link_tokens')
-      .insert({
+    const { error: insertErr } = await insertMagicLink({
         token_hash: tokenHash,
         email: emailRaw,
         invite_code: inviteCode,
@@ -915,11 +869,7 @@ router.get('/magic-link/verify', authLimiter, async (req, res) => {
 
   try {
     const tokenHash = hashToken(rawToken);
-    const { data: row, error: lookupErr } = await supabaseAdmin
-      .from('magic_link_tokens')
-      .select('id, email, invite_code, expires_at, consumed_at')
-      .eq('token_hash', tokenHash)
-      .maybeSingle();
+    const { data: row, error: lookupErr } = await findMagicLink(tokenHash);
 
     if (lookupErr || !row) {
       return res.redirect(`${appUrl}/auth?error=${encodeURIComponent('Invalid or expired signin link')}`);
@@ -936,11 +886,7 @@ router.get('/magic-link/verify', authLimiter, async (req, res) => {
     // check above. Update returns the row only if consumed_at was NULL
     // when we wrote it (Supabase doesn't do conditional updates, but the
     // single-write race window here is negligible vs. attack model).
-    const { error: consumeErr } = await supabaseAdmin
-      .from('magic_link_tokens')
-      .update({ consumed_at: new Date().toISOString() })
-      .eq('id', row.id)
-      .is('consumed_at', null);
+    const { error: consumeErr } = await consumeMagicLink(row.id);
     if (consumeErr) {
       log.error('Magic-link consume failed', { error: consumeErr.message });
       return res.redirect(`${appUrl}/auth?error=${encodeURIComponent('Signin failed. Try again.')}`);
@@ -948,11 +894,7 @@ router.get('/magic-link/verify', authLimiter, async (req, res) => {
 
     // Find-or-create user. Beta gate re-checked at find-or-create time
     // so a token issued before the user lost beta access can't bypass.
-    let { data: user } = await supabaseAdmin
-      .from('users')
-      .select('id, email, first_name')
-      .eq('email', row.email)
-      .maybeSingle();
+    let { data: user } = await findUserByEmail(row.email, 'id, email, first_name', { maybe: true });
 
     if (!user) {
       let resolvedInvite = row.invite_code;
@@ -970,16 +912,12 @@ router.get('/magic-link/verify', authLimiter, async (req, res) => {
       }
 
       const firstName = row.email.split('@')[0].split('.')[0];
-      const { data: newUser, error: createErr } = await supabaseAdmin
-        .from('users')
-        .insert({
+      const { data: newUser, error: createErr } = await createUser({
           email: row.email,
           first_name: firstName.charAt(0).toUpperCase() + firstName.slice(1),
           oauth_provider: 'magic_link',
           email_verified: true,
-        })
-        .select('id, email, first_name')
-        .single();
+        }, 'id, email, first_name');
       if (createErr || !newUser) {
         log.error('Magic-link user creation failed', { error: createErr?.message });
         return res.redirect(`${appUrl}/auth?error=${encodeURIComponent('Could not create your account')}`);
@@ -1009,10 +947,7 @@ router.get('/magic-link/verify', authLimiter, async (req, res) => {
       // overwrite oauth_provider on every successful magic-link verify.
       // Non-blocking — if the UPDATE fails we still issue the session so the
       // user isn't locked out; the stale label is a UI bug, not an auth bug.
-      const { error: updateErr } = await supabaseAdmin
-        .from('users')
-        .update({ oauth_provider: 'magic_link', updated_at: new Date().toISOString() })
-        .eq('id', user.id);
+      const { error: updateErr } = await updateUser(user.id, { oauth_provider: 'magic_link', updated_at: new Date().toISOString() });
       if (updateErr) {
         log.warn('Magic-link oauth_provider update failed (non-blocking)', { error: updateErr.message, userId: user.id });
       }
@@ -1035,7 +970,7 @@ router.get('/magic-link/verify', authLimiter, async (req, res) => {
     // would otherwise land in server logs, browser history, and Referer
     // headers). Same one-time code pattern as the Google OAuth GET callback.
     const authCode = crypto.randomBytes(32).toString('hex');
-    await supabaseAdmin.from('pending_auth_codes').insert({
+    await insertPendingAuthCode({
       code: authCode,
       access_token: accessToken,
       refresh_token: refreshToken,
@@ -1072,20 +1007,13 @@ router.post('/logout', validate({ body: AS.LOGOUT }), async (req, res) => {
         // Delete only THIS device's row in user_refresh_tokens (per-device logout)
         if (refreshToken) {
           const rtHash = hashToken(refreshToken);
-          const { error: delErr } = await supabaseAdmin
-            .from('user_refresh_tokens')
-            .delete()
-            .eq('token_hash', rtHash);
+          const { error: delErr } = await deleteRefreshTokenByHash(rtHash);
           if (delErr) log.warn('Error deleting user_refresh_tokens row on logout', { error: delErr });
 
           // Legacy: clear the users column ONLY if this device's hash matches
           // what's stored there (avoid nuking a different device's legacy token).
           // TODO(post-rollout): remove after users.refresh_token_hash is dropped.
-          await supabaseAdmin
-            .from('users')
-            .update({ refresh_token_hash: null })
-            .eq('id', decoded.id)
-            .eq('refresh_token_hash', rtHash);
+          await clearLegacyRefreshHash(decoded.id, rtHash);
         }
 
         // Blacklist the JWT until its natural expiry
@@ -1365,11 +1293,7 @@ router.get('/oauth/callback', async (req, res) => {
             }
           };
 
-          const { error: dbError } = await supabaseAdmin
-            .from('platform_connections')
-            .upsert(connectionData, {
-              onConflict: 'user_id,platform'
-            });
+          const { error: dbError } = await upsertPlatformConnection(connectionData);
 
           if (dbError) {
             log.error('Database error storing connector', { error: dbError });
@@ -1397,11 +1321,7 @@ router.get('/oauth/callback', async (req, res) => {
     }
 
     // Check if user exists or create new
-    let { data: user, error: userFetchError } = await supabaseAdmin
-      .from('users')
-      .select('id, email, first_name, last_name, picture_url, oauth_provider')
-      .eq('email', userData.email)
-      .single();
+    let { data: user, error: userFetchError } = await findUserByEmail(userData.email, 'id, email, first_name, last_name, picture_url, oauth_provider');
 
     if (!user) {
       // Beta gate: check invite code for new users
@@ -1431,18 +1351,14 @@ router.get('/oauth/callback', async (req, res) => {
 
       // Create new user with encrypted tokens
       // Google OAuth users are auto-verified (Google already verified their email)
-      const { data: newUser, error: insertError } = await supabaseAdmin
-        .from('users')
-        .insert({
+      const { data: newUser, error: insertError } = await createUser({
           email: userData.email,
           first_name: userData.firstName,
           last_name: userData.lastName,
           oauth_provider: provider,
           picture_url: userData.picture,
           email_verified: true,
-        })
-        .select()
-        .single();
+        });
 
       if (insertError) {
         log.error('Failed to create user', { error: insertError });
@@ -1501,7 +1417,7 @@ router.get('/oauth/callback', async (req, res) => {
     // (tokens in URLs are logged by servers, stored in browser history, and leaked in Referer headers)
     // Stored in Supabase so all Vercel serverless instances share the same state
     const authCode = crypto.randomBytes(32).toString('hex');
-    await supabaseAdmin.from('pending_auth_codes').insert({
+    await insertPendingAuthCode({
       code: authCode,
       access_token: accessToken,
       refresh_token: refreshToken,
@@ -1607,11 +1523,7 @@ router.post('/oauth/callback', validate({ body: AS.OAUTH_CALLBACK }), async (req
             }
           };
 
-          const { error: dbError } = await supabaseAdmin
-            .from('platform_connections')
-            .upsert(connectionData, {
-              onConflict: 'user_id,platform'
-            });
+          const { error: dbError } = await upsertPlatformConnection(connectionData);
 
           if (dbError) {
             log.error('Database error storing connector', { error: dbError });
@@ -1652,11 +1564,7 @@ router.post('/oauth/callback', validate({ body: AS.OAUTH_CALLBACK }), async (req
       let existingUser, userFetchError;
       try {
         const result = await Promise.race([
-          supabaseAdmin
-            .from('users')
-            .select('id, email, first_name, last_name, picture_url, oauth_provider, created_at')
-            .eq('email', userData.email)
-            .single(),
+          findUserByEmail(userData.email, 'id, email, first_name, last_name, picture_url, oauth_provider, created_at'),
           new Promise((_, reject) =>
             setTimeout(() => reject(new Error('Database timeout')), 10000)
           )
@@ -1704,18 +1612,14 @@ router.post('/oauth/callback', validate({ body: AS.OAUTH_CALLBACK }), async (req
         let newUser, insertError;
         try {
           const insertResult = await Promise.race([
-            supabaseAdmin
-              .from('users')
-              .insert({
+            createUser({
                 email: userData.email,
                 first_name: userData.firstName,
                 last_name: userData.lastName,
                 oauth_provider: provider,
                 picture_url: userData.picture,
                 email_verified: true,
-              })
-              .select()
-              .single(),
+              }),
             new Promise((_, reject) =>
               setTimeout(() => reject(new Error('Database timeout')), 10000)
             )
@@ -1835,23 +1739,19 @@ router.get('/oauth/claim', oauthClaimLimiter, async (req, res) => {
     return res.status(400).json({ error: 'Missing auth_code' });
   }
 
-  const { data: session, error } = await supabaseAdmin
-    .from('pending_auth_codes')
-    .select('*')
-    .eq('code', authCode)
-    .single();
+  const { data: session, error } = await findPendingAuthCode(authCode);
 
   if (error || !session) {
     return res.status(404).json({ error: 'Invalid or expired auth code' });
   }
 
   if (new Date(session.expires_at) < new Date()) {
-    await supabaseAdmin.from('pending_auth_codes').delete().eq('code', authCode);
+    await deletePendingAuthCode(authCode);
     return res.status(410).json({ error: 'Auth code expired' });
   }
 
   // One-time use — delete immediately after claim
-  await supabaseAdmin.from('pending_auth_codes').delete().eq('code', authCode);
+  await deletePendingAuthCode(authCode);
 
   // Set refresh token as httpOnly cookie instead of exposing in response body
   if (session.refresh_token) {
@@ -1899,7 +1799,7 @@ router.post('/desktop-handoff', authenticateUser, async (req, res) => {
   try {
     const { accessToken, refreshToken } = generateTokenPair(req.user);
     const authCode = crypto.randomBytes(32).toString('hex');
-    await supabaseAdmin.from('pending_auth_codes').insert({
+    await insertPendingAuthCode({
       code: authCode,
       access_token: accessToken,
       refresh_token: refreshToken,
@@ -1925,11 +1825,7 @@ router.get('/verify-email', async (req, res) => {
     }
 
     // Find user by verification token
-    const { data: user, error: fetchError } = await supabaseAdmin
-      .from('users')
-      .select('id, email, email_verified, email_verification_token_expires_at')
-      .eq('email_verification_token', token)
-      .single();
+    const { data: user, error: fetchError } = await findUserByVerificationToken(token, 'id, email, email_verified, email_verification_token_expires_at');
 
     if (fetchError || !user) {
       return res.status(404).json({ success: false, error: 'Invalid or expired verification token' });
@@ -1947,15 +1843,12 @@ router.get('/verify-email', async (req, res) => {
     }
 
     // Mark email as verified and clear the token
-    const { error: updateError } = await supabaseAdmin
-      .from('users')
-      .update({
+    const { error: updateError } = await updateUser(user.id, {
         email_verified: true,
         email_verification_token: null,
         email_verification_token_expires_at: null,
         updated_at: new Date().toISOString(),
-      })
-      .eq('id', user.id);
+      });
 
     if (updateError) {
       log.error('Failed to verify email', { error: updateError, userId: user.id });
