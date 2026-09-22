@@ -1,205 +1,57 @@
-# Twin Me - Discover Your Soul Signature
+# TwinMe Money
 
-> "Perhaps we are searching in the branches for what we only find in the roots." - Rami
+A spending ledger for students in Spain. A PSD2 bank feed, phone payment notifications, an
+email receipts inbox and statement uploads are reconciled into one ledger; the day and the
+month are forecast with a band that scores itself nightly; a chat phrases only numbers the
+code computed. A signed-in person lands on `/money`.
 
-Twin Me creates digital twins that capture your true originality - not just your public persona, but your complete soul signature. By connecting your digital life (Spotify, Google, YouTube, Discord, GitHub, and more), we discover what makes you authentically YOU.
+The "digital twin" this repository was named for is retired: its routes answer 410 and its
+pages one quiet line while `LEGACY_TWIN_ENABLED=false` (tracker, D1 and D20), and the files
+behind them are deleted thirty days on.
 
-## 🚀 Quick Start
+## Run it
 
 ```bash
-# Install dependencies
-npm install --legacy-peer-deps
-
-# Start development servers
-npm run dev         # Frontend: http://localhost:8086
-npm run server:dev  # Backend: http://localhost:3004
-
-# Or run both together
-npm run dev:full
+npm install
+npm run dev          # the app, http://localhost:8086
+npm run server:dev   # the API, http://localhost:3004
+npm run dev:full     # both
 ```
 
-## 🎯 Core Philosophy
+Copy `.env.example` to `.env` and fill the four the server refuses to start without
+(`JWT_SECRET`, `ENCRYPTION_KEY`, `VITE_SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`); the
+rest are optional and documented in place. `.env.example` is generated from the code
+(`node scripts/env-example.mjs`) and a test keeps it in step.
 
-While public information is easily cloned and commoditized, it lacks soul. Twin Me goes deeper by:
-- **Mapping your entertainment DNA** through streaming patterns and music moods
-- **Understanding your social dynamics** via gaming and community platforms
-- **Capturing professional identity** while preserving your personal essence
-- **Creating multi-dimensional twins** that reflect your authentic originality
+## Read first
 
-## ✨ Key Features
+- `docs/roadmap/PROGRESS.md` — the program tracker: directives, milestones, decisions
+  with their measurements, open questions. Read it first every session; two agents share it.
+- `CLAUDE.md` — how the product is built, the rules that hold in `api/services/money/`, the
+  design register. `AGENTS.md` is a generated copy (`npm run sync:agents`).
+- `docs/intel/INTEL.md` — market and technical context, triaged.
 
-### Soul Signature Discovery
-- Connect 10 platforms (Spotify, Google Calendar, YouTube, Gmail, Discord, LinkedIn, GitHub, Reddit, Twitch, Whoop)
-- Automatic pattern extraction from your digital footprints
-- Visual soul signature dashboard with life clusters
-
-### Revolutionary Privacy Controls - "What's To Reveal, What's To Share"
-- Granular intensity sliders (0-100%) for each aspect of your identity
-- Different privacy settings for different audiences
-- Life clusters: Personal, Professional, Creative, Social
-- Context-aware sharing (professional vs social vs personal)
-
-### Platform Connectors
-- ✅ **Has API**: Spotify, YouTube, GitHub, LinkedIn, Reddit, Discord
-- ⚠️ **Limited API**: Netflix, Instagram, TikTok
-- 🔧 **Browser Extension**: For platforms without APIs
-
-## 🏗️ Architecture
+## Where the money lives
 
 ```
-twin-me/
-├── src/                  # React frontend
-│   ├── pages/           # Page components
-│   ├── components/      # Reusable UI components
-│   └── contexts/        # State management
-├── api/                  # Express backend
-│   ├── routes/          # API endpoints
-│   ├── services/        # Business logic + memory architecture
-│   ├── middleware/      # Auth, rate limiting, validation
-│   └── config/          # AI model tiers, constants
-├── database/             # Supabase migrations
-└── public/              # Static assets
+bank feed / phone / email inbox / statement
+  -> money_sightings (what one channel saw)
+  -> ledger.js reconcile -> money_transactions
+  -> recurring.js / projection.js / calibration.js / allowance.js
+  -> routes/money.js -> pageRead.js (one read) -> src/pages/money/*
 ```
 
-## 🔑 Environment Setup
+Rules that hold everywhere in money: computed, not generated; one spending rule; evidence
+separate from conclusions; silence over guessing; the product scores itself. They are
+pinned by the goal tests under `tests/goals/`.
 
-Create a `.env` file:
+## Tests
 
-```env
-# Core
-PORT=3004
-VITE_APP_URL=http://localhost:8086
-VITE_API_URL=http://localhost:3004/api
-
-# Auth & crypto
-JWT_SECRET=your-jwt-secret
-ENCRYPTION_KEY=your-32-byte-encryption-key
-
-# Database (Supabase — the only active datastore)
-VITE_SUPABASE_URL=your-supabase-url
-VITE_SUPABASE_ANON_KEY=your-supabase-anon-key
-SUPABASE_SERVICE_ROLE_KEY=your-supabase-service-role-key
-
-# AI (all LLM calls route through OpenRouter)
-OPENROUTER_API_KEY=your-openrouter-key
-
-# Platform OAuth (see .env.example for the full list)
-GOOGLE_CLIENT_ID=your-google-client-id
-GOOGLE_CLIENT_SECRET=your-google-client-secret
-SPOTIFY_CLIENT_ID=your-spotify-client-id
-SPOTIFY_CLIENT_SECRET=your-spotify-client-secret
-YOUTUBE_API_KEY=your-youtube-key
+```bash
+npx vitest run                          # everything (the Postgres file needs a local database)
+npx vitest run --config vitest.money.config.ts --coverage   # money, with its floors
+npx playwright test --config playwright.money.config.ts     # the money pages in a browser
 ```
 
-`.env.example` is the canonical, complete list — copy it to `.env` and fill in values.
-
-## 📊 The Personal-Professional Spectrum
-
-### Personal Universe
-- **Entertainment**: Netflix narratives, Spotify moods, YouTube interests
-- **Gaming**: Discord communities, Steam patterns, Twitch engagement
-- **Social**: Reddit discussions, Twitter thoughts, Instagram aesthetics
-
-### Professional Universe
-- **Communication**: Email patterns, Slack dynamics, Teams collaboration
-- **Technical**: GitHub contributions, LinkedIn trajectory, portfolio work
-- **Productivity**: Calendar patterns, task management, documentation style
-
-## 🎛️ Life Clusters System
-
-**Personal Clusters**
-- Hobbies & Interests
-- Sports & Fitness
-- Spirituality & Religion
-- Entertainment Choices
-- Social Connections
-
-**Professional Clusters**
-- Studies & Education
-- Career & Jobs
-- Skills & Expertise
-- Achievements & Recognition
-
-**Creative Clusters**
-- Artistic Expression
-- Content Creation
-- Musical Identity
-
-## 🚦 Getting Started
-
-1. **Clone the repository**
-   ```bash
-   git clone https://github.com/stefanogebara/twin-ai-learn
-   cd twin-ai-learn
-   ```
-
-2. **Install dependencies**
-   ```bash
-   npm install --legacy-peer-deps
-   ```
-
-3. **Set up environment variables**
-   - Copy `.env.example` to `.env`
-   - Add your API keys and configuration
-
-4. **Run the application**
-   ```bash
-   npm run dev:full
-   ```
-
-5. **Access the platform**
-   - Frontend: http://localhost:8086
-   - Backend API: http://localhost:3004
-
-## 🔐 Security & Privacy
-
-- **Privacy-First Design**: Complete transparency on collected data
-- **Granular Controls**: Delete any portion of your data anytime
-- **Progressive Disclosure**: Start simple, unlock features as you share more
-- **Contextual Sharing**: Different aspects for different audiences
-- **Data Portability**: Export your entire profile anytime
-
-### Security posture
-
-- **Auth**: JWT (HS256) for app sessions; OAuth 2.0 + PKCE for platform connections.
-- **Secrets**: server-side env vars only, validated at startup; gitleaks pre-commit + CI gate; anything that ever leaked is rotated, not just removed from the diff.
-- **Tokens**: OAuth tokens encrypted at rest (AES-256-GCM); disconnecting a platform revokes the grant at the provider where an endpoint exists.
-- **Data isolation**: enforced in the API layer today (every user-scoped query filters by `user_id`); PII tables have RLS enabled with service-role-only policies; a database-level per-user backstop is planned.
-- **Hardening**: Helmet CSP + CORS allowlist, rate limiting on auth/OAuth/LLM endpoints, LLM spend ceilings, and prompt-injection fencing of untrusted context.
-
-**Reporting a vulnerability**: email stefanogebara@gmail.com with details and reproduction steps. Please do not open a public issue for security-sensitive reports.
-
-## 🛠️ Tech Stack
-
-- **Frontend**: React 18, TypeScript, Tailwind CSS, Vite
-- **Backend**: Node.js, Express, JWT Authentication
-- **AI**: OpenRouter gateway (DeepSeek V3.2 default, Claude Sonnet 4.6 for deep twin chat, Gemini 2.5 Flash for vision)
-- **Database**: Supabase (PostgreSQL)
-- **Auth**: OAuth 2.0 for platform connections
-
-## 📈 Roadmap
-
-- [ ] Real OAuth implementation for all platforms
-- [ ] Browser extension for Netflix/streaming data
-- [ ] Soul signature matching algorithm
-- [ ] Advanced visualization interface
-- [ ] API rate limiting and caching
-- [ ] Mobile applications
-- [ ] Blockchain-based identity verification
-
-## 🤝 Contributing
-
-This is a proprietary, closed-source project; external contributions are not accepted.
-
-## 📄 License
-
-Proprietary and confidential. Copyright (c) 2026 TwinMe. All rights reserved. This project is not open-source; no license is granted to use, copy, modify, or distribute this software.
-
-## 🙏 Acknowledgments
-
-Built with inspiration from the philosophy that true originality lies not in what we present publicly, but in the authentic patterns of our private choices and genuine curiosities.
-
----
-
-**Twin Me** - Discover what makes you authentically YOU ✨# Automated Deployment Test
-
+The nightly (`.github/workflows/goals-nightly.yml`) walks production as a signed-in person
+and grades every job into a report card.
