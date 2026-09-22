@@ -138,10 +138,10 @@ describe('PUT /:id/people — the family map is replaced in one step', () => {
     ]);
   });
 
-  it('clears the map through the same call when the list is empty', async () => {
+  it('clears the map through the same call when the list is empty and the caller means it', async () => {
     store.replaceActivePeople.mockResolvedValue(ok([]));
 
-    const res = await api('put', `/${PRESENCE_ID}/people`).send({ people: [] });
+    const res = await api('put', `/${PRESENCE_ID}/people`).send({ people: [], confirm_clear: true });
 
     expect(res.status).toBe(200);
     expect(res.body.people).toEqual([]);
@@ -698,5 +698,30 @@ describe('PATCH /:id — the emergency contact (Phase 2, T8)', () => {
     const res = await api('patch', `/${PRESENCE_ID}`).send({ emergency_phone: 'liga pra Ana' });
     expect(res.status).toBe(400);
     expect(store.updatePresence).not.toHaveBeenCalled();
+  });
+});
+
+describe('PUT /:id/people — an empty list never erases her family by accident (2026-09-20)', () => {
+  it('refuses an empty array instead of retiring every person', async () => {
+    const res = await api('put', `/${PRESENCE_ID}/people`).send({ people: [] });
+
+    expect(res.status).toBe(400);
+    expect(store.replaceActivePeople).not.toHaveBeenCalled();
+  });
+
+  it('refuses a list whose every entry is blank', async () => {
+    const res = await api('put', `/${PRESENCE_ID}/people`).send({ people: [{ name: '  ', relation: 'filha' }] });
+
+    expect(res.status).toBe(400);
+    expect(store.replaceActivePeople).not.toHaveBeenCalled();
+  });
+
+  it('still replaces the map when real people are sent', async () => {
+    store.replaceActivePeople.mockResolvedValue(ok([{ id: 'pp-1', name: 'Ana' }]));
+
+    const res = await api('put', `/${PRESENCE_ID}/people`).send({ people: [{ name: 'Ana', relation: 'neta', called_by: 'Aninha' }] });
+
+    expect(res.status).toBe(200);
+    expect(store.replaceActivePeople).toHaveBeenCalledWith(PRESENCE_ID, [{ name: 'Ana', relation: 'neta', called_by: 'Aninha' }]);
   });
 });
