@@ -56,7 +56,8 @@ describe('a reading in the reader own language', () => {
     };
     const said = readingWords(silence, pt, 'pt-BR', NOW);
     expect(said.sentence).toContain('Mercadona');
-    expect(said.sentence).toContain('a cada 3 dias');
+    /* The cadence moved to the grey line: display type carries one clause (2026-09-22). */
+    expect(said.detail).toContain('a cada 3 dias');
 
     const category = {
       kind: 'delta_category', sentence: 'STORED', detail: 'STORED',

@@ -26,7 +26,8 @@ export default function Readings({ m, view }: { m: MoneyAccount; view: 'today' |
                 <>
                   {/* The reading that moved the most money is the heading, not a row among rows: it is
                       the one sentence to read on the way out. Its receipts open under it. */}
-                  <p className="mv-eyebrow">{t('What changed')}</p>
+                  {/* No eyebrow: every section here is a heading, one grey line, a rule and rows;
+                      this one had a label on top as well (critic, 2026-09-22). */}
                   <button type="button" className="mv-lead" aria-expanded={openReading === lead.id} onClick={() => setOpenReading(openReading === lead.id ? null : lead.id)}>
                     {/* The ledger keeps the English sentence for the twin; the page says the same
                         numbers in the reader's own language (readingWords.ts, 2026-09-16). */}
@@ -51,7 +52,8 @@ export default function Readings({ m, view }: { m: MoneyAccount; view: 'today' |
                       <button type="button" className="mv-item" aria-expanded={isOpen} onClick={() => setOpenReading(isOpen ? null : r.id)}>
                         <span className="mv-item-text">
                           {(() => { const said = readingWords(r, t, locale); return (<>
-                            <span className="mv-item-title">{said.sentence}</span>
+                            {/* A row is not a heading: no full stop at the end of its title. */}
+                            <span className="mv-item-title">{said.sentence.replace(/\.$/, '')}</span>
                             {said.detail ? <span className="mv-item-sub">{said.detail}</span> : null}
                           </>); })()}
                         </span>
@@ -61,15 +63,11 @@ export default function Readings({ m, view }: { m: MoneyAccount; view: 'today' |
                     </li>
                   );
                 })}
-                {view === 'today' && readings.length > shown.length ? (
-                  <li>
-                    <Link to="/money/month#readings" className="mv-item">
-                      <span className="mv-item-text"><span className="mv-item-title">{t('All {n} readings', { n: readings.length })}</span></span>
-                      <span className="mv-item-end"><Chevron /></span>
-                    </Link>
-                  </li>
-                ) : null}
               </ul>
+              {/* A line, not an 80px row that was mostly air (2026-09-22). */}
+              {view === 'today' && readings.length > shown.length ? (
+                <Link to="/money/month#readings" className="mv-more-link">{t('All {n} readings', { n: readings.length })}<Chevron /></Link>
+              ) : null}
             </section>
   ) : null;
 }

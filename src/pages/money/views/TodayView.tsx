@@ -26,8 +26,9 @@ export default function TodayView({ m }: { m: MoneyAccount }) {
     <>
           {/* This month: one figure, one grey line, the band */}
           <section className={`mv-hero${loaded && !empty && today && today.amount !== null ? ' mv-hero--orb' : ''}`} id="month">
-            {/* the globe stands where the stamp stood */}
-            <p className="mv-eyebrow">{monthLabel}</p>
+            {/* The line that says what the figure is stands above it; the month moved into the
+                band's own label, where the month's figures are (critic, 2026-09-22). */}
+            <p className="mv-eyebrow">{loaded && !empty && today && today.amount !== null ? (today.over ? t('Over your budget') : t("Today's estimate")) : monthLabel}</p>
             {!loaded ? (
               /* The first seconds of a new account are the month being read; an ellipsis
                  where the number goes read as a broken figure to a stranger. */
@@ -58,8 +59,10 @@ export default function TodayView({ m }: { m: MoneyAccount }) {
                     <button type="button" className="mv-day-figure" aria-expanded={dayOpen} onClick={() => setDayOpen((o) => !o)}>
                       {/* Over budget, the figure is a hole, not a balance: "74,18 EUR" over a
                           grey "Over your budget" read as money to spend (2026-09-21). */}
-                      <span className="mv-day-value">{today.over ? `\u2212${euro(Math.abs(today.free ?? 0))}` : euro(today.amount)}</span>
-                      <span className="mv-quiet">{today.over ? t('Over your budget') : t("Today's estimate")}</span>
+                      {/* The currency sign a size down from the digits: at their height it read as a
+                          fourth numeral (critic, 2026-09-22). */}
+                      {(() => { const said = today.over ? `\u2212${euro(Math.abs(today.free ?? 0))}` : euro(today.amount); const at = said.search(/[\u00a0\u202f ]/); const digits = at > 0 ? said.slice(0, at) : said; const sign = at > 0 ? said.slice(at + 1) : '';
+                        return <span className="mv-day-value">{digits}{sign ? <span className="mv-day-cur">{'\u00a0'}{sign}</span> : null}</span>; })()}
                     </button>
                     <h1 className="mv-sr">{today.over ? t('Nothing today.') : t('{amount} today.', { amount: euro(today.amount) })}</h1>
                     {/* One line: the basis. The month lives in the band's two labels below. */}
@@ -122,7 +125,6 @@ export default function TodayView({ m }: { m: MoneyAccount }) {
                 {reconnect ? <p className="mv-sub">{t('The bank connection has ended. Reconnect it under Sources.')}</p> : null}
               </>
             )}
-            {loaded && !unread ? <HomeAsk /> : null}
             {forecast && !empty ? (
               <div className="mv-band">
                 {/* Ink for what has gone, grey to where the month lands. The spread stays in the
@@ -135,28 +137,33 @@ export default function TodayView({ m }: { m: MoneyAccount }) {
                   {incomeEdge && today?.keep ? <i className="mv-band-mark" style={{ left: `${pct(incomeEdge - today.keep, forecast, edge)}%` }} title={t('Keeping {amount}', { amount: euro(today.keep) })} /> : null}
                 </div>
                 <div className="mv-band-labels">
-                  <span>{t('Spent {amount}', { amount: euro(forecast.spent) })}</span>
+                  {/* The fact in ink, the forecast grey: what has gone is known, where it lands is the band's. */}
+                  <span className="mv-band-fact">{t('Spent {amount} in {month}', { amount: euro(forecast.spent), month: monthLabel })}</span>
                   {/* The track ends at what comes in when they said it; the likely figure and its
                       reach stay in the label so the band reads as spent, likely, and the wall. */}
+                  {/* The likely figure is the one a reader wants from the band; it carries the weight. */}
                   <span>
                     {(() => {
                       const likely = { amount: euro(Math.max(forecast.projected_p50, forecast.spent + forecast.committed)), high: euro(forecast.projected_p90), day: ordinalDay(t, last), income: euro(incomeEdge || 0) };
                       /* Three figures in one label ("Likely 1923,23, up to 2191,73; 1750,00 comes in")
                          is a line nobody parses; what comes in is already in the day's own line. */
-                      if (incomeEdge) return projectable ? t('Likely {amount}, up to {high}', likely) : t('Likely {amount}', likely);
-                      return projectable ? t('Likely {amount} by the {day}, up to {high}', likely) : t('Likely {amount} by the {day}', likely);
+                      /* One figure on the band: the reach ("up to") is the Month page's, and two figures
+                         for one grey segment was the line nobody parsed (2026-09-22). */
+                      if (incomeEdge) return t('Likely {amount}', likely);
+                      return t('Likely {amount} by the {day}', likely);
                     })()}
                   </span>
                 </div>
                 {ahead.length ? (
                   <>
-                  <p className="mv-sub mv-ahead-head">{t('Still to come this month')}</p>
+                  <p className="mv-ahead-head">{t('Still to come this month')}</p>
                   <ul className="mv-list mv-ahead" aria-label={t('Still to come this month')}>
                     {ahead.map((r) => (
                       <li key={`${r.kind}-${r.on}-${r.name}`} className="mv-item mv-item--tight mv-ahead-row">
                         <span className="mv-ahead-day">{shortDay(r.on, locale)}</span>
                         <span className="mv-item-text"><span className="mv-item-title">{r.name}</span><span className="mv-item-sub">{r.why}</span></span>
-                        <span className={`mv-item-end mv-figures${r.amount > 0 ? ' mv-ahead-in' : ''}`}>{r.amount > 0 ? '+' : ''}{euro(Math.abs(r.amount))}</span>
+                        {/* The empty action slot keeps the figure on the same x as the rows that open. */}
+                        <span className={`mv-item-end mv-figures mv-item-end--slot${r.amount > 0 ? ' mv-ahead-in' : ''}`}>{r.amount > 0 ? '+' : ''}{euro(Math.abs(r.amount))}</span>
                       </li>
                     ))}
                   </ul>
@@ -164,6 +171,9 @@ export default function TodayView({ m }: { m: MoneyAccount }) {
                 ) : null}
               </div>
             ) : null}
+            {/* Asking is the second act, not the first: the field sat between the number and the
+                band that explains it and split the one thing the screen is for (2026-09-22). */}
+            {loaded && !unread ? <HomeAsk /> : null}
           </section>
       <Readings m={m} view="today" />
       <Review m={m} />

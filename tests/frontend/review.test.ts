@@ -1,6 +1,6 @@
 /** The review is the week's heaviest spending without a verdict, five at most, largest first. */
 import { describe, expect, it } from 'vitest';
-import { reviewRows } from '../../src/pages/money/review';
+import { reviewRows, groupReviewRows } from '../../src/pages/money/review';
 import type { MoneyTransaction } from '../../src/services/api/moneyAPI';
 
 const now = new Date('2026-09-20T12:00:00Z');
@@ -15,5 +15,21 @@ describe('reviewRows', () => {
   });
   it('is empty when the week has nothing left to judge', () => {
     expect(reviewRows([row('a', -5, 9), row('b', -9, 1, { verdict: 'not_me' })], now)).toEqual([]);
+  });
+});
+
+describe('groupReviewRows', () => {
+  it('folds identical payments into one row that says how many, and keeps each for the verdict', () => {
+    const a = { ...row('a', -15, 3), merchant_raw: 'Hayque Capital' };
+    const b = { ...row('b', -15, 3), merchant_raw: 'Hayque Capital' };
+    const c = { ...row('c', -22.47, 1), merchant_raw: 'La Fruteria' };
+    const grouped = groupReviewRows([c, a, b]);
+    /* Largest first after folding: the two of 15,00 make 30,00 and rise above 22,47. */
+    expect(grouped.map((g) => [g.name, g.amount, g.rows.length])).toEqual([['Hayque Capital', 30, 2], ['La Fruteria', 22.47, 1]]);
+  });
+  it('keeps the same place on different days apart', () => {
+    const a = { ...row('a', -15, 3), merchant_raw: 'Hayque Capital' };
+    const b = { ...row('b', -15, 2), merchant_raw: 'Hayque Capital' };
+    expect(groupReviewRows([a, b])).toHaveLength(2);
   });
 });

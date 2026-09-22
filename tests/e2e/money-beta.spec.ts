@@ -124,7 +124,7 @@ test('home opens an editable chat draft without sending it', async ({page}) => {
   let sends=0; page.on('request',r=>{if(r.url().endsWith('/money/chat/stream')) sends++;});
   await page.goto('/money');
   await page.getByLabel('Ask about your money',{exact:true}).fill('Was the train a one-off?');
-  await page.getByRole('button',{name:'Open conversation'}).click();
+  await page.getByRole('button',{name:'Ask',exact:true}).click();
   await expect(page).toHaveURL(/\/money\/chat$/);
   await expect(page.getByRole('textbox',{name:'Ask about your money'})).toHaveValue('Was the train a one-off?');
   expect(sends).toBe(0);
@@ -144,7 +144,7 @@ test('confirmed chat correction refreshes Today even inside its 30-second cache'
   const state=await moneyFixture(page); state.offer=true;
   await page.goto('/money');
   await expect(page.locator('.mv-day-value')).toContainText('16,43');
-  await page.getByRole('button',{name:'Open conversation'}).click();
+  await page.getByRole('button',{name:'Ask',exact:true}).click();
   // Wait for the lazy route: Today also has a textbox with this accessible name.
   await expect(page.getByRole('heading', { name: 'Ask.', exact: true })).toBeVisible();
   const box=page.getByRole('textbox',{name:'Ask about your money'});
@@ -174,7 +174,7 @@ test('cards stay under their account and a confirmed type survives reload', asyn
 test('Today exposes its figure and conversation without a decorative globe', async ({page}) => {
   await moneyFixture(page); await page.goto('/money');
   await expect(page.locator('.mv-day-value')).toBeVisible();
-  await expect(page.getByRole('button',{name:'Open conversation'})).toBeInViewport();
+  await expect(page.getByRole('button',{name:'Ask',exact:true})).toBeInViewport();
   expect(await page.locator('main.mv').evaluate(e=>getComputedStyle(e).getPropertyValue('--section').trim())).toBe((page.viewportSize()?.width || 1440) < 768 ? '112px' : '160px');
   await page.screenshot({path:test.info().outputPath('today.png'),fullPage:true});
 });

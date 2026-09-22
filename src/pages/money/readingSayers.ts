@@ -118,12 +118,13 @@ export const SAYERS: Record<string, Sayer> = {
     if (days === null || gap === null || !name) return keep;
     const rounded = Math.round(gap);
     const every = rounded === 1 ? t('every day') : t('every {n} days', { n: rounded });
-    const sentence = away !== null && away >= 1
-      ? t('No {name} in {days} days, {away} away not counted; usually {every}.', { name, days, away: Math.round(away), every })
-      : t('No {name} in {days} days; usually {every}.', { name, days, every });
+    /* Display type carries one clause. The cadence, the count and the trip it does not count
+       are the grey line's (critic, 2026-09-22). */
+    const sentence = t('No {name} in {days} days.', { name, days });
+    const away_ = away !== null && away >= 1 ? (Math.round(away) === 1 ? t('One payment while you were away is not counted.') : t('{away} payments while you were away are not counted.', { away: Math.round(away) })) + ' ' : '';
     const first = s(num.first_seen);
-    if (times === null || amount === null || !first) return { sentence, detail: r.detail ?? null };
-    return { sentence, detail: t('{n} times since {day}, about {amount} each.', { n: times, day: dayAndMonth(first, locale), amount: euro(amount) }) };
+    if (times === null || amount === null || !first) return { sentence, detail: `${away_}${t('Usually {every}.', { every })}` };
+    return { sentence, detail: `${away_}${t('Usually {every}; {n} times since {day}, about {amount} each.', { every, n: times, day: dayAndMonth(first, locale), amount: euro(amount) })}` };
   },
 
   delta_weekday: ({ r, t, locale, num, keep, receipts }) => {

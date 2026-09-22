@@ -20,3 +20,24 @@ export function reviewRows(ledger: MoneyTransaction[], now = new Date(), { days 
     .sort((a, b) => Math.abs(Number(b.amount)) - Math.abs(Number(a.amount)))
     .slice(0, max);
 }
+
+/** One row per payment, or per set of identical payments. */
+export type ReviewRow = { id: string; rows: MoneyTransaction[]; name: string; amount: number; occurred_at: string };
+
+/**
+ * Two identical adjacent rows look like a bug on a screen whose promise is that it
+ * understands the money (2026-09-22): the same place, the same day, the same figure are one
+ * row saying "2 payments", and a verdict on it is a verdict on each. Pure.
+ */
+export function groupReviewRows(rows: MoneyTransaction[]): ReviewRow[] {
+  const out = new Map<string, ReviewRow>();
+  for (const t of rows) {
+    const name = String(t.merchant_name || t.merchant_raw || '').trim();
+    const key = `${name.toLowerCase()}|${Math.abs(Number(t.amount)).toFixed(2)}|${String(t.occurred_at).slice(0, 10)}`;
+    const got = out.get(key);
+    if (got) { got.rows.push(t); got.amount += Math.abs(Number(t.amount)); continue; }
+    out.set(key, { id: t.id, rows: [t], name, amount: Math.abs(Number(t.amount)), occurred_at: t.occurred_at });
+  }
+  /* Largest first, after folding: two of 15,00 are 30,00 and belong above 22,47 (2026-09-22). */
+  return [...out.values()].sort((a, b) => b.amount - a.amount);
+}
