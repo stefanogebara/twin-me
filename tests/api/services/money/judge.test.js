@@ -8,7 +8,7 @@
 import { describe, it, expect, vi } from 'vitest';
 vi.mock('../../../../api/services/logger.js', () => ({ createLogger: () => ({ warn() {}, info() {}, error() {}, debug() {} }) }));
 
-const { placeQuestion, acceptedCategory, judgePlace, ACCEPT_AT, JUDGE_CATEGORIES, JUDGE_URL } = await import('../../../../api/services/money/judge.js');
+const { placeQuestion, acceptedCategory, judgePlace, shouldJudge, ACCEPT_AT, JUDGE_CATEGORIES, JUDGE_URL } = await import('../../../../api/services/money/judge.js');
 
 const answer = (choice, p) => ({ kind: { type: 'choice', choice, probabilities: { [choice]: p } } });
 const ok = (body) => vi.fn(async () => ({ ok: true, status: 200, json: async () => body }));
@@ -72,5 +72,21 @@ describe('asking', () => {
     expect(await judgePlace({ name: 'X' }, { fetchImpl, apiKey: '' })).toBe(null);
     expect(await judgePlace({ name: '' }, { fetchImpl, apiKey: 'k' })).toBe(null);
     expect(fetchImpl).not.toHaveBeenCalled();
+  });
+});
+
+describe('whether to ask at all', () => {
+  it('asks only about a merchant nothing has placed', () => {
+    expect(shouldJudge({ category: null, hasOwnWord: false })).toBe(true);
+    expect(shouldJudge({ category: 'groceries', hasOwnWord: false })).toBe(false);
+  });
+
+  it('never asks about a merchant the person has a word on: their word is not for checking', () => {
+    expect(shouldJudge({ category: null, hasOwnWord: true })).toBe(false);
+    expect(shouldJudge({ category: 'groceries', hasOwnWord: true })).toBe(false);
+  });
+
+  it('asks when told nothing', () => {
+    expect(shouldJudge()).toBe(true);
   });
 });

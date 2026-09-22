@@ -94,6 +94,14 @@ export function acceptedCategory(answer, { floor = ACCEPT_AT } = {}) {
 }
 
 /**
+ * Whether to ask at all. Pure, and the whole gate in one place: only a merchant nothing has
+ * placed, and never one this person has a word on — their word is not something to check.
+ */
+export function shouldJudge({ category = null, hasOwnWord = false } = {}) {
+  return !category && !hasOwnWord;
+}
+
+/**
  * Ask about one merchant. Returns { category, confidence } or null — never throws, because a
  * judge that cannot be reached must leave the merchant unread rather than break the run that
  * was enriching it.
