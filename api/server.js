@@ -229,6 +229,11 @@ const authLimiter = rateLimit({
   legacyHeaders: false,
 });
 
+/* The retired twin's routes answer 410 here, before any router sees them, while the twin is
+   parked (LEGACY_TWIN_ENABLED=false). The list and the switch live in middleware/legacyTwin.js;
+   the goal test holds the list complete against every mount below (2026-09-22, M1-A). */
+app.use('/api', legacyTwinRouteGate);
+
 // Apply auth rate limiter before general API limiter
 app.use('/api/auth/verify', verifyLimiter);
 app.use('/api/auth/signin', authLimiter);
@@ -325,7 +330,7 @@ app.use((req, res, next) => {
 
 // Structured request logging (before routes, after rate limiting)
 import { requestLogger } from './services/logger.js';
-import { legacyTwinGate } from './middleware/legacyTwin.js';
+import { legacyTwinGate, legacyTwinRouteGate } from './middleware/legacyTwin.js';
 app.use(requestLogger());
 
 // Billing webhook needs raw body — mount BEFORE express.json

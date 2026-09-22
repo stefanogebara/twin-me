@@ -76,4 +76,7 @@ export const ES: Record<string, string> = {
   'Comes in, seen before, not said': 'Entra, visto antes, no dicho',
   ', {pct}% on time': ', {pct}% puntual',
   'Answer a question on Money, You, or tell the chat something.': 'Responde una pregunta en Dinero, T\u00fa, o cu\u00e9ntale algo al chat.',
+  'This part of TwinMe is retired.': 'Esta parte de TwinMe se ha retirado.',
+  'The product is your money. Everything you can do is there.': 'El producto es tu dinero. Todo lo que puedes hacer est\u00e1 ah\u00ed.',
+  'Go to your money': 'Ir a tu dinero',
 };

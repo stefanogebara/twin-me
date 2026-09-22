@@ -45,8 +45,8 @@ function MoneyForAccount({ view = 'today', userId }: { view?: MoneyView; userId:
           <footer className="mv-foot">
             <Link to="/privacy-policy">{t('Privacy')}</Link>
             <Link to="/terms">{t('Terms')}</Link>
-            {/* The one door back to the rest of TwinMe, so Money is not a room without an exit. */}
-            <Link to="/today">{t('Your twin')}</Link>
+            {/* "Your twin" led to /today, a page of the retired product that now answers with a
+                parked line. Money is the product; there is no other room (2026-09-22). */}
           </footer>
         </div>
       </div>

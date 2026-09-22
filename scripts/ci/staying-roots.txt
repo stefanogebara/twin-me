@@ -1,0 +1,47 @@
+# The entry points of the product that stays mounted (D19/D20, 2026-09-22). Everything they
+# reach stays; a mount whose router none of them reach is parked by legacyTwinRouteGate and
+# listed in LEGACY_TWIN_ROUTES. tests/goals/legacy-twin-unmounted.goal.test.js holds the two
+# lists complete against each other. One path per line, repository-relative.
+
+# money
+api/routes/money.js
+api/routes/cron-money-pull.js
+api/routes/cron-money-learn.js
+api/routes/cron-statement-nag.js
+api/routes/purchase-notification.js
+api/routes/whatsapp-kapso-webhook.js
+api/routes/whatsapp-import.js
+api/routes/whatsapp-link.js
+api/routes/email-unsubscribe.js
+# sign-in and the platform tokens money reads (Google Calendar, Gmail receipts)
+api/routes/auth-simple.js
+api/routes/oauth-callback.js
+api/routes/calendar-oauth.js
+api/routes/account.js
+api/routes/consent.js
+api/routes/feature-flags.js
+# presence (Codex's area)
+api/routes/presence.js
+api/routes/presence-call.js
+api/routes/cron-presence-calls.js
+api/routes/webhooks-elevenlabs.js
+# money, billing and platform webhooks
+api/routes/billing.js
+api/routes/webhooks.js
+api/routes/inngest.js
+# the beta programme
+api/routes/beta.js
+api/routes/beta-public.js
+api/routes/beta-feedback.js
+api/routes/beta-admin.js
+# the extension and the desktop download page
+api/routes/extension-data.js
+api/routes/desktop-download.js
+# health and housekeeping
+api/routes/health.js
+api/routes/system-health.js
+api/routes/cron-health-monitor.js
+api/routes/cron-stripe-webhook-events-cleanup.js
+api/routes/cron-llm-usage-log-cleanup.js
+api/routes/cron-agent-actions-cleanup.js
+api/routes/cron-nango-orphan-cleanup.js
