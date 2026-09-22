@@ -32,7 +32,7 @@ describe('shouldBounceToExpiredAuth', () => {
     expect(shouldBounceToExpiredAuth(true, '/waitlist')).toBe(false);
     expect(shouldBounceToExpiredAuth(true, '/terms')).toBe(false);
     expect(shouldBounceToExpiredAuth(true, '/preview')).toBe(false);
-    expect(shouldBounceToExpiredAuth(true, '/preview/dashboard')).toBe(false);
+    expect(shouldBounceToExpiredAuth(true, '/preview/presence')).toBe(false);
     expect(shouldBounceToExpiredAuth(true, '/s/some-user')).toBe(false);
   });
 });
@@ -47,7 +47,7 @@ describe('isPublicRoute', () => {
       '/waitlist', '/beta',
       '/oauth/callback', '/auth/callback', '/oauth/gmail/callback',
       '/terms', '/terms-of-service', '/privacy', '/privacy-policy',
-      '/preview', '/preview/talk', '/p/user-1', '/s/user-1',
+      '/preview', '/preview/stardust', '/p/user-1', '/s/user-1',
     ]) {
       expect(isPublicRoute(p), `${p} should be public`).toBe(true);
     }
