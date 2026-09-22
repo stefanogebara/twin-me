@@ -21,6 +21,7 @@
  */
 
 import { addMemory } from '../memoryStreamService.js';
+import { legacyTwinParked } from '../../middleware/legacyTwin.js';
 import { createLogger } from '../logger.js';
 
 const log = createLogger('money-twin-bridge');
@@ -154,6 +155,16 @@ export function memoryForTurn({ role, text } = {}) {
 }
 
 /** One write, with the stream's own dedupe and no model call. */
+/**
+ * Nothing crosses the bridge while the twin is parked (D1, LEGACY_TWIN_ENABLED=false):
+ * nothing reads the memory stream, so every sentence buys an embedding for nobody. Measured
+ * 2026-09-22: 567 money memories in thirty days against 26 twin conversations by everyone,
+ * and 517 of those 567 were written by two evenings of chat evaluation. Unparking refills it
+ * on the next refresh - readings, patterns and facts are recomputed and written again - and
+ * only the turn transcript of a parked twin is lost, which is worth nothing.
+ */
+const closed = () => legacyTwinParked();
+
 async function write(userId, memory, label) {
   if (!memory) return false;
   try {
@@ -174,6 +185,7 @@ async function write(userId, memory, label) {
  * nothing, and one they edited is written as the new claim it is.
  */
 export async function tellTwinFacts(userId, facts = []) {
+  if (closed()) return { written: 0 };
   if (!userId || !facts.length) return { written: 0 };
   let written = 0;
   for (const fact of facts) {
@@ -184,11 +196,13 @@ export async function tellTwinFacts(userId, facts = []) {
 
 /** What it worked out on its own, in the twin's stream. */
 export async function tellTwinPatterns(userId, patterns = []) {
+  if (closed()) return { written: 0 };
   return tellTwin(userId, patterns);
 }
 
 /** One turn of the money conversation, in the twin's stream. */
 export async function tellTwinTurn(userId, turn) {
+  if (closed()) return { written: 0 };
   if (!userId) return { written: 0 };
   const written = await write(userId, memoryForTurn(turn), 'turn');
   return { written: written ? 1 : 0 };
@@ -200,6 +214,7 @@ export async function tellTwinTurn(userId, turn) {
  * a sentence whose numbers moved is written as the new fact it is.
  */
 export async function tellTwin(userId, findings = []) {
+  if (closed()) return { written: 0 };
   if (!userId || !findings.length) return { written: 0 };
   let written = 0;
   for (const finding of findings) {

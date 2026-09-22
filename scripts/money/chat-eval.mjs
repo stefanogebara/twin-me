@@ -7,7 +7,8 @@
  * link), scores each reply on what can be checked without opinion, and, with --judge, asks
  * the analysis-tier model one narrow question about each reply: did it address what was
  * typed. Writes a JSON record of the run and prints a table. The turns it creates are
- * deleted afterwards, so the person's conversation is not littered.
+ * deleted afterwards, so the person's conversation is not littered - and so are the twin
+ * memories each turn writes, which the first version of this left behind.
  *
  *   node scripts/money/chat-eval.mjs [--api http://127.0.0.1:3014] [--only id,id] [--judge] [--out dir]
  *
@@ -150,6 +151,20 @@ async function judge(s, reply, token) {
   const turns = cleaned.data || [];
   if (cleaned.error) console.log(`turns could not be read: ${cleaned.error.message}; delete them by hand since ${startedAt}`);
   if (turns.length) { const { error } = await sb.from('money_chat_turns').delete().in('id', turns.map((t) => t.id)); if (error) console.log(`turns could not be deleted: ${error.message}`); }
+  /* Every turn also crossed the bridge into the twin's memory stream, and deleting the turn
+     left the memory behind: 517 of them from two evenings of evaluation, found 2026-09-22.
+     The bridge is quiet while the twin is parked, so this usually removes nothing - it is
+     here for the run where it is not. */
+  const { data: memories, error: memoryError } = await sb.from('user_memories')
+    .select('id').eq('user_id', userId).eq('memory_type', 'conversation')
+    .filter('metadata->>source', 'eq', 'money').gte('created_at', startedAt);
+  if (memoryError) console.log(`twin memories could not be read: ${memoryError.message}; delete them by hand since ${startedAt}`);
+  let memoriesCleaned = 0;
+  if (memories?.length) {
+    const { error } = await sb.from('user_memories').delete().in('id', memories.map((m) => m.id));
+    if (error) console.log(`twin memories could not be deleted: ${error.message}`);
+    else memoriesCleaned = memories.length;
+  }
   const passed = results.filter((r) => r.pass).length;
   if (RUNS > 1) {
     const allK = [...runsOf.entries()].filter(([, v]) => v.every(Boolean)).length;
@@ -157,7 +172,7 @@ async function judge(s, reply, token) {
   }
   const byCheck = {};
   for (const r of results) for (const [k, v] of Object.entries(r.checks)) { byCheck[k] = byCheck[k] || { pass: 0, fail: 0 }; byCheck[k][v ? 'pass' : 'fail'] += 1; }
-  console.log(`\n${passed}/${results.length} passed. By check: ${Object.entries(byCheck).map(([k, v]) => `${k} ${v.pass}/${v.pass + v.fail}`).join(', ')}. Turns cleaned: ${turns?.length || 0}.`);
+  console.log(`\n${passed}/${results.length} passed. By check: ${Object.entries(byCheck).map(([k, v]) => `${k} ${v.pass}/${v.pass + v.fail}`).join(', ')}. Turns cleaned: ${turns?.length || 0}, twin memories cleaned: ${memoriesCleaned}.`);
   fs.mkdirSync(OUT, { recursive: true });
   const file = path.join(OUT, `${startedAt.replace(/[:.]/g, '-')}.json`);
   fs.writeFileSync(file, JSON.stringify({ startedAt, api: API, judge: JUDGE ? JUDGE_MODEL : null, passed, total: results.length, byCheck, results }, null, 1));
