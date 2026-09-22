@@ -37,21 +37,24 @@ const PASSAGES = [
     id: 'greeting',
     label: 'Um oi',
     hint: 'Fale como se ela tivesse acabado de atender.',
-    text: 'Oi! Ai, que bom te ouvir... tudo bem com cê? Tava com saudade de conversar contigo, viu.',
+    text: 'Oi! Ai, que bom te ouvir... tudo bem com cê? Tava com saudade de conversar contigo, viu. Aqui tá tudo bem, sim. Ontem eu fiquei pensando na senhora, lembrei daquela história que a senhora contou do vestido azul, e fiquei rindo sozinho. Como é que foi a sua semana? Me conta tudo, que eu tenho tempo.',
   },
   {
     id: 'memory',
     label: 'Uma lembrança',
     hint: 'Sem pressa. Deixe as pausas onde elas caem.',
-    text: 'Lembra daquele domingo na casa da praia? A gente ficou a tarde inteira na cozinha, você contando história, e ninguém queria ir embora. Foi um dos dias mais bonitos que eu lembro.',
+    text: 'Lembra daquele domingo na casa da praia? A gente ficou a tarde inteira na cozinha, você contando história, e ninguém queria ir embora. Tinha aquele cheiro de comida no ar, a janela aberta, e o barulho do mar lá longe. Eu era pequeno e achava que o dia não ia acabar nunca. Foi um dos dias mais bonitos que eu lembro, e eu penso nele até hoje, sempre que bate um sol assim.',
   },
   {
     id: 'question',
     label: 'Uma pergunta',
     hint: 'Termine perguntando de verdade, e pare.',
-    text: 'E aí, como foi o seu dia hoje? Conta pra mim. Você comeu direitinho? Quem que passou aí?',
+    text: 'E aí, como foi o seu dia hoje? Conta pra mim, com calma. Você comeu direitinho? Quem que passou aí pra te ver? Eu quero saber das coisas pequenas também, viu, não precisa ser novidade grande. Se choveu, se o vizinho apareceu, se passou alguma coisa boa na televisão. Eu gosto de ouvir. Então me diz: o que foi a melhor parte do seu dia?',
   },
 ] as const;
+
+/** ElevenLabs asks for one to two minutes; 25 seconds made a thin clone. */
+const TARGET_SECONDS = 90;
 
 const MODELS: Array<{ id: PresenceVoiceModel; label: string; line: string }> = [
   { id: 'eleven_v3_conversational', label: 'Expressivo', line: 'O que as ligações usam hoje. Mais emoção, 280 ms.' },
@@ -132,6 +135,7 @@ export default function PresenceVoiceSetup() {
   // must not ask a second time for something already answered. A revoke writes
   // own_voice_revoked, so the question comes back exactly when it should.
   const consented = justConsented || overview.voice_consent === 'own_voice';
+  const captured = voice?.sample_seconds ?? 0;
   const caller = presence.caller_name?.trim() || 'você';
 
   async function giveConsent() {
@@ -150,10 +154,20 @@ export default function PresenceVoiceSetup() {
     setError(null);
     setNote(null);
     try {
+      // Echo cancellation, noise suppression and automatic gain are built for
+      // phone calls: they pump the level and strip the spectral detail a clone
+      // is built from. ElevenLabs asks for clean, unprocessed audio, and says
+      // how it was recorded matters more than how much of it there is.
       const stream = await navigator.mediaDevices.getUserMedia({
-        audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
+        audio: {
+          echoCancellation: false,
+          noiseSuppression: false,
+          autoGainControl: false,
+          channelCount: 1,
+          sampleRate: 48000,
+        },
       });
-      const recorder = new MediaRecorder(stream);
+      const recorder = new MediaRecorder(stream, { audioBitsPerSecond: 128000 });
       streamRef.current = stream;
       recorderRef.current = recorder;
       chunksRef.current = [];
@@ -239,8 +253,8 @@ export default function PresenceVoiceSetup() {
           <h1 className="pc-apphead-title">A sua voz</h1>
           <p className="pc-apphead-line">
             {voiceReady
-              ? `As ligações dela usam a sua voz${voice?.sample_count ? ` · ${voice.sample_count} ${voice.sample_count === 1 ? 'amostra' : 'amostras'}` : ''}.`
-              : 'Três trechos curtos, e ela passa a ouvir você.'}
+              ? `As ligações dela usam a sua voz${captured ? ` · ${captured}s gravados` : ''}.`
+              : 'Três trechos, e ela passa a ouvir você. Quanto mais voz, melhor a cópia.'}
           </p>
         </header>
 
@@ -281,7 +295,12 @@ export default function PresenceVoiceSetup() {
           <section className="pc-appsection" aria-labelledby="rec-head">
             <div className="pc-sechead">
               <h2 className="pc-sechead-title" id="rec-head">Grave os três trechos</h2>
-              <p className="pc-sechead-line">Num lugar silencioso, no seu ritmo. Cada um leva menos de um minuto.</p>
+              <p className="pc-sechead-line">
+                Num lugar silencioso, sem pressa, lendo até o fim.{' '}
+                {captured >= TARGET_SECONDS
+                  ? `${captured}s gravados — já dá uma boa cópia.`
+                  : `${captured}s de cerca de ${TARGET_SECONDS}s. Abaixo disso a cópia sai fraca.`}
+              </p>
             </div>
             <ul className="pc-list">
               {PASSAGES.map((passage) => {
