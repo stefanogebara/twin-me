@@ -47,6 +47,7 @@ import { calendarLines } from './calendar.js';
 import { safeToSpend, allowanceLine } from './allowance.js';
 import { partsIn, weekdayIn, dayIn } from './zone.js';
 import { quietly } from './quietly.js';
+import { selectTransactions } from './transactionRepository.js';
 
 const log = createLogger('money-chat');
 
@@ -209,30 +210,37 @@ export function euroGlyphs(text) {
  */
 export async function gather(userId, now = new Date()) {
   const settled = async (p, fallback) => { try { return await p; } catch (e) { log.warn(`chat gather: ${e.message}`); return fallback; } };
-  const [transactions, segments, cast, recurring, readings, facts, questions, places] = await Promise.all([
-    settled(listTransactions(userId, { currency: 'EUR', limit: 5000 }), []),
-    settled(months(userId, now), []),
-    settled(forecast(userId, now), null),
-    settled(refreshRecurring(userId, now), []),
+  /* The ledger and the facts once, then every derived part from those rows: before this each
+     of months, forecast, recurring and the two category reads walked the ledger and read
+     money_facts again (M2-A, 2026-09-22). With the calendar's own rows filtered out,
+     calendarLines below had nothing to say and Ask answered as though no diary existed. The
+     lens keeps them out of what is shown; here they are working memory the answer needs
+     (2026-09-16). */
+  const [allTransactions, facts] = await Promise.all([
+    settled(listTransactions(userId, { limit: 20000, includeRejected: true }), null),
+    settled(listFacts(userId, { includeInternal: true }), null),
+  ]);
+  const given = { ...(allTransactions ? { transactions: allTransactions } : {}), ...(facts ? { facts } : {}) };
+  const [segments, cast, recurring, readings, questions, places] = await Promise.all([
+    settled(months(userId, now, given), []),
+    settled(forecast(userId, now, given), null),
+    settled(refreshRecurring(userId, now, given), []),
     settled(listReadings(userId), []),
-    /* With the calendar's own rows filtered out, calendarLines below had nothing to say and
-       Ask answered as though no diary existed. The lens keeps them out of what is shown;
-       here they are working memory the answer needs (2026-09-16). */
-    settled(listFacts(userId, { includeInternal: true }), []),
     settled(questionsFor(userId, now), { opening: [], fromLedger: [], answered: 0 }),
     settled(listPlaces(userId), []),
   ]);
+  const transactions = allTransactions ? selectTransactions(allTransactions, { currency: 'EUR', limit: 5000 }) : [];
   const [accounts, language] = await Promise.all([settled(Promise.resolve().then(() => listBankAccounts(userId)), []), settled(Promise.resolve().then(() => userLanguage(userId)), null)]);
   const thisMonth = cast?.month || `${now.toISOString().slice(0, 7)}-01`;
   const lastMonth = (() => { const d = new Date(`${thisMonth}T12:00:00Z`); d.setUTCMonth(d.getUTCMonth() - 1); return d.toISOString().slice(0, 8) + '01'; })();
   /* Last month's kinds of place go in beside this month's: asked "and last month?" the model
      attributed September's groceries to August, because August had no line of its own. */
   const [categories, lastCategories] = await Promise.all([
-    settled(categorySpend(userId, { month: thisMonth }), { month: thisMonth, total: 0, read: 0, groups: [] }),
-    settled(categorySpend(userId, { month: lastMonth }), { month: lastMonth, total: 0, read: 0, groups: [] }),
+    settled(categorySpend(userId, { month: thisMonth, facts }), { month: thisMonth, total: 0, read: 0, groups: [] }),
+    settled(categorySpend(userId, { month: lastMonth, facts }), { month: lastMonth, total: 0, read: 0, groups: [] }),
   ]);
   const returns = await settled(listReturnsClosing(userId, now, { within: 14 }), []);
-  return assemble({ transactions, segments, forecast: cast, recurring, readings, facts, questions, places, categories, lastCategories, accounts, language, now, returns });
+  return assemble({ transactions, segments, forecast: cast, recurring, readings, facts: facts || [], questions, places, categories, lastCategories, accounts, language, now, returns });
 }
 
 /**

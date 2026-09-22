@@ -48,8 +48,13 @@ export function isInboxConfigured() {
 
 /* ------------------------------------------------------------------ the address */
 
-/** The person's own address, minted once and kept as a fact the page never shows as a fact. */
-export async function inboxAddress(userId) {
+/**
+ * The person's own address, minted once and kept as a fact the page never shows as a fact.
+ * @param {{ facts?: object[] }} given every fact, already read, when the caller holds them (M2-A).
+ */
+export async function inboxAddress(userId, given = {}) {
+  const known = given.facts?.find((f) => f.kind === INBOX_FACT_KIND && f.value);
+  if (known) return known.value;
   const { data: existing } = await supabaseAdmin
     .from('money_facts')
     .select('value')

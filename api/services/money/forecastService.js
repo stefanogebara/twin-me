@@ -19,23 +19,28 @@ import { calibrate, carriedWiden, dayStrip } from './calibration.js';
 import { currentFigureScores } from './figureScoreStore.js';
 import { calendarForecast } from './calendar.js';
 import { dayIn } from './zone.js';
-import { listEuroTransactions, listTransactions } from './transactionRepository.js';
-import { listFacts } from './factsRepository.js';
+import { listEuroTransactions, listTransactions, selectTransactions } from './transactionRepository.js';
+import { listFacts, publicFacts } from './factsRepository.js';
 import { quietly } from './quietly.js';
 
 const log = createLogger('money-forecast');
 
-export async function forecast(userId, now = new Date()) {
+/**
+ * @param {{ facts?: object[], transactions?: object[] }} given rows the caller already read:
+ *   every fact with the internal ones, and the ledger with its rejected rows. The page and the
+ *   chat read each once and hand them to every part (M2-A, 2026-09-22); alone, this reads.
+ */
+export async function forecast(userId, now = new Date(), given = {}) {
   const since = new Date(now.getTime() - 100 * 86400000).toISOString();
   const [rows, rec, facts] = await Promise.all([
-    listEuroTransactions(userId, { since, limit: 5000 }),
+    given.transactions ? selectTransactions(given.transactions, { since, limit: 5000, currency: 'EUR' }) : listEuroTransactions(userId, { since, limit: 5000 }),
     supabaseAdmin.from('money_recurring').select('*').eq('user_id', userId).then((r) => {
       if (r.error) throw new Error(`Cannot read recurring commitments: ${r.error.message}`);
       return r.data || [];
     }),
     /* With the internal rows: the calendar's snapshot lives in one, and without it the
        forecast never saw what the diary said was coming. */
-    listFacts(userId, { includeInternal: true }),
+    given.facts ?? listFacts(userId, { includeInternal: true }),
   ]);
 
   /* What the person told us, turned into the four things it changes: money already spoken
@@ -105,8 +110,11 @@ export async function forecast(userId, now = new Date()) {
   return result;
 }
 
-export async function months(userId, now = new Date()) {
-  const [transactions, facts] = await Promise.all([listEuroTransactions(userId, { limit: 5000 }), listFacts(userId).catch(quietly('forecast/facts', () => []))]);
+export async function months(userId, now = new Date(), given = {}) {
+  const [transactions, facts] = await Promise.all([
+    given.transactions ? selectTransactions(given.transactions, { limit: 5000, currency: 'EUR' }) : listEuroTransactions(userId, { limit: 5000 }),
+    given.facts ? publicFacts(given.facts) : listFacts(userId).catch(quietly('forecast/facts', () => [])),
+  ]);
   return monthSegments(transactions, now, spendingRule(facts));
 }
 

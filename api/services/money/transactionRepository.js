@@ -32,6 +32,22 @@ export async function listTransactions(userId, { since, limit = 10000, currency 
 export const listEuroTransactions = (userId, options = {}) => listTransactions(userId, { ...options, currency: 'EUR' });
 
 /**
+ * The same selection listTransactions makes, on rows already read: `since` is inclusive on
+ * occurred_at, `currency` is equality, a rejected row is out unless asked for, and the same
+ * safety bound applies (money_ledger_page orders by occurred_at desc, id desc, and these rows
+ * keep that order). The page reads the ledger once and hands each part its own slice
+ * (M2-A, 2026-09-22).
+ */
+export function selectTransactions(rows, { since, limit = 10000, currency = null, includeRejected = false } = {}) {
+  const from = since ? new Date(since).getTime() : null;
+  const out = (rows || []).filter((row) => (from == null || new Date(row.occurred_at).getTime() >= from)
+    && (currency == null || row.currency === currency)
+    && (includeRejected || row.verdict !== 'not_me'));
+  if (out.length > limit) throw new Error('The ledger is larger than this analysis window. Choose a shorter date range.');
+  return out;
+}
+
+/**
  * Every person who has a ledger at all: bank feed, statement, phone or receipts. A cron that
  * writes the day down and scores it is about the ledger, not the bank, so it must not be
  * gated on who has a bank job to claim (2026-09-19). One page of ids, distinct.

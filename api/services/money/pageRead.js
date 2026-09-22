@@ -10,8 +10,8 @@
  */
 import { forecast, months } from './forecastService.js';
 import { todayAllowance } from './allowanceService.js';
-import { listTransactions } from './transactionRepository.js';
-import { listFacts } from './factsRepository.js';
+import { listTransactions, selectTransactions } from './transactionRepository.js';
+import { listFacts, publicFacts } from './factsRepository.js';
 import { refreshRecurring, listBankAccounts, reconnectByAccount, listReadings, categorySpend, subscriptionUsage } from './store.js';
 import { accountsWithCards } from './instruments.js';
 import { moneyCapabilities } from './betaCapabilities.js';
@@ -25,12 +25,13 @@ export const PAGE_VIEWS = new Set(['today', 'month', 'you']);
 const LEDGER_LIMIT = 20000;
 
 /** The bank accounts as the page shows them: each with its cards and its own connection state. */
-export async function accountsView(userId) {
+/** @param {{ facts?: object[], transactions?: object[] }} given the page's one read of each, handed to the card grouping (M2-A). */
+export async function accountsView(userId, given = {}) {
   const [accounts, gone] = await Promise.all([listBankAccounts(userId), reconnectByAccount(userId).catch(quietly('page/reconnect-check', () => new Set()))]);
   /* The connection's state travels with the accounts, each with its own: a month that
      stopped moving because one bank ended its session must say which bank, and not send
      the person to reconnect the other. */
-  return (await accountsWithCards(userId, accounts)).map((row) => {
+  return (await accountsWithCards(userId, accounts, given)).map((row) => {
     const a = { ...row, needs_reconnect: gone.has(row.id) };
     delete a.session_id; delete a.created_at;
     return a;
@@ -44,24 +45,29 @@ export async function accountsView(userId) {
 export async function readPage(userId, { view = 'today', now = new Date() } = {}) {
   if (!userId) throw new Error('userId required');
   if (!PAGE_VIEWS.has(view)) throw new Error(`Unknown view: ${view}`);
-  /* The day rests on the month's forecast and its segments; read once, handed on. */
-  const cast = forecast(userId, now);
-  const segments = months(userId, now);
+  /* The ledger and the facts are read once each and handed to every part; before this the
+     page read money_facts six times and walked the ledger five times for one screen (M2-A,
+     2026-09-22). The day rests on the month's forecast and its segments, also read once. */
+  const facts = listFacts(userId, { includeInternal: true });
+  const ledger = listTransactions(userId, { limit: LEDGER_LIMIT, includeRejected: true });
+  const given = Promise.all([facts, ledger]).then(([f, t]) => ({ facts: f, transactions: t }));
+  const cast = given.then((g) => forecast(userId, now, g));
+  const segments = given.then((g) => months(userId, now, g));
   const reads = {
     forecast: cast,
     months: segments,
-    today: Promise.all([cast, segments]).then(([c, s]) => todayAllowance(userId, now, { cast: c, segments: s })),
-    ledger: listTransactions(userId, { limit: LEDGER_LIMIT }),
-    recurring: refreshRecurring(userId),
-    accounts: accountsView(userId),
+    today: Promise.all([given, cast, segments]).then(([g, c, s]) => todayAllowance(userId, now, { ...g, cast: c, segments: s })),
+    ledger: ledger.then((rows) => selectTransactions(rows, { limit: LEDGER_LIMIT })),
+    recurring: given.then((g) => refreshRecurring(userId, now, g)),
+    accounts: given.then((g) => accountsView(userId, g)),
     readings: listReadings(userId),
-    facts: listFacts(userId),
+    facts: facts.then(publicFacts),
     seen: seenBy(userId),
     sources: sourceCounts(userId, { now }),
-    categories: categorySpend(userId, { month: firstOfMonthIn(now) }),
-    usage: subscriptionUsage(userId),
+    categories: facts.then((f) => categorySpend(userId, { month: firstOfMonthIn(now), facts: f })),
+    usage: given.then((g) => subscriptionUsage(userId, now, g)),
     capabilities: Promise.resolve(moneyCapabilities(userId)),
-    inbox: inboxAddress(userId).then((address) => ({ address, domain: inboxDomain(), receiving: isInboxConfigured() })),
+    inbox: facts.then((f) => inboxAddress(userId, { facts: f })).then((address) => ({ address, domain: inboxDomain(), receiving: isInboxConfigured() })),
   };
   const names = Object.keys(reads);
   const settled = await Promise.allSettled(names.map((n) => reads[n]));
