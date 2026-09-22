@@ -124,7 +124,7 @@
 .mv-side-bar { display: flex; align-items: center; justify-content: space-between; min-height: 32px; }
 .mv .mv-side-toggle { display: none; }
 .mv-side-links { display: grid; }
-.mv-side-links a.is-apart { margin-top: 24px; color: var(--ink-3); }
+.mv-side-links a.is-apart { margin-top: 20px; padding-top: 12px; border-top: 1px solid var(--rule); color: var(--ink-3); }
 .mv-side-links a.is-apart[aria-current="page"] { color: var(--ink); }
 .mv .mv-side-links a { display: flex; align-items: center; min-height: 32px; color: var(--ink-2); }
 .mv .mv-side-links a:hover { color: var(--ink); }
@@ -453,12 +453,31 @@
 /* The day's figure is the control that opens its payments; its meaning stays in text. */
 .mv .mv-day-figure { display: grid; gap: 8px; justify-items: start; text-align: left; padding: 0; }
 .mv .mv-day-value { font-size: clamp(44px, 5vw, 64px); font-weight: 300; line-height: 1; letter-spacing: -0.05em; }
+/* The label under the figure at row-title weight; the sentence under it stays grey. */
+.mv .mv-day-cur { font-size: 0.5em; font-weight: 300; letter-spacing: -0.02em; vertical-align: 0.06em; }
+.mv .mv-band-fact { color: var(--ink); font-weight: 500; }
+/* The send is a word in the field's own ink: a white chip inside the warm field read as a
+   card inside a field (2026-09-22). */
+.mv .mv-ask-go { min-height: 32px; padding: 0 10px; border-radius: 4px; font-weight: 500; color: var(--ink); }
+.mv .mv-ask-go:hover { background: var(--hover); }
+/* The month sits on the number, not 60px above it. */
+.mv .mv-hero > .mv-eyebrow { margin-bottom: 4px; color: var(--ink-2); font-weight: 350; }
+/* Every payment row is the same row: the day in a 56px column, the name, the figure. */
+.mv .mv-item--dated { grid-template-columns: 56px minmax(0, 1fr) auto; }
+/* A row that opens nothing keeps the slot the chevron would take, so figures line up down
+   the page whether or not a row has an action. */
+.mv .mv-item-end--slot { padding-right: 28px; }
+/* The tail of the band names its list at the weight of a row title. */
+.mv .mv-ahead-head { font-weight: 500; }
+/* "All n readings" as a line under the list, not a row of air. */
+.mv .mv-more-link { display: flex; align-items: center; justify-content: space-between; gap: 6px; margin-top: 0; padding: 18px 12px; min-height: 57px; font-weight: 500; color: var(--ink); border-bottom: 1px solid var(--rule); }
+.mv .mv-more-link:hover { color: var(--ink-2); }
 .mv #month.mv-hero--orb { justify-items: start; text-align: left; }
 .mv #month > .mv-sub { text-wrap: pretty; }
 
 /* Ask, from Today: a field like every other (the warm box, 44 tall, a 4 corner, no line)
    with the send as the 32 ink button. */
-.mv-home-ask { display: flex; align-items: center; gap: 12px; width: 100%; margin-top: 32px; min-height: 44px; box-sizing: border-box; padding: 6px 6px 6px 14px; border: 0; border-radius: 4px; background: var(--field); }
+.mv-home-ask { display: flex; align-items: center; gap: 12px; width: 100%; margin-top: 40px; min-height: 44px; box-sizing: border-box; padding: 6px 6px 6px 14px; border: 0; border-radius: 4px; background: var(--field); }
 .mv-home-ask input { min-width: 0; flex: 1; background: transparent; border: 0; padding: 4px 0; font: inherit; color: var(--ink); }
 .mv-home-ask input::placeholder { color: var(--ink-3); }
 /* Text inputs also match :focus-visible on pointer focus. The compound field owns
