@@ -11,6 +11,7 @@ import { sanitizeExternal, getSupabase } from '../observationUtils.js';
 import { aggregateLanguages } from './githubLanguageAggregator.js';
 import { detectGitHubProjectType } from './githubProjectType.js';
 import { describePullRequestEvent } from './githubEventText.js';
+import { quietly } from '../quietly.js';
 
 /**
  * Decrypt a stored PAT, with a one-time fallback for legacy plaintext rows
@@ -339,7 +340,7 @@ async function fetchGitHubObservations(userId) {
                   timeout: 10000,
                 })
                 .then(res => res.data || {})
-                .catch(() => ({}))
+                .catch(quietly('github/get', () => ({})))
             : Promise.resolve({})
         )
       );
@@ -545,7 +546,7 @@ async function fetchGitHubObservations(userId) {
     .update({ last_synced_at: new Date().toISOString() })
     .eq('user_id', userId)
     .then(() => {})
-    .catch(() => {});
+    .catch(quietly('github/eq', () => {}));
 
   return observations;
 }

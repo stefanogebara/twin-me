@@ -25,6 +25,8 @@
  *
  * No body content beyond reddit's already-public comment text.
  */
+import { quietly } from '../../quietly.js';
+
 
 const ENDPOINT_ME = '/api/v1/me';
 const ENDPOINT_KARMA = '/api/v1/me/karma';
@@ -58,9 +60,9 @@ export async function getRedditActivity(client) {
   // depend on each other and Reddit's rate limit is per-user so a
   // small Promise.all is fine.
   const [meResp, karmaResp, subsResp] = await Promise.all([
-    client.get(ENDPOINT_ME).catch(() => null),
-    client.get(ENDPOINT_KARMA).catch(() => null),
-    client.get(ENDPOINT_SUBSCRIPTIONS).catch(() => null),
+    client.get(ENDPOINT_ME).catch(quietly('get-reddit-activity/client-get', () => null)),
+    client.get(ENDPOINT_KARMA).catch(quietly('get-reddit-activity/client-get-2', () => null)),
+    client.get(ENDPOINT_SUBSCRIPTIONS).catch(quietly('get-reddit-activity/client-get-3', () => null)),
   ]);
 
   const username = meResp?.name ?? null;

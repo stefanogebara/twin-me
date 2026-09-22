@@ -15,6 +15,7 @@ import { authenticateUser } from '../middleware/auth.js';
 import { createLogger } from '../services/logger.js';
 import { validate } from '../middleware/validate.js';
 import * as V from './stayingSchemas.js';
+import { quietly } from '../services/quietly.js';
 
 const log = createLogger('BetaSignup');
 const router = Router();
@@ -171,7 +172,7 @@ router.post('/signup', signupLimiter, validate({ body: V.BETA_SIGNUP }), async (
       .upsert(
         { email: normalizedEmail, name: trimmedName, source: 'beta_signup' },
         { onConflict: 'email' }
-      ).then(() => {}).catch(() => {});
+      ).then(() => {}).catch(quietly('beta/upsert', () => {}));
 
     log.info('Beta application approved', {
       email: normalizedEmail,

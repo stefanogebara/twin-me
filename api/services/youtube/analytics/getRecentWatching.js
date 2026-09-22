@@ -18,6 +18,8 @@
  *   - by_day: per-day liked-video count
  *   - list: most-recent liked videos (title, channel)
  */
+import { quietly } from '../../quietly.js';
+
 
 const DEFAULT_LIST_LIMIT = 10;
 const MAX_VIDEOS = 50; // playlistItems max page
@@ -35,7 +37,7 @@ export async function getRecentWatching(client, params = {}) {
 
   const liked = await client
     .get(`/playlistItems?playlistId=LL&part=snippet&maxResults=${MAX_VIDEOS}`)
-    .catch(() => ({ items: [] }));
+    .catch(quietly('get-recent-watching/get', () => ({ items: [] })));
   const items = Array.isArray(liked?.items) ? liked.items : [];
 
   // Aggregate by channel.
@@ -72,7 +74,7 @@ export async function getRecentWatching(client, params = {}) {
   if (topChannelIds.length > 0) {
     const ch = await client
       .get(`/channels?id=${topChannelIds.join(',')}&part=snippet,topicDetails`)
-      .catch(() => ({ items: [] }));
+      .catch(quietly('get-recent-watching/top-channel-ids', () => ({ items: [] })));
     const chItems = Array.isArray(ch?.items) ? ch.items : [];
     const topicMap = new Map();
     for (const c of chItems) {

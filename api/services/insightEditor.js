@@ -28,6 +28,7 @@ import { complete, TIER_EXTRACTION } from './llmGateway.js';
 import { generateEmbedding, generateEmbeddings } from './embeddingService.js';
 import { supabaseAdmin } from './database.js';
 import { createLogger } from './logger.js';
+import { quietly } from './quietly.js';
 
 const log = createLogger('InsightEditor');
 
@@ -168,7 +169,7 @@ export async function editInsights(userId, candidates) {
 
   // Stage 1 — semantic dedup vs history AND within the batch.
   const recent = await fetchRecentSurfaced(userId);
-  const vectors = await generateEmbeddings(candidates.map(c => c.insight)).catch(() => []);
+  const vectors = await generateEmbeddings(candidates.map(c => c.insight)).catch(quietly('insight-editor/candidates', () => []));
 
   const survivors = [];
   const keptVectors = [];
@@ -231,7 +232,7 @@ export async function editInsights(userId, candidates) {
     });
   }
 
-  const embedding = await generateEmbedding(final).catch(() => null);
+  const embedding = await generateEmbedding(final).catch(quietly('insight-editor/generate-embedding', () => null));
   return {
     insight: final.substring(0, 500),
     urgency: ['low', 'medium', 'high'].includes(parsed.urgency) ? parsed.urgency : 'low',

@@ -13,6 +13,7 @@ import {
   formatDayLabel,
   hourInTimeZone,
 } from './calendarDayWindow.js';
+import { quietly } from '../quietly.js';
 
 const log = createLogger('ObservationIngestion');
 
@@ -91,7 +92,7 @@ async function fetchCalendarObservations(userId) {
           orderBy: 'startTime',
         },
         timeout: 10000,
-      }).catch(() => null);
+      }).catch(quietly('calendar/time-max', () => null));
 
     const [todayResults, forwardResults] = await Promise.all([
       // 25, not 10: the window now covers the whole day rather than the tail
@@ -333,12 +334,12 @@ async function fetchCalendarObservations(userId) {
           headers: { Authorization: `Bearer ${tokenResult2.accessToken}` },
           params: { eventTypes: 'focusTime', timeMin: weekAgo.toISOString(), timeMax: weekAhead.toISOString(), singleEvents: true, maxResults: 20 },
           timeout: 10000,
-        }).catch(() => ({ data: { items: [] } })),
+        }).catch(quietly('calendar/week-ahead', () => ({ data: { items: [] } }))),
         axios.get('https://www.googleapis.com/calendar/v3/calendars/primary/events', {
           headers: { Authorization: `Bearer ${tokenResult2.accessToken}` },
           params: { eventTypes: 'outOfOffice', timeMin: weekAgo.toISOString(), timeMax: weekAhead.toISOString(), singleEvents: true, maxResults: 10 },
           timeout: 10000,
-        }).catch(() => ({ data: { items: [] } })),
+        }).catch(quietly('calendar/week-ahead-2', () => ({ data: { items: [] } }))),
       ]);
 
       const focusBlocks = focusRes.data?.items || [];
@@ -381,7 +382,7 @@ async function fetchCalendarObservations(userId) {
             },
             timeout: 10000,
           }
-        ).catch(() => ({ data: { items: [] } }));
+        ).catch(quietly('calendar/week-ahead-3', () => ({ data: { items: [] } })));
 
         const gmailEvents = gmailEventsRes.data?.items || [];
         if (gmailEvents.length > 0) {

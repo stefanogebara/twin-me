@@ -16,6 +16,7 @@
 import { getValidAccessToken } from './tokenRefreshService.js';
 import { createCalendarClient } from './calendar/client.js';
 import { createLogger } from './logger.js';
+import { quietly } from './quietly.js';
 
 const log = createLogger('CorrelationSignals');
 
@@ -71,7 +72,7 @@ export async function fetchTimeZone(userId) {
     const tokenResult = await getValidAccessToken(userId, 'google_calendar');
     if (!tokenResult?.success || !tokenResult.accessToken) return 'UTC';
     const client = createCalendarClient({ accessToken: tokenResult.accessToken });
-    const cal = await client.get('/calendars/primary').catch(() => null);
+    const cal = await client.get('/calendars/primary').catch(quietly('correlation-signals/client-get', () => null));
     return cal?.timeZone || 'UTC';
   } catch {
     return 'UTC';
@@ -103,7 +104,7 @@ export async function fetchCalendarLoadDays(userId, timeZone = 'UTC') {
     const now = new Date();
     const start = new Date(now.getTime() - WINDOW_DAYS * 86400_000);
     const q = `?timeMin=${start.toISOString()}&timeMax=${now.toISOString()}&singleEvents=true&orderBy=startTime&maxResults=2500`;
-    const result = await client.get(`/calendars/primary/events${q}`).catch(() => ({ items: [] }));
+    const result = await client.get(`/calendars/primary/events${q}`).catch(quietly('correlation-signals/client-get-2', () => ({ items: [] })));
     const items = Array.isArray(result?.items) ? result.items : [];
     const map = new Map(); // date -> meeting count
     for (const e of items) {

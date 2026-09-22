@@ -20,6 +20,7 @@ import { withRetry } from './retryService.js';
 import { formatExtractionResult, categorizeError } from './extractionErrorHandler.js';
 import { supabaseAdmin } from './database.js';
 import { createLogger } from './logger.js';
+import { quietly } from './quietly.js';
 
 const log = createLogger('Nango');
 
@@ -576,7 +577,7 @@ export async function proxyRequest(userId, platform, endpoint, options = {}) {
     // dead (revoked at the provider) and the user must re-authorize. Mirror
     // the 424 flip below so the amber pill fires automatically.
     if (status === 401 && options._isRefreshRetry) {
-      markConnectionNeedsReconnect(userId, platform, '401 after refresh-retry').catch(() => {});
+      markConnectionNeedsReconnect(userId, platform, '401 after refresh-retry').catch(quietly('nango-service/mark-connection-needs-reconnect', () => {}));
     }
 
     log.error(`Proxy request failed for ${platform}:`, error.message);

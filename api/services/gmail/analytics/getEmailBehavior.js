@@ -29,6 +29,8 @@
  *
  * No body content ever leaves the Gmail API.
  */
+import { quietly } from '../../quietly.js';
+
 
 const SENT_QUERY_PAGE_SIZE = 100;
 const MAX_SENT_MESSAGES = 200;
@@ -118,7 +120,7 @@ async function fetchMetadataBatch(client, ids) {
     const slice = ids.slice(i, i + BATCH);
     const results = await Promise.all(
       slice.map((id) =>
-        client.get(`/messages/${id}?format=metadata&${headersParams}`).catch(() => null),
+        client.get(`/messages/${id}?format=metadata&${headersParams}`).catch(quietly('get-email-behavior/client-get', () => null)),
       ),
     );
     for (const r of results) {

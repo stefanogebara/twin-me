@@ -61,6 +61,7 @@ import { classifyConnectIntent, buildConnectLink, classifyDisconnectIntent, clas
 import { handleFamilyReply } from './presenceRelay.js';
 import { isMoneyChannelUser, channelSay } from './money/channel.js';
 import { handleMoneyInbound } from './money/channelInbound.js';
+import { quietly } from './quietly.js';
 
 const log = createLogger('WhatsAppInbound');
 
@@ -239,7 +240,7 @@ export async function processInboundWhatsApp(parsed, { send, provider }) {
       return await handleMoneyInbound(parsed, { userId, send });
     } catch (err) {
       log.error('money channel failed', { userId, error: err.message });
-      await send(phone, channelSay(null, 'Something went wrong on my side. Ask again in a moment.')).catch(() => {});
+      await send(phone, channelSay(null, 'Something went wrong on my side. Ask again in a moment.')).catch(quietly('whatsapp-inbound-pipeline/channel-say', () => {}));
       return { handled: false, reason: 'money_channel_error', userId };
     }
   }
@@ -443,14 +444,14 @@ async function processTwinMessage(userId, message) {
   }
 
   const [twinContext, coreBlocks, personalityProfile, soulLayers, workspaceBlock] = await Promise.all([
-    fetchTwinContext(userId, message, { enrichments: true }).catch(() => ({})),
-    getBlocks(userId).catch(() => ({})),
-    getProfile(userId).catch(() => null),
-    getSoulSignatureLayers(userId).catch(() => null),
+    fetchTwinContext(userId, message, { enrichments: true }).catch(quietly('whatsapp-inbound-pipeline/fetch-twin-context', () => ({}))),
+    getBlocks(userId).catch(quietly('whatsapp-inbound-pipeline/get-blocks', () => ({}))),
+    getProfile(userId).catch(quietly('whatsapp-inbound-pipeline/get-profile', () => null)),
+    getSoulSignatureLayers(userId).catch(quietly('whatsapp-inbound-pipeline/get-soul-signature-layers', () => null)),
     // Same action-capability prompt the web twin gets, so the twin can emit
     // [ACTION: ...] tags over WhatsApp too. Empty string when the user has no
     // action-capable platforms connected (non-fatal).
-    buildWorkspaceActionsPrompt(userId).catch(() => ''),
+    buildWorkspaceActionsPrompt(userId).catch(quietly('whatsapp-inbound-pipeline/build-workspace-actions-prompt', () => '')),
   ]);
 
   const systemParts = [];

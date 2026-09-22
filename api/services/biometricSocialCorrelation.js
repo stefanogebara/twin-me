@@ -23,6 +23,7 @@ import { editInsights } from './insightEditor.js';
 import { supabaseAdmin } from './database.js';
 import { vectorToString } from './embeddingService.js';
 import { createLogger } from './logger.js';
+import { quietly } from './quietly.js';
 
 const log = createLogger('StressLeaderboard');
 
@@ -259,7 +260,7 @@ async function fetchCalendarDays(userId) {
     const now = new Date();
     const start = new Date(now.getTime() - WINDOW_DAYS * 86400_000);
     const q = `?timeMin=${start.toISOString()}&timeMax=${now.toISOString()}&singleEvents=true&orderBy=startTime&maxResults=250`;
-    const result = await client.get(`/calendars/primary/events${q}`).catch(() => ({ items: [] }));
+    const result = await client.get(`/calendars/primary/events${q}`).catch(quietly('biometric-social-correlation/client-get', () => ({ items: [] })));
     const items = Array.isArray(result?.items) ? result.items : [];
     const map = new Map(); // date -> { people: Map<id,name>, load }
     for (const e of items) {

@@ -21,6 +21,7 @@ import { editInsights } from './insightEditor.js';
 import { supabaseAdmin } from './database.js';
 import { vectorToString } from './embeddingService.js';
 import { createLogger } from './logger.js';
+import { quietly } from './quietly.js';
 
 const log = createLogger('ReplyLatency');
 
@@ -164,7 +165,7 @@ async function fetchReplyLatencyDays(userId, timeZone) {
         chunk.map((id) =>
           fetch(`${GMAIL_BASE}/threads/${id}?format=minimal`, { headers })
             .then((r) => (r.ok ? r.json() : null))
-            .catch(() => null),
+            .catch(quietly('reply-latency/r-json', () => null)),
         ),
       );
       for (const thread of threads) {

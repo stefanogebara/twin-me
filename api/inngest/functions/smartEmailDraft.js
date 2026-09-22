@@ -19,6 +19,7 @@ import { acquireCooldownLock } from '../../services/skillCooldownLock.js';
 import { deliverInsight } from '../../services/messageRouter.js';
 import { supabaseAdmin } from '../../services/database.js';
 import { createLogger } from '../../services/logger.js';
+import { quietly } from '../../services/quietly.js';
 
 const log = createLogger('SmartEmailDraft');
 
@@ -196,7 +197,7 @@ export const smartEmailDraftFunction = createTwinFunction(
           .limit(1)
           .single()
           .then(r => r.data)
-          .catch(() => null),
+          .catch(quietly('smart-email-draft/single', () => null)),
       ]);
 
       const soul = blocks?.soul_signature?.content || '';

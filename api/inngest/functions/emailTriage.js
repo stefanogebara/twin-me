@@ -22,6 +22,7 @@ import { isInsightDuplicate } from '../../services/proactiveInsights.js';
 import { acquireCooldownLock } from '../../services/skillCooldownLock.js';
 import { supabaseAdmin } from '../../services/database.js';
 import { createLogger } from '../../services/logger.js';
+import { quietly } from '../../services/quietly.js';
 
 const log = createLogger('EmailTriage');
 
@@ -129,7 +130,7 @@ export const emailTriageFunction = createTwinFunction(
           .limit(1)
           .single()
           .then(r => r.data)
-          .catch(() => null)
+          .catch(quietly('email-triage/single', () => null))
       ]);
 
       return { blocks, profile };

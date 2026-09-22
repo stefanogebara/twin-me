@@ -14,6 +14,7 @@ import {
   buildUnreadDeltaObservation,
   nextGmailCounters,
 } from './gmailUnreadDelta.js';
+import { quietly } from '../quietly.js';
 
 const log = createLogger('ObservationIngestion');
 
@@ -104,8 +105,8 @@ async function fetchGmailObservations(userId) {
   let unreadKind = null;
   try {
     const [inboxLabel, unreadLabel] = await Promise.all([
-      axios.get(`${BASE}/labels/INBOX`, { headers, timeout: 8000 }).catch(() => null),
-      axios.get(`${BASE}/labels/UNREAD`, { headers, timeout: 8000 }).catch(() => null),
+      axios.get(`${BASE}/labels/INBOX`, { headers, timeout: 8000 }).catch(quietly('gmail/axios-get', () => null)),
+      axios.get(`${BASE}/labels/UNREAD`, { headers, timeout: 8000 }).catch(quietly('gmail/axios-get-2', () => null)),
     ]);
     inboxUnread = inboxLabel?.data?.messagesUnread ?? null;
     const totalUnread = unreadLabel?.data?.messagesUnread ?? null;
@@ -223,7 +224,7 @@ async function fetchGmailObservations(userId) {
         sentIds.map(id =>
           axios.get(`${BASE}/messages/${id}?format=metadata&metadataHeaders=Date`, { headers, timeout: 10000 })
             .then(r => r.data?.payload?.headers?.find(h => h.name === 'Date')?.value || null)
-            .catch(() => null)
+            .catch(quietly('gmail/axios-get-3', () => null))
         )
       );
       const hourCounts = { morning: 0, afternoon: 0, evening: 0, night: 0 };
@@ -263,7 +264,7 @@ async function fetchGmailObservations(userId) {
               const match = from.match(/@([a-zA-Z0-9.-]+)/);
               return match ? match[1].toLowerCase() : null;
             })
-            .catch(() => null)
+            .catch(quietly('gmail/from-match', () => null))
         )
       );
       const uniqueDomains = [...new Set(domains.filter(Boolean))];
@@ -294,7 +295,7 @@ async function fetchGmailObservations(userId) {
         sentSubjectIds.map(id =>
           axios.get(`${BASE}/messages/${id}?format=metadata&metadataHeaders=Subject`, { headers, timeout: 10000 })
             .then(r => r.data?.payload?.headers?.find(h => h.name === 'Subject')?.value || null)
-            .catch(() => null)
+            .catch(quietly('gmail/axios-get-4', () => null))
         )
       );
 
@@ -348,7 +349,7 @@ async function fetchGmailObservations(userId) {
         sentDowIds.map(id =>
           axios.get(`${BASE}/messages/${id}?format=metadata&metadataHeaders=Date`, { headers, timeout: 10000 })
             .then(r => r.data?.payload?.headers?.find(h => h.name === 'Date')?.value || null)
-            .catch(() => null)
+            .catch(quietly('gmail/axios-get-5', () => null))
         )
       );
       const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
@@ -393,7 +394,7 @@ async function fetchGmailObservations(userId) {
         sentToIds.map(id =>
           axios.get(`${BASE}/messages/${id}?format=metadata&metadataHeaders=To`, { headers, timeout: 10000 })
             .then(r => r.data?.payload?.headers?.find(h => h.name === 'To')?.value || null)
-            .catch(() => null)
+            .catch(quietly('gmail/axios-get-6', () => null))
         )
       );
       const sentDomains = [];
@@ -435,7 +436,7 @@ async function fetchGmailObservations(userId) {
               const match = from.match(/@([a-zA-Z0-9.-]+)/);
               return match ? match[1].toLowerCase() : null;
             })
-            .catch(() => null)
+            .catch(quietly('gmail/from-match-2', () => null))
         )
       );
       const domainCounts = {};

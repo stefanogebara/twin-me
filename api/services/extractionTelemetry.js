@@ -20,6 +20,7 @@
  * never blocks or breaks extraction.
  */
 import { createLogger } from './logger.js';
+import { quietly } from './quietly.js';
 
 const log = createLogger('ExtractionTelemetry');
 
@@ -111,6 +112,6 @@ export function logExtractionRun(params) {
   if (shouldPersist(event.ingestion_source)) {
     // Fire-and-forget: substantial async extraction work always follows this
     // call, so the insert completes well before the function returns.
-    persistExtractionRun(event).catch(() => {});
+    persistExtractionRun(event).catch(quietly('extraction-telemetry/persist-extraction-run', () => {}));
   }
 }

@@ -20,6 +20,7 @@ import { getValidAccessToken } from './tokenRefreshService.js';
 import { createLogger } from './logger.js';
 import { get as cacheGet, set as cacheSet } from './redisClient.js';
 import axios from 'axios';
+import { quietly } from './quietly.js';
 
 const log = createLogger('ToolRegistry');
 
@@ -747,7 +748,7 @@ Write the email EXACTLY in their voice. Include Subject (if new), greeting, body
 registerBuiltInTools();
 
 // Register MCP tools if configured (non-blocking, non-fatal)
-registerMCPTools().catch(() => {});
+registerMCPTools().catch(quietly('tool-registry/register-mcptools', () => {}));
 
 /**
  * Bridge MCP servers into the twin's tool registry.

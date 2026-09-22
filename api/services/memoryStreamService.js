@@ -565,7 +565,7 @@ async function applyGumBayesianRevision(userId, newContent, newEmbedding, memory
         // Confidence has collapsed after repeated contradictions — retire it in
         // favour of the memory that contradicted it.
         if (u.supersede) {
-          supersedeMemory(u.id, newMemoryId, 'gum_contradiction').catch(() => {});
+          supersedeMemory(u.id, newMemoryId, 'gum_contradiction').catch(quietly('memory-stream-service/supersede-memory', () => {}));
         }
       }
     }
@@ -698,7 +698,7 @@ async function addMemory(userId, content, memoryType = 'observation', metadata =
     // blocks the caller. Runs AFTER the insert because supersession has to point
     // the retired memory at the row that replaced it, which needs its id.
     if (embedding && !options.skipRevision) {
-      applyGumBayesianRevision(userId, content, embedding, memoryType, data.id).catch(() => {});
+      applyGumBayesianRevision(userId, content, embedding, memoryType, data.id).catch(quietly('memory-stream-service/apply-gum-bayesian-revision', () => {}));
     }
 
     // Phase 1: the new reading retires the ones it replaces. Runs AFTER the
@@ -915,6 +915,7 @@ async function addReflection(userId, content, evidenceIds = [], metadata = {}, o
 // Retrieval weights, MMR params, and memory budgets are imported from twin-config.js
 // so the research agent can tune them without touching this file.
 import { RETRIEVAL_WEIGHTS, MMR_LAMBDA, TYPE_DIVERSITY_WEIGHT, SEMANTIC_DIVERSITY_WEIGHT, TEMPORAL_DIVERSITY_WEIGHT, MEMORY_CONTEXT_BUDGETS, HYDE_ENABLED, BM25_BLEND_WEIGHT, BM25_K1, BM25_B, TCM_WEIGHT, TCM_DRIFT_RATE, STDP_CORETRIEVAL_BOOST, MIN_COSINE_SIMILARITY, LLM_RERANKER_ENABLED } from '../../twin-research/twin-config.js';
+import { quietly } from './quietly.js';
 
 // ====================================================================
 // MMR Reranking (Maximum Marginal Relevance)
@@ -2198,7 +2199,7 @@ async function getMemoryStats(userId) {
     }
 
     const result = { total, byType };
-    cacheSet(cacheKey, result, 1800).catch(() => {}); // 30min TTL
+    cacheSet(cacheKey, result, 1800).catch(quietly('memory-stream-service/cache-set', () => {})); // 30min TTL
     return result;
   } catch (error) {
     log.error('getMemoryStats error', { error });

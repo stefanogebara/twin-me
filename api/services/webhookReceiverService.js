@@ -9,6 +9,7 @@ import { supabaseAdmin } from './database.js';
 import { notifyNewData, notifyConnectionStatus } from './websocketService.js';
 import * as sseService from './sseService.js';
 import { createLogger } from './logger.js';
+import { quietly } from './quietly.js';
 
 const log = createLogger('WebhookReceiver');
 
@@ -275,7 +276,7 @@ async function getUserIdByEmail(emailAddress) {
     .eq('status', 'connected')
     .limit(1)
     .single()
-    .catch(() => ({ data: null }));
+    .catch(quietly('webhook-receiver-service/single', () => ({ data: null })));
 
   if (conn?.user_id) return conn.user_id;
 
@@ -286,7 +287,7 @@ async function getUserIdByEmail(emailAddress) {
     .eq('email', emailAddress)
     .limit(1)
     .single()
-    .catch(() => ({ data: null }));
+    .catch(quietly('webhook-receiver-service/single-2', () => ({ data: null })));
 
   return user?.id || null;
 }

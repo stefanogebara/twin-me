@@ -30,6 +30,7 @@ import { isInsightDuplicate } from '../../services/proactiveInsights.js';
 import { acquireCooldownLock } from '../../services/skillCooldownLock.js';
 import { supabaseAdmin } from '../../services/database.js';
 import { createLogger } from '../../services/logger.js';
+import { quietly } from '../../services/quietly.js';
 
 const log = createLogger('IntelligentTriggers');
 
@@ -68,7 +69,7 @@ export const intelligentTriggersFunction = createTwinFunction(
             }
             break;
           }
-        } catch {}
+        } catch (error) { quietly('intelligent-triggers/health-rows')(error); }
       }
 
       // Calendar data
@@ -78,7 +79,7 @@ export const intelligentTriggersFunction = createTwinFunction(
           const { data: d } = await supabaseAdmin.from('platform_data').select('raw_data')
             .eq('user_id', userId).eq('provider', p).order('created_at', { ascending: false }).limit(1).single();
           if (d?.raw_data) { calendarRaw = d.raw_data; break; }
-        } catch {}
+        } catch (error) { quietly('intelligent-triggers/calendar-row')(error); }
       }
 
       // Recent observations (48h, all platforms)

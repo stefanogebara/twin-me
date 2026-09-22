@@ -30,6 +30,7 @@ import {
   fetchTimeZone,
   fetchCalendarLoadDays,
 } from './correlationSignals.js';
+import { quietly } from './quietly.js';
 
 export { localParts };
 
@@ -126,7 +127,7 @@ async function fetchSentDays(userId, timeZone) {
         chunk.map((id) =>
           fetch(`${GMAIL_BASE}/messages/${id}?format=minimal`, { headers })
             .then((r) => (r.ok ? r.json() : null))
-            .catch(() => null),
+            .catch(quietly('email-tempo/r-json', () => null)),
         ),
       );
       for (const msg of results) {

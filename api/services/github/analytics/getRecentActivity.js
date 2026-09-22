@@ -17,6 +17,8 @@
  *                /repos/:owner/:repo fetch — bounded to 3 to keep
  *                rate-limit usage flat)
  */
+import { quietly } from '../../quietly.js';
+
 
 const DEFAULT_DAYS = 30;
 const MAX_DAYS = 90;
@@ -54,7 +56,7 @@ export async function getRecentActivity(client, params = {}) {
 
   const events = await client
     .get(`/users/${encodeURIComponent(username)}/events/public?per_page=100`)
-    .catch(() => []);
+    .catch(quietly('get-recent-activity/get', () => []));
   const list = Array.isArray(events) ? events : [];
 
   // Filter to the requested window. GitHub returns most-recent first;
