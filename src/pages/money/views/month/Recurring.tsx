@@ -8,11 +8,11 @@ import { useState } from 'react';
 import { euro, shortDay } from '../../../../services/api/moneyAPI';
 import Chevron from '../../Chevron';
 import { readingWords } from '../../readingWords';
-import { merchantLabel, nameList, ordinalDay, CADENCE } from '../../words';
+import { merchantLabel, ordinalDay, CADENCE } from '../../words';
 import type { MoneyAccount } from '../../useMoneyAccount';
 
 export default function Recurring({ m }: { m: MoneyAccount }) {
-  const { t, locale, recurring, usage, monthlyLoad, subscriptions, bills, unmeasured } = m;
+  const { t, locale, recurring, usage, monthlyLoad, subscriptions, bills } = m;
   const [openSeries, setOpenSeries] = useState<string | null>(null);
   return (
           <section className="mv-section" id="recurring">

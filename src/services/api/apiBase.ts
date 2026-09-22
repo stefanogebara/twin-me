@@ -173,9 +173,9 @@ export function clearAccessToken(): void {
   notifyExtensionTokenChange(null);
 }
 
-export interface AuthHeaders {
+/** Plain string headers, so fetch() takes them as HeadersInit without a cast. */
+export interface AuthHeaders extends Record<string, string> {
   'Content-Type': string;
-  'Authorization'?: string;
 }
 
 export const getAuthHeaders = (): AuthHeaders => {

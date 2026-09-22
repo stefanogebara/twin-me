@@ -101,7 +101,7 @@ export const AnalyticsProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     if (user?.id && identifiedRef.current !== user.id) {
       withPostHog((p) => p.identify(user.id, {
         email: user.email,
-        name: user.name || user.full_name,
+        name: user.fullName,
         created_at: user.created_at,
       }));
       identifiedRef.current = user.id;
@@ -109,7 +109,7 @@ export const AnalyticsProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       withPostHog((p) => p.reset());
       identifiedRef.current = null;
     }
-  }, [user?.id, user?.email, user?.name, user?.full_name, user?.created_at]);
+  }, [user?.id, user?.email, user?.fullName, user?.created_at]);
 
   const isEnabled = useCallback(() => {
     return !!POSTHOG_KEY;

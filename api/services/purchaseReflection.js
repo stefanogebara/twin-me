@@ -138,6 +138,7 @@ export async function generatePurchaseReflection(ctx, userMessage) {
   const safe = String(userMessage || '')
     .slice(0, 1000)
     .replace(/<\/?user_message>/gi, '')
+    // eslint-disable-next-line no-control-regex -- stripping control characters is the point
     .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g, ''); // strip control chars
 
   const lang = detectLang(safe);

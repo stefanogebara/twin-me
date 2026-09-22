@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ArrowUpRight, Plus, Minus, Play } from 'lucide-react';
+import { Plus, Minus, Play } from 'lucide-react';
 import { SignInButton } from '../contexts/AuthContext';
 import StardustHero from '../components/landing/StardustHero';
 

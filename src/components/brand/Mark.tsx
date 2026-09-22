@@ -6,7 +6,6 @@
  * their tiles keep the generic glyph until an official asset comes from the brand's kit.
  * Never a redrawn logo.
  */
-import React from 'react';
 import { PATHS, FILE_MARKS } from './markPaths';
 
 /** The mark alone, 16px, in the current text colour. Decorative: the name sits beside it. */

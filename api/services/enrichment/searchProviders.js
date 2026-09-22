@@ -296,7 +296,7 @@ Return your findings as JSON with these exact fields:
 export async function enrichFromLinkedIn(linkedinUrl, name = null) {
   log.info(`Enriching from LinkedIn URL: ${linkedinUrl}`);
 
-  const usernameMatch = linkedinUrl.match(/linkedin\.com\/in\/([^\/\?]+)/i);
+  const usernameMatch = linkedinUrl.match(/linkedin\.com\/in\/([^/?]+)/i);
   const linkedinUsername = usernameMatch ? usernameMatch[1] : null;
 
   if (!linkedinUsername) {

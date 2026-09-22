@@ -159,7 +159,7 @@ test.describe('Stripe Checkout — TEST mode end-to-end', () => {
     // 3. Submit. Wait for the navigation to the success_url sentinel.
     // -----------------------------------------------------------------------
     await Promise.all([
-      page.waitForURL(new RegExp(SUCCESS_BASE.replace(/[.\/]/g, '\\$&')), { timeout: 60_000 }),
+      page.waitForURL(new RegExp(SUCCESS_BASE.replace(/[./]/g, '\\$&')), { timeout: 60_000 }),
       submit.click(),
     ]);
 

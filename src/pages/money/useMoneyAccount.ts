@@ -232,7 +232,7 @@ type ActionDeps = {
   setLedger: React.Dispatch<React.SetStateAction<MoneyTransaction[]>>; setCategories: (c: MoneyCategories) => void; setNeedsReconnect: (v: boolean) => void;
 };
 /** Every press on the page, and what it says afterwards. */
-export function useMoneyActions({ t, load, loadCalendar, loadYou, setLedger, setCategories, setNeedsReconnect }: ActionDeps) {
+export function useMoneyActions({ t, load, loadCalendar, loadYou, setLedger, setCategories }: ActionDeps) {
   const [captureKey, setCaptureKey] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [note, setNote] = useState<string | null>(null);

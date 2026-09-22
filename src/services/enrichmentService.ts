@@ -9,9 +9,9 @@ import { getAccessToken } from './api/apiBase';
 import { API_URL } from '@/services/api/apiBase';
 // VITE_API_URL already includes /api suffix (e.g., http://localhost:3004/api)
 
-interface AuthHeaders {
+/** Plain string headers, so fetch() takes them as HeadersInit without a cast. */
+interface AuthHeaders extends Record<string, string> {
   'Content-Type': string;
-  'Authorization'?: string;
 }
 
 const getAuthHeaders = (): AuthHeaders => {

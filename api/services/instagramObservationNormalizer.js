@@ -31,6 +31,7 @@ function _hasMeaningfulText(s) {
 function _cleanCaption(raw) {
   if (!raw || typeof raw !== 'string') return '';
   // Strip control chars, collapse whitespace, trim, then sanitize external text.
+  // eslint-disable-next-line no-control-regex -- stripping control characters is the point
   const noControl = raw.replace(/[\x00-\x1F\x7F]/g, ' ');
   const collapsed = noControl.replace(/\s+/g, ' ').trim();
   const truncated = collapsed.length > CAPTION_MAX_CHARS

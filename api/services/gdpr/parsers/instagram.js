@@ -42,7 +42,7 @@ function igFindEntries(zip, basenameRegex) {
 
 function igUsernameFromHref(href) {
   if (!href || typeof href !== 'string') return null;
-  const m = href.match(/instagram\.com\/([^\/?#]+)/i);
+  const m = href.match(/instagram\.com\/([^/?#]+)/i);
   return m ? m[1] : null;
 }
 

@@ -4,7 +4,6 @@
  * nothing, so it sits on any ground. A mark stands for a thing in the ledger, never for a
  * mood: the tile's ground is the kind's signature at low strength, the ink stays ink.
  */
-import React from 'react';
 import { GROUND_BY_KIND, markFor } from './carvedKinds';
 
 /** A 32px tile with the kind's mark in ink on its ground; the kind's initial when there is no mark. */
