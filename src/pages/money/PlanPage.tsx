@@ -22,6 +22,7 @@ import { MONEY_NAV } from './navLinks';
 import { merchantLabel } from './words';
 import { daysAhead } from './planAhead';
 import { classSplit } from './classDays';
+import { eventName } from './eventName';
 import TermStrip from './views/plan/TermStrip';
 import { moneyAPI, euro, shortDay, type MoneyPlan, type MoneyPlanCell, type MoneyPlanItem } from '../../services/api/moneyAPI';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
@@ -79,7 +80,9 @@ function planLine(plan: MoneyPlan, t: T, locale: string, current: boolean): stri
 /* A row on a day is named by the person's own words: a merchant, a subject they typed. The
    four fallbacks are the ledger's, and only those are translated (2026-09-16). */
 const OURS = new Set(['A charge', 'A commitment', 'Money in', 'A day in the diary', 'A standing charge']);
-const itemLabel = (label: string | null | undefined, t: T) => (label && OURS.has(label) ? t(label) : label || t('A charge'));
+/* A course keeps the registrar's shouting and its session number until it reaches a row. */
+const itemLabel = (label: string | null | undefined, t: T, kind?: string) =>
+  (label && OURS.has(label) ? t(label) : (kind === 'calendar' ? eventName(label) : label) || t('A charge'));
 
 const CADENCE_WORD: Record<string, string> = {
   weekly: 'Every week', biweekly: 'Every two weeks', monthly: 'Every month',
@@ -239,7 +242,7 @@ export default function PlanPage() {
                   <li key={`${day}-${k}`} className="mv-item mv-item--tight">
                     <span className="mv-ahead-day">{shortDay(day, locale)}</span>
                     <span className="mv-item-text">
-                      <span className="mv-item-title">{itemLabel(item.label, t)}</span>
+                      <span className="mv-item-title">{itemLabel(item.label, t, item.kind)}</span>
                       <span className="mv-item-sub">{itemWords(item, t)}</span>
                     </span>
                     <span className={`mv-item-end${item.kind === 'income' ? ' mv-in' : ''}`}>{item.amount > 0 ? (item.kind === 'income' ? `+${euro(item.amount)}` : euro(item.amount)) : ''}</span>
@@ -272,7 +275,7 @@ export default function PlanPage() {
                   {cell.items.map((i, k) => (
                     <li key={k} className="mv-item mv-item--tight">
                       <span className="mv-item-text">
-                        <span className="mv-item-title">{itemLabel(i.label, t)}</span>
+                        <span className="mv-item-title">{itemLabel(i.label, t, i.kind)}</span>
                         <span className="mv-item-sub">{itemWords(i, t)}</span>
                       </span>
                       <span className={`mv-item-end${i.kind === 'income' ? ' mv-in' : ''}`}>{i.amount > 0 ? (i.kind === 'income' ? `+${euro(i.amount)}` : euro(i.amount)) : ''}</span>
