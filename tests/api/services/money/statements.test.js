@@ -19,6 +19,9 @@ describe('incomeStatement', () => {
     expect(incomeStatement('My parents send me 1750 on the 1st of every month')).toMatchObject({ source: 'Parents', amount: 1750, currency: 'EUR', day: 1, cadence: 'monthly', once: false });
     expect(incomeStatement('recebo 800 euros do estagio no dia 5')).toMatchObject({ source: 'Estagio', amount: 800, day: 5, irregular: false });
     expect(incomeStatement('my father sends me 100 euros sometimes')).toMatchObject({ amount: 100, irregular: true });
+    expect(incomeStatement('My parents send me 1750 on the first of every month.')).toMatchObject({ source: 'Parents', amount: 1750, day: 1 });
+    expect(incomeStatement('recebo 800 do estagio todo dia primeiro')).toMatchObject({ amount: 800, day: 1 });
+    expect(incomeStatement('mis padres me mandan 500 el quince de cada mes')).toMatchObject({ amount: 500, day: 15 });
     expect(incomeStatement('as vezes recebo 50 euros do meu pai')).toMatchObject({ amount: 50, irregular: true });
     expect(incomeStatement('me llegan 300 euros de mi padre el 10')).toMatchObject({ source: 'Padre', amount: 300, day: 10 });
   });

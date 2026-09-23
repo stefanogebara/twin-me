@@ -159,5 +159,20 @@ export function askedDays(transactions = [], text, now = new Date()) {
 
 /** The asked stretches as lines the model may quote: "Asked stretch, Saturday 19 September: spent ...". */
 export function askedLines(transactions = [], text, now = new Date(), opts = {}) {
-  return askedWindows(text, now).map((w) => stretchLine(`Asked stretch, ${w.label}`, transactions, w.from, w.to, opts));
+  return [...askedWindows(text, now).map((w) => stretchLine(`Asked stretch, ${w.label}`, transactions, w.from, w.to, opts)), ...askedAhead(text, now)];
+}
+
+/**
+ * A stretch asked about that has not come: "this weekend" on a Wednesday. Without a line the
+ * model re-dated the weekend before as this one (2026-09-23); with it, the answer says so.
+ */
+const THIS_WEEKEND = /\b(this weekend|este fin de semana|este fim de semana|neste fim de semana|esse fim de semana)\b/;
+export function askedAhead(text, now = new Date()) {
+  const t = norm(text);
+  if (!THIS_WEEKEND.test(t)) return [];
+  const parts = partsIn(now);
+  const weekday = parts?.weekday ?? 0;
+  if (weekday === 0 || weekday === 6 || weekday === 1) return [];
+  const monday = shiftDay(dayIn(now), -((weekday + 6) % 7));
+  return [`Asked stretch, This weekend: has not come yet; it starts Saturday ${dayLabel(shiftDay(monday, 5))}.`];
 }
