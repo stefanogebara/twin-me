@@ -48,3 +48,12 @@ it('reads for itself on a page that hands it nothing', async () => {
   expect(f.facts).toHaveBeenCalledOnce();
   expect(f.capabilities).toHaveBeenCalledOnce();
 });
+
+it('offers the phone only until the phone has sent a payment; then the step rests everywhere', async () => {
+  root = createRoot(host);
+  const given = { accounts: [{ id: 'a1' }], facts: [{ id: 'f1', kind: 'home_area', value: 'Madrid' }], capabilities: { bank: true, capture: true } };
+  await act(async () => { root.render(<MoneyOnboarding given={{ ...given, phoneSeen: false } as never} />); });
+  expect(host.querySelector('[role="dialog"]')?.textContent).toContain('A payment, the moment it happens.');
+  await act(async () => { root.render(<MoneyOnboarding given={{ ...given, phoneSeen: true } as never} />); });
+  expect(host.querySelector('[role="dialog"]')).toBeNull();
+});
