@@ -1357,6 +1357,12 @@ const NOT_AN_INSTRUCTION = 'The ledger answers from what it holds and keeps only
 const ROLE_SENTENCES = {'family':'{name} is family','flatmate':'{name} is your flatmate','friend':'{name} is a friend','partner':'{name} is your partner','landlord':'{name} is your landlord','work':'{name} is from work','other':'{name} is somebody you pay'};
 
 export function plainReplyFor(text, ctx, now = new Date()) {
+  const plain = plainReplyRaw(text, ctx, now);
+  /* The page writes the euro's glyph; a computed line goes through the same step as the model's. */
+  return plain ? { ...plain, text: euroGlyphs(plain.text) } : null;
+}
+
+function plainReplyRaw(text, ctx, now) {
   if (looksLikeInstruction(text)) return { text: say(ctx.language, NOT_AN_INSTRUCTION), figures: [], actions: [], receipts: [] };
   const learned = learnFromStatement(text, ctx, { now });
   if (learned?.ask) return { text: learned.ask, figures: [], actions: [], receipts: [] };
