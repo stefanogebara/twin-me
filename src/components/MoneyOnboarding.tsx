@@ -28,7 +28,9 @@ const skip = (step: Step) => { try { localStorage.setItem(SKIP(step), '1'); } ca
 /* What the step is decided from. The money page reads these for itself and hands them over
    (M2-3, 2026-09-19): `undefined` means read them here, `null` means they are on their way,
    and a part that could not be read is null so the step waits rather than guesses. */
-export type OnboardingGiven = { accounts: MoneyAccount[] | null; facts: MoneyFact[] | null; capabilities: { bank: boolean; capture: boolean } | null };
+export type OnboardingGiven = { accounts: MoneyAccount[] | null; facts: MoneyFact[] | null; capabilities: { bank: boolean; capture: boolean } | null;
+  /** The phone has sent a payment in the last thirty days: the phone step rests everywhere, not per browser. */
+  phoneSeen?: boolean | null };
 
 export default function MoneyOnboarding({ given, reread }: { given?: OnboardingGiven | null; reread?: () => void } = {}) {
   const { user } = useAuth();
@@ -39,6 +41,10 @@ export default function MoneyOnboarding({ given, reread }: { given?: OnboardingG
   const accounts = given === undefined ? ownAccounts : given ? given.accounts : null;
   const facts = given === undefined ? ownFacts : given ? given.facts : null;
   const capabilities = given === undefined ? ownCapabilities : given && given.capabilities && userId ? { ownerId: userId, ...given.capabilities } : null;
+  /* A phone that is already sending has nothing to set up. The step used to rest only on the
+     browser that pressed Not now, so every new browser was offered the app again (the nightly
+     canary counted its 90 words on Today, 2026-09-23). */
+  const phoneSeen = given ? Boolean(given.phoneSeen) : false;
   const loadRevision = useRef(0);
   const [rested, setRested] = useState<Record<string, boolean>>({});
   const [languageDone, setLanguageDone] = useState(false);
@@ -68,7 +74,7 @@ export default function MoneyOnboarding({ given, reread }: { given?: OnboardingG
       : language === null && !languageDone ? 'language'
         : capabilities.bank && accounts.length === 0 && !skipped('banks') && !rested.banks ? 'banks'
           : !hasPlace && !skipped('places') && !rested.places ? 'places'
-            : capabilities.capture && !skipped('phone') && !rested.phone ? 'phone'
+            : capabilities.capture && !phoneSeen && !skipped('phone') && !rested.phone ? 'phone'
               : null;
 
   if (!step) return null;
