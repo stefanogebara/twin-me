@@ -103,3 +103,31 @@ export function cancelStatement(text) {
   if (!name || name.length < 2) return null;
   return { name: name.charAt(0).toUpperCase() + name.slice(1) };
 }
+
+/**
+ * Who somebody on the statement is: a role word and a name. "she is my landlord", "he is my
+ * flatmate", "Maria is a friend", "es mi casero", "e minha mae". { role, name } or null; the
+ * name is what they wrote, to be matched against the ledger's own key by the caller. The
+ * role comes from the product's list (context.js PERSON_ROLES); the words for each role are
+ * here in the three languages the product speaks.
+ */
+const ROLE_WORDS = [
+  ['landlord', /\b(landlord|landlady|casero|casera|arrendador|arrendadora|senhorio|senhoria|proprietari[oa]|dono d[oa] (apartamento|piso|casa)|due[nñ][oa] del piso)\b/],
+  ['flatmate', /\b(flatmates?|roommates?|housemates?|compa[nñ]er[oa] de (piso|casa|cuarto)|colega de (apartamento|casa|quarto)|companheir[oa] de (apartamento|casa|quarto))\b/],
+  ['partner', /\b(partner|girlfriend|boyfriend|wife|husband|novi[oa]|pareja|esposa|esposo|marido|mujer|namorad[oa]|companheir[oa])\b/],
+  ['family', /\b(my |mi |meu |minha |mis |meus |minhas )?(father|mother|dad|mum|mom|parents?|brother|sister|grandmother|grandfather|grandma|grandpa|aunt|uncle|cousin|padre|madre|papa|mama|padres|hermano|hermana|abuel[oa]|ti[oa]|prim[oa]|pai|mae|pais|irm[aã][oa]|av[oôó]|sobrinh[oa])\b/],
+  ['work', /\b(boss|employer|manager|company|client|jefe|jefa|empresa|cliente|chefe|patr[aã]o|empregador)\b/],
+  ['friend', /\b(friends?|amig[oa]s?|mate|buddy|colega)\b/],
+];
+export function personStatement(text) {
+  const t = norm(text);
+  const hit = ROLE_WORDS.find(([, re]) => re.test(t));
+  if (!hit) return null;
+  /* The name: "X is my landlord", "the transfer to X is ... she is my landlord", "X e minha mae". */
+  const said = t.match(/\b(?:to|para|a|from|de|do|da)\s+([\p{L}][\p{L} .'-]{2,60}?)\s+(?:is|was|are|e|eh|es|era|foi|sao)\b/u)
+    || t.match(/^([\p{L}][\p{L} .'-]{2,60}?)\s+(?:is|e|eh|es)\s+(?:my|the|a|an|mi|el|la|un|una|meu|minha|o|a|um|uma)\b/u)
+    || t.match(/\b(?:is|are|e|eh|es|sao)\s+(?:my|mi|meu|minha)\s+[\p{L}]+\b[, ]+([\p{L}][\p{L} .'-]{2,60}?)(?:[,.]|$)/u);
+  const name = said ? stripNoise(said[1]).replace(/^(the|my|a|an|o|a|el|la|meu|minha|mi)\s+/i, '').trim() : null;
+  if (!name || /^(transfer|payment|pago|pagamento|transferencia|bizum)\b/i.test(name)) return { role: hit[0], name: null };
+  return { role: hit[0], name };
+}

@@ -29,7 +29,7 @@ import { complete, stream as streamComplete, TIER_CHAT } from '../llmGateway.js'
 import { windowLines, weekAverageLine, costliestDayLine, cheapestDayLine, monthPaceLine, weekdayLine, spendWindows, breakdown, eur, NO_NAME } from './windows.js';
 import { askedLines, askedDays, askedWindows } from './asked.js';
 import { clockLine } from './clock.js';
-import { incomeStatement, subscriptionStatement, cancelStatement } from './statements.js';
+import { personStatement, incomeStatement, subscriptionStatement, cancelStatement } from './statements.js';
 import { listReturnsClosing } from './returns.js';
 import { tripDays } from './when.js';
 import { balances, describeBetweenPeople, monthBetweenPeople, describeMonthBetweenPeople, splitFindings, MIN_WAYS, MAX_WAYS } from './bizum.js';
@@ -90,6 +90,14 @@ export function learnFromStatement(message, ctx, { now = new Date() } = {}) {
     if (sub.currency !== 'EUR') return { ask: say(L, '{name} is in {ccy}: about how much is that in euros a month?', { name: sub.name, ccy: sub.currency }) };
     if (!sub.day) return { ask: say(L, 'On which day of the month does {name} take its {amount}?', { name: sub.name, amount: amountText(sub.amount) }) };
     return { offer: { kind: 'fact', fact: { kind: 'commitment', subject: keyOf(sub.name), subjectLabel: sub.name, value: 'subscription', amount: sub.amount, day: sub.day, note: sub.cadence }, label: say(L, 'Expect {name}: {amount} {cadence}, {day}', { name: sub.name, amount: amountText(sub.amount), cadence: say(L, sub.cadence), day: dayWord(L, sub.day) }) } };
+  }
+  /* Who somebody is: a role word and a name the ledger has seen as a transfer or Bizum
+     counterpart become the person offer here, computed; the model offered remember for
+     "she is my landlord" one run in two (2026-09-23). */
+  const who = personStatement(message);
+  if (who && who.role) {
+    const row = who.name ? personRow(ctx.transactions, who.name) : null;
+    if (row) return { offer: { kind: 'person', merchant_key: row.merchant_key, role: who.role, note: String(message || '').trim().slice(0, 240) } };
   }
   const inc = incomeStatement(message);
   /* Money that comes "sometimes" has no day to ask for and no amount to count on: nothing
@@ -1241,7 +1249,13 @@ export function assembleReply(parsed, ctx, message = '') {
   const learned = learnFromStatement(message, ctx, { now: ctx.now });
   if (learned?.offer) {
     const offer = validateAction(learned.offer, ctx);
-    if (offer) { for (let i = actions.length - 1; i >= 0; i -= 1) if (actions[i].kind === 'remember') actions.splice(i, 1); actions.unshift(offer); }
+    if (offer) {
+      /* The computed offer stands in for a note, and for the model's own copy of the same
+         offer: "she is my landlord" came back as two landlord cards (2026-09-23). */
+      const same = (x) => x.kind === offer.kind && (offer.kind !== 'person' || String(x.merchant_key) === String(offer.merchant_key));
+      for (let i = actions.length - 1; i >= 0; i -= 1) if (actions[i].kind === 'remember' || same(actions[i])) actions.splice(i, 1);
+      actions.unshift(offer);
+    }
   }
   /* While the ledger is asking for the missing part, a note would keep half a fact. */
   if (learned?.ask) for (let i = actions.length - 1; i >= 0; i -= 1) if (actions[i].kind === 'remember') actions.splice(i, 1);
