@@ -3,7 +3,7 @@
  * already said. It computes nothing new and never puts an item on a day of another month.
  */
 import { describe, it, expect } from 'vitest';
-import { monthPlan, planLine, NOTE_SUBJECT, isDayNote } from '../../../../api/services/money/plan.js';
+import { monthPlan, planLine, NOTE_SUBJECT, isDayNote } from '../../../../api/_app/services/money/plan.js';
 
 const NOW = new Date('2026-09-15T12:00:00Z');
 const t = (occurred_at, amount, extra = {}) => ({ id: occurred_at + amount, occurred_at, amount, merchant_key: 'x', ...extra });
@@ -122,7 +122,7 @@ describe('a day in the diary lands on its square', () => {
 
 describe('the diary on the plan', () => {
   it('lists a coming event of the month even when its kind of day has no learned cost', async () => {
-    const { monthPlan } = await import('../../../../api/services/money/plan.js');
+    const { monthPlan } = await import('../../../../api/_app/services/money/plan.js');
     const now = new Date('2026-09-21T10:00:00Z');
     const facts = [{ kind: 'event_spend_meta', subject: '', value: JSON.stringify({ snapshot: [
       { id: 'e1', title: 'R Homework', start: '2026-09-24T12:00:00+02:00', end: '2026-09-24T13:00:00+02:00', all_day: false },
@@ -137,7 +137,7 @@ describe('the diary on the plan', () => {
 
 describe('the diary on each square', () => {
   it('carries how many events a day held, past days included', async () => {
-    const { monthPlan } = await import('../../../../api/services/money/plan.js');
+    const { monthPlan } = await import('../../../../api/_app/services/money/plan.js');
     const now = new Date('2026-09-21T10:00:00Z');
     const facts = [{ kind: 'event_spend_meta', subject: '', value: JSON.stringify({ days: { '2026-09-15': 3, '2026-09-22': 5, '2026-08-30': 2 }, snapshot: [] }) }];
     const cells = monthPlan({ forecast: null, transactions: [], facts, now }).cells;

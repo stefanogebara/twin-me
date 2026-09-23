@@ -8,7 +8,7 @@
  * counting, and context extraction shapes.
  */
 import { describe, it, expect } from 'vitest';
-import textProcessor from '../../../api/services/textProcessor.js';
+import textProcessor from '../../../api/_app/services/textProcessor.js';
 
 describe('normalizeText', () => {
   it('replaces URLs with the [URL] token', () => {

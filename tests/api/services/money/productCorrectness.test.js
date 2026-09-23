@@ -1,7 +1,7 @@
 import { expect, it } from 'vitest';
-import { projectMonth } from '../../../../api/services/money/projection.js';
-import { awayWindows, weekWord } from '../../../../api/services/money/covariates.js';
-import { spendingRule } from '../../../../api/services/money/spending.js';
+import { projectMonth } from '../../../../api/_app/services/money/projection.js';
+import { awayWindows, weekWord } from '../../../../api/_app/services/money/covariates.js';
+import { spendingRule } from '../../../../api/_app/services/money/spending.js';
 
 it('does not include a payment the person explicitly rejected in spending', () => {
   expect(spendingRule([])({ amount: -500, currency: 'EUR', channel: 'card', verdict: 'not_me' })).toBe(false);

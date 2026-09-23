@@ -7,7 +7,7 @@
  * Default userId: Stefano
  */
 import 'dotenv/config';
-import extractionOrchestrator from '../api/services/extractionOrchestrator.js';
+import extractionOrchestrator from '../api/_app/services/extractionOrchestrator.js';
 
 const STEFANO = '167c27b5-a40b-49fb-8d00-deb1b1c57f4d';
 const PLATFORMS = ['spotify', 'google_calendar'];

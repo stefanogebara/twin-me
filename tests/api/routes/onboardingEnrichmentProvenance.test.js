@@ -16,7 +16,7 @@ import { readFileSync } from 'fs';
 import { resolve } from 'path';
 
 const SRC = readFileSync(
-  resolve(__dirname, '../../../api/routes/onboarding-soul-signature.js'),
+  resolve(__dirname, '../../../api/_app/routes/onboarding-soul-signature.js'),
   'utf8'
 );
 

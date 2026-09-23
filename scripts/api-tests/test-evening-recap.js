@@ -1,7 +1,7 @@
 /**
  * E2E Test: Evening Recap Pipeline
  * ==================================
- * Run: node api/scripts/test-evening-recap.js
+ * Run: node api/_app/scripts/test-evening-recap.js
  */
 
 import dotenv from 'dotenv';

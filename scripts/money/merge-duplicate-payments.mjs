@@ -19,7 +19,7 @@
  * about to touch to --backup (default: money-merge-backup.json).
  */
 import { writeFileSync } from 'node:fs';
-import { toSighting } from '../../api/services/money/feeds/enableBanking.js';
+import { toSighting } from '../../api/_app/services/money/feeds/enableBanking.js';
 
 const arg = (name, fallback = null) => {
   const at = process.argv.indexOf(`--${name}`);

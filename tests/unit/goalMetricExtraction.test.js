@@ -13,7 +13,7 @@ import {
   extractMetricFromPlatformData,
   extractMetricFromMemories,
   evaluateTarget,
-} from '../../api/services/goalTrackingService.js';
+} from '../../api/_app/services/goalTrackingService.js';
 
 const mem = (content, overrides = {}) => ({
   memory_type: 'platform_data',

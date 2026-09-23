@@ -1,6 +1,6 @@
 /** One integer a day: how many events the diary held, merged across runs so the past survives. */
 import { describe, expect, it } from 'vitest';
-import { dayCounts, coveredDays } from '../../../../api/services/money/calendar.js';
+import { dayCounts, coveredDays } from '../../../../api/_app/services/money/calendar.js';
 
 const ev = (start) => ({ id: start, title: 'Class', start });
 

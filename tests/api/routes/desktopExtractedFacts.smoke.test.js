@@ -1,5 +1,5 @@
 /**
- * Unit tests for api/routes/desktop-extracted-facts.js — pure helpers.
+ * Unit tests for api/_app/routes/desktop-extracted-facts.js — pure helpers.
  *
  * The route handler itself is integration-shaped (Redis, OAuth token,
  * Google APIs) and is exercised by the prod verify script. These tests
@@ -20,7 +20,7 @@ import {
   buildFocusBlocksFact,
   buildLanguageFact,
   confidenceRank,
-} from '../../../api/routes/desktop-extracted-facts.js';
+} from '../../../api/_app/routes/desktop-extracted-facts.js';
 
 describe('buildIdentityFact', () => {
   it('returns null when userInfo is missing or has no email', () => {

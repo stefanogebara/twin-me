@@ -4,7 +4,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { getTrend } from '../../../../api/services/whoop/analytics/getTrend.js';
+import { getTrend } from '../../../../api/_app/services/whoop/analytics/getTrend.js';
 
 function createMockClient() {
   const getMock = vi.fn();

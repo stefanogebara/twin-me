@@ -8,13 +8,13 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 const downloadMock = vi.fn();
-vi.mock('../../../api/services/whatsappService.js', () => ({
+vi.mock('../../../api/_app/services/whatsappService.js', () => ({
   downloadWhatsAppMedia: (...a) => downloadMock(...a),
   sendWhatsAppMessage: vi.fn(),
 }));
 
 const completeMock = vi.fn();
-vi.mock('../../../api/services/llmGateway.js', () => ({
+vi.mock('../../../api/_app/services/llmGateway.js', () => ({
   complete: (...a) => completeMock(...a),
   TIER_CHAT: 'chat',
   TIER_ANALYSIS: 'analysis',
@@ -22,13 +22,13 @@ vi.mock('../../../api/services/llmGateway.js', () => ({
 }));
 
 const ingestMock = vi.fn();
-vi.mock('../../../api/services/transactions/rawIngestion.js', () => ({
+vi.mock('../../../api/_app/services/transactions/rawIngestion.js', () => ({
   ingestRawTransactions: (...a) => ingestMock(...a),
 }));
 
 // supabaseAdmin: only the dedup range query is used.
 const dedupResult = { data: [], error: null };
-vi.mock('../../../api/services/database.js', () => {
+vi.mock('../../../api/_app/services/database.js', () => {
   const chain = {};
   Object.assign(chain, {
     from: () => chain,
@@ -42,7 +42,7 @@ vi.mock('../../../api/services/database.js', () => {
 });
 
 const { handleReceiptImage } = await import(
-  '../../../api/services/transactions/pixReceiptIngest.js'
+  '../../../api/_app/services/transactions/pixReceiptIngest.js'
 );
 
 const IMG = { id: 'media-img-1', mimeType: 'image/jpeg' };

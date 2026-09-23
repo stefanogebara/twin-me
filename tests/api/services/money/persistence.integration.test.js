@@ -3,21 +3,21 @@ import { execFileSync } from 'node:child_process';
 import { testPool, bootstrapMoney, postgresSupabase } from '../../../helpers/moneyDatabase.js';
 
 const state = vi.hoisted(() => ({ db: null }));
-vi.mock('../../../../api/services/database.js', () => ({ supabaseAdmin: new Proxy({}, { get: (_, key) => state.db[key] }), serverDb: {} }));
-vi.mock('../../../../api/services/money/twinBridge.js', () => ({ tellTwin: vi.fn(), tellTwinFacts: vi.fn(), tellTwinPatterns: vi.fn(), tellTwinTurn: vi.fn() }));
-import { ingestSighting, ingestSightings, saveBankAccounts, setVerdict, refreshRecurring } from '../../../../api/services/money/store.js';
+vi.mock('../../../../api/_app/services/database.js', () => ({ supabaseAdmin: new Proxy({}, { get: (_, key) => state.db[key] }), serverDb: {} }));
+vi.mock('../../../../api/_app/services/money/twinBridge.js', () => ({ tellTwin: vi.fn(), tellTwinFacts: vi.fn(), tellTwinPatterns: vi.fn(), tellTwinTurn: vi.fn() }));
+import { ingestSighting, ingestSightings, saveBankAccounts, setVerdict, refreshRecurring } from '../../../../api/_app/services/money/store.js';
 
 const USER = '00000000-0000-4000-8000-000000000001';
 const OTHER = '00000000-0000-4000-8000-000000000002';
 const phone = { source: 'phone', source_ref: 'event-1', amount: 5, currency: 'EUR', direction: 'out', merchant_key: 'cafe', merchant_raw: 'Cafe', occurred_at: '2026-09-11T19:00:00Z' };
 const bank = (overrides = {}) => ({ ...phone, source: 'bankfeed', source_ref: 'bank-1', raw_json: { status: 'BOOK', entry_reference: 'bank-1' }, ...overrides });
-import { labelCard, accountsWithCards } from '../../../../api/services/money/instruments.js';
-import { transactionPage, listTransactions } from '../../../../api/services/money/transactionRepository.js';
-import { createStatementAccount, statementAccounts, ownedStatementAccount, checkStatementEvidence } from '../../../../api/services/money/statements/accounts.js';
-import { toSighting, distinctPending } from '../../../../api/services/money/feeds/enableBanking.js';
-import { toSightings } from '../../../../api/services/money/statements/importer.js';
-import { holdUndatedCapture } from '../../../../api/services/money/legacyCapture.js';
-import { seenBy } from '../../../../api/services/money/seen.js';
+import { labelCard, accountsWithCards } from '../../../../api/_app/services/money/instruments.js';
+import { transactionPage, listTransactions } from '../../../../api/_app/services/money/transactionRepository.js';
+import { createStatementAccount, statementAccounts, ownedStatementAccount, checkStatementEvidence } from '../../../../api/_app/services/money/statements/accounts.js';
+import { toSighting, distinctPending } from '../../../../api/_app/services/money/feeds/enableBanking.js';
+import { toSightings } from '../../../../api/_app/services/money/statements/importer.js';
+import { holdUndatedCapture } from '../../../../api/_app/services/money/legacyCapture.js';
+import { seenBy } from '../../../../api/_app/services/money/seen.js';
 let pool;
 beforeAll(async () => {
   pool = testPool();
@@ -364,9 +364,9 @@ describe('provider identity lifecycle through real persistence', () => {
   });
 });
 
-import { currentFigureScores } from '../../../../api/services/money/figureScoreStore.js';
-import { recordPredictions } from '../../../../api/services/money/predictions.js';
-import { calibrate } from '../../../../api/services/money/calibration.js';
+import { currentFigureScores } from '../../../../api/_app/services/money/figureScoreStore.js';
+import { recordPredictions } from '../../../../api/_app/services/money/predictions.js';
+import { calibrate } from '../../../../api/_app/services/money/calibration.js';
 const SCORE_USER='00000000-0000-4000-8000-000000000070';
 const SCORE_ACCOUNT='00000000-0000-4000-8000-000000000071';
 const SCORE_NOW=new Date('2026-09-18T12:00:00Z');

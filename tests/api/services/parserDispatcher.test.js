@@ -6,7 +6,7 @@
  * scope (verified elsewhere / live); the routing decision is what's pinned here.
  */
 import { describe, it, expect } from 'vitest';
-import { detectFormat } from '../../../api/services/transactions/parserDispatcher.js';
+import { detectFormat } from '../../../api/_app/services/transactions/parserDispatcher.js';
 
 describe('detectFormat — XLSX', () => {
   it('detects the PK zip magic bytes as xlsx', async () => {

@@ -2,9 +2,9 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 const sentry = vi.hoisted(() => ({ captureMessage: vi.fn() }));
 vi.mock('@sentry/node', () => sentry);
-vi.mock('../../../api/services/database.js', () => ({ supabaseAdmin: { from: () => ({ insert: async () => ({ error: null }) }) } }));
-vi.mock('../../../api/services/logger.js', () => ({ createLogger: () => ({ warn() {}, info() {}, error() {}, debug() {} }) }));
-import { logCronExecution, reportCronFailure } from '../../../api/services/cronLogger.js';
+vi.mock('../../../api/_app/services/database.js', () => ({ supabaseAdmin: { from: () => ({ insert: async () => ({ error: null }) }) } }));
+vi.mock('../../../api/_app/services/logger.js', () => ({ createLogger: () => ({ warn() {}, info() {}, error() {}, debug() {} }) }));
+import { logCronExecution, reportCronFailure } from '../../../api/_app/services/cronLogger.js';
 afterEach(() => { vi.unstubAllEnvs(); sentry.captureMessage.mockClear(); });
 
 describe('a cron failure and Sentry', () => {

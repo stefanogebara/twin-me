@@ -33,7 +33,7 @@ const baselines = JSON.parse(readFileSync(baselinesPath, 'utf8'));
 const UPDATE = process.argv.slice(2).some((a) => a === '--update' || a === '--fix');
 
 function countRoutesWithFrom() {
-  const res = spawnSync('git', ['ls-files', 'api/routes'], { cwd: root, encoding: 'utf8' });
+  const res = spawnSync('git', ['ls-files', 'api/_app/routes'], { cwd: root, encoding: 'utf8' });
   const files = (res.stdout || '')
     .split('\n')
     .filter((f) => f.endsWith('.js'));

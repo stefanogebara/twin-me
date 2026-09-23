@@ -1,9 +1,9 @@
 # Backend Audit Findings
 
 Date: 2026-02-27
-Scope: api/routes/twin-chat.js, api/services/memoryStreamService.js,
-api/services/reflectionEngine.js, api/services/proactiveInsights.js,
-api/services/goalTrackingService.js
+Scope: api/_app/routes/twin-chat.js, api/_app/services/memoryStreamService.js,
+api/_app/services/reflectionEngine.js, api/_app/services/proactiveInsights.js,
+api/_app/services/goalTrackingService.js
 
 ## Summary
 
@@ -36,11 +36,11 @@ Plus additional Whoop/platform fixes: BrainPage PLATFORM_META, connectors.js nan
 
 ---
 
-## 1. Twin Chat (api/routes/twin-chat.js)
+## 1. Twin Chat (api/_app/routes/twin-chat.js)
 
 ### FINDING 1 - HIGH (FIXED) - /chat/history crashes on all requests
 
-File: api/routes/twin-chat.js line 1271
+File: api/_app/routes/twin-chat.js line 1271
 
 serverDb.getMessagesByConversation() returns {data, error} (an object). The code
 assigned the object directly to `messages` and called .map() on it, throwing
@@ -58,7 +58,7 @@ Impact: GET /api/chat/history returns 500 for ALL users. Chat history is complet
 
 ### FINDING 2 - HIGH (FIXED) - /chat/intro queries wrong table; greeting fires every visit
 
-File: api/routes/twin-chat.js line 1354
+File: api/_app/routes/twin-chat.js line 1354
 
 The intro endpoint checks the 'conversations' table (old school/professor system) to
 decide if the user is a first-time visitor. TwinMe uses 'twin_conversations'. Since
@@ -72,7 +72,7 @@ Impact: The intro greeting fires on every chat open, making the product feel bro
 
 ### FINDING 3 - MED - Chat rate limit in-memory; bypassed on Vercel cold starts
 
-File: api/routes/twin-chat.js lines 58-105
+File: api/_app/routes/twin-chat.js lines 58-105
 
 chatRateLimitMap is an in-memory Map. On Vercel serverless, each cold-started function
 instance has its own empty map. The 50 msg/hr limit resets on every cold start.
@@ -82,7 +82,7 @@ Fall back to in-memory on Redis failure. redisClient.js is already available.
 
 ### FINDING 4 - MED - Context truncated mid-sentence
 
-File: api/routes/twin-chat.js lines 1026-1029
+File: api/_app/routes/twin-chat.js lines 1026-1029
 
 When additionalContext exceeds 12000 chars it is sliced at exactly char 12000 + '...'.
 This can cut a memory reflection mid-sentence. The LLM may interpret the fragment as a
@@ -93,7 +93,7 @@ budgeting that stops adding new sections once the budget is exceeded.
 
 ### FINDING 5 - LOW - Conversation history reads wrong table
 
-File: api/services/database.js line 375, api/routes/twin-chat.js line 1059
+File: api/_app/services/database.js line 375, api/_app/routes/twin-chat.js line 1059
 
 serverDb.getMessagesByConversation() queries the 'messages' table (school system), not
 'twin_messages'. LLM conversation history returns empty for TwinMe users even with
@@ -105,11 +105,11 @@ or add getTwinMessagesByConversation() to serverDb.
 
 ---
 
-## 2. Memory Stream Service (api/services/memoryStreamService.js)
+## 2. Memory Stream Service (api/_app/services/memoryStreamService.js)
 
 ### FINDING 6 - MED - getMemoryStats fetches 5000 rows for a count
 
-File: api/services/memoryStreamService.js lines 856-862
+File: api/_app/services/memoryStreamService.js lines 856-862
 
 getMemoryStats() calls .select("memory_type").limit(5000), fetching rows into memory
 and counting in JS. For users with 16k+ memories this is a heavy read and returns
@@ -120,7 +120,7 @@ Recommended fix: Add RPC get_memory_stats(p_user_id uuid) returning:
 
 ### FINDING 7 - MED - Fact dedup window too narrow (last 50 facts)
 
-File: api/services/memoryStreamService.js line 744
+File: api/_app/services/memoryStreamService.js line 744
 
 isDuplicateFact() cosine similarity check scans only the last 50 facts.
 Users with 200+ facts accumulate duplicates when the same fact is re-extracted months later.
@@ -130,7 +130,7 @@ The exact-match check already has no limit (correct).
 
 ### FINDING 8 - LOW - Source memory decay fires N individual UPDATE queries
 
-File: api/services/memoryStreamService.js lines 242-248
+File: api/_app/services/memoryStreamService.js lines 242-248
 
 decaySourceMemories() loops and fires one UPDATE per memory.
 5 experts x 10 evidence memories = 50 sequential DB round-trips per reflection cycle.
@@ -140,11 +140,11 @@ Recommended fix: Add bulk_decay_memories RPC that handles all updates in one SQL
 
 ---
 
-## 3. Reflection Engine (api/services/reflectionEngine.js)
+## 3. Reflection Engine (api/_app/services/reflectionEngine.js)
 
 ### FINDING 9 - MED - Reflection cooldown Map not safe on serverless
 
-File: api/services/reflectionEngine.js lines 165-166, 504-506
+File: api/_app/services/reflectionEngine.js lines 165-166, 504-506
 
 reflectionCooldowns is an in-memory Map keyed by userId. On Vercel serverless each
 cold-started function instance has its own empty Map. The 6-hour cooldown resets
@@ -157,7 +157,7 @@ Fall back to in-memory on Redis failure. redisClient.js is already available.
 
 ### FINDING 10 - MED - Personality snapshots lack 24h dedup guard
 
-File: api/services/reflectionEngine.js lines 559-597
+File: api/_app/services/reflectionEngine.js lines 559-597
 
 snapshotPersonalityScores() inserts a row into personality_snapshots on every
 reflection cycle that touches personality. There is no unique constraint on
@@ -171,7 +171,7 @@ Recommended fix: Add a unique constraint or a code-level guard:
 
 ### FINDING 11 - LOW - INSUFFICIENT_EVIDENCE exact-match misses variants
 
-File: api/services/reflectionEngine.js line 351
+File: api/_app/services/reflectionEngine.js line 351
 
 The reflection output parser checks:
   if (content === "INSUFFICIENT_EVIDENCE")
@@ -185,11 +185,11 @@ Recommended fix: Use a case-insensitive prefix check:
 
 ---
 
-## 4. Proactive Insights (api/services/proactiveInsights.js)
+## 4. Proactive Insights (api/_app/services/proactiveInsights.js)
 
 ### FINDING 12 - MED - proactive_insights grows unboundedly, no cleanup
 
-File: api/services/proactiveInsights.js
+File: api/_app/services/proactiveInsights.js
 
 Every observation ingestion cycle potentially inserts 1-3 rows into
 proactive_insights. Delivered insights (delivered=true) are never deleted.
@@ -203,7 +203,7 @@ Recommended fix: Add a cleanup step in the delivery path or a weekly cron:
 
 ### FINDING 13 - LOW - Observations block empty when reflections dominate
 
-File: api/services/proactiveInsights.js lines 63-67
+File: api/_app/services/proactiveInsights.js lines 63-67
 
 The insight generator fetches getRecentMemories(50) then filters:
   memories.filter(m => m.memory_type !== "reflection")
@@ -220,11 +220,11 @@ Recommended fix: Fetch memories with explicit type split:
 
 ---
 
-## 5. Goal Tracking Service (api/services/goalTrackingService.js)
+## 5. Goal Tracking Service (api/_app/services/goalTrackingService.js)
 
 ### FINDING 14 - MED - listening_hours/focus_time never track via fallback
 
-File: api/services/goalTrackingService.js lines 350-358
+File: api/_app/services/goalTrackingService.js lines 350-358
 
 extractMetricFromMemories() is the fallback metric extractor for goals when
 no structured platform data is available. It uses regex patterns on memory
@@ -243,7 +243,7 @@ Recommended fix: Add regex patterns for missing goal types:
 
 ### FINDING 15 - MED - dismissGoal overwrites entire metadata JSONB
 
-File: api/services/goalTrackingService.js line 203
+File: api/_app/services/goalTrackingService.js line 203
 
 dismissGoal() calls:
   .update({ metadata: { dismissed: true } })
@@ -259,7 +259,7 @@ Recommended fix: Use Postgres jsonb_set or fetch-then-merge:
 
 ### FINDING 16 - LOW - Goal streak resets on first miss, no grace days
 
-File: api/services/goalTrackingService.js line 630
+File: api/_app/services/goalTrackingService.js line 630
 
 Streak logic:
   newStreak = targetMet ? prev + 1 : 0
@@ -274,11 +274,11 @@ Recommended fix: Add a grace_days config (default 1) per goal type:
 
 ---
 
-## 6. Security (api/routes/auth-simple.js, api/routes/memory-health.js)
+## 6. Security (api/_app/routes/auth-simple.js, api/_app/routes/memory-health.js)
 
 ### FINDING 17 - MED - No per-account signin lockout
 
-File: api/routes/auth-simple.js
+File: api/_app/routes/auth-simple.js
 
 authLimiter (express-rate-limit) enforces 10 attempts per 15 minutes per IP.
 But there is no per-account lockout. An attacker routing through multiple IPs
@@ -292,7 +292,7 @@ Recommended fix: Track failed attempts per email in Redis:
 
 ### FINDING 18 - LOW (FIXED) - memory-health leaks raw DB error messages
 
-File: api/routes/memory-health.js line 170
+File: api/_app/routes/memory-health.js line 170
 
 Before fix, the 500 handler returned the raw err.message string in production,
 which can leak table names, column names, or query structure to clients.
@@ -306,11 +306,11 @@ Fixed in this audit.
 
 ---
 
-## 7. Performance (api/routes/memory-health.js, api/services/reflectionEngine.js)
+## 7. Performance (api/_app/routes/memory-health.js, api/_app/services/reflectionEngine.js)
 
 ### FINDING 19 - MED - memory-health: 8 parallel DB scans, no cache
 
-File: api/routes/memory-health.js lines 40-106
+File: api/_app/routes/memory-health.js lines 40-106
 
 Every GET /api/memory-health fires 8 concurrent Supabase queries against
 user_memories. Query 1 (composition) fetches ALL rows for the user with no
@@ -327,7 +327,7 @@ Recommended fix:
 
 ### FINDING 20 - LOW - Reflection dedup regenerates embeddings redundantly
 
-File: api/services/reflectionEngine.js
+File: api/_app/services/reflectionEngine.js
 
 The cosine similarity dedup check in storeReflection() calls
 embeddingService.generateEmbedding(content) for the new reflection, then
@@ -346,8 +346,8 @@ that are caught by exact-match alone.
 
 ## Files Modified in This Audit
 
-- api/routes/twin-chat.js (Findings 1, 2 fixed)
-- api/routes/memory-health.js (Finding 18 fixed)
+- api/_app/routes/twin-chat.js (Findings 1, 2 fixed)
+- api/_app/routes/memory-health.js (Finding 18 fixed)
 
 ---
 

@@ -23,7 +23,7 @@ import {
   resolveRequestTimeout,
   HARD_CAP_MS,
   DEFAULT_TIMEOUT_MS,
-} from '../../api/config/requestTimeouts.js';
+} from '../../api/_app/config/requestTimeouts.js';
 
 describe('request timeouts', () => {
   it('gives /api/inngest room for a whole step, not the 30s default', () => {

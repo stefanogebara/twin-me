@@ -1,5 +1,5 @@
 /**
- * Post-aggregator-removal smoke tests for api/routes/transactions.js
+ * Post-aggregator-removal smoke tests for api/_app/routes/transactions.js
  * ===================================================================
  * Receipt for replan-2026-06-12: bank aggregators (Pluggy/Plaid/TrueLayer)
  * were removed. These tests prove the provider-agnostic transaction surface
@@ -41,22 +41,22 @@ function makeBuilder() {
   return builder;
 }
 
-vi.mock('../../../api/services/database.js', () => ({
+vi.mock('../../../api/_app/services/database.js', () => ({
   supabaseAdmin: { from: vi.fn(() => makeBuilder()) },
   serverDb: {},
 }));
 
-// The route graph also reaches api/config/supabase.js (via
+// The route graph also reaches api/_app/config/supabase.js (via
 // transactionNudgeService → whatsappService), which throws at import time
 // without Supabase env (CI stubs it in ci.yml; a bare checkout has no .env).
-vi.mock('../../../api/config/supabase.js', () => {
+vi.mock('../../../api/_app/config/supabase.js', () => {
   const stub = { from: () => ({ insert: () => Promise.resolve({ error: null }) }) };
   return { supabase: stub, supabaseAdmin: stub, default: stub };
 });
 
 // auth middleware hits the users table via its own import of database.js —
 // the same mock serves it; authenticateUser only needs the JWT to decode.
-vi.mock('../../../api/middleware/auth.js', () => ({
+vi.mock('../../../api/_app/middleware/auth.js', () => ({
   authenticateUser: (req, res, next) => {
     const header = req.headers.authorization || '';
     const token = header.replace(/^Bearer\s+/i, '');
@@ -75,7 +75,7 @@ const signToken = () => jwt.sign({ id: TEST_USER }, 'test-secret', { expiresIn: 
 
 // The import itself is assertion #1: it throws if any deleted aggregator
 // module (sandboxGuard, pluggyClient, plaidClient, ...) is still imported.
-const transactionsRoutes = (await import('../../../api/routes/transactions.js')).default;
+const transactionsRoutes = (await import('../../../api/_app/routes/transactions.js')).default;
 
 function createApp() {
   const app = express();
@@ -175,7 +175,7 @@ describe('transactions routes after aggregator removal', () => {
       // First awaited DB op in the handler is the transactions upsert.
       resultQueue.push({ data: [{ id: 'row-1' }, { id: 'row-2' }], error: null });
 
-      const { supabaseAdmin } = await import('../../../api/services/database.js');
+      const { supabaseAdmin } = await import('../../../api/_app/services/database.js');
       const res = await request(createApp())
         .post('/api/transactions/upload')
         .set('Authorization', `Bearer ${signToken()}`)

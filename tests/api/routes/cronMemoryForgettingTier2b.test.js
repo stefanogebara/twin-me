@@ -97,7 +97,7 @@ beforeEach(() => {
   archiveInserts = [];
 });
 
-vi.mock('../../../api/services/database.js', () => {
+vi.mock('../../../api/_app/services/database.js', () => {
   function makeChain(table) {
     // Predicates accumulate; only the Tier 2b shape (a `lt` on superseded_at)
     // is served with rows. Every other tier resolves empty and no-ops.
@@ -150,15 +150,15 @@ vi.mock('../../../api/services/database.js', () => {
   return { supabaseAdmin: { from: (table) => makeChain(table) }, serverDb: {} };
 });
 
-vi.mock('../../../api/services/logger.js', () => ({
+vi.mock('../../../api/_app/services/logger.js', () => ({
   createLogger: () => ({ info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() }),
 }));
 
-vi.mock('../../../api/services/cronLogger.js', () => ({
+vi.mock('../../../api/_app/services/cronLogger.js', () => ({
   logCronExecution: async () => {},
 }));
 
-const { default: router } = await import('../../../api/routes/cron-memory-forgetting.js');
+const { default: router } = await import('../../../api/_app/routes/cron-memory-forgetting.js');
 
 function makeApp() {
   const app = express();

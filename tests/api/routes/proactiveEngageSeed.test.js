@@ -33,7 +33,7 @@ let insightRow = { insight: 'You ship more code on days you start with ambient p
 let insightSelectError = null; // force the seed lookup to fail
 const recorded = { insightSelects: [], twinPatternInserts: [] };
 
-vi.mock('../../../api/services/database.js', () => {
+vi.mock('../../../api/_app/services/database.js', () => {
   const makeChain = (table) => {
     const state = { selectCols: null, insertPayload: null };
     const chain = {};
@@ -74,7 +74,7 @@ vi.mock('../../../api/services/database.js', () => {
   };
 });
 
-vi.mock('../../../api/services/platformReflectionService.js', () => ({
+vi.mock('../../../api/_app/services/platformReflectionService.js', () => ({
   default: {
     hasFreshReflection: vi.fn(async () => false),
     getReflections: vi.fn(async () => ({ success: true, reflection: { text: 'x' } })),
@@ -82,7 +82,7 @@ vi.mock('../../../api/services/platformReflectionService.js', () => ({
   },
 }));
 
-const routes = (await import('../../../api/routes/platform-insights.js')).default;
+const routes = (await import('../../../api/_app/routes/platform-insights.js')).default;
 
 function makeApp() {
   const app = express();

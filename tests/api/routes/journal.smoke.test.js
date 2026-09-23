@@ -1,5 +1,5 @@
 /**
- * Smoke tests for api/routes/journal.js
+ * Smoke tests for api/_app/routes/journal.js
  * Covers: auth guard, POST content/mood/energy validation, PUT invalid-UUID,
  * list happy-path pagination shape, downstream 500.
  *
@@ -32,12 +32,12 @@ vi.mock('@supabase/supabase-js', () => ({
   })),
 }));
 
-vi.mock('../../../api/services/llmGateway.js', () => ({
+vi.mock('../../../api/_app/services/llmGateway.js', () => ({
   complete: vi.fn().mockResolvedValue({ content: '{}' }),
   TIER_ANALYSIS: 'analysis',
 }));
 
-vi.mock('../../../api/services/database.js', () => ({
+vi.mock('../../../api/_app/services/database.js', () => ({
   supabaseAdmin: {
     from: vi.fn(() => ({
       select: vi.fn().mockReturnThis(),
@@ -51,7 +51,7 @@ vi.mock('../../../api/services/database.js', () => ({
 const TEST_USER = '167c27b5-a40b-49fb-8d00-deb1b1c57f4d';
 const signToken = () => jwt.sign({ id: TEST_USER }, 'test-secret', { expiresIn: '1h' });
 
-const journalRoutes = (await import('../../../api/routes/journal.js')).default;
+const journalRoutes = (await import('../../../api/_app/routes/journal.js')).default;
 
 function createApp() {
   const app = express();

@@ -1,8 +1,8 @@
 /** A quiet failure keeps its name: logged with it, counted under it, the fallback returned. */
 import { describe, expect, it, vi } from 'vitest';
 const logged = vi.hoisted(() => ({ warn: vi.fn() }));
-vi.mock('../../../../api/services/logger.js', () => ({ createLogger: () => ({ warn: logged.warn, info: vi.fn(), error: vi.fn(), debug: vi.fn() }) }));
-import { quietly, quietFailures, resetQuietFailures } from '../../../../api/services/money/quietly.js';
+vi.mock('../../../../api/_app/services/logger.js', () => ({ createLogger: () => ({ warn: logged.warn, info: vi.fn(), error: vi.fn(), debug: vi.fn() }) }));
+import { quietly, quietFailures, resetQuietFailures } from '../../../../api/_app/services/money/quietly.js';
 
 describe('quietly', () => {
   it('returns the fallback, a fresh one each time when it is made, and counts by name', async () => {

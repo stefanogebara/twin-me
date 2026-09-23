@@ -1,12 +1,12 @@
 import { expect, it, vi } from 'vitest';
-vi.mock('../../../../api/services/database.js', () => {
+vi.mock('../../../../api/_app/services/database.js', () => {
   const query = new Proxy({}, { get: (_target, name) => name === 'then'
     ? (resolve) => Promise.resolve({ data: null, error: { message: 'offline' } }).then(resolve)
     : () => query });
   return { supabaseAdmin: { from: () => query }, serverDb: {} };
 });
-vi.mock('../../../../api/services/logger.js', () => ({ createLogger: () => ({ warn() {}, error() {}, info() {}, debug() {} }) }));
-import { listChatTurns, saveChatTurn, listFacts } from '../../../../api/services/money/store.js';
+vi.mock('../../../../api/_app/services/logger.js', () => ({ createLogger: () => ({ warn() {}, error() {}, info() {}, debug() {} }) }));
+import { listChatTurns, saveChatTurn, listFacts } from '../../../../api/_app/services/money/store.js';
 
 it('distinguishes failed history from a new conversation', async () => {
   await expect(listChatTurns('owner')).rejects.toThrow();

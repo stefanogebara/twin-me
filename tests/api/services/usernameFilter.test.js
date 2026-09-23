@@ -5,7 +5,7 @@
  * dead branch (documented below).
  */
 import { describe, it, expect } from 'vitest';
-import { isUsernameCascadeable } from '../../../api/services/enrichment/usernameFilter.js';
+import { isUsernameCascadeable } from '../../../api/_app/services/enrichment/usernameFilter.js';
 
 describe('isUsernameCascadeable', () => {
   it('rejects falsy / non-string input', () => {

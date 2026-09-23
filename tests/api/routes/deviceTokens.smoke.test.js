@@ -1,5 +1,5 @@
 /**
- * Smoke tests for api/routes/device-tokens.js
+ * Smoke tests for api/_app/routes/device-tokens.js
  * Covers: auth guard, token/platform/token_type validation, happy path, delete, 500.
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
@@ -16,11 +16,11 @@ process.env.NODE_ENV = 'test';
 const registerDeviceTokenMock = vi.fn();
 const deleteEqMock = vi.fn().mockResolvedValue({ error: null });
 
-vi.mock('../../../api/services/pushNotificationService.js', () => ({
+vi.mock('../../../api/_app/services/pushNotificationService.js', () => ({
   registerDeviceToken: (...a) => registerDeviceTokenMock(...a),
 }));
 
-vi.mock('../../../api/services/database.js', () => ({
+vi.mock('../../../api/_app/services/database.js', () => ({
   supabaseAdmin: {
     from: vi.fn(() => ({
       // auth middleware path: select().eq().single()
@@ -37,7 +37,7 @@ vi.mock('../../../api/services/database.js', () => ({
 const TEST_USER = '167c27b5-a40b-49fb-8d00-deb1b1c57f4d';
 const signToken = () => jwt.sign({ id: TEST_USER }, 'test-secret', { expiresIn: '1h' });
 
-const deviceTokenRoutes = (await import('../../../api/routes/device-tokens.js')).default;
+const deviceTokenRoutes = (await import('../../../api/_app/routes/device-tokens.js')).default;
 
 function createApp() {
   const app = express();

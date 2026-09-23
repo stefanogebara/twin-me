@@ -1,0 +1,12 @@
+import { chromium } from 'playwright';
+const browser = await chromium.connectOverCDP('http://127.0.0.1:9333');
+const context = browser.contexts()[0];
+const page = await context.newPage();
+const url = process.argv[2] || 'https://enablebanking.com/cp/';
+await page.goto(url, { waitUntil: 'domcontentloaded' }); await page.waitForTimeout(6000);
+console.log('url now:', page.url());
+const text = (await page.locator('body').innerText()).replace(/\s+\n/g, '\n').trim();
+console.log(text.split('\n').filter((l) => l.trim()).slice(0, 80).join('\n').slice(0, 3500));
+const links = await page.evaluate(() => [...document.querySelectorAll('a[href]')].map((a) => `${a.innerText.trim().slice(0, 40)} -> ${a.getAttribute('href')}`).filter((s) => /quote|applic|billing|contract|company|kyb|pricing|settings|account/i.test(s)).slice(0, 25));
+console.log('--- links:\n' + links.join('\n'));
+await page.close(); await browser.close();

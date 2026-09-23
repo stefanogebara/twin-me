@@ -16,9 +16,9 @@
  * nevertheless in its history here. Real forecasts see less. This measures the model, not
  * the pipeline around it.
  */
-import { dayForecast, dayActual, intervalScore } from '../../api/services/money/calibration.js';
-import { spendingRule } from '../../api/services/money/spending.js';
-import { dayIn, weekdayIn } from '../../api/services/money/zone.js';
+import { dayForecast, dayActual, intervalScore } from '../../api/_app/services/money/calibration.js';
+import { spendingRule } from '../../api/_app/services/money/spending.js';
+import { dayIn, weekdayIn } from '../../api/_app/services/money/zone.js';
 
 const arg = (name, fallback = null) => {
   const at = process.argv.indexOf(`--${name}`);

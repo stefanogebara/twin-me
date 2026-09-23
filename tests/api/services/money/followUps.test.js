@@ -8,7 +8,7 @@
  * because a charge that size usually announces itself.
  */
 import { describe, it, expect } from 'vitest';
-import { followUpQuestions, STANDING_AFTER_DAYS } from '../../../../api/services/money/context.js';
+import { followUpQuestions, STANDING_AFTER_DAYS } from '../../../../api/_app/services/money/context.js';
 
 const account = (id, over = {}) => ({ id, bank_name: 'Santander', iban_mask: `ES** **** 12${id}`, ...over });
 

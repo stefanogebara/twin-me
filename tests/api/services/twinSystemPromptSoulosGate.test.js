@@ -1,6 +1,6 @@
 /**
  * Tests for the SoulOS departments gate in buildTwinSystemPrompt
- * (api/services/twinSystemPromptBuilder.js).
+ * (api/_app/services/twinSystemPromptBuilder.js).
  *
  * product-truth-review 2026-08-09, Phase 0 item 1: the capabilities block was
  * gated on `departmentProposals !== null`, but the context-builder fan-out
@@ -15,7 +15,7 @@ import { describe, it, expect } from 'vitest';
 process.env.NODE_ENV = 'test';
 
 const { buildTwinSystemPrompt } = await import(
-  '../../../api/services/twinSystemPromptBuilder.js'
+  '../../../api/_app/services/twinSystemPromptBuilder.js'
 );
 
 // buildTwinSystemPrompt returns Anthropic prompt-caching blocks

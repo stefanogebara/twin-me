@@ -3,7 +3,7 @@
  * and a student whose rent is known has a typical month before their own has shown.
  */
 import { describe, it, expect } from 'vitest';
-import { poolMerchantPriors, shrink, applyPriors, studentMonth, PHI, LIVING_BEYOND_RENT } from '../../../../api/services/money/priors.js';
+import { poolMerchantPriors, shrink, applyPriors, studentMonth, PHI, LIVING_BEYOND_RENT } from '../../../../api/_app/services/money/priors.js';
 
 const row = (user_id, merchant_key, times, typical_amount, median_gap_days) => ({ user_id, merchant_key, times, typical_amount, median_gap_days });
 

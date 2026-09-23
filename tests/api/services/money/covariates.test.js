@@ -3,7 +3,7 @@
  * calendar's word for it.
  */
 import { describe, it, expect } from 'vitest';
-import { awayWindows, awayDaysBetween, awayAt, weekWord } from '../../../../api/services/money/covariates.js';
+import { awayWindows, awayDaysBetween, awayAt, weekWord } from '../../../../api/_app/services/money/covariates.js';
 
 const NOW = new Date('2026-09-14T12:00:00Z');
 const ev = (title, start, end, all_day = false) => ({ id: title, title, start, end, all_day });

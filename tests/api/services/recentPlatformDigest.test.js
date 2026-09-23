@@ -7,12 +7,12 @@
  */
 import { describe, it, expect, vi } from 'vitest';
 
-vi.mock('../../../api/services/logger.js', () => ({
+vi.mock('../../../api/_app/services/logger.js', () => ({
   createLogger: () => ({ info: vi.fn(), warn: vi.fn(), error: vi.fn() }),
 }));
 
 const { renderRecentPlatformDigest } = await import(
-  '../../../api/services/recentPlatformDigest.js'
+  '../../../api/_app/services/recentPlatformDigest.js'
 );
 
 /**

@@ -25,9 +25,9 @@ process.env.SUPABASE_SERVICE_ROLE_KEY ||= 'goals-stub-service-role-key';
 import { describe, it, expect } from 'vitest';
 
 const { combineBriefingWithOffer, isDailyActionOfferEnabled } = await import(
-  '../../api/services/dailyHabitLoop.js'
+  '../../api/_app/services/dailyHabitLoop.js'
 );
-const { classifyProtocolReply } = await import('../../api/services/threadApprovals.js');
+const { classifyProtocolReply } = await import('../../api/_app/services/threadApprovals.js');
 
 // The exact shape offerNextProposal() emits (threadApprovals.js) — if that
 // template changes, update this fixture AND re-verify the round trip below.

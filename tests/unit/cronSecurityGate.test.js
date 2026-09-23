@@ -1,5 +1,5 @@
 /**
- * Static audit: every api/routes/cron-*.js MUST call verifyCronSecret().
+ * Static audit: every api/_app/routes/cron-*.js MUST call verifyCronSecret().
  *
  * Regression guard for the 2026-04-21 bug where cron-bank-consent shipped
  * without an auth gate (router.get('/', async (_req, res) => { ... })
@@ -14,7 +14,7 @@ import { describe, it, expect } from 'vitest';
 import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
-const ROUTES_DIR = join(process.cwd(), 'api', 'routes');
+const ROUTES_DIR = join(process.cwd(), 'api', '_app', 'routes');
 
 function listCronFiles() {
   return readdirSync(ROUTES_DIR)

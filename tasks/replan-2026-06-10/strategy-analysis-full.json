@@ -131,7 +131,7 @@
         {
           "action": "change",
           "what": "Morning briefing: stop dumping raw proactive_insights rows. Whitelist categories (nudge/celebration/trend/concern only — never meeting_prep, reauth_needed, email_triage), exclude rows already delivered on another surface, delete the 'patterns' field entirely (it is an LLM paraphrase of the insights field), and filter browser-extension noise ('Opened brave...') out of the schedule array.",
-          "why": "This single file (api/routes/morning-briefing.js fetchRecentInsights + composeBriefing) causes most of the visible repetition and tone whiplash: same content 3x per card, system notices rendered as insights.",
+          "why": "This single file (api/_app/routes/morning-briefing.js fetchRecentInsights + composeBriefing) causes most of the visible repetition and tone whiplash: same content 3x per card, system notices rendered as insights.",
           "effort": "Half a day, one file"
         },
         {
@@ -144,7 +144,7 @@
           "action": "change",
           "what": "Gmail fetcher: store yesterday's unread count and emit the DELTA as the daily observation ('inbox grew by 47, top sender github.com'); demote the lifetime total to a once-weekly weekly_summary mention.",
           "why": "As long as '40,490 unread' arrives as a fresh daily observation, every downstream generator will keep citing it. Fix the source and the whole family of repeats dies.",
-          "effort": "Small, api/services/observationFetchers/gmail.js lines 52-75"
+          "effort": "Small, api/_app/services/observationFetchers/gmail.js lines 52-75"
         },
         {
           "action": "change",
@@ -256,7 +256,7 @@
         {
           "title": "Reddit, LinkedIn, Twitch OAuth: 4-month combined yield of ~22 memories, despite repeated bug-fixing investment",
           "detail": "Reddit: 7 platform_data memories, latest 2026-02-24 — three and a half months stale even though platform_connections claims last_sync 2026-06-06 (the sync 'succeeds' and yields nothing). LinkedIn: scopes are only openid/profile/email, so the integration can only re-fetch the same profile — 41 duplicate 'profile' rows in user_platform_data, 4 memories. Twitch: 21 rows (profile + followed_channels), 11 memories, latest 5/26. Audit history shows these exact platforms caused C2 (Reddit token expiry, no auto-refresh), H10 (35h sync gaps), H5-H7 (Discord/Reddit/LinkedIn sync failures, Nango allowlist bugs), H1/M1 (expired-token groups in two separate audits), plus a Twitch-specific nango.proxy SDK bug requiring a bypass in nangoService.js (~line 925).",
-          "evidence": "tasks/audit-2026-03-11.md C2/H10; tasks/audit-2026-03-10.md H5-H7; tasks/audit-2026-04-12.md H1; api/services/nangoService.js:925"
+          "evidence": "tasks/audit-2026-03-11.md C2/H10; tasks/audit-2026-03-10.md H5-H7; tasks/audit-2026-04-12.md H1; api/_app/services/nangoService.js:925"
         },
         {
           "title": "The extension already covers the social platforms' real behavioral signal",
@@ -271,7 +271,7 @@
         {
           "title": "~4,400 lines of code for platforms that have never produced a single row",
           "detail": "Strava (1,047 lines across fetcher+featureExtractor), Oura (1,068), Notion (329), Pinterest (209), SoundCloud (334), Slack (388), Steam (290), TikTok (325), Fitbit (112), Garmin (149), Apple Music (97), Google Drive (61) — all have zero user_platform_data and zero memories, ever. Several already had their UI tiles hidden ('OAuth not configured', commit 6ad2e363) yet the full backend stacks remain in OAUTH_CONFIGS, the Nango allowlist, and the 16,809-line fetcher/extractor surface. Strava and Oura alone generated 5+ fix commits (token refresh, platform CHECK constraints, tile hide/show churn) for platforms with no data.",
-          "evidence": "wc -l on api/services/observationFetchers, extractors, featureExtractors; commits 6ad2e363, d265d433, 785c8e56, f2178f46"
+          "evidence": "wc -l on api/_app/services/observationFetchers, extractors, featureExtractors; commits 6ad2e363, d265d433, 785c8e56, f2178f46"
         },
         {
           "title": "Money: three full aggregator stacks, one working provider — and a cron burning invocations for zero connections",
@@ -356,7 +356,7 @@
         },
         {
           "title": "Brokerage holdings card shows +1,234,467% P&L on fake cash — confirmed live",
-          "detail": "Called Plaid sandbox /investments/holdings with the user's stored token: the 'U S Dollar' cash position has institution_value $12,345.67 against cost_basis $1.00 → +1,234,467%, rendered green as a real gain by BrokerageHoldingsCard. Other rows: SBSI +24,558%, CAMYX +8,336%, overall portfolio +1,973%. api/routes/plaid.js /holdings does no sanity check on cost_basis quality and the UI (src/pages/components/money/BrokerageHoldingsCard.tsx) renders whatever arrives. This is the single most trust-destroying pixel on the page.",
+          "detail": "Called Plaid sandbox /investments/holdings with the user's stored token: the 'U S Dollar' cash position has institution_value $12,345.67 against cost_basis $1.00 → +1,234,467%, rendered green as a real gain by BrokerageHoldingsCard. Other rows: SBSI +24,558%, CAMYX +8,336%, overall portfolio +1,973%. api/_app/routes/plaid.js /holdings does no sanity check on cost_basis quality and the UI (src/pages/components/money/BrokerageHoldingsCard.tsx) renders whatever arrives. This is the single most trust-destroying pixel on the page.",
           "evidence": "Live sandbox call output: 'U S Dollar qty 12345.67 value 12345.67 cost 1 pct 1234467%'; TOTAL value 25446.39 cost 1227.62 → +1973%."
         },
         {
@@ -372,12 +372,12 @@
         {
           "title": "Three-provider maintenance burden for at most one usable rail",
           "detail": "Provider-specific code: Plaid ~1,800 lines (client 345, ingestion 608, mappers 84, webhook verifier 142, routes 494, cron 123), Pluggy ~1,330 (client 252, ingestion 331, routes 335, webhook 240, cron 170), TrueLayer ~680 (client 304, ingestion 204, routes 174) — plus the TrueLayer callback-param handling baked into MoneyPage.tsx. TrueLayer is NOT configured in env (dead code in this deployment). Plaid is sandbox-only (production Plaid approval is itself a compliance project). Pluggy (BR Open Finance) is the only rail the actual user base could use today. Two sync crons run against this. The whole financial subsystem is ~10,500 lines serving 7 real transactions.",
-          "evidence": "wc -l across api/services/transactions/* (5,280), api/routes/{transactions,plaid,pluggy,pluggy-webhook,truelayer,cron-*}.js (2,775), src/pages/components/money/* (1,330), MoneyPage.tsx (1,449). Env: TRUELAYER_CLIENT_ID unset."
+          "evidence": "wc -l across api/_app/services/transactions/* (5,280), api/_app/routes/{transactions,plaid,pluggy,pluggy-webhook,truelayer,cron-*}.js (2,775), src/pages/components/money/* (1,330), MoneyPage.tsx (1,449). Env: TRUELAYER_CLIENT_ID unset."
         },
         {
           "title": "The code quality itself is high — this is a data problem, not an engineering problem",
           "detail": "transactions.js shows real care: per-user rate limits, ownership verification before feedback writes, error-body sanitization, idempotent upserts, mixed-currency correctness (no FX mixing in ratios), read-side filtering of stale recurring flags, amount validation at ingest. The transaction feedback toggle ('stress? yes/no') is the only genuine labeled-data engine on the page and the differentiator (biology x spend join in transactionEmotionTagger.js) is real IP. The pipeline deserves to live; the page as currently populated does not.",
-          "evidence": "api/routes/transactions.js lines 136-162 (limiters), 987-1003 (ownership check), 456-465 (currency-safe ratio); api/services/transactions/transactionEmotionTagger.js."
+          "evidence": "api/_app/routes/transactions.js lines 136-162 (limiters), 987-1003 (ownership check), 456-465 (currency-safe ratio); api/_app/services/transactions/transactionEmotionTagger.js."
         }
       ],
       "recommendations": [
@@ -389,7 +389,7 @@
         },
         {
           "action": "delete",
-          "what": "Remove TrueLayer: api/routes/truelayer.js, trueLayerClient.js, trueLayerIngestion.js, webhook-truelayer.js, and the truelayer_connected/truelayer_error param handling in MoneyPage.tsx. Keep DB columns.",
+          "what": "Remove TrueLayer: api/_app/routes/truelayer.js, trueLayerClient.js, trueLayerIngestion.js, webhook-truelayer.js, and the truelayer_connected/truelayer_error param handling in MoneyPage.tsx. Keep DB columns.",
           "why": "It is unconfigured dead code (~700 lines + a MoneyPage effect) for a market (EU/UK) you are not in. Three provider rails before one paying user is inverted priorities; git history preserves it if EU ever matters.",
           "effort": "S (a day including test updates)"
         },

@@ -8,7 +8,7 @@
  * came back NaN instead of a usable number.
  */
 import { describe, it, expect } from 'vitest';
-import { getRedditActivity } from '../../../../api/services/reddit/analytics/getRedditActivity.js';
+import { getRedditActivity } from '../../../../api/_app/services/reddit/analytics/getRedditActivity.js';
 
 /**
  * Fake reddit client: /api/v1/me returns the given identity payload,

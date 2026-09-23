@@ -1,5 +1,5 @@
 /**
- * Smoke tests for api/routes/personality-profile.js
+ * Smoke tests for api/_app/routes/personality-profile.js
  * Covers: auth guard, null-profile shape, embedding strip, happy-path shape,
  * 410-gone legacy routes, downstream 500.
  */
@@ -17,12 +17,12 @@ process.env.NODE_ENV = 'test';
 const getProfileMock = vi.fn();
 const buildProfileMock = vi.fn();
 
-vi.mock('../../../api/services/personalityProfileService.js', () => ({
+vi.mock('../../../api/_app/services/personalityProfileService.js', () => ({
   getProfile: (...a) => getProfileMock(...a),
   buildProfile: (...a) => buildProfileMock(...a),
 }));
 
-vi.mock('../../../api/services/database.js', () => ({
+vi.mock('../../../api/_app/services/database.js', () => ({
   supabaseAdmin: {
     from: vi.fn(() => ({
       select: vi.fn().mockReturnThis(),
@@ -36,7 +36,7 @@ vi.mock('../../../api/services/database.js', () => ({
 const TEST_USER = '167c27b5-a40b-49fb-8d00-deb1b1c57f4d';
 const signToken = () => jwt.sign({ id: TEST_USER }, 'test-secret', { expiresIn: '1h' });
 
-const personalityRoutes = (await import('../../../api/routes/personality-profile.js')).default;
+const personalityRoutes = (await import('../../../api/_app/routes/personality-profile.js')).default;
 
 function createApp() {
   const app = express();

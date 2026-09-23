@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { parseWhatsAppLine } from '../../api/services/gdprImportService.js';
+import { parseWhatsAppLine } from '../../api/_app/services/gdprImportService.js';
 
 // Audit bug: the date regexes only matched 4-digit-year / 24-hour lines, so a
 // US-locale export (2-digit year + 12-hour AM/PM) matched NOTHING and the entire

@@ -1,5 +1,5 @@
 /**
- * Error paths of api/routes/presence-call.js (the elder channel), with
+ * Error paths of api/_app/routes/presence-call.js (the elder channel), with
  * presenceStore mocked at its boundary. After the conversation row is stored
  * the elder page must not see an error (a retry would store the call twice),
  * so the writes that follow it are logged when they fail rather than lost.
@@ -31,14 +31,14 @@ const { store, log, llm, brief, voiceService, relay } = vi.hoisted(() => ({
   voiceService: { isEnabled: vi.fn(), getConversationToken: vi.fn(), getConversation: vi.fn() },
 }));
 
-vi.mock('../../../api/services/presenceStore.js', () => store);
-vi.mock('../../../api/services/logger.js', () => ({ createLogger: () => log }));
-vi.mock('../../../api/services/llmGateway.js', () => ({ complete: llm.complete, TIER_ANALYSIS: 'analysis' }));
-vi.mock('../../../api/services/presenceCallBrief.js', () => brief);
-vi.mock('../../../api/services/voiceService.js', () => ({ voiceService }));
-vi.mock('../../../api/services/presenceRelay.js', () => relay);
+vi.mock('../../../api/_app/services/presenceStore.js', () => store);
+vi.mock('../../../api/_app/services/logger.js', () => ({ createLogger: () => log }));
+vi.mock('../../../api/_app/services/llmGateway.js', () => ({ complete: llm.complete, TIER_ANALYSIS: 'analysis' }));
+vi.mock('../../../api/_app/services/presenceCallBrief.js', () => brief);
+vi.mock('../../../api/_app/services/voiceService.js', () => ({ voiceService }));
+vi.mock('../../../api/_app/services/presenceRelay.js', () => relay);
 
-const callRoutes = (await import('../../../api/routes/presence-call.js')).default;
+const callRoutes = (await import('../../../api/_app/routes/presence-call.js')).default;
 
 function createApp() {
   const app = express();

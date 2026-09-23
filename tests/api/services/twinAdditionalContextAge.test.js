@@ -1,6 +1,6 @@
 /**
  * Tests for date-anchoring in the twin's additional-context render path
- * (api/services/twinAdditionalContext.js).
+ * (api/_app/services/twinAdditionalContext.js).
  *
  * optmem-brain audit, Phase 0 item 5 (root cause 9): observation text is
  * written in timeless present tense ("Has a backlog of 40,443 unread emails")
@@ -19,7 +19,7 @@ import { describe, it, expect } from 'vitest';
 process.env.NODE_ENV = 'test';
 
 const { buildAdditionalContext, formatMemoryAge } = await import(
-  '../../../api/services/twinAdditionalContext.js'
+  '../../../api/_app/services/twinAdditionalContext.js'
 );
 
 const NOW = new Date('2026-07-27T12:00:00Z');

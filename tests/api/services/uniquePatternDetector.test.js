@@ -8,11 +8,11 @@
  */
 import { describe, it, expect, vi } from 'vitest';
 
-vi.mock('../../../api/services/database.js', () => ({
+vi.mock('../../../api/_app/services/database.js', () => ({
   supabaseAdmin: { from: vi.fn() },
 }));
 
-import detector from '../../../api/services/uniquePatternDetector.js';
+import detector from '../../../api/_app/services/uniquePatternDetector.js';
 
 describe('erf (error function approximation)', () => {
   it('is 0 at 0 and saturates toward +/-1', () => {

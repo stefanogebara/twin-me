@@ -29,13 +29,13 @@ const { store, log, brief, voiceService, cronLogger } = vi.hoisted(() => ({
   cronLogger: { logCronExecution: vi.fn() },
 }));
 
-vi.mock('../../../api/services/presenceStore.js', () => store);
-vi.mock('../../../api/services/logger.js', () => ({ createLogger: () => log }));
-vi.mock('../../../api/services/presenceCallBrief.js', () => brief);
-vi.mock('../../../api/services/voiceService.js', () => ({ voiceService }));
-vi.mock('../../../api/services/cronLogger.js', () => cronLogger);
+vi.mock('../../../api/_app/services/presenceStore.js', () => store);
+vi.mock('../../../api/_app/services/logger.js', () => ({ createLogger: () => log }));
+vi.mock('../../../api/_app/services/presenceCallBrief.js', () => brief);
+vi.mock('../../../api/_app/services/voiceService.js', () => ({ voiceService }));
+vi.mock('../../../api/_app/services/cronLogger.js', () => cronLogger);
 
-const cronRoutes = (await import('../../../api/routes/cron-presence-calls.js')).default;
+const cronRoutes = (await import('../../../api/_app/routes/cron-presence-calls.js')).default;
 
 function createApp() {
   const app = express();

@@ -219,7 +219,7 @@ export async function getCoCitationBoosts(userId, candidateIds) {
 
   try {
     // Dynamically import config to avoid circular dependency
-    const { STDP_CORETRIEVAL_BOOST } = await import('../../twin-research/twin-config.js');
+    const { STDP_CORETRIEVAL_BOOST } = await import('../../../twin-research/twin-config.js');
     if (STDP_CORETRIEVAL_BOOST <= 0) return boosts;
 
     // Single query: fetch co_citation links where BOTH source and target are in candidateIds

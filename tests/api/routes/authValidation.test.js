@@ -4,11 +4,11 @@ import express from 'express';
 import request from 'supertest';
 process.env.JWT_SECRET = process.env.JWT_SECRET || 'test-secret-key-for-unit-tests-only';
 vi.mock('express-rate-limit', () => ({ default: () => (req, res, next) => next() }));
-vi.mock('../../../api/config/supabase.js', () => ({ supabase: {}, supabaseAdmin: {} }));
-vi.mock('../../../api/services/inngestClient.js', () => ({ inngest: { send: async () => {} }, EVENTS: {} }));
-vi.mock('../../../api/services/emailService.js', () => ({ sendWelcomeEmail: async () => {}, sendMagicLink: async () => {} }));
-vi.mock('../../../api/services/redisClient.js', () => ({ getRedisClient: () => null, isRedisAvailable: () => false }));
-const { default: router } = await import('../../../api/routes/auth-simple.js');
+vi.mock('../../../api/_app/config/supabase.js', () => ({ supabase: {}, supabaseAdmin: {} }));
+vi.mock('../../../api/_app/services/inngestClient.js', () => ({ inngest: { send: async () => {} }, EVENTS: {} }));
+vi.mock('../../../api/_app/services/emailService.js', () => ({ sendWelcomeEmail: async () => {}, sendMagicLink: async () => {} }));
+vi.mock('../../../api/_app/services/redisClient.js', () => ({ getRedisClient: () => null, isRedisAvailable: () => false }));
+const { default: router } = await import('../../../api/_app/routes/auth-simple.js');
 const app = express(); app.use(express.json()); app.use('/auth', router);
 
 it('a 10 KB email is refused at the door, with the field named', async () => {

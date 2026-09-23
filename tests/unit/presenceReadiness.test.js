@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { deriveReadiness, READY_MIN_ANCHORS, READY_MIN_PEOPLE } from '../../api/services/presenceReadiness.js';
+import { deriveReadiness, READY_MIN_ANCHORS, READY_MIN_PEOPLE } from '../../api/_app/services/presenceReadiness.js';
 
 const base = { people: 0, anchors: 0, boundaries: 0, biography: 0, notes_queued: 0, conversations: 0 };
 

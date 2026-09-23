@@ -36,7 +36,7 @@ const FILES = {
   'whatsapp-import.js': new Set(['/import']),
   'system-health.js': new Set(['/circuit-breaker/reset']),
 };
-const read = (f) => readFileSync(new URL(`../../api/routes/${f}`, import.meta.url), 'utf8');
+const read = (f) => readFileSync(new URL(`../../api/_app/routes/${f}`, import.meta.url), 'utf8');
 
 describe('the write routes are validated', () => {
   for (const [file, exempt] of Object.entries(FILES)) {

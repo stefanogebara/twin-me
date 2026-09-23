@@ -1,5 +1,5 @@
 /**
- * Smoke tests for api/routes/discovery.js
+ * Smoke tests for api/_app/routes/discovery.js
  * Public endpoint (no auth). Covers: invalid email, happy path shape, rate-limit path.
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
@@ -16,19 +16,19 @@ delete process.env.BRAVE_SEARCH_API_KEY;
 
 const quickEnrichMock = vi.fn();
 
-vi.mock('../../../api/services/profileEnrichmentService.js', () => ({
+vi.mock('../../../api/_app/services/profileEnrichmentService.js', () => ({
   default: { quickEnrich: (...a) => quickEnrichMock(...a) },
 }));
 
-vi.mock('../../../api/services/enrichment/braveSearchProvider.js', () => ({
+vi.mock('../../../api/_app/services/enrichment/braveSearchProvider.js', () => ({
   searchWithBrave: vi.fn().mockResolvedValue(null),
 }));
 
-vi.mock('../../../api/services/enrichment/enrichmentUtils.js', () => ({
+vi.mock('../../../api/_app/services/enrichment/enrichmentUtils.js', () => ({
   inferNameFromEmail: vi.fn(email => email.split('@')[0]),
 }));
 
-vi.mock('../../../api/services/llmGateway.js', () => ({
+vi.mock('../../../api/_app/services/llmGateway.js', () => ({
   complete: vi.fn().mockResolvedValue({ content: 'persona' }),
   stream: vi.fn(),
   TIER_CHAT: 'chat',
@@ -36,12 +36,12 @@ vi.mock('../../../api/services/llmGateway.js', () => ({
   TIER_EXTRACTION: 'extraction',
 }));
 
-vi.mock('../../../api/services/redisClient.js', () => ({
+vi.mock('../../../api/_app/services/redisClient.js', () => ({
   getRedisClient: vi.fn().mockReturnValue(null),
   isRedisAvailable: vi.fn().mockReturnValue(false),
 }));
 
-const discoveryRoutes = (await import('../../../api/routes/discovery.js')).default;
+const discoveryRoutes = (await import('../../../api/_app/routes/discovery.js')).default;
 
 function createApp() {
   const app = express();

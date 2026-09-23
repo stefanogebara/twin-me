@@ -4,7 +4,7 @@
  * Seeds data, runs analysis, generates procedures, checks autonomy,
  * composes reflection — all without Inngest infra.
  *
- * Run: node api/scripts/test-reflection-e2e.js
+ * Run: node api/_app/scripts/test-reflection-e2e.js
  */
 
 import dotenv from 'dotenv';

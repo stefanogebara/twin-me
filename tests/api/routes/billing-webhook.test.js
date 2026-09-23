@@ -1,5 +1,5 @@
 /**
- * Unit tests for the 4 event-type branches inside api/routes/billing.js
+ * Unit tests for the 4 event-type branches inside api/_app/routes/billing.js
  * /webhook handler.
  *
  * Strategy: real Stripe SDK signature verification (using a test webhook
@@ -95,7 +95,7 @@ function realConstructEvent(rawBody, sigHeader, secret) {
   return JSON.parse(body);
 }
 
-vi.mock('../../../api/services/database.js', () => {
+vi.mock('../../../api/_app/services/database.js', () => {
   // Build a supabase chain that records every operation against
   // user_subscriptions and stripe_webhook_events, while supporting the
   // single() lookup by stripe_subscription_id used by the handler.
@@ -155,17 +155,17 @@ vi.mock('../../../api/services/database.js', () => {
   };
 });
 
-vi.mock('../../../api/services/subscriptionService.js', () => ({
+vi.mock('../../../api/_app/services/subscriptionService.js', () => ({
   getUserSubscription: vi.fn().mockResolvedValue({ plan: 'free', status: 'active' }),
   PLAN_DISPLAY_NAMES: { free: 'Free', pro: 'Plus', max: 'Pro' },
 }));
 
-vi.mock('../../../api/middleware/auth.js', () => ({
+vi.mock('../../../api/_app/middleware/auth.js', () => ({
   authenticateToken: (req, _res, next) => { req.user = { id: 'mock-user' }; next(); },
   userRateLimit: () => (_req, _res, next) => next(),
 }));
 
-vi.mock('../../../api/services/logger.js', () => ({
+vi.mock('../../../api/_app/services/logger.js', () => ({
   createLogger: () => ({ info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() }),
 }));
 
@@ -183,7 +183,7 @@ function findCall(table, method, predicate = () => true) {
 }
 
 // ── import billing route AFTER mocks ───────────────────────────────────────────
-const billingRoutes = (await import('../../../api/routes/billing.js')).default;
+const billingRoutes = (await import('../../../api/_app/routes/billing.js')).default;
 
 function app() {
   const a = express();

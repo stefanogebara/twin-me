@@ -10,7 +10,7 @@
  */
 import { describe, it, expect } from 'vitest';
 import xlsx from 'xlsx';
-import { parseSantanderXlsx } from '../../../api/services/transactions/santanderXlsxParser.js';
+import { parseSantanderXlsx } from '../../../api/_app/services/transactions/santanderXlsxParser.js';
 
 const HEADER = ['', 'Data da Transação', 'Valor (R$)', 'Tipo', 'Descrição'];
 

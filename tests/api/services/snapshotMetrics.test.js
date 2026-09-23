@@ -20,7 +20,7 @@ import {
   isSameMetricReading,
   buildMetricLikePattern,
   SNAPSHOT_METRIC_SCORE,
-} from '../../../api/services/snapshotMetrics.js';
+} from '../../../api/_app/services/snapshotMetrics.js';
 
 /**
  * Approximate Postgres LIKE so a test can check the pattern actually FINDS the

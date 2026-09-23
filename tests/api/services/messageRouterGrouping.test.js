@@ -13,7 +13,7 @@ process.env.SUPABASE_URL = 'https://stub.supabase.co';
 process.env.SUPABASE_ANON_KEY = 'stub-anon';
 process.env.SUPABASE_SERVICE_ROLE_KEY = 'stub-service-role';
 
-const { groupPendingByUser } = await import('../../../api/services/messageRouter.js');
+const { groupPendingByUser } = await import('../../../api/_app/services/messageRouter.js');
 
 describe('groupPendingByUser', () => {
   it('groups rows by user_id, preserving input (oldest-first) order', () => {

@@ -12,20 +12,20 @@
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-vi.mock('../../../api/services/llmGateway.js', () => ({
+vi.mock('../../../api/_app/services/llmGateway.js', () => ({
   complete: vi.fn(),
   TIER_ANALYSIS: 'analysis',
   TIER_EXTRACTION: 'extraction',
 }));
 
-const { complete } = await import('../../../api/services/llmGateway.js');
+const { complete } = await import('../../../api/_app/services/llmGateway.js');
 const {
   nextStep,
   mergeReflectionNotes,
   parseAssessment,
   assessTurn,
   getChapter,
-} = await import('../../../api/services/lifeStoryService.js');
+} = await import('../../../api/_app/services/lifeStoryService.js');
 
 const chapter = {
   id: 'test_chapter',

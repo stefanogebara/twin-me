@@ -22,14 +22,14 @@ process.env.SUPABASE_SERVICE_ROLE_KEY ||= 'cron-stub-service';
 const runIngestionMock = vi.fn().mockResolvedValue({ observationsStored: 0, errors: [], processedUserIds: [] });
 const eligibleMock = vi.fn().mockResolvedValue(['u1', 'u2', 'u3', 'u4']);
 const starvedMock = vi.fn().mockResolvedValue([]);
-vi.mock('../../../api/services/observationIngestion.js', () => ({
+vi.mock('../../../api/_app/services/observationIngestion.js', () => ({
   runObservationIngestion: (...a) => runIngestionMock(...a),
   getEligibleIngestionUserIds: (...a) => eligibleMock(...a),
   getStarvedIngestionUserIds: (...a) => starvedMock(...a),
 }));
 
 const sendMock = vi.fn().mockResolvedValue({ ids: [] });
-vi.mock('../../../api/services/inngestClient.js', () => ({
+vi.mock('../../../api/_app/services/inngestClient.js', () => ({
   inngest: { send: (...a) => sendMock(...a) },
   EVENTS: { INGEST_USER_OBSERVATIONS: 'twin/observation.ingest_user' },
 }));
@@ -40,18 +40,18 @@ vi.mock('../../../api/services/inngestClient.js', () => ({
 // network I/O in a unit test, and the source of a nondeterministic timeout
 // flake when the full suite loads the machine. Mock it out.
 const selfHealMock = vi.fn().mockResolvedValue({ attempted: true, status: 200 });
-vi.mock('../../../api/services/inngestSelfHeal.js', () => ({
+vi.mock('../../../api/_app/services/inngestSelfHeal.js', () => ({
   selfHealInngestRegistration: (...a) => selfHealMock(...a),
 }));
 
-vi.mock('../../../api/middleware/verifyCronSecret.js', () => ({
+vi.mock('../../../api/_app/middleware/verifyCronSecret.js', () => ({
   verifyCronSecret: () => ({ authorized: true }),
 }));
-vi.mock('../../../api/services/cronLogger.js', () => ({
+vi.mock('../../../api/_app/services/cronLogger.js', () => ({
   logCronExecution: vi.fn().mockResolvedValue(undefined),
 }));
 
-const handler = (await import('../../../api/routes/cron-observation-ingestion.js')).default;
+const handler = (await import('../../../api/_app/routes/cron-observation-ingestion.js')).default;
 
 function fakeRes() {
   const res = { statusCode: 200, body: null };

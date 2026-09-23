@@ -2,7 +2,7 @@
  * Test Memory Service Integration
  *
  * Quick script to verify the memory service is working
- * Run: node api/scripts/test-mem0.js
+ * Run: node api/_app/scripts/test-mem0.js
  */
 
 import dotenv from 'dotenv';

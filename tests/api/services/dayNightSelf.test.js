@@ -8,7 +8,7 @@ import {
   isAfterDark,
   computeDayNightSelf,
   buildDayNightCandidate,
-} from '../../../api/services/dayNightSelf.js';
+} from '../../../api/_app/services/dayNightSelf.js';
 
 const v = (domain, n, afterDark) => Array.from({ length: n }, () => ({ domain, afterDark }));
 

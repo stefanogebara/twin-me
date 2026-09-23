@@ -7,8 +7,8 @@
 import dotenv from 'dotenv';
 dotenv.config();
 
-import { getValidAccessToken } from '../api/services/tokenRefreshService.js';
-import { fetchUpcomingExternalEvents } from '../api/services/meetingPrep/meetingPrepService.js';
+import { getValidAccessToken } from '../api/_app/services/tokenRefreshService.js';
+import { fetchUpcomingExternalEvents } from '../api/_app/services/meetingPrep/meetingPrepService.js';
 
 const USER = '167c27b5-a40b-49fb-8d00-deb1b1c57f4d';
 

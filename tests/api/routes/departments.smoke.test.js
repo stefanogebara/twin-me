@@ -1,5 +1,5 @@
 /**
- * Smoke tests for api/routes/departments.js
+ * Smoke tests for api/_app/routes/departments.js
  * Covers: auth guard, invalid name, happy-path list shape, 500 on downstream failure.
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
@@ -17,7 +17,7 @@ const getAllDepartmentsMock = vi.fn();
 const getDepartmentStatusMock = vi.fn();
 const updateDepartmentAutonomyMock = vi.fn();
 
-vi.mock('../../../api/services/departmentService.js', () => ({
+vi.mock('../../../api/_app/services/departmentService.js', () => ({
   getAllDepartments: (...a) => getAllDepartmentsMock(...a),
   getDepartmentStatus: (...a) => getDepartmentStatusMock(...a),
   updateDepartmentAutonomy: (...a) => updateDepartmentAutonomyMock(...a),
@@ -28,16 +28,16 @@ vi.mock('../../../api/services/departmentService.js', () => ({
   proposeDepartmentAction: vi.fn().mockResolvedValue({ id: 'p1' }),
 }));
 
-vi.mock('../../../api/services/departmentBudgetService.js', () => ({
+vi.mock('../../../api/_app/services/departmentBudgetService.js', () => ({
   getAllDepartmentBudgets: vi.fn().mockResolvedValue([]),
 }));
 
-vi.mock('../../../api/services/autonomyService.js', () => ({
+vi.mock('../../../api/_app/services/autonomyService.js', () => ({
   executeApprovedAction: vi.fn().mockResolvedValue({ ok: true }),
   recordActionResponse: vi.fn().mockResolvedValue(undefined),
 }));
 
-vi.mock('../../../api/services/database.js', () => ({
+vi.mock('../../../api/_app/services/database.js', () => ({
   supabaseAdmin: {
     from: vi.fn(() => ({
       select: vi.fn().mockReturnThis(),
@@ -51,7 +51,7 @@ vi.mock('../../../api/services/database.js', () => ({
 const TEST_USER = '167c27b5-a40b-49fb-8d00-deb1b1c57f4d';
 const signToken = () => jwt.sign({ id: TEST_USER }, 'test-secret', { expiresIn: '1h' });
 
-const departmentsRoutes = (await import('../../../api/routes/departments.js')).default;
+const departmentsRoutes = (await import('../../../api/_app/routes/departments.js')).default;
 
 function createApp() {
   const app = express();

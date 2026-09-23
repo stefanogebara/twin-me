@@ -1,5 +1,5 @@
 /**
- * Tests for supersession selection (api/services/memoryStreamService.js).
+ * Tests for supersession selection (api/_app/services/memoryStreamService.js).
  *
  * optmem-brain audit, Phase 1 (root cause 3): nothing in the system could ever
  * retire a stale snapshot. The live DB now has user_memories.superseded_by /
@@ -20,14 +20,14 @@ import { describe, it, expect, vi } from 'vitest';
 
 process.env.NODE_ENV = 'test';
 
-vi.mock('../../../api/services/database.js', () => ({
+vi.mock('../../../api/_app/services/database.js', () => ({
   supabaseAdmin: { from: vi.fn(), rpc: vi.fn() },
 }));
-vi.mock('../../../api/services/embeddingService.js', () => ({
+vi.mock('../../../api/_app/services/embeddingService.js', () => ({
   generateEmbedding: vi.fn().mockResolvedValue(new Array(1536).fill(0)),
   vectorToString: vi.fn().mockReturnValue('[0,0,0]'),
 }));
-vi.mock('../../../api/services/llmGateway.js', () => ({
+vi.mock('../../../api/_app/services/llmGateway.js', () => ({
   complete: vi.fn().mockResolvedValue({ content: '5' }),
   stream: vi.fn(),
   TIER_CHAT: 'chat',
@@ -39,7 +39,7 @@ process.env.SUPABASE_URL = 'http://localhost';
 process.env.SUPABASE_SERVICE_ROLE_KEY = 'test-key';
 
 const { selectSupersededIds, SUPERSEDE_SIMILARITY_THRESHOLD } =
-  await import('../../../api/services/memoryStreamService.js');
+  await import('../../../api/_app/services/memoryStreamService.js');
 
 /** A stored row as the DB returns it — embedding is a pgvector string. */
 const row = (id, embedding, overrides = {}) => ({

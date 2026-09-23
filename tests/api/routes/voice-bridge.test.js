@@ -1,5 +1,5 @@
 /**
- * Unit tests for requireBridgeAuth in api/routes/voice-bridge.js
+ * Unit tests for requireBridgeAuth in api/_app/routes/voice-bridge.js
  * Covers: audit-2026-07-03 timing-safe secret comparison (was a plain `===`).
  */
 import { describe, it, expect, vi } from 'vitest';
@@ -10,7 +10,7 @@ process.env.SUPABASE_SERVICE_ROLE_KEY = 'test-service-role';
 process.env.NODE_ENV = 'test';
 process.env.BRIDGE_SHARED_SECRET = 'correct-horse-battery-staple';
 
-const { requireBridgeAuth } = await import('../../../api/routes/voice-bridge.js');
+const { requireBridgeAuth } = await import('../../../api/_app/routes/voice-bridge.js');
 
 function makeReq(headerValue) {
   return {

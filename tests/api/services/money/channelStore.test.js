@@ -23,10 +23,10 @@ function makeChain(table) {
   return chain;
 }
 
-vi.mock('../../../../api/services/database.js', () => ({ supabaseAdmin: { from: (table) => makeChain(table) } }));
-vi.mock('../../../../api/services/logger.js', () => ({ createLogger: () => ({ warn() {}, info() {}, error() {}, debug() {} }) }));
+vi.mock('../../../../api/_app/services/database.js', () => ({ supabaseAdmin: { from: (table) => makeChain(table) } }));
+vi.mock('../../../../api/_app/services/logger.js', () => ({ createLogger: () => ({ warn() {}, info() {}, error() {}, debug() {} }) }));
 
-const { offerSaid } = await import('../../../../api/services/money/channelStore.js');
+const { offerSaid } = await import('../../../../api/_app/services/money/channelStore.js');
 
 describe('offerSaid', () => {
   beforeEach(() => { calls.length = 0; });

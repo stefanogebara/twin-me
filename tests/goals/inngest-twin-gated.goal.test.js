@@ -7,7 +7,7 @@
  * gated: a manual invoke from the Inngest dashboard, a restored cron, or a new caller
  * sending one of these events directly would run a twin handler with the twin parked.
  * On 2026-09-22 that shape produced 29 failed WhatsApp briefing sends to a number whose
- * 24-hour window had been shut since August. createTwinFunction (api/inngest/twinFunction.js)
+ * 24-hour window had been shut since August. createTwinFunction (api/_app/inngest/twinFunction.js)
  * is the wrapper that closes that gap; this test makes "forgot to use the wrapper" a red
  * PR check instead of a silent production outage.
  */
@@ -17,7 +17,7 @@ import { fileURLToPath } from 'node:url';
 import { join } from 'node:path';
 
 /* Resolved from this file, not the working directory, so the goal holds wherever vitest runs. */
-const FUNCTIONS_DIR = fileURLToPath(new URL('../../api/inngest/functions', import.meta.url));
+const FUNCTIONS_DIR = fileURLToPath(new URL('../../api/_app/inngest/functions', import.meta.url));
 
 describe('goal: every Inngest twin function is gated by createTwinFunction', () => {
   const files = readdirSync(FUNCTIONS_DIR).filter(f => f.endsWith('.js'));

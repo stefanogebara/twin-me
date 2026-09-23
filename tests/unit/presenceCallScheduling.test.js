@@ -3,7 +3,7 @@
  * today, and the moment; this decides in the presence's own timezone.
  */
 import { describe, expect, it } from 'vitest';
-import { localClock, isDue } from '../../api/services/presenceCallScheduling.js';
+import { localClock, isDue } from '../../api/_app/services/presenceCallScheduling.js';
 
 const SP = 'America/Sao_Paulo';
 // 2026-09-15 is a Tuesday. 13:00Z is 10:00 in São Paulo (UTC-3).

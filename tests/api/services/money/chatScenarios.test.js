@@ -4,7 +4,7 @@
  */
 import { describe, it, expect } from 'vitest';
 import { SCENARIOS, sentenceCount, amountsInText } from './chatScenarios.js';
-import { isShortAsk, shortCircuit, assemble, FIGURE_KINDS, ACTION_KINDS } from '../../../../api/services/money/chat.js';
+import { isShortAsk, shortCircuit, assemble, FIGURE_KINDS, ACTION_KINDS } from '../../../../api/_app/services/money/chat.js';
 
 const NOW = new Date('2026-09-15T12:00:00Z');
 const t = (id, occurred_at, amount, merchant_key, merchant_raw, extra = {}) => ({ id, occurred_at, amount, merchant_key, merchant_raw, channel: 'card', currency: 'EUR', ...extra });

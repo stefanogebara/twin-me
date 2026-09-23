@@ -25,7 +25,7 @@ vi.mock('../../../twin-research/twin-config.js', () => ({
 }));
 
 // Mock database (supabaseAdmin chainable — inline factory for hoisting safety)
-vi.mock('../../../api/services/database.js', () => {
+vi.mock('../../../api/_app/services/database.js', () => {
   const finalResult = { data: null, error: null };
   const chain = {};
   Object.assign(chain, {
@@ -47,35 +47,35 @@ vi.mock('../../../api/services/database.js', () => {
   return { supabaseAdmin: chain, serverDb: {} };
 });
 
-vi.mock('../../../api/services/embeddingService.js', () => ({
+vi.mock('../../../api/_app/services/embeddingService.js', () => ({
   generateEmbedding: vi.fn().mockResolvedValue(new Array(1536).fill(0.01)),
   vectorToString: (v) => `[${v.join(',')}]`,
 }));
 
-vi.mock('../../../api/services/llmGateway.js', () => ({
+vi.mock('../../../api/_app/services/llmGateway.js', () => ({
   complete: vi.fn().mockResolvedValue({ content: '7' }),
   TIER_EXTRACTION: 'extraction',
   TIER_ANALYSIS: 'analysis',
   TIER_CHAT: 'chat',
 }));
 
-vi.mock('../../../api/services/memoryLinksService.js', () => ({
+vi.mock('../../../api/_app/services/memoryLinksService.js', () => ({
   traverseLinksForRetrieval: vi.fn().mockResolvedValue([]),
   getCoCitationBoosts: vi.fn().mockResolvedValue({}),
 }));
 
-vi.mock('../../../api/services/featureFlagsService.js', () => ({
+vi.mock('../../../api/_app/services/featureFlagsService.js', () => ({
   getFeatureFlags: vi.fn().mockResolvedValue({}),
 }));
 
-vi.mock('../../../api/services/bm25Service.js', () => ({
+vi.mock('../../../api/_app/services/bm25Service.js', () => ({
   bm25ScoreBatch: vi.fn().mockReturnValue([]),
   extractKeywords: vi.fn().mockReturnValue([]),
 }));
 
 // ---- Tests ----
 
-import { computeAlpha } from '../../../api/services/memoryStreamService.js';
+import { computeAlpha } from '../../../api/_app/services/memoryStreamService.js';
 
 describe('computeAlpha (pure)', () => {
   it('returns a value between 0 and 1 for typical memory', () => {
@@ -124,7 +124,7 @@ describe('retrieveMemories (smoke)', () => {
   let retrieveMemories;
 
   beforeEach(async () => {
-    const mod = await import('../../../api/services/memoryStreamService.js');
+    const mod = await import('../../../api/_app/services/memoryStreamService.js');
     retrieveMemories = mod.retrieveMemories;
   });
 
@@ -141,7 +141,7 @@ describe('retrieveMemories (smoke)', () => {
 
 describe('RETRIEVAL_WEIGHTS preset', () => {
   it('exports named preset values', async () => {
-    const mod = await import('../../../api/services/memoryStreamService.js');
+    const mod = await import('../../../api/_app/services/memoryStreamService.js');
     expect(mod.RETRIEVAL_WEIGHTS).toBeDefined();
     expect(mod.RETRIEVAL_WEIGHTS.default).toBeDefined();
     expect(mod.RETRIEVAL_WEIGHTS.identity).toBeDefined();
@@ -171,40 +171,40 @@ describe('RETRIEVAL_WEIGHTS preset', () => {
  */
 describe('clampNoiseObservation — platform-data noise clamps (audit-2026-05-16)', () => {
   it('clamps "Created branch X in repo" to 3', async () => {
-    const { clampNoiseObservation } = await import('../../../api/services/memoryStreamService.js');
+    const { clampNoiseObservation } = await import('../../../api/_app/services/memoryStreamService.js');
     expect(clampNoiseObservation('Created branch "twin-voice-fixes" in twin-me')).toBe(3);
     expect(clampNoiseObservation('Created branch "feature/oauth" in some/repo')).toBe(3);
   });
 
   it('clamps GitHub language-distribution snapshots to 3', async () => {
-    const { clampNoiseObservation } = await import('../../../api/services/memoryStreamService.js');
+    const { clampNoiseObservation } = await import('../../../api/_app/services/memoryStreamService.js');
     expect(clampNoiseObservation('Your GitHub language distribution: HTML (52%), JavaScript (30%)')).toBe(3);
   });
 
   it('clamps "Your GitHub YYYY activity" rolling stats to 4', async () => {
-    const { clampNoiseObservation } = await import('../../../api/services/memoryStreamService.js');
+    const { clampNoiseObservation } = await import('../../../api/_app/services/memoryStreamService.js');
     expect(clampNoiseObservation('Your GitHub 2026 activity: 5021 contributions — 4952 commits, 56 PRs, 0 reviews, 1 issues')).toBe(4);
   });
 
   it('clamps "Committed code on N days" rolling stats to 4', async () => {
-    const { clampNoiseObservation } = await import('../../../api/services/memoryStreamService.js');
+    const { clampNoiseObservation } = await import('../../../api/_app/services/memoryStreamService.js');
     expect(clampNoiseObservation('Committed code on 4 days in the last 30 days on GitHub')).toBe(4);
   });
 
   it('clamps "Current GitHub contribution streak" to 4', async () => {
-    const { clampNoiseObservation } = await import('../../../api/services/memoryStreamService.js');
+    const { clampNoiseObservation } = await import('../../../api/_app/services/memoryStreamService.js');
     expect(clampNoiseObservation('Current GitHub contribution streak: 6 consecutive days')).toBe(4);
   });
 
   it('does NOT clamp real signal — commits with message previews', async () => {
-    const { clampNoiseObservation } = await import('../../../api/services/memoryStreamService.js');
+    const { clampNoiseObservation } = await import('../../../api/_app/services/memoryStreamService.js');
     expect(clampNoiseObservation('Pushed 3 commits to twin-me on main — "fix(insights): stop hallucinated stat-numbers"')).toBeNull();
     expect(clampNoiseObservation('Opened PR in twin-me: "Kill spotify URI parroting"')).toBeNull();
     expect(clampNoiseObservation('Created repository "new-cool-project"')).toBeNull();
   });
 
   it('does NOT clamp events, whatever platform they came from', async () => {
-    const { clampNoiseObservation } = await import('../../../api/services/memoryStreamService.js');
+    const { clampNoiseObservation } = await import('../../../api/_app/services/memoryStreamService.js');
     expect(clampNoiseObservation('Listened to Radiohead - Creep for 4:12 minutes')).toBeNull();
     // A day's measurement happened and stays true — it is an event, not a
     // reading of current state. The prompt renderer supplies its age.
@@ -216,14 +216,14 @@ describe('clampNoiseObservation — platform-data noise clamps (audit-2026-05-16
     // mutable state, not about which platform produced them. "this week" is
     // recomputed every cycle, so an old copy describes a window that has moved
     // on — 155+ copies of this one template were found in production.
-    const { clampNoiseObservation } = await import('../../../api/services/memoryStreamService.js');
+    const { clampNoiseObservation } = await import('../../../api/_app/services/memoryStreamService.js');
     expect(clampNoiseObservation('Most frequent email senders this week: github.com (13)')).toBe(4);
     expect(clampNoiseObservation('Your email mix this week: dev 50%, work 25%')).toBe(4);
     expect(clampNoiseObservation('YouTube subscription topics: Sport (13)')).toBe(4);
   });
 
   it('handles empty/null input gracefully', async () => {
-    const { clampNoiseObservation } = await import('../../../api/services/memoryStreamService.js');
+    const { clampNoiseObservation } = await import('../../../api/_app/services/memoryStreamService.js');
     expect(clampNoiseObservation('')).toBeNull();
     expect(clampNoiseObservation(null)).toBeNull();
     expect(clampNoiseObservation(undefined)).toBeNull();
@@ -238,26 +238,26 @@ describe('clampNoiseObservation — platform-data noise clamps (audit-2026-05-16
  */
 describe('applyImportanceFloor — noise clamp must survive the platform_data floor', () => {
   it('does NOT raise a git-noise-clamped platform_data row above its 3-4', async () => {
-    const { applyImportanceFloor } = await import('../../../api/services/memoryStreamService.js');
+    const { applyImportanceFloor } = await import('../../../api/_app/services/memoryStreamService.js');
     expect(applyImportanceFloor('platform_data', 3, { noiseClamped: true })).toBe(3);
     expect(applyImportanceFloor('platform_data', 4, { noiseClamped: true })).toBe(4);
   });
 
   it('still floors un-clamped platform_data at 6', async () => {
-    const { applyImportanceFloor } = await import('../../../api/services/memoryStreamService.js');
+    const { applyImportanceFloor } = await import('../../../api/_app/services/memoryStreamService.js');
     expect(applyImportanceFloor('platform_data', 3, {})).toBe(6);
     expect(applyImportanceFloor('platform_data', 5)).toBe(6);
     expect(applyImportanceFloor('platform_data', 8, {})).toBe(8); // already above floor, untouched
   });
 
   it('floors conversations at 7 (noiseClamped does not apply to them)', async () => {
-    const { applyImportanceFloor } = await import('../../../api/services/memoryStreamService.js');
+    const { applyImportanceFloor } = await import('../../../api/_app/services/memoryStreamService.js');
     expect(applyImportanceFloor('conversation', 5)).toBe(7);
     expect(applyImportanceFloor('conversation', 9)).toBe(9);
   });
 
   it('leaves other memory types untouched', async () => {
-    const { applyImportanceFloor } = await import('../../../api/services/memoryStreamService.js');
+    const { applyImportanceFloor } = await import('../../../api/_app/services/memoryStreamService.js');
     expect(applyImportanceFloor('reflection', 2)).toBe(2);
     expect(applyImportanceFloor('fact', 1)).toBe(1);
   });

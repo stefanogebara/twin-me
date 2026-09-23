@@ -14,20 +14,20 @@ process.env.SUPABASE_URL = 'http://localhost';
 process.env.SUPABASE_SERVICE_ROLE_KEY = 'test-service-role';
 
 const sendMock = vi.fn().mockResolvedValue({ success: true });
-vi.mock('../../../api/services/whatsappService.js', () => ({
+vi.mock('../../../api/_app/services/whatsappService.js', () => ({
   sendWhatsAppMessage: (...a) => sendMock(...a),
   downloadWhatsAppMedia: vi.fn(),
 }));
 const processMock = vi.fn().mockResolvedValue({ handled: true, kind: 'chat' });
-vi.mock('../../../api/services/whatsappInboundPipeline.js', () => ({
+vi.mock('../../../api/_app/services/whatsappInboundPipeline.js', () => ({
   processInboundWhatsApp: (...a) => processMock(...a),
 }));
 const parseMock = vi.fn();
-vi.mock('../../../api/services/zapiParse.js', () => ({
+vi.mock('../../../api/_app/services/zapiParse.js', () => ({
   parseZapiMessage: (...a) => parseMock(...a),
 }));
 
-const { default: router } = await import('../../../api/routes/whatsapp-zapi-webhook.js');
+const { default: router } = await import('../../../api/_app/routes/whatsapp-zapi-webhook.js');
 const app = express();
 app.use(express.json());
 app.use('/api/whatsapp-zapi', router);

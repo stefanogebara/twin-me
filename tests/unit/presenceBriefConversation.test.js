@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { renderCallBrief } from '../../api/services/presenceBriefRender.js';
+import { renderCallBrief } from '../../api/_app/services/presenceBriefRender.js';
 
 /**
  * Conversation-craft rules, written from the real call on 2026-09-01 where the agent

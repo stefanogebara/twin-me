@@ -3,8 +3,8 @@
  * says can put a number on the screen the document did not contain.
  */
 import { describe, it, expect, vi } from 'vitest';
-import { readAttachment, gateSummary, acceptsAttachment, attachmentRef, MAX_ATTACHMENT_BYTES } from '../../../../api/services/money/attachments.js';
-import { receiptToSighting } from '../../../../api/services/money/inbox.js';
+import { readAttachment, gateSummary, acceptsAttachment, attachmentRef, MAX_ATTACHMENT_BYTES } from '../../../../api/_app/services/money/attachments.js';
+import { receiptToSighting } from '../../../../api/_app/services/money/inbox.js';
 
 const USER = 'u1';
 const deps = (over = {}) => ({

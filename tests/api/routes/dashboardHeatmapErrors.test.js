@@ -23,7 +23,7 @@ process.env.NODE_ENV = 'test';
 // Mutable per-test behavior for the heatmap RPC
 let rpcBehavior = () => Promise.resolve({ data: [], error: null });
 
-vi.mock('../../../api/services/database.js', () => {
+vi.mock('../../../api/_app/services/database.js', () => {
   const makeChain = () => {
     const chain = {};
     for (const m of ['select', 'insert', 'update', 'delete', 'eq', 'gte', 'lte', 'in', 'is', 'not', 'or', 'order', 'limit', 'range']) {
@@ -43,7 +43,7 @@ vi.mock('../../../api/services/database.js', () => {
 });
 
 // Cache always misses; set is a no-op promise (the route .catch()es it).
-vi.mock('../../../api/services/redisClient.js', () => ({
+vi.mock('../../../api/_app/services/redisClient.js', () => ({
   get: vi.fn(async () => null),
   set: vi.fn(async () => true),
   del: vi.fn(async () => true),
@@ -54,15 +54,15 @@ vi.mock('../../../api/services/redisClient.js', () => ({
   CACHE_KEYS: { DASHBOARD_CONTEXT: (id) => `dashboard:${id}` },
 }));
 
-vi.mock('../../../api/services/memoryStreamService.js', () => ({
+vi.mock('../../../api/_app/services/memoryStreamService.js', () => ({
   getTwinReadinessScore: vi.fn(async () => ({ score: 0, total: 0 })),
 }));
 
-vi.mock('../../../api/services/tokenRefreshService.js', () => ({
+vi.mock('../../../api/_app/services/tokenRefreshService.js', () => ({
   getValidAccessToken: vi.fn(async () => ({ success: false })),
 }));
 
-const routes = (await import('../../../api/routes/dashboard-context.js')).default;
+const routes = (await import('../../../api/_app/routes/dashboard-context.js')).default;
 
 function makeApp() {
   const app = express();

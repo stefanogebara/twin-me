@@ -27,12 +27,12 @@ process.env.JWT_SECRET ||= 'stub-jwt-secret';
 // per-test mutable supabase stub.
 const h = vi.hoisted(() => ({ supabase: null }));
 
-vi.mock('../../../api/services/observationUtils.js', async (importOriginal) => {
+vi.mock('../../../api/_app/services/observationUtils.js', async (importOriginal) => {
   const actual = await importOriginal();
   return { ...actual, getSupabase: async () => h.supabase };
 });
 
-const { getStarvedIngestionUserIds } = await import('../../../api/services/observationIngestion.js');
+const { getStarvedIngestionUserIds } = await import('../../../api/_app/services/observationIngestion.js');
 
 /**
  * Table-aware Supabase stub. Every freshness lookup is a

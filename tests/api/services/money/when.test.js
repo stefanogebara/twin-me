@@ -1,6 +1,6 @@
 /** The days a sentence names, in Madrid days, in three languages; only a trip with days becomes away days. */
 import { describe, expect, it } from 'vitest';
-import { daysIn, tripDays, isTrip } from '../../../../api/services/money/when.js';
+import { daysIn, tripDays, isTrip } from '../../../../api/_app/services/money/when.js';
 
 const wed = new Date('2026-09-16T10:00:00Z'); // Wednesday 16 September 2026 in Madrid
 const sat = new Date('2026-09-19T10:00:00Z'); // Saturday

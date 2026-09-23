@@ -1,5 +1,5 @@
 /**
- * Tests for shouldPrepEvent (api/services/meetingPrep/eventPrepFilter.js).
+ * Tests for shouldPrepEvent (api/_app/services/meetingPrep/eventPrepFilter.js).
  *
  * replan-2026-06-10 Track B: meeting prep briefed attendee-less personal
  * events (tennis got talking points, a gym session got corporate-analyst
@@ -14,7 +14,7 @@ import {
   isAgentCreatedEvent,
   hasExternalStakes,
   isGenericBlock,
-} from '../../../../api/services/meetingPrep/eventPrepFilter.js';
+} from '../../../../api/_app/services/meetingPrep/eventPrepFilter.js';
 
 const USER = 'stefanogebara@gmail.com';
 

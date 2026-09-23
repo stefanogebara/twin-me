@@ -9,8 +9,8 @@
  * Functions are inlined here (rather than imported) following the project
  * convention in tests/unit/pluggySignedAmount.test.js: the real module
  * pulls in supabase + logger which we don't want in the unit harness.
- * Sources: api/services/purchaseContextBuilder.js, purchaseReflection.js,
- * api/services/whatsappInboundPipeline.js (kept verbatim — if the real
+ * Sources: api/_app/services/purchaseContextBuilder.js, purchaseReflection.js,
+ * api/_app/services/whatsappInboundPipeline.js (kept verbatim — if the real
  * function diverges, the regression test in extractor-upsert-regression
  * catches the source-text drift).
  */

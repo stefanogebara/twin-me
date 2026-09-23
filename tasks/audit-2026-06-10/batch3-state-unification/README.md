@@ -53,7 +53,7 @@ to 60s+ after OAuth return.
 
 ## Design
 
-1. **api/services/platformStateService.js (new)**: pure
+1. **api/_app/services/platformStateService.js (new)**: pure
    `classifyConnection(row) -> 'active'|'expired'|'stale'` (exact summary
    logic) + `buildPlatformsSummary(userId)`. Breakdown entries gain
    `{ connectedAt, lastSyncAt, source: 'oauth'|'nango' }` (additive).

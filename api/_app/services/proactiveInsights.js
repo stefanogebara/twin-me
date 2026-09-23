@@ -35,7 +35,7 @@ import { sanitizeUtility, rankForDelivery, applyDailyCap } from './insightUtilit
 const log = createLogger('ProactiveInsights');
 
 // Import the research-tuned prompt template and parameters
-import { INSIGHT_PROMPT_TEMPLATE, INSIGHT_TEMPERATURE, INSIGHT_MAX_TOKENS, MEMORIES_TO_SCAN, REFLECTIONS_TO_INCLUDE, DEDUP_THRESHOLD } from '../../twin-research/insight-config.js';
+import { INSIGHT_PROMPT_TEMPLATE, INSIGHT_TEMPERATURE, INSIGHT_MAX_TOKENS, MEMORIES_TO_SCAN, REFLECTIONS_TO_INCLUDE, DEDUP_THRESHOLD } from '../../../twin-research/insight-config.js';
 import { quietly } from './quietly.js';
 
 // replan-2026-06-10 Track A: the "first insight MUST be a nudge" production

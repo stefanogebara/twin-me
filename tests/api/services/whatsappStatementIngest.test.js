@@ -9,18 +9,18 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 const downloadMock = vi.fn();
-vi.mock('../../../api/services/whatsappService.js', () => ({
+vi.mock('../../../api/_app/services/whatsappService.js', () => ({
   downloadWhatsAppMedia: (...a) => downloadMock(...a),
   sendWhatsAppMessage: vi.fn(),
 }));
 
 const ingestMock = vi.fn();
-vi.mock('../../../api/services/transactions/rawIngestion.js', () => ({
+vi.mock('../../../api/_app/services/transactions/rawIngestion.js', () => ({
   ingestRawTransactions: (...a) => ingestMock(...a),
 }));
 
 const { isStatementDocument, handleStatementDocument } = await import(
-  '../../../api/services/transactions/whatsappStatementIngest.js'
+  '../../../api/_app/services/transactions/whatsappStatementIngest.js'
 );
 
 // Minimal valid Brazilian-bank-style OFX (SGML 1.x) with two transactions.

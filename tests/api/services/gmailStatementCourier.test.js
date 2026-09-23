@@ -11,13 +11,13 @@ const axiosGetMock = vi.fn();
 vi.mock('axios', () => ({ default: { get: (...a) => axiosGetMock(...a) } }));
 
 const ingestMock = vi.fn();
-vi.mock('../../../api/services/transactions/rawIngestion.js', () => ({
+vi.mock('../../../api/_app/services/transactions/rawIngestion.js', () => ({
   ingestRawTransactions: (...a) => ingestMock(...a),
 }));
 
 // supabaseAdmin: only the source_file_hash dedup lookup is used.
 const hashLookupResult = { data: [], error: null };
-vi.mock('../../../api/services/database.js', () => {
+vi.mock('../../../api/_app/services/database.js', () => {
   const chain = {};
   Object.assign(chain, {
     from: () => chain,
@@ -29,7 +29,7 @@ vi.mock('../../../api/services/database.js', () => {
 });
 
 const { runGmailStatementCourier } = await import(
-  '../../../api/services/transactions/gmailStatementCourier.js'
+  '../../../api/_app/services/transactions/gmailStatementCourier.js'
 );
 
 const OFX_SAMPLE = `OFXHEADER:100

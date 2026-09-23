@@ -50,8 +50,8 @@ if (targetId === 'reflections') target.expertIndex = expertIndex;
 
 // Lazy-load LLM gateway and database
 async function loadDeps() {
-  const { complete } = await import('../api/services/llmGateway.js');
-  const { supabaseAdmin } = await import('../api/services/database.js');
+  const { complete } = await import('../api/_app/services/llmGateway.js');
+  const { supabaseAdmin } = await import('../api/_app/services/database.js');
   return { complete, supabaseAdmin };
 }
 

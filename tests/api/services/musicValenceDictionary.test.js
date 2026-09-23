@@ -7,7 +7,7 @@
  * null-on-no-match contract the emotion tagger depends on.
  */
 import { describe, it, expect } from 'vitest';
-import { estimateValence } from '../../../api/services/transactions/musicValenceDictionary.js';
+import { estimateValence } from '../../../api/_app/services/transactions/musicValenceDictionary.js';
 
 describe('estimateValence — real valence passthrough', () => {
   it('prefers an explicit numeric raw.valence over the heuristic', () => {

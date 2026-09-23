@@ -28,13 +28,13 @@ vi.mock('@nangohq/node', () => ({
   },
 }));
 
-vi.mock('../../../api/services/connectionMappingService.js', () => ({
+vi.mock('../../../api/_app/services/connectionMappingService.js', () => ({
   getConnectionId: mockDbGetConnectionId,
   updateLastSynced: vi.fn(),
   markConnectionNeedsReconnect: vi.fn(),
 }));
 
-vi.mock('../../../api/services/database.js', () => ({
+vi.mock('../../../api/_app/services/database.js', () => ({
   supabaseAdmin: { from: vi.fn() },
 }));
 
@@ -44,7 +44,7 @@ process.env.NANGO_SECRET_KEY = 'test-secret';
 delete process.env.DEV_USER_ID;
 
 const { getAllConnections, PLATFORM_CONFIGS } = await import(
-  '../../../api/services/nangoService.js'
+  '../../../api/_app/services/nangoService.js'
 );
 
 const USER_ID = '167c27b5-a40b-49fb-8d00-deb1b1c57f4d';

@@ -11,7 +11,7 @@ import { describe, it, expect } from 'vitest';
 import {
   CONNECTABLE_PLATFORMS, PLATFORM_FOR_MERCHANT, MAX_FINDINGS, UNUSED_MIN_DAYS,
   platformForMerchant, usageWindow, subscriptionUse, readUsage, unmeasurable,
-} from '../../../../api/services/money/usage.js';
+} from '../../../../api/_app/services/money/usage.js';
 
 /* es-ES currency puts a non-breaking space before the euro sign; read sentences plainly. */
 const plain = (s) => String(s).replace(/\u00a0/g, ' ');

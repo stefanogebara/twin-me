@@ -56,15 +56,15 @@ function resolveFor(ctx) {
   return { data: [], error: null };
 }
 
-vi.mock('../../api/services/database.js', () => ({
+vi.mock('../../api/_app/services/database.js', () => ({
   supabaseAdmin: { from: (table) => makeChain(table) },
 }));
 
-vi.mock('../../api/services/emailService.js', () => ({
+vi.mock('../../api/_app/services/emailService.js', () => ({
   sendPlatformNudge: (...args) => sendPlatformNudge(...args),
 }));
 
-const { sendNudgeEmails } = await import('../../api/services/nudgeService.js');
+const { sendNudgeEmails } = await import('../../api/_app/services/nudgeService.js');
 
 describe('sendNudgeEmails bookkeeping', () => {
   beforeEach(() => {

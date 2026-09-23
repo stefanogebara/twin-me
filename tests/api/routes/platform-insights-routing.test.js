@@ -22,7 +22,7 @@ process.env.NODE_ENV = 'test';
 
 // ── Module mocks ─────────────────────────────────────────────────────────────
 
-vi.mock('../../../api/services/database.js', () => {
+vi.mock('../../../api/_app/services/database.js', () => {
   // Build a Supabase-like chainable mock where every method returns the chain
   // and the chain itself is a thenable (so `await query` works).
   const makeChain = () => {
@@ -59,7 +59,7 @@ vi.mock('../../../api/services/database.js', () => {
   };
 });
 
-vi.mock('../../../api/services/platformReflectionService.js', () => ({
+vi.mock('../../../api/_app/services/platformReflectionService.js', () => ({
   default: {
     // Warm cache so GET /:platform takes the real-data path (the route is
     // cache-first as of the 2026-06-06 cold-start fix).
@@ -69,14 +69,14 @@ vi.mock('../../../api/services/platformReflectionService.js', () => ({
   },
 }));
 
-vi.mock('../../../api/services/twinPatternService.js', () => ({
+vi.mock('../../../api/_app/services/twinPatternService.js', () => ({
   seedPatternFromInsight: vi.fn().mockResolvedValue(undefined),
 }));
 
 // ── Imports ──────────────────────────────────────────────────────────────────
 
-const { supabaseAdmin } = await import('../../../api/services/database.js');
-const platformInsightsRoutes = (await import('../../../api/routes/platform-insights.js')).default;
+const { supabaseAdmin } = await import('../../../api/_app/services/database.js');
+const platformInsightsRoutes = (await import('../../../api/_app/routes/platform-insights.js')).default;
 
 // ── App setup ────────────────────────────────────────────────────────────────
 

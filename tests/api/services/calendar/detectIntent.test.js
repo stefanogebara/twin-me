@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { detectCalendarIntent } from '../../../../api/services/calendar/detectIntent.js';
+import { detectCalendarIntent } from '../../../../api/_app/services/calendar/detectIntent.js';
 
 describe('detectCalendarIntent', () => {
   it('returns null for empty', () => expect(detectCalendarIntent('').kind).toBeNull());

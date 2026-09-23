@@ -16,7 +16,7 @@ import {
   CHAT_TIER_LIGHT,
   CHAT_TIER_STANDARD,
   CHAT_TIER_DEEP,
-} from '../../../api/services/chatRouter.js';
+} from '../../../api/_app/services/chatRouter.js';
 
 describe('classifyMessageTier — meeting/prep agentic intent (audit-2026-05-14)', () => {
   it('routes the exact regression query to STANDARD, not LIGHT', () => {

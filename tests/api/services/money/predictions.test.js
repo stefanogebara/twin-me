@@ -3,7 +3,7 @@
  * scored, and how the record reads together with the charges the store already scores.
  */
 import { describe, it, expect } from 'vitest';
-import { predictionsFrom, scoreOne, summarise, ownScoreFinding } from '../../../../api/services/money/predictions.js';
+import { predictionsFrom, scoreOne, summarise, ownScoreFinding } from '../../../../api/_app/services/money/predictions.js';
 
 const NOW = new Date('2026-09-13T12:00:00Z');
 const counts = () => true;

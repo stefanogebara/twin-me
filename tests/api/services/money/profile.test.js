@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { profileFrom, countryOfIban, DEFAULT_COUNTRY } from '../../../../api/services/money/profile.js';
+import { profileFrom, countryOfIban, DEFAULT_COUNTRY } from '../../../../api/_app/services/money/profile.js';
 
 describe('where a person is, read from their data', () => {
   it('reads the country from the IBANs and the currency from the accounts, and says where each came from', () => {

@@ -4,7 +4,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { buildCollectionQuery } from '../../../../api/services/whoop/collectionUtils.js';
+import { buildCollectionQuery } from '../../../../api/_app/services/whoop/collectionUtils.js';
 
 describe('buildCollectionQuery', () => {
   it('returns empty string when no params are set', () => {

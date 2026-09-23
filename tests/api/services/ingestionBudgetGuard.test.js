@@ -15,7 +15,7 @@
  * observationIngestionParallel.test.js.
  */
 import { describe, it, expect } from 'vitest';
-import { canStartNextUser, ESTIMATED_USER_COST_MS } from '../../../api/services/observationUtils.js';
+import { canStartNextUser, ESTIMATED_USER_COST_MS } from '../../../api/_app/services/observationUtils.js';
 
 const BUDGET_MS = 40_000; // mirrors GLOBAL_TIMEOUT_MS in observationIngestion.js
 

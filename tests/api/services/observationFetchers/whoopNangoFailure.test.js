@@ -2,7 +2,7 @@
  * A failed Whoop fetch must not be recorded as a successful empty one.
  *
  * IMPORTERS/CALLERS: exercises fetchWhoopObservations in
- * api/services/observationFetchers/whoop.js, registered in PLATFORM_FETCHERS
+ * api/_app/services/observationFetchers/whoop.js, registered in PLATFORM_FETCHERS
  * and driven by /api/cron/ingest-observations. The tagged throw is what makes
  * the orchestrator write platform_connections.status='auth_failed' and surface
  * a Reconnect CTA.
@@ -34,16 +34,16 @@ const { mockGetSupabase, mockGetRecovery, mockGetSleep, mockGetWorkout } = vi.ho
 }));
 
 vi.mock('axios', () => ({ default: { get: vi.fn() } }));
-vi.mock('../../../../api/services/tokenRefreshService.js', () => ({
+vi.mock('../../../../api/_app/services/tokenRefreshService.js', () => ({
   getValidAccessToken: vi.fn(),
 }));
-vi.mock('../../../../api/services/observationUtils.js', () => ({
+vi.mock('../../../../api/_app/services/observationUtils.js', () => ({
   getSupabase: mockGetSupabase,
   _hasNangoMapping: vi.fn(async () => true),
   sanitizeExternal: (value, max) =>
     typeof value === 'string' ? value.slice(0, max ?? 100) : '',
 }));
-vi.mock('../../../../api/services/nangoService.js', () => ({
+vi.mock('../../../../api/_app/services/nangoService.js', () => ({
   whoop: {
     getRecovery: mockGetRecovery,
     getSleep: mockGetSleep,
@@ -52,7 +52,7 @@ vi.mock('../../../../api/services/nangoService.js', () => ({
 }));
 
 const { default: fetchWhoopObservations } = await import(
-  '../../../../api/services/observationFetchers/whoop.js'
+  '../../../../api/_app/services/observationFetchers/whoop.js'
 );
 
 const USER_ID = '167c27b5-a40b-49fb-8d00-deb1b1c57f4d';

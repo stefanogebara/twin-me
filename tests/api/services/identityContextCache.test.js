@@ -15,7 +15,7 @@ const mockRedisGet = vi.fn();
 const mockRedisSet = vi.fn();
 const mockRedisDel = vi.fn();
 
-vi.mock('../../../api/services/redisClient.js', () => ({
+vi.mock('../../../api/_app/services/redisClient.js', () => ({
   get: (...args) => mockRedisGet(...args),
   set: (...args) => mockRedisSet(...args),
   del: (...args) => mockRedisDel(...args),
@@ -32,17 +32,17 @@ vi.mock('../../../api/services/redisClient.js', () => ({
 }));
 
 // Mock other dependencies to isolate cache behavior
-vi.mock('../../../api/services/memoryStreamService.js', () => ({
+vi.mock('../../../api/_app/services/memoryStreamService.js', () => ({
   retrieveMemories: vi.fn().mockResolvedValue([]),
   addMemory: vi.fn().mockResolvedValue(undefined),
 }));
 
-vi.mock('../../../api/services/llmGateway.js', () => ({
+vi.mock('../../../api/_app/services/llmGateway.js', () => ({
   complete: vi.fn().mockResolvedValue({ content: '{}' }),
   TIER_ANALYSIS: 'analysis',
 }));
 
-vi.mock('../../../api/services/database.js', () => ({
+vi.mock('../../../api/_app/services/database.js', () => ({
   supabaseAdmin: {
     from: () => ({
       select: () => ({
@@ -62,8 +62,8 @@ vi.mock('../../../api/services/database.js', () => ({
   },
 }));
 
-import { CACHE_TTL, CACHE_KEYS } from '../../../api/services/redisClient.js';
-import { inferIdentityContext, invalidateIdentityCache } from '../../../api/services/identityContextService.js';
+import { CACHE_TTL, CACHE_KEYS } from '../../../api/_app/services/redisClient.js';
+import { inferIdentityContext, invalidateIdentityCache } from '../../../api/_app/services/identityContextService.js';
 
 describe('Identity Context Cache', () => {
   beforeEach(() => {

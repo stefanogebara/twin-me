@@ -1,8 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import AdmZip from 'adm-zip';
-import { detectInstagramExport, parseInstagramExport } from '../../../../api/services/exports/parsers/instagram.js';
+import { detectInstagramExport, parseInstagramExport } from '../../../../api/_app/services/exports/parsers/instagram.js';
 import { buildInstagramZip } from './fixtures.js';
-import { detectInstagramExportIntent, formatInstagramExport } from '../../../../api/services/exports/chat/instagram.js';
+import { detectInstagramExportIntent, formatInstagramExport } from '../../../../api/_app/services/exports/chat/instagram.js';
 
 describe('instagram export parser', () => {
   const zip = new AdmZip(buildInstagramZip());

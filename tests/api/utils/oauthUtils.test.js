@@ -3,7 +3,7 @@
  *
  * getAppUrl derives the base URL that every OAuth `redirect_uri` and every
  * post-login `res.redirect()` in the OAuth-callback route is built from
- * (see api/routes/oauth-callback.js and the ~28 connector call sites). The
+ * (see api/_app/routes/oauth-callback.js and the ~28 connector call sites). The
  * Host and Origin request headers that feed it are attacker-controllable, so
  * the load-bearing property under test is:
  *
@@ -19,7 +19,7 @@
  * test) so the matrix is pure inputs with no process.env mutation.
  */
 import { describe, it, expect } from 'vitest';
-import { getAppUrl } from '../../../api/utils/oauthUtils.js';
+import { getAppUrl } from '../../../api/_app/utils/oauthUtils.js';
 
 const reqWith = (headers = {}) => ({ headers });
 

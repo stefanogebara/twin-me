@@ -1,5 +1,5 @@
 /**
- * Smoke tests for api/routes/observations-meeting.js
+ * Smoke tests for api/_app/routes/observations-meeting.js
  * POST /api/observations/meeting — desktop meeting session sync (Phase 5A).
  *
  * Covers: auth guard (401), malformed payload (400), happy-path sync mapping
@@ -19,20 +19,20 @@ process.env.NODE_ENV = 'test';
 
 const addMemoryMock = vi.fn();
 
-vi.mock('../../../api/services/memoryStreamService.js', () => ({
+vi.mock('../../../api/_app/services/memoryStreamService.js', () => ({
   addMemory: (...a) => addMemoryMock(...a),
 }));
 
 // Transcript-bearing meetings get an LLM-generated summary (Phase 5B). Mock the
 // gateway so tests never hit a real model; assert on whether/how it's called.
 const completeMock = vi.fn();
-vi.mock('../../../api/services/llmGateway.js', () => ({
+vi.mock('../../../api/_app/services/llmGateway.js', () => ({
   complete: (...a) => completeMock(...a),
   TIER_ANALYSIS: 'analysis',
 }));
 
 // Auth middleware does an email-verification lookup against supabaseAdmin.
-vi.mock('../../../api/services/database.js', () => ({
+vi.mock('../../../api/_app/services/database.js', () => ({
   supabaseAdmin: {
     from: vi.fn(() => ({
       select: vi.fn().mockReturnThis(),
@@ -46,7 +46,7 @@ vi.mock('../../../api/services/database.js', () => ({
 const TEST_USER = '167c27b5-a40b-49fb-8d00-deb1b1c57f4d';
 const signToken = () => jwt.sign({ id: TEST_USER }, 'test-secret', { expiresIn: '1h' });
 
-const observationsMeetingRoutes = (await import('../../../api/routes/observations-meeting.js')).default;
+const observationsMeetingRoutes = (await import('../../../api/_app/routes/observations-meeting.js')).default;
 
 function createApp() {
   const app = express();

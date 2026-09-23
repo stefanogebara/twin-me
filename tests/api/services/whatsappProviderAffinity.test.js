@@ -22,7 +22,7 @@
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-// Stub Supabase env before any import chain touches api/config/supabase.js.
+// Stub Supabase env before any import chain touches api/_app/config/supabase.js.
 process.env.SUPABASE_URL ||= 'https://affinity-stub.supabase.co';
 process.env.SUPABASE_ANON_KEY ||= 'affinity-stub-anon';
 process.env.SUPABASE_SERVICE_ROLE_KEY ||= 'affinity-stub-service';
@@ -36,7 +36,7 @@ vi.mock('axios', () => ({
     })),
   },
 }));
-vi.mock('../../../api/config/supabase.js', () => ({
+vi.mock('../../../api/_app/config/supabase.js', () => ({
   supabaseAdmin: { from: () => ({ insert: async () => ({}) }) },
 }));
 
@@ -56,7 +56,7 @@ async function importServiceWithEnv(envPatch) {
   for (const k of ALL_PROVIDER_KEYS) delete process.env[k];
   Object.assign(process.env, envPatch);
   vi.resetModules();
-  return import('../../../api/services/whatsappService.js');
+  return import('../../../api/_app/services/whatsappService.js');
 }
 
 beforeEach(() => {

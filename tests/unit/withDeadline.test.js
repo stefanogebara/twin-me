@@ -13,11 +13,11 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';
-import { withDeadline, computeBoundedBudget } from '../../api/services/withDeadline.js';
+import { withDeadline, computeBoundedBudget } from '../../api/_app/services/withDeadline.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const INGESTION_SRC = readFileSync(
-  resolve(__dirname, '../../api/services/observationIngestion.js'),
+  resolve(__dirname, '../../api/_app/services/observationIngestion.js'),
   'utf8'
 );
 

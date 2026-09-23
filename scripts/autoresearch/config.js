@@ -8,7 +8,7 @@ export const TARGETS = {
   'twin-chat': {
     id: 'twin-chat',
     name: 'Twin Chat System Prompt',
-    sourceFile: 'api/services/twinSystemPromptBuilder.js',
+    sourceFile: 'api/_app/services/twinSystemPromptBuilder.js',
     extractPattern: /TWIN_BASE_INSTRUCTIONS\s*=\s*`([\s\S]*?)`;/,
     testInputs: [
       { role: 'user', content: 'hey, how\'s it going?' },
@@ -28,7 +28,7 @@ export const TARGETS = {
   'onboarding': {
     id: 'onboarding',
     name: 'Onboarding Interview Prompt',
-    sourceFile: 'api/routes/onboarding-calibration.js',
+    sourceFile: 'api/_app/routes/onboarding-calibration.js',
     extractPattern: /return `(You are a perceptive[\s\S]*?)`;/,
     testInputs: [
       { questionNumber: 1, history: [] },
@@ -55,7 +55,7 @@ export const TARGETS = {
   'reflections': {
     id: 'reflections',
     name: 'Reflection Expert Prompts',
-    sourceFile: 'api/services/reflectionEngine.js',
+    sourceFile: 'api/_app/services/reflectionEngine.js',
     extractPattern: /EXPERT_PERSONAS\s*=\s*\[([\s\S]*?)\];/,
     expertIndex: 0, // default: personality psychologist
     testInputs: [{ role: 'user', content: 'Analyze the evidence and generate observations.' }], // placeholder, context comes from DB
@@ -71,7 +71,7 @@ export const TARGETS = {
   'insights': {
     id: 'insights',
     name: 'Proactive Insights Prompt',
-    sourceFile: 'api/services/proactiveInsights.js',
+    sourceFile: 'api/_app/services/proactiveInsights.js',
     extractPattern: /INSIGHT_GENERATION_PROMPT\s*=\s*`([\s\S]*?)`;/,
     testInputs: [{ role: 'user', content: 'Generate insights from the observations and reflections.' }], // placeholder
     criteria: [

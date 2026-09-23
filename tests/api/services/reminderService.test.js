@@ -9,7 +9,7 @@ let dueRows;            // what the due-pending select returns
 const inserts = [];
 const updates = [];
 
-vi.mock('../../../api/services/database.js', () => {
+vi.mock('../../../api/_app/services/database.js', () => {
   function builder(table) {
     const b = { _table: table };
     for (const m of ['select', 'eq', 'lte', 'order']) b[m] = () => b;
@@ -23,12 +23,12 @@ vi.mock('../../../api/services/database.js', () => {
 });
 
 const deliverInsightMock = vi.fn();
-vi.mock('../../../api/services/messageRouter.js', () => ({
+vi.mock('../../../api/_app/services/messageRouter.js', () => ({
   deliverInsight: (...a) => deliverInsightMock(...a),
 }));
 
 const { zonedLocalToUtc, createReminder, deliverDueReminders } = await import(
-  '../../../api/services/reminderService.js'
+  '../../../api/_app/services/reminderService.js'
 );
 
 describe('zonedLocalToUtc', () => {

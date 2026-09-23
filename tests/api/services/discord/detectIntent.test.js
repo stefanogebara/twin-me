@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { detectDiscordIntent } from '../../../../api/services/discord/detectIntent.js';
+import { detectDiscordIntent } from '../../../../api/_app/services/discord/detectIntent.js';
 
 describe('detectDiscordIntent', () => {
   it('returns null for empty / unrelated', () => {

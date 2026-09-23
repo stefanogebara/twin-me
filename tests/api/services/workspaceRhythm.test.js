@@ -9,7 +9,7 @@ import {
   buildMakerTimeCandidate,
   bucketActivityByDay,
   MAKER_EFFECT_FLOOR,
-} from '../../../api/services/workspaceRhythm.js';
+} from '../../../api/_app/services/workspaceRhythm.js';
 
 // ── Drive Activity API parser ────────────────────────────────────────────────
 const DOC = 'application/vnd.google-apps.document';

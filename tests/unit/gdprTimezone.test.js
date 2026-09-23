@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { getHourInTimeZone, getDayInTimeZone, monthYearInTimeZone, appleDayKey } from '../../api/services/gdprImportService.js';
+import { getHourInTimeZone, getDayInTimeZone, monthYearInTimeZone, appleDayKey } from '../../api/_app/services/gdprImportService.js';
 
 // Audit: GDPR time-of-day buckets (YouTube/Discord/Spotify/Google/Netflix) used
 // Date.getHours() = the Vercel server's UTC hour, so "evening watcher" etc. were

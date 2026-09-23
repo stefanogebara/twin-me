@@ -26,7 +26,7 @@
  * readings remain the function returns null and no observation is written.
  */
 import { describe, it, expect } from 'vitest';
-import { buildMoodObservation, MIN_READINGS } from '../../../../api/services/observationFetchers/spotifyMood.js';
+import { buildMoodObservation, MIN_READINGS } from '../../../../api/_app/services/observationFetchers/spotifyMood.js';
 
 const f = (valence, energy, danceability) => ({ valence, energy, danceability });
 

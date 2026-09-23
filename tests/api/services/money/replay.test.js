@@ -10,14 +10,14 @@
  * it promised; a habit's silence is read as a silence.
  */
 import { describe, it, expect } from 'vitest';
-import { dayForecast, calibrate, ALPHA } from '../../../../api/services/money/calibration.js';
-import { predictionsFrom, scoreOne } from '../../../../api/services/money/predictions.js';
-import { learnMerchants, predictNext } from '../../../../api/services/money/brain.js';
-import { deltaFindings } from '../../../../api/services/money/deltas.js';
-import { intentionFindings } from '../../../../api/services/money/intention.js';
-import { projectMonth } from '../../../../api/services/money/projection.js';
-import { safeToSpend } from '../../../../api/services/money/allowance.js';
-import { nudgeFindings } from '../../../../api/services/money/nudges.js';
+import { dayForecast, calibrate, ALPHA } from '../../../../api/_app/services/money/calibration.js';
+import { predictionsFrom, scoreOne } from '../../../../api/_app/services/money/predictions.js';
+import { learnMerchants, predictNext } from '../../../../api/_app/services/money/brain.js';
+import { deltaFindings } from '../../../../api/_app/services/money/deltas.js';
+import { intentionFindings } from '../../../../api/_app/services/money/intention.js';
+import { projectMonth } from '../../../../api/_app/services/money/projection.js';
+import { safeToSpend } from '../../../../api/_app/services/money/allowance.js';
+import { nudgeFindings } from '../../../../api/_app/services/money/nudges.js';
 
 const DAY = 86400000;
 const END = new Date('2026-09-14T22:00:00Z');

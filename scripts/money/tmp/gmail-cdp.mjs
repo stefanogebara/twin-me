@@ -1,0 +1,10 @@
+import { chromium } from 'playwright';
+const browser = await chromium.connectOverCDP('http://127.0.0.1:9333');
+const context = browser.contexts()[0];
+const page = await context.newPage();
+const q = encodeURIComponent('(from:enablebanking.com OR from:arcopay.io OR from:afterbanks.com OR subject:arcopay OR subject:"Enable Banking" OR subject:quote) newer_than:3d');
+await page.goto(`https://mail.google.com/mail/u/0/#search/${q}`, { waitUntil: 'domcontentloaded' }); await page.waitForTimeout(9000);
+console.log('url:', page.url().slice(0, 80));
+const rows = await page.evaluate(() => [...document.querySelectorAll('tr.zA')].map((r) => `${(r.querySelector('.yW span[email]')?.getAttribute('email') || r.querySelector('.yW')?.innerText || '').trim()} | ${(r.querySelector('.y6 span')?.innerText || '').trim().slice(0, 80)} | ${(r.querySelector('.y2')?.innerText || '').trim().slice(0, 120)} | ${(r.querySelector('.xW span')?.getAttribute('title') || r.querySelector('.xW')?.innerText || '').trim()}`));
+console.log(rows.length ? rows.join('\n') : 'no threads match (or the list did not render): ' + (await page.locator('body').innerText()).replace(/\s+/g, ' ').slice(0, 300));
+await page.close(); await browser.close();

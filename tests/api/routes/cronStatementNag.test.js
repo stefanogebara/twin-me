@@ -17,7 +17,7 @@ process.env.CRON_SECRET = 'test-cron-secret';
 
 const templateMock = vi.fn();
 const textMock = vi.fn();
-vi.mock('../../../api/services/whatsappService.js', () => ({
+vi.mock('../../../api/_app/services/whatsappService.js', () => ({
   sendWhatsAppTemplate: (...a) => templateMock(...a),
   sendWhatsAppMessage: (...a) => textMock(...a),
 }));
@@ -36,12 +36,12 @@ function makeBuilder(table) {
   };
   return builder;
 }
-vi.mock('../../../api/services/database.js', () => ({
+vi.mock('../../../api/_app/services/database.js', () => ({
   supabaseAdmin: { from: (table) => makeBuilder(table) },
   serverDb: {},
 }));
 
-const { default: router } = await import('../../../api/routes/cron-statement-nag.js');
+const { default: router } = await import('../../../api/_app/routes/cron-statement-nag.js');
 
 function app() {
   const a = express();

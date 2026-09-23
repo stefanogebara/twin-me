@@ -1,5 +1,5 @@
 /**
- * Tests for api/routes/inbox-summary.js — cache-first, non-blocking refresh.
+ * Tests for api/_app/routes/inbox-summary.js — cache-first, non-blocking refresh.
  *
  * Contract under test (2026-07-03 backend-cost audit):
  *  - Cache HIT is served instantly and never touches Gmail or the LLM.
@@ -23,12 +23,12 @@ process.env.NODE_ENV = 'test';
 // ── Mocks ────────────────────────────────────────────────────────────────
 
 const getEmailsMock = vi.fn();
-vi.mock('../../../api/services/googleWorkspaceActions.js', () => ({
+vi.mock('../../../api/_app/services/googleWorkspaceActions.js', () => ({
   getEmails: (...a) => getEmailsMock(...a),
 }));
 
 const completeMock = vi.fn();
-vi.mock('../../../api/services/llmGateway.js', () => ({
+vi.mock('../../../api/_app/services/llmGateway.js', () => ({
   complete: (...a) => completeMock(...a),
   TIER_EXTRACTION: 'extraction',
 }));
@@ -36,7 +36,7 @@ vi.mock('../../../api/services/llmGateway.js', () => ({
 // Map-backed cache stub (mirrors redisClient's JSON semantics: set stores the
 // value as-is, get returns it as-is — the real client stringifies/parses).
 const cacheStore = new Map();
-vi.mock('../../../api/services/redisClient.js', () => ({
+vi.mock('../../../api/_app/services/redisClient.js', () => ({
   get: vi.fn(async (key) => (cacheStore.has(key) ? cacheStore.get(key) : null)),
   set: vi.fn(async (key, value) => { cacheStore.set(key, value); }),
   del: vi.fn(async (key) => { cacheStore.delete(key); }),
@@ -44,12 +44,12 @@ vi.mock('../../../api/services/redisClient.js', () => ({
   isRedisAvailable: vi.fn(() => false),
 }));
 
-vi.mock('../../../api/services/logger.js', () => ({
+vi.mock('../../../api/_app/services/logger.js', () => ({
   createLogger: () => ({ info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() }),
 }));
 
 // auth middleware looks up email verification
-vi.mock('../../../api/services/database.js', () => ({
+vi.mock('../../../api/_app/services/database.js', () => ({
   supabaseAdmin: {
     from: vi.fn(() => ({
       select: vi.fn().mockReturnThis(),
@@ -63,7 +63,7 @@ vi.mock('../../../api/services/database.js', () => ({
   serverDb: {},
 }));
 
-const inboxSummaryRoutes = (await import('../../../api/routes/inbox-summary.js')).default;
+const inboxSummaryRoutes = (await import('../../../api/_app/routes/inbox-summary.js')).default;
 
 function createApp() {
   const app = express();

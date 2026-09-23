@@ -7,7 +7,7 @@
  * through and the YouTubeInsightsPage `!= null` gate happily rendered a
  * confident "Learning 0% / Entertainment 100%" bar from zero real data.
  *
- * Fix (api/services/reflections/otherDataFetchers.js): learningRatio is null
+ * Fix (api/_app/services/reflections/otherDataFetchers.js): learningRatio is null
  * when no videos could be categorized, so downstream renders skip the bar
  * instead of fabricating a 100% entertainment split. When there IS
  * categorizable data the ratio is a real number and entertainmentRatio is
@@ -24,7 +24,7 @@ const mockState = { rows: [] };
 // Supabase query builder: .from().select().eq().eq().order() is awaited and
 // resolves to { data }. Every chain method returns the same thenable builder;
 // .order() is the terminal call the fetcher awaits.
-vi.mock('../../api/config/supabase.js', () => {
+vi.mock('../../api/_app/config/supabase.js', () => {
   const builder = {
     from: () => builder,
     select: () => builder,
@@ -34,11 +34,11 @@ vi.mock('../../api/config/supabase.js', () => {
   return { supabaseAdmin: builder, supabase: builder, default: builder };
 });
 
-vi.mock('../../api/services/logger.js', () => ({
+vi.mock('../../api/_app/services/logger.js', () => ({
   createLogger: () => ({ info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() }),
 }));
 
-const { getYouTubeData } = await import('../../api/services/reflections/otherDataFetchers.js');
+const { getYouTubeData } = await import('../../api/_app/services/reflections/otherDataFetchers.js');
 
 /** Build a likedVideos platform-data row from a list of video titles. */
 function likedVideosRow(titles) {

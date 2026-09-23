@@ -1,6 +1,6 @@
 /**
  * Fix proactive_triggers FK constraint
- * Run with: node api/scripts/fix-proactive-triggers-fk.js
+ * Run with: node api/_app/scripts/fix-proactive-triggers-fk.js
  */
 
 import { createClient } from '@supabase/supabase-js';

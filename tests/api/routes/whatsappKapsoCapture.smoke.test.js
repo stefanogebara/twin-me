@@ -1,6 +1,6 @@
 /**
  * Smoke tests for the transaction-capture hook in
- * api/routes/whatsapp-kapso-webhook.js (replan-2026-06-12).
+ * api/_app/routes/whatsapp-kapso-webhook.js (replan-2026-06-12).
  *
  * The capture pipeline itself is unit-tested in
  * tests/api/services/transactions/whatsappTransactionCapture.test.js — here we
@@ -26,7 +26,7 @@ process.env.PURCHASE_BOT_ENABLED = 'true';
 
 // ── Mocks (everything heavy the route imports) ──────────────────────────────
 const sendMock = vi.fn().mockResolvedValue({ success: true });
-vi.mock('../../../api/services/whatsappService.js', () => ({
+vi.mock('../../../api/_app/services/whatsappService.js', () => ({
   sendWhatsAppMessage: (...a) => sendMock(...a),
   downloadWhatsAppMedia: vi.fn(),
   // Provider-affinity exports (2026-07-13): the pipeline imports these.
@@ -39,7 +39,7 @@ vi.mock('../../../api/services/whatsappService.js', () => ({
 
 const captureMock = vi.fn();
 const quotaMock = vi.fn().mockResolvedValue({ allowed: true, used: 1, cap: 10 });
-vi.mock('../../../api/services/transactions/whatsappTransactionCapture.js', () => ({
+vi.mock('../../../api/_app/services/transactions/whatsappTransactionCapture.js', () => ({
   tryCaptureTransaction: (...a) => captureMock(...a),
   checkAndBumpCaptureQuota: (...a) => quotaMock(...a),
 }));
@@ -47,57 +47,57 @@ vi.mock('../../../api/services/transactions/whatsappTransactionCapture.js', () =
 // Post-merge with the bank-integration strategy branch: receipt images are
 // owned by pixReceiptIngest, statement documents by whatsappStatementIngest.
 const receiptMock = vi.fn().mockResolvedValue({ ok: true, reply: 'Anotei: R$ 150,00 — Maria Silva.', inserted: 1 });
-vi.mock('../../../api/services/transactions/pixReceiptIngest.js', () => ({
+vi.mock('../../../api/_app/services/transactions/pixReceiptIngest.js', () => ({
   handleReceiptImage: (...a) => receiptMock(...a),
 }));
 const statementMock = vi.fn().mockResolvedValue({ ok: true, reply: 'Importei 12 lançamentos.', inserted: 12 });
-vi.mock('../../../api/services/transactions/whatsappStatementIngest.js', () => ({
+vi.mock('../../../api/_app/services/transactions/whatsappStatementIngest.js', () => ({
   isStatementDocument: vi.fn().mockReturnValue(true),
   handleStatementDocument: (...a) => statementMock(...a),
 }));
 
 const reflectionMock = vi.fn().mockResolvedValue({ text: 'reflexao-teste', lang: 'pt-BR', elapsed_ms: 5, cost: 0 });
-vi.mock('../../../api/services/purchaseReflection.js', () => ({
+vi.mock('../../../api/_app/services/purchaseReflection.js', () => ({
   generatePurchaseReflection: (...a) => reflectionMock(...a),
 }));
-vi.mock('../../../api/services/purchaseContextBuilder.js', () => ({
+vi.mock('../../../api/_app/services/purchaseContextBuilder.js', () => ({
   buildPurchaseContext: vi.fn().mockResolvedValue({ moment: { band: 'evening' }, music: {}, schedule: {} }),
 }));
 
 const completeMock = vi.fn().mockResolvedValue({ content: 'twin-chat-reply', model: 'm', usage: {}, cost: 0 });
-vi.mock('../../../api/services/llmGateway.js', () => ({
+vi.mock('../../../api/_app/services/llmGateway.js', () => ({
   complete: (...a) => completeMock(...a),
   TIER_CHAT: 'chat',
 }));
-vi.mock('../../../api/services/chatRouter.js', () => ({
+vi.mock('../../../api/_app/services/chatRouter.js', () => ({
   classifyMessageTier: vi.fn().mockReturnValue('standard'),
   CHAT_TIER_MODELS: { standard: 'deepseek/deepseek-v3.2' },
 }));
-vi.mock('../../../api/services/twinContextBuilder.js', () => ({
+vi.mock('../../../api/_app/services/twinContextBuilder.js', () => ({
   fetchTwinContext: vi.fn().mockResolvedValue({}),
 }));
-vi.mock('../../../api/services/chatRateLimiter.js', () => ({
+vi.mock('../../../api/_app/services/chatRateLimiter.js', () => ({
   checkChatRateLimit: vi.fn().mockResolvedValue({ allowed: true, used: 1, limit: 200 }),
 }));
-vi.mock('../../../api/services/coreMemoryService.js', () => ({
+vi.mock('../../../api/_app/services/coreMemoryService.js', () => ({
   getBlocks: vi.fn().mockResolvedValue({}),
   formatBlocksForPrompt: vi.fn().mockReturnValue(''),
 }));
-vi.mock('../../../api/services/personalityPromptBuilder.js', () => ({
+vi.mock('../../../api/_app/services/personalityPromptBuilder.js', () => ({
   buildPersonalityPrompt: vi.fn().mockReturnValue(''),
 }));
-vi.mock('../../../api/services/personalityProfileService.js', () => ({
+vi.mock('../../../api/_app/services/personalityProfileService.js', () => ({
   getProfile: vi.fn().mockResolvedValue(null),
   getSoulSignatureLayers: vi.fn().mockResolvedValue(null),
 }));
-vi.mock('../../../api/services/memoryStreamService.js', () => ({
+vi.mock('../../../api/_app/services/memoryStreamService.js', () => ({
   addConversationMemory: vi.fn().mockResolvedValue(undefined),
 }));
 
 // messaging_channels lookup + conversation history + purchase_reflections
 // audit insert. One permissive chainable builder serves every table: the
 // channel lookup needs the user row; the rest tolerate the same shape.
-vi.mock('../../../api/services/database.js', () => {
+vi.mock('../../../api/_app/services/database.js', () => {
   const builder = {};
   const chain = ['select', 'eq', 'neq', 'in', 'gte', 'lte', 'lt', 'order', 'limit', 'maybeSingle', 'single', 'insert', 'upsert', 'update'];
   for (const m of chain) builder[m] = vi.fn(() => builder);
@@ -106,7 +106,7 @@ vi.mock('../../../api/services/database.js', () => {
   return { supabaseAdmin: { from: vi.fn(() => builder) } };
 });
 
-const webhookRoutes = (await import('../../../api/routes/whatsapp-kapso-webhook.js')).default;
+const webhookRoutes = (await import('../../../api/_app/routes/whatsapp-kapso-webhook.js')).default;
 
 // ── Test app: capture rawBody exactly like server.js does ───────────────────
 function createApp() {

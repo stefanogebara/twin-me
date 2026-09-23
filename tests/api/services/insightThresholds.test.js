@@ -20,7 +20,7 @@ describe('P5 threshold + prompt fixes', () => {
   describe('stress_nudge MAX_TX_AGE_MS — covers the daily sync window', () => {
     it('is set to 24 hours so retrospective nudges fire on bank-sync data', () => {
       const src = fs.readFileSync(
-        path.resolve(process.cwd(), 'api/services/transactions/transactionNudgeService.js'),
+        path.resolve(process.cwd(), 'api/_app/services/transactions/transactionNudgeService.js'),
         'utf8',
       );
       // Pull the assignment line exactly.
@@ -35,7 +35,7 @@ describe('P5 threshold + prompt fixes', () => {
 
     it('is NOT the old 15-minute value that caused the audit miss', () => {
       const src = fs.readFileSync(
-        path.resolve(process.cwd(), 'api/services/transactions/transactionNudgeService.js'),
+        path.resolve(process.cwd(), 'api/_app/services/transactions/transactionNudgeService.js'),
         'utf8',
       );
       // Defense against accidentally reverting via copy-paste.

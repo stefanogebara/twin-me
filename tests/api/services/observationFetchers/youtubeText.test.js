@@ -20,7 +20,7 @@
  * leave it dangling when no channel survives.
  */
 import { describe, it, expect } from 'vitest';
-import { buildLikedVideosObservation } from '../../../../api/services/observationFetchers/youtubeText.js';
+import { buildLikedVideosObservation } from '../../../../api/_app/services/observationFetchers/youtubeText.js';
 
 const v = (title, channelTitle) => ({ snippet: { title, channelTitle } });
 

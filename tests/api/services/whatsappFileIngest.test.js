@@ -7,15 +7,15 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 const downloadMock = vi.fn();
 const createFileMock = vi.fn();
-vi.mock('../../../api/services/whatsappService.js', () => ({
+vi.mock('../../../api/_app/services/whatsappService.js', () => ({
   downloadWhatsAppMedia: (...a) => downloadMock(...a),
 }));
-vi.mock('../../../api/services/googleWorkspaceActions.js', () => ({
+vi.mock('../../../api/_app/services/googleWorkspaceActions.js', () => ({
   createFile: (...a) => createFileMock(...a),
 }));
 
 const { handleFileUploadToDrive } = await import(
-  '../../../api/services/transactions/whatsappFileIngest.js'
+  '../../../api/_app/services/transactions/whatsappFileIngest.js'
 );
 
 const DOC = { id: 'evolution:MID1', filename: 'contrato.pdf', mimeType: 'application/pdf' };

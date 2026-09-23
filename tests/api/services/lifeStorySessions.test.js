@@ -42,29 +42,29 @@ function makeBuilder(table) {
   return builder;
 }
 
-vi.mock('../../../api/services/database.js', () => ({
+vi.mock('../../../api/_app/services/database.js', () => ({
   supabaseAdmin: { from: vi.fn((table) => makeBuilder(table)) },
 }));
 
-vi.mock('../../../api/services/llmGateway.js', () => ({
+vi.mock('../../../api/_app/services/llmGateway.js', () => ({
   complete: vi.fn(),
   TIER_ANALYSIS: 'analysis',
   TIER_EXTRACTION: 'extraction',
 }));
 
-vi.mock('../../../api/services/memoryStreamService.js', () => ({
+vi.mock('../../../api/_app/services/memoryStreamService.js', () => ({
   addMemory: vi.fn().mockResolvedValue({ id: 'mem-1' }),
 }));
 
-vi.mock('../../../api/services/reflectionEngine.js', () => ({
+vi.mock('../../../api/_app/services/reflectionEngine.js', () => ({
   shouldTriggerReflection: vi.fn().mockResolvedValue(false),
   generateReflections: vi.fn().mockResolvedValue([]),
 }));
 
-const { complete } = await import('../../../api/services/llmGateway.js');
-const { addMemory } = await import('../../../api/services/memoryStreamService.js');
+const { complete } = await import('../../../api/_app/services/llmGateway.js');
+const { addMemory } = await import('../../../api/_app/services/memoryStreamService.js');
 const { shouldTriggerReflection, generateReflections } = await import(
-  '../../../api/services/reflectionEngine.js'
+  '../../../api/_app/services/reflectionEngine.js'
 );
 const {
   startSession,
@@ -72,8 +72,8 @@ const {
   getSession,
   getLifeStoryStatus,
   MAX_TRANSCRIPT_ENTRIES,
-} = await import('../../../api/services/lifeStoryService.js');
-const { LIFE_STORY_CHAPTERS } = await import('../../../api/config/lifeStoryScript.js');
+} = await import('../../../api/_app/services/lifeStoryService.js');
+const { LIFE_STORY_CHAPTERS } = await import('../../../api/_app/config/lifeStoryScript.js');
 
 const USER = '167c27b5-a40b-49fb-8d00-deb1b1c57f4d';
 const firstChapter = LIFE_STORY_CHAPTERS[0];

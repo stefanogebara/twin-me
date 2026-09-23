@@ -15,8 +15,8 @@
  *        node scripts/probe-pluggy-nudge.js
  */
 import 'dotenv/config';
-import { supabaseAdmin } from '../api/services/database.js';
-import { maybeNudgeForTransactions } from '../api/services/transactions/transactionNudgeService.js';
+import { supabaseAdmin } from '../api/_app/services/database.js';
+import { maybeNudgeForTransactions } from '../api/_app/services/transactions/transactionNudgeService.js';
 
 const STEFANO = '167c27b5-a40b-49fb-8d00-deb1b1c57f4d';
 

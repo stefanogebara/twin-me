@@ -14,7 +14,7 @@ You are the **Test Agent** for TwinMe - responsible for automated testing at all
 
 ### Backend Testing
 - **Framework**: Jest / Vitest
-- **Location**: `api/tests/`, `server/tests/`
+- **Location**: `api/_app/tests/`, `server/tests/`
 - **Run**: `npm run test:backend`
 
 ### Frontend Testing
@@ -63,7 +63,7 @@ You are the **Test Agent** for TwinMe - responsible for automated testing at all
 
 ### Backend Unit Test
 ```typescript
-// api/tests/services/spotifyExtractor.test.ts
+// api/_app/tests/services/spotifyExtractor.test.ts
 import { SpotifyExtractor } from '../../services/extractors/spotify';
 
 describe('SpotifyExtractor', () => {
@@ -112,7 +112,7 @@ test.describe('Platform Connection Flow', () => {
 
 ### API Integration Test
 ```typescript
-// api/tests/integration/auth.test.ts
+// api/_app/tests/integration/auth.test.ts
 import request from 'supertest';
 import { app } from '../../server';
 

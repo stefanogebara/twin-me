@@ -1,8 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import AdmZip from 'adm-zip';
-import { detectDiscordExport, parseDiscordExport } from '../../../../api/services/exports/parsers/discord.js';
+import { detectDiscordExport, parseDiscordExport } from '../../../../api/_app/services/exports/parsers/discord.js';
 import { buildDiscordZip } from './fixtures.js';
-import { detectDiscordExportIntent, formatDiscordExport } from '../../../../api/services/exports/chat/discord.js';
+import { detectDiscordExportIntent, formatDiscordExport } from '../../../../api/_app/services/exports/chat/discord.js';
 
 describe('discord export parser', () => {
   const zip = new AdmZip(buildDiscordZip());

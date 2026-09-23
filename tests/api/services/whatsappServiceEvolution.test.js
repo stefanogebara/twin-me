@@ -19,12 +19,12 @@ const axiosGet = vi.fn();
 vi.mock('axios', () => ({
   default: { post: (...a) => axiosPost(...a), get: (...a) => axiosGet(...a) },
 }));
-vi.mock('../../../api/config/supabase.js', () => ({
+vi.mock('../../../api/_app/config/supabase.js', () => ({
   supabaseAdmin: { from: () => ({ insert: () => Promise.resolve({ error: null }) }) },
 }));
 
 const { sendWhatsAppMessage, downloadWhatsAppMedia } = await import(
-  '../../../api/services/whatsappService.js'
+  '../../../api/_app/services/whatsappService.js'
 );
 
 describe('sendWhatsAppMessage via Evolution API', () => {

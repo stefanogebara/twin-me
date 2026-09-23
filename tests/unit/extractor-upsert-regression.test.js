@@ -22,7 +22,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const apiDir = path.join(__dirname, '..', '..', 'api');
+const apiDir = path.join(__dirname, '..', '..', 'api', '_app');
 
 function readSource(relPath) {
   return fs.readFileSync(path.join(apiDir, relPath), 'utf8');

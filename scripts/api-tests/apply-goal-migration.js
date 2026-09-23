@@ -1,6 +1,6 @@
 /**
  * Apply the twin_goals migration to Supabase.
- * Usage: node api/scripts/apply-goal-migration.js
+ * Usage: node api/_app/scripts/apply-goal-migration.js
  */
 
 import 'dotenv/config';

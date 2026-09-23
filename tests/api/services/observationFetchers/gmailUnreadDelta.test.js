@@ -13,7 +13,7 @@ import {
   shouldMentionLifetimeTotal,
   buildUnreadDeltaObservation,
   nextGmailCounters,
-} from '../../../../api/services/observationFetchers/gmailUnreadDelta.js';
+} from '../../../../api/_app/services/observationFetchers/gmailUnreadDelta.js';
 
 const NOW = new Date('2026-06-10T12:00:00Z');
 const YESTERDAY = '2026-06-09T12:00:00Z';

@@ -11,7 +11,7 @@ vi.mock('axios', () => ({
 }));
 
 import axios from 'axios';
-import { createWhoopClient } from '../../../../api/services/whoop/client.js';
+import { createWhoopClient } from '../../../../api/_app/services/whoop/client.js';
 
 describe('createWhoopClient', () => {
   beforeEach(() => {

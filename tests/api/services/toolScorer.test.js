@@ -9,7 +9,7 @@ import {
   scoreAndRankTools,
   PLATFORM_KEYWORDS,
   CATEGORY_KEYWORDS,
-} from '../../../api/services/toolScorer.js';
+} from '../../../api/_app/services/toolScorer.js';
 
 const spotifyTool = { name: 'get_music', platform: 'spotify', category: 'music', description: 'fetch listening data' };
 const memoryTool = { name: 'search_memory', platform: null, category: 'memory', description: 'recall past facts' };

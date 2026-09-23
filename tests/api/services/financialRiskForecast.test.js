@@ -14,7 +14,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 // user_transactions for the baseline), so the mock resolves a result keyed by
 // table name. Test helpers live on globalThis because the vi.mock factory is
 // hoisted above imports and cannot close over module-scope variables.
-vi.mock('../../../api/services/database.js', () => {
+vi.mock('../../../api/_app/services/database.js', () => {
   const results = globalThis.__frf_results ?? (globalThis.__frf_results = new Map());
   globalThis.__frf_setTableResult = (table, r) => results.set(table, r);
   globalThis.__frf_reset = () => results.clear();
@@ -32,7 +32,7 @@ vi.mock('../../../api/services/database.js', () => {
   return { supabaseAdmin: { from: (table) => makeChain(table) } };
 });
 
-import { computeRiskForecast } from '../../../api/services/transactions/financialRiskForecast.js';
+import { computeRiskForecast } from '../../../api/_app/services/transactions/financialRiskForecast.js';
 
 const PLATFORM = 'user_platform_data';
 const TX = 'user_transactions';

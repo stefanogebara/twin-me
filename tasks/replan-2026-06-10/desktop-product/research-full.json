@@ -569,7 +569,7 @@
           {
             "claim": "Sync: 2-min batched HTTPS upload; clips become user_memories observations (the 299 desktop* memories)",
             "detail": "sync.rs posts ≤50 unsynced ended clips to https://www.twinme.me/api/observations/clip and meetings to /api/observations/meeting (canonical www host is regression-tested because the apex 307-redirect strips the Authorization header). Backend observations-clip.js validates per-clip (coercion so one bad clip never poisons the batch), then addMemory(userId, summary, 'observation', {source:'desktop_clip', app, window, started_at, ended_at}, importance 4, skipImportance) — content-bearing clips store the extracted text (≤8000 chars), title-only clips store 'Opened {app} — {title}'. observations-meeting.js stores '45-min Zoom meeting — Standup' at importance 5, source 'desktop_meeting'. addMemory dedups identical content within 24h making retries idempotent. platformStateService.js (line 178-187) surfaces the desktop as a connected 'mirror' platform via metadata->>source LIKE 'desktop%'.",
-            "source": "desktop/src-tauri/src/sync.rs; api/routes/observations-clip.js; api/routes/observations-meeting.js; api/services/platformStateService.js:178",
+            "source": "desktop/src-tauri/src/sync.rs; api/_app/routes/observations-clip.js; api/_app/routes/observations-meeting.js; api/_app/services/platformStateService.js:178",
             "confidence": "verified"
           },
           {
@@ -581,13 +581,13 @@
           {
             "claim": "Wow moment 1 backend: observe-summary narrates titles with an honesty-constrained LLM",
             "detail": "POST /api/desktop/observe-summary is UNAUTHENTICATED BY DESIGN (body is the only input, nothing touches the DB; global rate limiter only). TIER_ANALYSIS (DeepSeek) with a prompt that demands verbatim proper nouns from window titles, forbids inventing specifics or implying screen reading, and returns strict JSON {summary, insight, actions[≤2, ≤8 words]}. The action pills are rendered as non-interactive <span>s with an explicit code comment: 'no chat surface to dispatch into... wire up when the post-sign-in chat handoff is built'.",
-            "source": "api/routes/desktop-observe-summary.js; desktop/www/index.html actionPillsHtml (line 1841)",
+            "source": "api/_app/routes/desktop-observe-summary.js; desktop/www/index.html actionPillsHtml (line 1841)",
             "confidence": "verified"
           },
           {
             "claim": "Wow moment 2 backend: extracted-facts is zero-LLM, pure computation over Google data",
             "detail": "POST /api/desktop/extracted-facts (authenticated): single Google Calendar fetch (primary calendar, 30 days, ≤250 events) + OAuth userinfo, then 5 pure fact builders — identity (email domain → company), location (timezone → city), calendar cadence (dominant weekdays + %), recurring focus blocks (titles appearing ≥2x), language signal (non-English Unicode in titles, verbatim examples). Ranked by confidence, capped at 6, Redis-cached 1h per user. Target p50 <600ms, zero LLM calls. Fallback reasons (no_calendar_connected/oauth_expired) drive a connect-calendar CTA in the UI.",
-            "source": "api/routes/desktop-extracted-facts.js",
+            "source": "api/_app/routes/desktop-extracted-facts.js",
             "confidence": "verified"
           },
           {
@@ -604,8 +604,8 @@
           },
           {
             "claim": "Auto-updater + release flow are live; binaries are unsigned (no Apple/Authenticode certs)",
-            "detail": "tauri-plugin-updater checks GitHub latest.json (stefanogebara/twin-me releases) once at startup from Rust (remote page can never trigger it), verifies minisign signature, downloads + installs silently, applies next launch, fires a native notification. CI (.github/workflows/desktop-build.yml) builds 4 targets (macOS arm64 + x86_64 cross-compiled on macos-14, Windows x64, Linux x64), runs cargo test on Linux, and tauri-action publishes a GitHub Release with merged latest.json on desktop-v* tags. App-level code signing is still absent — Gatekeeper/SmartScreen warnings documented on /download; the updater minisign signature is separate and IS configured. api/routes/desktop-download.js is a closed same-origin proxy fixing Brave's GUID-filename bug. Current version 0.2.15.",
-            "source": "desktop/src-tauri/src/update.rs; .github/workflows/desktop-build.yml; api/routes/desktop-download.js; desktop/src-tauri/tauri.conf.json (version, plugins.updater)",
+            "detail": "tauri-plugin-updater checks GitHub latest.json (stefanogebara/twin-me releases) once at startup from Rust (remote page can never trigger it), verifies minisign signature, downloads + installs silently, applies next launch, fires a native notification. CI (.github/workflows/desktop-build.yml) builds 4 targets (macOS arm64 + x86_64 cross-compiled on macos-14, Windows x64, Linux x64), runs cargo test on Linux, and tauri-action publishes a GitHub Release with merged latest.json on desktop-v* tags. App-level code signing is still absent — Gatekeeper/SmartScreen warnings documented on /download; the updater minisign signature is separate and IS configured. api/_app/routes/desktop-download.js is a closed same-origin proxy fixing Brave's GUID-filename bug. Current version 0.2.15.",
+            "source": "desktop/src-tauri/src/update.rs; .github/workflows/desktop-build.yml; api/_app/routes/desktop-download.js; desktop/src-tauri/tauri.conf.json (version, plugins.updater)",
             "confidence": "verified"
           },
           {
@@ -623,13 +623,13 @@
           {
             "claim": "Gap: no local intelligence; raw window text leaves the machine; clips are unaggregated",
             "detail": "All summarization is server-side. macOS clips upload up to 8000 chars of raw in-window text per focus change; one user_memories row per (app,window) focus change at fixed importance 4 with skipImportance — no on-device sessionization, batching into activity blocks, or local LLM. Memory-stream composition note in CLAUDE.md says platform_data/observations are already sparse vs reflections, but high-frequency clip ingestion can flood the observation stream. Known code debt: macOS AX refs leak one retain per 5s poll (TODO in active_window.rs:65).",
-            "source": "api/routes/observations-clip.js (CLIP_IMPORTANCE=4, skipImportance); desktop/src-tauri/src/active_window.rs:65; twin-ai-learn/CLAUDE.md memory composition gotcha",
+            "source": "api/_app/routes/observations-clip.js (CLIP_IMPORTANCE=4, skipImportance); desktop/src-tauri/src/active_window.rs:65; twin-ai-learn/CLAUDE.md memory composition gotcha",
             "confidence": "verified"
           },
           {
             "claim": "Gap: platform coverage asymmetry",
             "detail": "In-window content extraction is macOS-only (Windows/Linux clips are app+title only — and a past bug where Windows nulls were silently dropped is documented in the clip schema comment, now fixed with .nullish()). Wayland yields nothing at all. Meeting detection inherits the same blindness: it cannot distinguish 'app focused' from 'actually in a call' without the unbuilt 5B audio work.",
-            "source": "api/routes/observations-clip.js:44-50; desktop/src-tauri/src/active_window.rs (linux_impl comment); desktop/README.md Phase 4/5B NOT-in lists",
+            "source": "api/_app/routes/observations-clip.js:44-50; desktop/src-tauri/src/active_window.rs (linux_impl comment); desktop/README.md Phase 4/5B NOT-in lists",
             "confidence": "verified"
           }
         ],

@@ -25,7 +25,7 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 import jwt from 'jsonwebtoken';
-import { supabaseAdmin } from '../api/services/database.js';
+import { supabaseAdmin } from '../api/_app/services/database.js';
 
 const USER = '167c27b5-a40b-49fb-8d00-deb1b1c57f4d';
 const API = process.env.TEST_API_URL || 'http://127.0.0.1:3004/api';

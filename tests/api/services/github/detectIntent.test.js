@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { detectGithubIntent } from '../../../../api/services/github/detectIntent.js';
+import { detectGithubIntent } from '../../../../api/_app/services/github/detectIntent.js';
 
 describe('detectGithubIntent', () => {
   it('returns null for empty', () => expect(detectGithubIntent('').kind).toBeNull());

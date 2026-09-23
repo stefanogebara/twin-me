@@ -10,7 +10,7 @@
  *   5. Verify proactive insight created (delivered: false)
  *   6. Cleanup: delete test data
  *
- * Run: node api/scripts/test-reminder-loop.js
+ * Run: node api/_app/scripts/test-reminder-loop.js
  */
 
 import dotenv from 'dotenv';

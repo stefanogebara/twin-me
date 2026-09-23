@@ -10,7 +10,7 @@ let matchRows;      // cancelReminder query ILIKE result
 let idReturn;       // cancelReminder by-id maybeSingle result
 const updates = [];
 
-vi.mock('../../../api/services/database.js', () => {
+vi.mock('../../../api/_app/services/database.js', () => {
   function builder() {
     const b = {};
     for (const m of ['select', 'eq', 'order']) b[m] = () => b;
@@ -30,7 +30,7 @@ vi.mock('../../../api/services/database.js', () => {
   return { supabaseAdmin: { from: () => builder() } };
 });
 
-const { listReminders, cancelReminder, rescheduleReminder, skipNextOccurrence } = await import('../../../api/services/reminderService.js');
+const { listReminders, cancelReminder, rescheduleReminder, skipNextOccurrence } = await import('../../../api/_app/services/reminderService.js');
 
 beforeEach(() => {
   listRows = null;

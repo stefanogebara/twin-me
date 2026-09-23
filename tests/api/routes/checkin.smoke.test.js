@@ -1,5 +1,5 @@
 /**
- * Smoke tests for api/routes/checkin.js
+ * Smoke tests for api/_app/routes/checkin.js
  * Covers: auth guard, mood/energy/note/moodEmoji validation, happy path,
  * GET /today shape, downstream 500.
  */
@@ -21,15 +21,15 @@ const cacheDelMock = vi.fn().mockResolvedValue(undefined);
 let upsertResult = { error: null };
 let todaySingleResult = { data: null, error: { code: 'PGRST116' } };
 
-vi.mock('../../../api/services/memoryStreamService.js', () => ({
+vi.mock('../../../api/_app/services/memoryStreamService.js', () => ({
   addMemory: (...a) => addMemoryMock(...a),
 }));
 
-vi.mock('../../../api/services/redisClient.js', () => ({
+vi.mock('../../../api/_app/services/redisClient.js', () => ({
   del: (...a) => cacheDelMock(...a),
 }));
 
-vi.mock('../../../api/services/database.js', () => ({
+vi.mock('../../../api/_app/services/database.js', () => ({
   supabaseAdmin: {
     from: vi.fn((table) => {
       if (table === 'users') {
@@ -55,7 +55,7 @@ vi.mock('../../../api/services/database.js', () => ({
 const TEST_USER = '167c27b5-a40b-49fb-8d00-deb1b1c57f4d';
 const signToken = () => jwt.sign({ id: TEST_USER }, 'test-secret', { expiresIn: '1h' });
 
-const checkinRoutes = (await import('../../../api/routes/checkin.js')).default;
+const checkinRoutes = (await import('../../../api/_app/routes/checkin.js')).default;
 
 function createApp() {
   const app = express();

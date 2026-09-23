@@ -7,7 +7,7 @@ import { describe, it, expect } from 'vitest';
 import {
   buildThemeCorpus,
   buildThemePrompt,
-} from '../../../api/services/curiositySignature.js';
+} from '../../../api/_app/services/curiositySignature.js';
 
 const pages = (specs) => specs.map((s) => ({ title: s.title || '', topics: s.topics || [] }));
 

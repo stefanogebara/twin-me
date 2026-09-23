@@ -6,12 +6,12 @@ vi.mock('unpdf', () => ({
   extractText: vi.fn(async () => ({ text: '', totalPages: 1 })),
 }));
 
-vi.mock('../../../api/services/ocr/mistralOcr.js', () => ({
+vi.mock('../../../api/_app/services/ocr/mistralOcr.js', () => ({
   isMistralOcrAvailable: vi.fn(() => false),
   ocrWithMistral: vi.fn(async () => ({ ok: false, error: 'not configured' })),
 }));
 
-vi.mock('../../../api/services/llmGateway.js', () => ({
+vi.mock('../../../api/_app/services/llmGateway.js', () => ({
   complete: vi.fn(async () => ({ content: '' })),
   TIER_EXTRACTION: 'extraction',
 }));
@@ -20,10 +20,10 @@ import {
   detectDocKind,
   extractDocumentText,
   DOC_KIND,
-} from '../../../api/services/documentExtractionService.js';
+} from '../../../api/_app/services/documentExtractionService.js';
 import { extractText } from 'unpdf';
-import { isMistralOcrAvailable, ocrWithMistral } from '../../../api/services/ocr/mistralOcr.js';
-import { complete } from '../../../api/services/llmGateway.js';
+import { isMistralOcrAvailable, ocrWithMistral } from '../../../api/_app/services/ocr/mistralOcr.js';
+import { complete } from '../../../api/_app/services/llmGateway.js';
 
 const PDF_MAGIC = Buffer.from('%PDF-1.7\n...binary...');
 const PNG_MAGIC = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 1, 2, 3]);

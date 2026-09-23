@@ -1,6 +1,6 @@
 /** The context lines the chat quotes instead of summing: each place's month, and what is left. */
 import { describe, expect, it } from 'vitest';
-import { assemble, contextText } from '../../../../api/services/money/chat.js';
+import { assemble, contextText } from '../../../../api/_app/services/money/chat.js';
 
 const now = new Date('2026-09-19T08:00:00Z');
 const tx = (id, key, raw, iso, amount) => ({ id, merchant_key: key, merchant_raw: raw, occurred_at: iso, amount, currency: 'EUR' });
@@ -21,7 +21,7 @@ describe('context lines', () => {
 
 describe('the return windows in the context', () => {
   it('is one line the model can quote, and none without a window', async () => {
-    const { assemble, contextText } = await import('../../../../api/services/money/chat.js');
+    const { assemble, contextText } = await import('../../../../api/_app/services/money/chat.js');
     const now = new Date('2026-09-21T10:00:00Z');
     const tx = { id: 'a', occurred_at: '2026-09-20T10:00:00Z', amount: -5, currency: 'EUR', merchant_raw: 'Lidl', merchant_key: 'lidl' };
     const withWindow = contextText(assemble({ transactions: [tx], now, language: 'en', returns: [{ merchant: 'Zara', amount: 39.95, until: '2026-09-24', days_left: 3, transaction_id: null }] }));

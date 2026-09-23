@@ -7,7 +7,7 @@
  *
  * This walks static ESM imports (`import x from './y.js'`, `import('./y.js')`,
  * `export ... from './y.js'`) from a set of root files and returns everything they reach,
- * as repository-relative paths. It also reads the API mounts out of `api/server.js`: the
+ * as repository-relative paths. It also reads the API mounts out of `api/_app/server.js`: the
  * path and the router file each `app.use('/api/...', ..., router)` ends in.
  *
  * Pure, dependency-free, and used by tests/goals/legacy-twin-unmounted.goal.test.js, so it
@@ -65,13 +65,13 @@ export function readRoots(file) {
 }
 
 /**
- * The API mounts in api/server.js: `{ path, file, gated }` for every `app.use('/api/...')`
+ * The API mounts in api/_app/server.js: `{ path, file, gated }` for every `app.use('/api/...')`
  * whose last argument is an imported router; inline middleware (a limiter, a body parser, a
  * 404 handler) has no file and is skipped by the caller that wants routers.
  */
 export function mounts(serverSource) {
   const imports = {};
-  for (const m of serverSource.matchAll(/import\s+(\w+)\s+from\s+['"]\.\/routes\/([^'"]+)['"]/g)) imports[m[1]] = `api/routes/${m[2]}`;
+  for (const m of serverSource.matchAll(/import\s+(\w+)\s+from\s+['"]\.\/routes\/([^'"]+)['"]/g)) imports[m[1]] = `api/_app/routes/${m[2]}`;
   const out = [];
   for (const m of serverSource.matchAll(/app\.use\(\s*['"](\/api\/[^'"]+)['"]\s*,([^;]*?)\);/gs)) {
     const args = m[2].split(',').map((s) => s.trim()).filter(Boolean);

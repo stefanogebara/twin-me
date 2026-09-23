@@ -12,12 +12,12 @@ import { describe, expect, it } from 'vitest';
 import fs from 'node:fs';
 import path from 'node:path';
 import { reachable, readRoots, mounts } from '../../scripts/ci/reach.mjs';
-import { LEGACY_TWIN_ROUTES, parkedPath } from '../../api/middleware/legacyTwin.js';
+import { LEGACY_TWIN_ROUTES, parkedPath } from '../../api/_app/middleware/legacyTwin.js';
 
 const ROOT = path.resolve(new URL('../../', import.meta.url).pathname);
 const roots = readRoots(path.join(ROOT, 'scripts/ci/staying-roots.txt'));
 const staying = reachable(roots, { root: ROOT });
-const all = mounts(fs.readFileSync(path.join(ROOT, 'api/server.js'), 'utf8')).filter((m) => m.file);
+const all = mounts(fs.readFileSync(path.join(ROOT, 'api/_app/server.js'), 'utf8')).filter((m) => m.file);
 
 describe('the product and the parked twin, complete against each other', () => {
   it('names only roots that exist', () => {
@@ -44,7 +44,7 @@ describe('the product and the parked twin, complete against each other', () => {
   });
 
   it('installs the gate ahead of every mount', () => {
-    const server = fs.readFileSync(path.join(ROOT, 'api/server.js'), 'utf8');
+    const server = fs.readFileSync(path.join(ROOT, 'api/_app/server.js'), 'utf8');
     const gateAt = server.indexOf("app.use('/api', legacyTwinRouteGate)");
     const firstMount = server.search(/app\.use\(\s*['"]\/api\/[^'"]+['"]\s*,\s*\w+Routes/);
     expect(gateAt).toBeGreaterThan(0);

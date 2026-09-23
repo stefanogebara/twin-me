@@ -10,18 +10,18 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 const retrieveDiverseMemoriesMock = vi.fn();
-vi.mock('../../../api/services/memoryStreamService.js', () => ({
+vi.mock('../../../api/_app/services/memoryStreamService.js', () => ({
   retrieveDiverseMemories: (...a) => retrieveDiverseMemoriesMock(...a),
 }));
 
 const completeMock = vi.fn();
-vi.mock('../../../api/services/llmGateway.js', () => ({
+vi.mock('../../../api/_app/services/llmGateway.js', () => ({
   complete: (...a) => completeMock(...a),
   TIER_ANALYSIS: 'analysis',
 }));
 
 const { trustTier, deriveAutonomy, parseBriefJson, compileTaskBrief } =
-  await import('../../../api/services/taskBriefService.js');
+  await import('../../../api/_app/services/taskBriefService.js');
 
 const USER = '167c27b5-a40b-49fb-8d00-deb1b1c57f4d';
 const recent = new Date().toISOString();

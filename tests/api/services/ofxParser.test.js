@@ -10,7 +10,7 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { parseOfx } from '../../../api/services/transactions/ofxParser.js';
+import { parseOfx } from '../../../api/_app/services/transactions/ofxParser.js';
 
 const BANK_OFX = `OFXHEADER:100
 DATA:OFXSGML

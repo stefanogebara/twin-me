@@ -3,7 +3,7 @@
  * ratio and in euros, with the rows that make it so.
  */
 import { describe, it, expect } from 'vitest';
-import { categoryDeltas, silenceDeltas, weekdayDelta, paceDelta, deltaFindings, notable, windows } from '../../../../api/services/money/deltas.js';
+import { categoryDeltas, silenceDeltas, weekdayDelta, paceDelta, deltaFindings, notable, windows } from '../../../../api/_app/services/money/deltas.js';
 
 const NOW = new Date('2026-09-14T12:00:00Z'); // Monday noon
 const DAY = 86400000;

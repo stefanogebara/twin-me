@@ -1,6 +1,6 @@
 /** "Not mine" always carries the offer that changes the ledger, whatever the model offered. */
 import { describe, expect, it } from 'vitest';
-import { assemble, notMineOffer, assembleReply } from '../../../../api/services/money/chat.js';
+import { assemble, notMineOffer, assembleReply } from '../../../../api/_app/services/money/chat.js';
 
 const now = new Date('2026-09-19T08:00:00Z');
 const tx = (id, key, raw, iso, amount) => ({ id, merchant_key: key, merchant_raw: raw, occurred_at: iso, amount, currency: 'EUR' });

@@ -3,12 +3,12 @@ import express from 'express';
 import request from 'supertest';
 const owner = '00000000-0000-4000-8000-000000000001';
 const f = vi.hoisted(() => ({ hold: vi.fn(), optIn: vi.fn(), accounts: vi.fn(async () => []) }));
-vi.mock('../../../api/services/money/legacyCapture.js', () => ({ holdUndatedCapture: (...args) => f.hold(...args) }));
-vi.mock('../../../api/services/money/channelStore.js', () => ({ recordOptIn: (...args) => f.optIn(...args) }));
-vi.mock('../../../api/middleware/auth.js', () => ({ authenticateUser: (req, _res, next) => { req.user = { id: owner }; next(); } }));
-vi.mock('../../../api/services/money/store.js', async (importOriginal) => ({ ...(await importOriginal()), listBankAccounts: async () => f.accounts(), personProfileCached: async () => ({ timezone: 'Europe/Madrid', country: 'ES', currency: 'EUR', language: null }) }));
-vi.mock('../../../api/services/money/feeds/enableBanking.js', async (importOriginal) => ({ ...(await importOriginal()), applicationCountries: async () => ['ES', 'PT'] }));
-import router from '../../../api/routes/money.js';
+vi.mock('../../../api/_app/services/money/legacyCapture.js', () => ({ holdUndatedCapture: (...args) => f.hold(...args) }));
+vi.mock('../../../api/_app/services/money/channelStore.js', () => ({ recordOptIn: (...args) => f.optIn(...args) }));
+vi.mock('../../../api/_app/middleware/auth.js', () => ({ authenticateUser: (req, _res, next) => { req.user = { id: owner }; next(); } }));
+vi.mock('../../../api/_app/services/money/store.js', async (importOriginal) => ({ ...(await importOriginal()), listBankAccounts: async () => f.accounts(), personProfileCached: async () => ({ timezone: 'Europe/Madrid', country: 'ES', currency: 'EUR', language: null }) }));
+vi.mock('../../../api/_app/services/money/feeds/enableBanking.js', async (importOriginal) => ({ ...(await importOriginal()), applicationCountries: async () => ['ES', 'PT'] }));
+import router from '../../../api/_app/routes/money.js';
 const app = express(); app.use(express.json()); app.use('/money', router);
 afterEach(() => vi.unstubAllEnvs());
 it('keeps undated legacy notifications before acknowledging and returns 503 if storage fails', async () => {

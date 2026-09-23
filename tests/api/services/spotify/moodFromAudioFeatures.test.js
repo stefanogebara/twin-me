@@ -2,8 +2,8 @@
  * Mood derivation from Spotify audio features (payload audit, 2026-08-13).
  *
  * IMPORTERS/CALLERS: this test imports only the new pure module
- * api/services/spotify/moodFromAudioFeatures.js. That module will be imported
- * by api/services/userContextAggregator.js (getSpotifyContext, ~line 597),
+ * api/_app/services/spotify/moodFromAudioFeatures.js. That module will be imported
+ * by api/_app/services/userContextAggregator.js (getSpotifyContext, ~line 597),
  * whose currentMood/audioProfile fields feed twinContextBuilder.
  *
  * AFFECTED API: Spotify GET /v1/audio-features, response shape
@@ -31,7 +31,7 @@ import { describe, it, expect } from 'vitest';
 import {
   averageAudioFeatures,
   deriveMood,
-} from '../../../../api/services/spotify/moodFromAudioFeatures.js';
+} from '../../../../api/_app/services/spotify/moodFromAudioFeatures.js';
 
 describe('averageAudioFeatures', () => {
   it('returns null for an empty array rather than inventing midpoints', () => {

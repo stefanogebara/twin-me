@@ -6,7 +6,7 @@ import { describe, it, expect } from 'vitest';
 import {
   personMovements, splitFacts, splitProgress, splitShareOf, reimbursementIds, detectSplits, splitQuestions,
   splitFindings, balances, describeBetweenPeople, shortName, SPLIT_KIND, SPLIT_OPEN, NOT_SPLIT,
-} from '../../../../api/services/money/bizum.js';
+} from '../../../../api/_app/services/money/bizum.js';
 
 const NOW = new Date('2026-09-14T20:00:00Z'); // Monday
 const tx = (id, occurred_at, amount, merchant_raw, channel = 'card') => ({ id, occurred_at, amount, merchant_raw, merchant_key: merchant_raw.toLowerCase(), channel });
@@ -94,7 +94,7 @@ describe('what it says', () => {
 });
 
 describe('monthBetweenPeople', async () => {
-  const { monthBetweenPeople, describeMonthBetweenPeople } = await import('../../../../api/services/money/bizum.js');
+  const { monthBetweenPeople, describeMonthBetweenPeople } = await import('../../../../api/_app/services/money/bizum.js');
   const now = new Date('2026-09-20T10:00:00Z');
   const rows = [
     tx('r1', '2026-09-02T10:00:00Z', -200, 'Maria Dolores Tomas Obon', 'bizum'),
@@ -122,7 +122,7 @@ describe('monthBetweenPeople', async () => {
 });
 
 describe('describeBetweenPeople says when the person last moved money', async () => {
-  const { balances, describeBetweenPeople } = await import('../../../../api/services/money/bizum.js');
+  const { balances, describeBetweenPeople } = await import('../../../../api/_app/services/money/bizum.js');
   it('ends each line with the last day', () => {
     const rows = [tx('p1', '2026-08-12T10:00:00Z', 1750, 'Mama', 'transfer'), tx('p2', '2026-07-12T10:00:00Z', 1750, 'Mama', 'transfer')];
     const line = describeBetweenPeople(balances(rows, [], { now: new Date('2026-09-21T10:00:00Z') }))[0].replace(/\u00a0/g, ' ').replace(/\u20ac/g, 'EUR');
@@ -132,7 +132,7 @@ describe('describeBetweenPeople says when the person last moved money', async ()
 
 describe('the month-to-people line stays a line', () => {
   it('names six people at most and counts the rest, with the total unchanged', async () => {
-    const { monthBetweenPeople, describeMonthBetweenPeople } = await import('../../../../api/services/money/bizum.js');
+    const { monthBetweenPeople, describeMonthBetweenPeople } = await import('../../../../api/_app/services/money/bizum.js');
     const now = new Date('2026-09-20T10:00:00Z');
     const rows = Array.from({ length: 9 }, (_, i) => tx(`p${i}`, '2026-09-05T10:00:00Z', -(100 - i * 10), `Person ${String.fromCharCode(65 + i)} Surname`, 'bizum'));
     const line = describeMonthBetweenPeople(monthBetweenPeople(rows, now))[0].replace(/\u00a0/g, ' ').replace(/\u20ac/g, 'EUR');

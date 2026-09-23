@@ -914,7 +914,7 @@ async function addReflection(userId, content, evidenceIds = [], metadata = {}, o
  */
 // Retrieval weights, MMR params, and memory budgets are imported from twin-config.js
 // so the research agent can tune them without touching this file.
-import { RETRIEVAL_WEIGHTS, MMR_LAMBDA, TYPE_DIVERSITY_WEIGHT, SEMANTIC_DIVERSITY_WEIGHT, TEMPORAL_DIVERSITY_WEIGHT, MEMORY_CONTEXT_BUDGETS, HYDE_ENABLED, BM25_BLEND_WEIGHT, BM25_K1, BM25_B, TCM_WEIGHT, TCM_DRIFT_RATE, STDP_CORETRIEVAL_BOOST, MIN_COSINE_SIMILARITY, LLM_RERANKER_ENABLED } from '../../twin-research/twin-config.js';
+import { RETRIEVAL_WEIGHTS, MMR_LAMBDA, TYPE_DIVERSITY_WEIGHT, SEMANTIC_DIVERSITY_WEIGHT, TEMPORAL_DIVERSITY_WEIGHT, MEMORY_CONTEXT_BUDGETS, HYDE_ENABLED, BM25_BLEND_WEIGHT, BM25_K1, BM25_B, TCM_WEIGHT, TCM_DRIFT_RATE, STDP_CORETRIEVAL_BOOST, MIN_COSINE_SIMILARITY, LLM_RERANKER_ENABLED } from '../../../twin-research/twin-config.js';
 import { quietly } from './quietly.js';
 
 // ====================================================================

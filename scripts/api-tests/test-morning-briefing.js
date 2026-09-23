@@ -4,7 +4,7 @@
  * Exercises the same steps as the Inngest morning briefing function
  * without requiring the Inngest dev server. Runs locally via:
  *
- *   node --experimental-vm-modules api/scripts/test-morning-briefing.js
+ *   node --experimental-vm-modules api/_app/scripts/test-morning-briefing.js
  *
  * Steps:
  *   1. Gather calendar data from platform_data

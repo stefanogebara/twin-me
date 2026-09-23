@@ -3,7 +3,7 @@
  * support, with a confidence, and a stated income that has not come when it usually does.
  */
 import { describe, it, expect } from 'vitest';
-import { incomeSeries, incomeEvents, incomeFindings, INCOME_LATE, SAID_CONFIDENCE } from '../../../../api/services/money/income.js';
+import { incomeSeries, incomeEvents, incomeFindings, INCOME_LATE, SAID_CONFIDENCE } from '../../../../api/_app/services/money/income.js';
 
 const NOW = new Date('2026-09-14T12:00:00Z');
 const inflow = (id, day, amount, name, channel = 'transfer') => ({ id, occurred_at: `${day}T09:00:00Z`, amount, merchant_raw: name, merchant_key: name.toLowerCase(), channel });
@@ -63,7 +63,7 @@ describe('incomeFindings', () => {
 });
 
 describe('a stated income said once', async () => {
-  const { incomeEvents } = await import('../../../../api/services/money/income.js');
+  const { incomeEvents } = await import('../../../../api/_app/services/money/income.js');
   it('lands in its month only, and a plain stated income every month', () => {
     const now = new Date('2026-09-21T10:00:00Z');
     const once = { kind: 'income', subject: 'vercel', subject_label: 'Vercel', amount: 150, day: 21, value: 'once:2026-09' };

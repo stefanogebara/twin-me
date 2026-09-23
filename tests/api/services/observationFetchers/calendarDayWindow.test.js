@@ -28,7 +28,7 @@ import {
   dayKeyInTimeZone,
   localDayWindow,
   formatEventTime,
-} from '../../../../api/services/observationFetchers/calendarDayWindow.js';
+} from '../../../../api/_app/services/observationFetchers/calendarDayWindow.js';
 
 const SP = 'America/Sao_Paulo'; // UTC-3, the test user's calendar timezone
 
@@ -78,16 +78,16 @@ describe('formatEventTime', () => {
 
 const getMock = vi.fn();
 vi.mock('axios', () => ({ default: { get: (...a) => getMock(...a) } }));
-vi.mock('../../../../api/services/tokenRefreshService.js', () => ({
+vi.mock('../../../../api/_app/services/tokenRefreshService.js', () => ({
   getValidAccessToken: async () => ({ success: true, accessToken: 'tok' }),
 }));
-vi.mock('../../../../api/services/observationUtils.js', () => ({
+vi.mock('../../../../api/_app/services/observationUtils.js', () => ({
   sanitizeExternal: (s, n) => String(s || '').slice(0, n),
   getSupabase: async () => null, // no persistence in this test
 }));
 
 const { fetchCalendarObservations } = await import(
-  '../../../../api/services/observationFetchers/calendar.js'
+  '../../../../api/_app/services/observationFetchers/calendar.js'
 );
 
 /** 2026-08-04 as Google actually has it: 3 events, all finished by 18:31 local. */

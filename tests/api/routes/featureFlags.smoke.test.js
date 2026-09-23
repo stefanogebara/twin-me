@@ -1,5 +1,5 @@
 /**
- * Smoke tests for api/routes/feature-flags.js
+ * Smoke tests for api/_app/routes/feature-flags.js
  * Covers: auth guard, GET flags shape with defaults, POST unknown-flag 400,
  * POST happy path, downstream 500.
  */
@@ -17,12 +17,12 @@ process.env.NODE_ENV = 'test';
 const getFeatureFlagsMock = vi.fn();
 const setFeatureFlagMock = vi.fn();
 
-vi.mock('../../../api/services/featureFlagsService.js', () => ({
+vi.mock('../../../api/_app/services/featureFlagsService.js', () => ({
   getFeatureFlags: (...a) => getFeatureFlagsMock(...a),
   setFeatureFlag: (...a) => setFeatureFlagMock(...a),
 }));
 
-vi.mock('../../../api/services/database.js', () => ({
+vi.mock('../../../api/_app/services/database.js', () => ({
   supabaseAdmin: {
     from: vi.fn(() => ({
       select: vi.fn().mockReturnThis(),
@@ -36,7 +36,7 @@ vi.mock('../../../api/services/database.js', () => ({
 const TEST_USER = '167c27b5-a40b-49fb-8d00-deb1b1c57f4d';
 const signToken = () => jwt.sign({ id: TEST_USER }, 'test-secret', { expiresIn: '1h' });
 
-const featureFlagsRoutes = (await import('../../../api/routes/feature-flags.js')).default;
+const featureFlagsRoutes = (await import('../../../api/_app/routes/feature-flags.js')).default;
 
 function createApp() {
   const app = express();

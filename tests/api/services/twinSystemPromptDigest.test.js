@@ -15,7 +15,7 @@ process.env.SUPABASE_URL = 'http://localhost';
 process.env.SUPABASE_SERVICE_ROLE_KEY = 'test-key';
 
 const { buildTwinSystemPrompt } = await import(
-  '../../../api/services/twinSystemPromptBuilder.js'
+  '../../../api/_app/services/twinSystemPromptBuilder.js'
 );
 
 const promptText = (blocks) => blocks.map(b => b.text).join('\n');

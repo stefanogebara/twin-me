@@ -18,46 +18,46 @@ import { dirname, resolve } from 'node:path';
 
 const __dir = dirname(fileURLToPath(import.meta.url));
 const read = (rel) => readFileSync(resolve(__dir, rel), 'utf8');
-const INGESTION_SRC = read('../../api/services/observationIngestion.js');
-const INNGEST_FN_SRC = read('../../api/inngest/functions/userObservationIngestion.js');
-const CRON_SRC = read('../../api/routes/cron-observation-ingestion.js');
+const INGESTION_SRC = read('../../api/_app/services/observationIngestion.js');
+const INNGEST_FN_SRC = read('../../api/_app/inngest/functions/userObservationIngestion.js');
+const CRON_SRC = read('../../api/_app/routes/cron-observation-ingestion.js');
 
-vi.mock('../../api/services/reflectionEngine.js', () => ({
+vi.mock('../../api/_app/services/reflectionEngine.js', () => ({
   shouldTriggerReflection: vi.fn().mockResolvedValue(false),
   generateReflections: vi.fn().mockResolvedValue(undefined),
 }));
-vi.mock('../../api/services/platformExperts.js', () => ({
+vi.mock('../../api/_app/services/platformExperts.js', () => ({
   runPlatformExpert: vi.fn().mockResolvedValue(undefined),
 }));
-vi.mock('../../api/services/proactiveInsights.js', () => ({
+vi.mock('../../api/_app/services/proactiveInsights.js', () => ({
   generateProactiveInsights: vi.fn().mockResolvedValue(undefined),
   evaluateNudgeOutcomes: vi.fn().mockResolvedValue(undefined),
 }));
-vi.mock('../../api/services/goalTrackingService.js', () => ({
+vi.mock('../../api/_app/services/goalTrackingService.js', () => ({
   trackGoalProgress: vi.fn().mockResolvedValue(undefined),
   generateGoalSuggestions: vi.fn().mockResolvedValue(undefined),
 }));
-vi.mock('../../api/services/activityMetricsService.js', () => ({
+vi.mock('../../api/_app/services/activityMetricsService.js', () => ({
   calculateAllActivityMetrics: vi.fn().mockResolvedValue(undefined),
   detectActivityAnomaly: vi.fn().mockResolvedValue({ anomaly: false }),
 }));
-vi.mock('../../api/services/observationUtils.js', () => ({
+vi.mock('../../api/_app/services/observationUtils.js', () => ({
   getSupabase: vi.fn().mockResolvedValue(null),
 }));
-vi.mock('../../api/services/cacheWarmer.js', () => ({
+vi.mock('../../api/_app/services/cacheWarmer.js', () => ({
   warmUserCaches: vi.fn().mockResolvedValue(undefined),
 }));
-vi.mock('../../api/services/logger.js', () => ({
+vi.mock('../../api/_app/services/logger.js', () => ({
   createLogger: () => ({ info: vi.fn(), warn: vi.fn(), error: vi.fn() }),
 }));
 
-import { runUserPostProcess } from '../../api/services/userPostProcess.js';
-import { runPlatformExpert } from '../../api/services/platformExperts.js';
-import { generateProactiveInsights, evaluateNudgeOutcomes } from '../../api/services/proactiveInsights.js';
-import { trackGoalProgress, generateGoalSuggestions } from '../../api/services/goalTrackingService.js';
-import { calculateAllActivityMetrics } from '../../api/services/activityMetricsService.js';
-import { warmUserCaches } from '../../api/services/cacheWarmer.js';
-import { shouldTriggerReflection, generateReflections } from '../../api/services/reflectionEngine.js';
+import { runUserPostProcess } from '../../api/_app/services/userPostProcess.js';
+import { runPlatformExpert } from '../../api/_app/services/platformExperts.js';
+import { generateProactiveInsights, evaluateNudgeOutcomes } from '../../api/_app/services/proactiveInsights.js';
+import { trackGoalProgress, generateGoalSuggestions } from '../../api/_app/services/goalTrackingService.js';
+import { calculateAllActivityMetrics } from '../../api/_app/services/activityMetricsService.js';
+import { warmUserCaches } from '../../api/_app/services/cacheWarmer.js';
+import { shouldTriggerReflection, generateReflections } from '../../api/_app/services/reflectionEngine.js';
 
 const U = '167c27b5-a40b-49fb-8d00-deb1b1c57f4d';
 

@@ -8,23 +8,23 @@
 import { describe, it, expect } from 'vitest';
 
 // Mock LLM and DB dependencies
-vi.mock('../../api/services/llmGateway.js', () => ({
+vi.mock('../../api/_app/services/llmGateway.js', () => ({
   complete: vi.fn().mockResolvedValue({ content: '{}' }),
   TIER_EXTRACTION: 'extraction',
 }));
 
-vi.mock('../../api/services/prospectiveMemoryService.js', () => ({
+vi.mock('../../api/_app/services/prospectiveMemoryService.js', () => ({
   createProspective: vi.fn().mockResolvedValue({ id: 'test' }),
 }));
 
-vi.mock('../../api/services/logger.js', () => ({
+vi.mock('../../api/_app/services/logger.js', () => ({
   createLogger: () => ({
     info: () => {}, warn: () => {}, error: () => {}, debug: () => {},
   }),
 }));
 
 import { vi } from 'vitest';
-const { classifyTaskIntent } = await import('../../api/services/taskIntentClassifier.js');
+const { classifyTaskIntent } = await import('../../api/_app/services/taskIntentClassifier.js');
 
 describe('Task Intent Classifier', () => {
   describe('remind intents', () => {

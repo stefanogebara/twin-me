@@ -1,5 +1,5 @@
 /**
- * Tests for api/services/morningBriefingService.js
+ * Tests for api/_app/services/morningBriefingService.js
  *
  * Focuses on H8 regression: recordBriefingEmailSent must set delivered_at
  * (not just delivered=true) so audit queries that filter on
@@ -10,7 +10,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 // Capture inserted rows for assertions
 const insertedRows = [];
 
-vi.mock('../../../api/services/database.js', () => ({
+vi.mock('../../../api/_app/services/database.js', () => ({
   supabaseAdmin: {
     from: vi.fn(() => ({
       insert: vi.fn((row) => {
@@ -28,18 +28,18 @@ vi.mock('../../../api/services/database.js', () => ({
   },
 }));
 
-vi.mock('../../../api/services/llmGateway.js', () => ({
+vi.mock('../../../api/_app/services/llmGateway.js', () => ({
   complete: vi.fn(),
   TIER_ANALYSIS: 'analysis',
 }));
 
-vi.mock('../../../api/services/tokenRefreshService.js', () => ({
+vi.mock('../../../api/_app/services/tokenRefreshService.js', () => ({
   getValidAccessToken: vi.fn().mockResolvedValue({ success: false }),
 }));
 
 // inSilicoEngine mock removed — the engine was deleted (replan-2026-06-10 cycle 4).
 
-vi.mock('../../../api/services/logger.js', () => ({
+vi.mock('../../../api/_app/services/logger.js', () => ({
   createLogger: () => ({
     info: vi.fn(),
     warn: vi.fn(),
@@ -48,7 +48,7 @@ vi.mock('../../../api/services/logger.js', () => ({
 }));
 
 const { recordBriefingEmailSent } = await import(
-  '../../../api/services/morningBriefingService.js'
+  '../../../api/_app/services/morningBriefingService.js'
 );
 
 describe('recordBriefingEmailSent (H8 regression)', () => {

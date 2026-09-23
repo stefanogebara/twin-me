@@ -1,0 +1,11 @@
+import 'dotenv/config';
+import { learnEventSpend, calendarFromFacts } from '../../../api/services/money/calendar.js';
+import { listFacts } from '../../../api/services/money/store.js';
+const USER = '167c27b5-a40b-49fb-8d00-deb1b1c57f4d';
+const before = calendarFromFacts(await listFacts(USER, { includeInternal: true }), { now: new Date() });
+console.log('before:', before.learned.map((s) => `${s.label} ${s.median} EUR (paid ${s.paid}/${s.occurrences})`).join(' | ') || 'nothing');
+console.log(await learnEventSpend(USER));
+const after = calendarFromFacts(await listFacts(USER, { includeInternal: true }), { now: new Date() });
+console.log('after: ', after.learned.map((s) => `${s.label} ${s.median} EUR (paid ${s.paid}/${s.occurrences}, mostly ${s.mostly})`).join(' | ') || 'nothing');
+console.log('day counts kept:', Object.keys(after.days || {}).length);
+process.exit(0);

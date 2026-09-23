@@ -3,7 +3,7 @@
  * before there is enough to see. These tests hold both halves of that.
  */
 import { describe, it, expect } from 'vitest';
-import { monthSegments, readLedger, categoryShape } from '../../../../api/services/money/analyst.js';
+import { monthSegments, readLedger, categoryShape } from '../../../../api/_app/services/money/analyst.js';
 
 /* es-ES currency puts a non-breaking space before the euro sign; read sentences plainly. */
 const plain = (s) => String(s).replace(/\u00a0/g, ' ');

@@ -12,7 +12,7 @@ import {
   buildSuppressionPromptSection,
   SUPPRESS_MIN_SHOWN,
   AVOID_MIN_SHOWN,
-} from '../../api/services/insightSuppression.js';
+} from '../../api/_app/services/insightSuppression.js';
 
 function rows(category, { shown = 0, engaged = 0, undelivered = 0 } = {}) {
   const out = [];

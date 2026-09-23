@@ -7,7 +7,7 @@
  * contenders and only relevance-vs-redundancy decides).
  */
 import { describe, it, expect } from 'vitest';
-import { mmrRerank } from '../../../api/services/memoryStreamService.js';
+import { mmrRerank } from '../../../api/_app/services/memoryStreamService.js';
 
 const AT = '2026-06-01T12:00:00Z';
 

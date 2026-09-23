@@ -74,16 +74,16 @@ const fakeAdmin = {
       };
     },
 };
-/* The sign-in tables moved into api/services/auth/authStore.js, which reads the client from
+/* The sign-in tables moved into api/_app/services/auth/authStore.js, which reads the client from
    services/database.js; the middleware still reads config/supabase.js. One fake, both doors. */
-vi.mock('../../../api/config/supabase.js', () => ({ supabase: {}, supabaseAdmin: fakeAdmin }));
-vi.mock('../../../api/services/database.js', () => ({ supabaseAdmin: fakeAdmin }));
+vi.mock('../../../api/_app/config/supabase.js', () => ({ supabase: {}, supabaseAdmin: fakeAdmin }));
+vi.mock('../../../api/_app/services/database.js', () => ({ supabaseAdmin: fakeAdmin }));
 
 const TEST_USER = '167c27b5-a40b-49fb-8d00-deb1b1c57f4d';
 const signToken = () =>
   jwt.sign({ id: TEST_USER, email: 'stefanogebara@gmail.com' }, process.env.JWT_SECRET, { expiresIn: '1h' });
 
-const authRoutes = (await import('../../../api/routes/auth-simple.js')).default;
+const authRoutes = (await import('../../../api/_app/routes/auth-simple.js')).default;
 
 function createApp() {
   const app = express();

@@ -15,7 +15,7 @@ const places = vi.fn();
 const learn = vi.fn();
 const recurring = vi.fn();
 const learnLedger = vi.fn();
-vi.mock('../../../api/services/money/store.js', () => ({ inPersonScope: (id, fn) => fn(), personProfileCached: async () => ({ timezone: 'Europe/Madrid', country: 'ES', currency: 'EUR', language: null }), 
+vi.mock('../../../api/_app/services/money/store.js', () => ({ inPersonScope: (id, fn) => fn(), personProfileCached: async () => ({ timezone: 'Europe/Madrid', country: 'ES', currency: 'EUR', language: null }), 
   pullBankFeed: (...a) => pull(...a),
   enrichPlaces: (...a) => places(...a),
   refreshReadings: (...a) => refresh(...a),
@@ -26,13 +26,13 @@ vi.mock('../../../api/services/money/store.js', () => ({ inPersonScope: (id, fn)
   bankFeedUserIds: async () => ['u1', 'u2'],
   finishBankFeedJob: async () => {},
 }));
-vi.mock('../../../api/services/money/feeds/enableBanking.js', () => ({ isConfigured: () => true }));
-vi.mock('../../../api/services/money/predictions.js', () => ({ learnFromLedger: (...a) => learn(...a) }));
-vi.mock('../../../api/services/cronLogger.js', () => ({ wasRecentlyRun: async () => false, logCronExecution: async () => {} }));
+vi.mock('../../../api/_app/services/money/feeds/enableBanking.js', () => ({ isConfigured: () => true }));
+vi.mock('../../../api/_app/services/money/predictions.js', () => ({ learnFromLedger: (...a) => learn(...a) }));
+vi.mock('../../../api/_app/services/cronLogger.js', () => ({ wasRecentlyRun: async () => false, logCronExecution: async () => {} }));
 const calendar = vi.fn();
-vi.mock('../../../api/services/money/calendar.js', () => ({ refreshIfStale: (...a) => calendar(...a) }));
+vi.mock('../../../api/_app/services/money/calendar.js', () => ({ refreshIfStale: (...a) => calendar(...a) }));
 
-const { default: router, isDailyRun } = await import('../../../api/routes/cron-money-pull.js');
+const { default: router, isDailyRun } = await import('../../../api/_app/routes/cron-money-pull.js');
 
 function app() {
   const a = express();

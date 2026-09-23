@@ -1,5 +1,5 @@
 /**
- * Smoke tests for api/routes/twin-chat.js
+ * Smoke tests for api/_app/routes/twin-chat.js
  * Focus: route registration + auth guard + body validation only.
  * Full happy-path requires mocking ~30 downstream services; out of scope for a smoke test.
  */
@@ -15,7 +15,7 @@ process.env.ENCRYPTION_KEY = '0'.repeat(64);
 process.env.NODE_ENV = 'test';
 
 // --- Module mocks: keep everything inert so import doesn't explode ---
-vi.mock('../../../api/services/llmGateway.js', () => ({
+vi.mock('../../../api/_app/services/llmGateway.js', () => ({
   complete: vi.fn().mockResolvedValue({ content: 'hi', usage: {} }),
   stream: vi.fn(),
   TIER_CHAT: 'chat',
@@ -23,12 +23,12 @@ vi.mock('../../../api/services/llmGateway.js', () => ({
   TIER_EXTRACTION: 'extraction',
 }));
 
-vi.mock('../../../api/services/embeddingService.js', () => ({
+vi.mock('../../../api/_app/services/embeddingService.js', () => ({
   generateEmbedding: vi.fn().mockResolvedValue(new Array(1536).fill(0)),
   embedText: vi.fn().mockResolvedValue(new Array(1536).fill(0)),
 }));
 
-vi.mock('../../../api/services/database.js', () => {
+vi.mock('../../../api/_app/services/database.js', () => {
   const chain = {
     select: vi.fn().mockReturnThis(),
     insert: vi.fn().mockReturnThis(),
@@ -43,7 +43,7 @@ vi.mock('../../../api/services/database.js', () => {
   };
 });
 
-vi.mock('../../../api/services/redisClient.js', () => ({
+vi.mock('../../../api/_app/services/redisClient.js', () => ({
   getRedisClient: vi.fn().mockReturnValue(null),
   isRedisAvailable: vi.fn().mockReturnValue(false),
   get: vi.fn().mockResolvedValue(null),
@@ -57,14 +57,14 @@ vi.mock('../../../api/services/redisClient.js', () => ({
 
 // Inert stubs for the wide net of services twin-chat imports. Each default-shape
 // returns an empty/null value so the handler can execute without crashing.
-vi.mock('../../../api/services/subscriptionService.js', () => ({
+vi.mock('../../../api/_app/services/subscriptionService.js', () => ({
   getUserSubscription: vi.fn().mockResolvedValue({ plan: 'pro' }),
   PLAN_DISPLAY_NAMES: { pro: 'Pro', free: 'Free' },
 }));
-vi.mock('../../../api/routes/chat-usage.js', () => ({
+vi.mock('../../../api/_app/routes/chat-usage.js', () => ({
   getMonthlyUsage: vi.fn().mockResolvedValue({ used: 0, limit: 1000 }),
 }));
-vi.mock('../../../api/services/featureFlagsService.js', () => ({
+vi.mock('../../../api/_app/services/featureFlagsService.js', () => ({
   getFeatureFlags: vi.fn().mockResolvedValue({}),
 }));
 
@@ -75,11 +75,11 @@ const signToken = () => jwt.sign({ id: TEST_USER }, 'test-secret', { expiresIn: 
 let twinChatRoutes;
 let twinConversationsRoutes;
 try {
-  twinChatRoutes = (await import('../../../api/routes/twin-chat.js')).default;
+  twinChatRoutes = (await import('../../../api/_app/routes/twin-chat.js')).default;
   // GET /conversations was extracted out of twin-chat.js into its own
-  // router and mounted in api/server.js at both /api/twin and /api/chat.
+  // router and mounted in api/_app/server.js at both /api/twin and /api/chat.
   // Mirror that mount in the test app so /api/chat/conversations resolves.
-  twinConversationsRoutes = (await import('../../../api/routes/twin-conversations.js')).default;
+  twinConversationsRoutes = (await import('../../../api/_app/routes/twin-conversations.js')).default;
 } catch (err) {
   twinChatRoutes = null;
   twinConversationsRoutes = null;

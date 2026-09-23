@@ -4,7 +4,7 @@
  */
 import { describe, it, expect } from 'vitest';
 import crypto from 'node:crypto';
-import { verifySvix, gateReceipt, amountsIn, messageText, receiptToSighting, bankAlertSighting, forwardingConfirmation, attachmentsToRead, readMailAttachments } from '../../../../api/services/money/inbox.js';
+import { verifySvix, gateReceipt, amountsIn, messageText, receiptToSighting, bankAlertSighting, forwardingConfirmation, attachmentsToRead, readMailAttachments } from '../../../../api/_app/services/money/inbox.js';
 
 describe('verifySvix', () => {
   const secret = `whsec_${Buffer.from('a-test-secret-of-some-length-xx').toString('base64')}`;

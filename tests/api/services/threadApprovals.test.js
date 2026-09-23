@@ -28,7 +28,7 @@ function makeBuilder() {
   };
   return builder;
 }
-vi.mock('../../../api/services/database.js', () => ({
+vi.mock('../../../api/_app/services/database.js', () => ({
   supabaseAdmin: {
     from: () => {
       const b = makeBuilder();
@@ -46,13 +46,13 @@ vi.mock('../../../api/services/database.js', () => ({
 
 const executeMock = vi.fn();
 const recordMock = vi.fn();
-vi.mock('../../../api/services/autonomyService.js', () => ({
+vi.mock('../../../api/_app/services/autonomyService.js', () => ({
   executeApprovedAction: (...a) => executeMock(...a),
   recordActionResponse: (...a) => recordMock(...a),
 }));
 
 const { classifyProtocolReply, resolveProtocolReply, offerNextProposal } = await import(
-  '../../../api/services/threadApprovals.js'
+  '../../../api/_app/services/threadApprovals.js'
 );
 
 describe('classifyProtocolReply', () => {

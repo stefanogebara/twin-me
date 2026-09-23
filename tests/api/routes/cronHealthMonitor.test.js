@@ -30,7 +30,7 @@ beforeEach(() => {
   cronLoggerCalls = [];
 });
 
-vi.mock('../../../api/services/database.js', () => {
+vi.mock('../../../api/_app/services/database.js', () => {
   return {
     supabaseAdmin: {
       from: () => ({
@@ -46,19 +46,19 @@ vi.mock('../../../api/services/database.js', () => {
   };
 });
 
-vi.mock('../../../api/services/cronLogger.js', () => ({
+vi.mock('../../../api/_app/services/cronLogger.js', () => ({
   logCronExecution: async (name, status, ms, payload, err) => {
     cronLoggerCalls.push({ name, status, ms, payload, err });
   },
 }));
 
-vi.mock('../../../api/services/logger.js', () => ({
+vi.mock('../../../api/_app/services/logger.js', () => ({
   createLogger: () => ({
     info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn(),
   }),
 }));
 
-const { default: router } = await import('../../../api/routes/cron-health-monitor.js');
+const { default: router } = await import('../../../api/_app/routes/cron-health-monitor.js');
 
 function makeApp() {
   const app = express();

@@ -13,7 +13,7 @@ import {
   recordLlmCall, getInstanceCalls, __resetInstanceCalls,
   instanceCeilingExceeded, perInstanceMaxCalls,
   dailyHardLimitUsd, dailyHardLimitExceeded,
-} from '../../../api/services/llmBudgetGuard.js';
+} from '../../../api/_app/services/llmBudgetGuard.js';
 
 beforeEach(() => {
   __resetInstanceCalls();

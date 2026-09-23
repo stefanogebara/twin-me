@@ -39,7 +39,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const API_DIR = path.resolve(__dirname, '../../api');
+const API_DIR = path.resolve(__dirname, '../../api/_app');
 const AUTH_FILE = path.join(API_DIR, 'routes/auth-simple.js');
 
 // ---------------------------------------------------------------------------
@@ -140,7 +140,7 @@ describe('profile enrichment runs on the durable queue, not in the auth request'
 
   it('auth-simple.js enqueues the enrichment event instead', async () => {
     expect(authSource).toMatch(/inngest\.send\(/);
-    const { EVENTS } = await import('../../api/services/inngestClient.js');
+    const { EVENTS } = await import('../../api/_app/services/inngestClient.js');
     expect(EVENTS.ENRICH_PROFILE).toBe('twin/profile.enrich');
     expect(authSource).toMatch(/EVENTS\.ENRICH_PROFILE/);
   });
@@ -174,7 +174,7 @@ describe('profile enrichment runs on the durable queue, not in the auth request'
 
 const enrichMock = vi.fn();
 const saveMock = vi.fn().mockResolvedValue({ success: true });
-vi.mock('../../api/services/profileEnrichmentService.js', () => ({
+vi.mock('../../api/_app/services/profileEnrichmentService.js', () => ({
   profileEnrichmentService: {
     enrichFromEmail: (...a) => enrichMock(...a),
     saveEnrichment: (...a) => saveMock(...a),
@@ -192,7 +192,7 @@ describe('enrichAndSaveProfile unwraps the { success, data } envelope', () => {
       success: true,
       data: { discovered_name: 'Ada Lovelace', discovered_company: 'Analytical Engines', source: 'brave' },
     });
-    const { enrichAndSaveProfile } = await import('../../api/inngest/functions/profileEnrichment.js');
+    const { enrichAndSaveProfile } = await import('../../api/_app/inngest/functions/profileEnrichment.js');
 
     const result = await enrichAndSaveProfile({ userId: 'u1', email: 'ada@example.com', fullName: 'Ada Lovelace' });
 
@@ -207,7 +207,7 @@ describe('enrichAndSaveProfile unwraps the { success, data } envelope', () => {
 
   it('does not write a row when enrichment returned nothing usable', async () => {
     enrichMock.mockResolvedValue({ success: false, data: null });
-    const { enrichAndSaveProfile } = await import('../../api/inngest/functions/profileEnrichment.js');
+    const { enrichAndSaveProfile } = await import('../../api/_app/inngest/functions/profileEnrichment.js');
 
     const result = await enrichAndSaveProfile({ userId: 'u1', email: 'ada@example.com' });
 
@@ -216,7 +216,7 @@ describe('enrichAndSaveProfile unwraps the { success, data } envelope', () => {
   });
 
   it('skips entirely without a userId or email rather than upserting a junk row', async () => {
-    const { enrichAndSaveProfile } = await import('../../api/inngest/functions/profileEnrichment.js');
+    const { enrichAndSaveProfile } = await import('../../api/_app/inngest/functions/profileEnrichment.js');
 
     await expect(enrichAndSaveProfile({ userId: null, email: 'ada@example.com' }))
       .resolves.toMatchObject({ enriched: false });

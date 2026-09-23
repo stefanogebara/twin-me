@@ -7,12 +7,12 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 const complete = vi.fn();
 const streamCall = vi.fn();
-vi.mock('../../../../api/services/llmGateway.js', () => ({
+vi.mock('../../../../api/_app/services/llmGateway.js', () => ({
   complete: (...a) => complete(...a),
   stream: (...a) => streamCall(...a),
   TIER_CHAT: 'chat',
 }));
-vi.mock('../../../../api/services/logger.js', () => ({ createLogger: () => ({ warn() {}, info() {}, error() {} }) }));
+vi.mock('../../../../api/_app/services/logger.js', () => ({ createLogger: () => ({ warn() {}, info() {}, error() {} }) }));
 
 const store = {
   saveChatTurn: vi.fn(), listTransactions: vi.fn(), months: vi.fn(), forecast: vi.fn(), categorySpend: vi.fn(), refreshRecurring: vi.fn(),
@@ -23,12 +23,12 @@ const store = {
 /* One kind for a payment, and the real resolver decides it: the month page and the chat
    disagreed about the same euros while each had its own copy, so the mock must not hold a
    second one. Everything else the chat reads from the store is still stubbed. */
-vi.mock('../../../../api/services/money/store.js', async (importOriginal) => {
+vi.mock('../../../../api/_app/services/money/store.js', async (importOriginal) => {
   const { categoryOfPayment } = await importOriginal();
   return { ...store, categoryOfPayment, listChatTurns: async () => [], deleteFact: async () => ({ deleted: true }) };
 });
 
-const { answerStream, textStreamer, completeSentences } = await import('../../../../api/services/money/chat.js');
+const { answerStream, textStreamer, completeSentences } = await import('../../../../api/_app/services/money/chat.js');
 
 const NOW = new Date('2026-09-08T12:00:00Z');
 const t = (id, occurred_at, amount, merchant_key, merchant_raw, extra = {}) => ({ id, occurred_at, amount, merchant_key, merchant_raw, channel: 'card', currency: 'EUR', ...extra });

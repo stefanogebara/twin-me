@@ -13,7 +13,7 @@ import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const SERVICES_DIR = resolve(__dirname, '../../api/services');
+const SERVICES_DIR = resolve(__dirname, '../../api/_app/services');
 const SERVICE_FILE = resolve(SERVICES_DIR, 'dataExtractionService.js');
 
 describe('dataExtractionService gmail dynamic import', () => {

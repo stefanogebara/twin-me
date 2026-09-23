@@ -12,7 +12,7 @@
  * Refactor extracted it into a pure function so the matrix is just inputs.
  */
 import { describe, it, expect, vi } from 'vitest';
-import { assertProdAppUrl } from '../../../api/utils/prodEnvAssertions.js';
+import { assertProdAppUrl } from '../../../api/_app/utils/prodEnvAssertions.js';
 
 function makeLogger() {
   return { error: vi.fn() };

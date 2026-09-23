@@ -11,7 +11,7 @@
  * silently bring them back.
  */
 import { describe, it, expect } from 'vitest';
-import { isNoise } from '../../../api/services/noiseSenders.js';
+import { isNoise } from '../../../api/_app/services/noiseSenders.js';
 
 describe('isNoise — sender filter for relationships + inbox', () => {
   describe('Audit-listed culprits (must be noise)', () => {

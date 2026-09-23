@@ -58,9 +58,9 @@ describe('mounts', () => {
     `;
     expect(mounts(server)).toEqual([
       { path: '/api/auth/verify', file: null, gated: false },
-      { path: '/api/money', file: 'api/routes/money.js', gated: false },
-      { path: '/api/twin', file: 'api/routes/twin.js', gated: false },
-      { path: '/api/cron/x', file: 'api/routes/cron-x.js', gated: true },
+      { path: '/api/money', file: 'api/_app/routes/money.js', gated: false },
+      { path: '/api/twin', file: 'api/_app/routes/twin.js', gated: false },
+      { path: '/api/cron/x', file: 'api/_app/routes/cron-x.js', gated: true },
     ]);
   });
 });

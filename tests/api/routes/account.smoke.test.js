@@ -1,5 +1,5 @@
 /**
- * Smoke tests for api/routes/account.js — GET /api/account/timezone
+ * Smoke tests for api/_app/routes/account.js — GET /api/account/timezone
  *
  * The settings page needs to display the user's saved IANA timezone, but only
  * a PATCH handler existed, so a GET 404'd on every /settings load (prod canary,
@@ -20,7 +20,7 @@ process.env.NODE_ENV = 'test';
 // Mutated per-test to drive the handler's `users.timezone` read.
 let timezoneResult = { data: { timezone: 'America/Sao_Paulo' }, error: null };
 
-vi.mock('../../../api/services/database.js', () => ({
+vi.mock('../../../api/_app/services/database.js', () => ({
   supabaseAdmin: {
     from: vi.fn(() => {
       let columns = '';
@@ -48,14 +48,14 @@ vi.mock('../../../api/services/database.js', () => ({
 
 // Importing account.js pulls in soulSignatureService (for the export route),
 // which drags in the LLM gateway + memory stream. Stub it — unused here.
-vi.mock('../../../api/services/soulSignatureService.js', () => ({
+vi.mock('../../../api/_app/services/soulSignatureService.js', () => ({
   getAllSoulSignatures: vi.fn().mockResolvedValue([]),
 }));
 
 const TEST_USER = '167c27b5-a40b-49fb-8d00-deb1b1c57f4d';
 const signToken = () => jwt.sign({ id: TEST_USER }, 'test-secret', { expiresIn: '1h' });
 
-const accountRoutes = (await import('../../../api/routes/account.js')).default;
+const accountRoutes = (await import('../../../api/_app/routes/account.js')).default;
 
 function createApp() {
   const app = express();

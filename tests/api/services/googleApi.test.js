@@ -4,9 +4,9 @@
  * sites kept their bodies: `{ data }`, and an error carrying the HTTP status as `code`.
  */
 import { describe, it, expect, vi } from 'vitest';
-vi.mock('../../../api/services/logger.js', () => ({ createLogger: () => ({ warn() {}, info() {}, error() {}, debug() {} }) }));
+vi.mock('../../../api/_app/services/logger.js', () => ({ createLogger: () => ({ warn() {}, info() {}, error() {}, debug() {} }) }));
 
-const { calendarClient, gmailClient, toQuery, CALENDAR_BASE, GMAIL_BASE } = await import('../../../api/services/google/api.js');
+const { calendarClient, gmailClient, toQuery, CALENDAR_BASE, GMAIL_BASE } = await import('../../../api/_app/services/google/api.js');
 
 const ok = (body) => vi.fn(async () => ({ ok: true, status: 200, text: async () => JSON.stringify(body) }));
 const fails = (status, message) => vi.fn(async () => ({ ok: false, status, text: async () => JSON.stringify({ error: { message } }) }));

@@ -10,17 +10,17 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 const completeMock = vi.fn();
 const draftEmailMock = vi.fn();
 
-vi.mock('../../../api/services/llmGateway.js', () => ({
+vi.mock('../../../api/_app/services/llmGateway.js', () => ({
   complete: (...a) => completeMock(...a),
   TIER_ANALYSIS: 'analysis',
 }));
 
-vi.mock('../../../api/services/googleWorkspaceActions.js', () => ({
+vi.mock('../../../api/_app/services/googleWorkspaceActions.js', () => ({
   draftEmail: (...a) => draftEmailMock(...a),
 }));
 
 // Personality profile + voice examples queries — minimal chainable builder.
-vi.mock('../../../api/services/database.js', () => {
+vi.mock('../../../api/_app/services/database.js', () => {
   function builder() {
     const b = {};
     b.select = () => b;
@@ -33,7 +33,7 @@ vi.mock('../../../api/services/database.js', () => {
   return { supabaseAdmin: { from: () => builder() } };
 });
 
-const { draftEmailInUserVoice } = await import('../../../api/services/departmentExecutors/communicationsExecutor.js');
+const { draftEmailInUserVoice } = await import('../../../api/_app/services/departmentExecutors/communicationsExecutor.js');
 
 beforeEach(() => {
   completeMock.mockReset();

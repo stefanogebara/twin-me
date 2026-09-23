@@ -12,19 +12,19 @@ import { describe, it, expect, vi } from 'vitest';
 
 // goalTrackingService imports Supabase + LLM gateway at module load; mock the
 // side-effectful modules so the pure helper can be imported in isolation.
-vi.mock('../../api/services/database.js', () => ({
+vi.mock('../../api/_app/services/database.js', () => ({
   supabaseAdmin: {},
 }));
-vi.mock('../../api/services/llmGateway.js', () => ({
+vi.mock('../../api/_app/services/llmGateway.js', () => ({
   complete: vi.fn(),
   TIER_ANALYSIS: 'analysis',
 }));
-vi.mock('../../api/services/memoryStreamService.js', () => ({
+vi.mock('../../api/_app/services/memoryStreamService.js', () => ({
   getRecentMemories: vi.fn(),
   retrieveMemories: vi.fn(),
 }));
 
-const { buildSuggestionExclusions } = await import('../../api/services/goalTrackingService.js');
+const { buildSuggestionExclusions } = await import('../../api/_app/services/goalTrackingService.js');
 
 const activeGoal = { title: 'Sleep 7+ hours for 2 weeks', metric_type: 'sleep_hours' };
 const declinedGoal = { title: 'Cap meetings at 4 per day', metric_type: 'meeting_count' };

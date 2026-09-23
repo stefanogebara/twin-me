@@ -1,5 +1,5 @@
 /**
- * Unit tests for api/services/insightEditor.js — the salience + voice layer.
+ * Unit tests for api/_app/services/insightEditor.js — the salience + voice layer.
  * Contract:
  *   - violatesVoice rejects the exact failure modes we saw in prod (chores,
  *     stat-weapons, agent-speak, >2 sentences, emoji) and passes mirror voice.
@@ -14,20 +14,20 @@ process.env.SUPABASE_SERVICE_ROLE_KEY = 'test-service-role';
 process.env.NODE_ENV = 'test';
 
 const completeMock = vi.fn();
-vi.mock('../../../api/services/llmGateway.js', () => ({
+vi.mock('../../../api/_app/services/llmGateway.js', () => ({
   complete: (...a) => completeMock(...a),
   TIER_EXTRACTION: 'extraction',
 }));
 
 const embeddingsMock = vi.fn();
 const embeddingMock = vi.fn();
-vi.mock('../../../api/services/embeddingService.js', () => ({
+vi.mock('../../../api/_app/services/embeddingService.js', () => ({
   generateEmbeddings: (...a) => embeddingsMock(...a),
   generateEmbedding: (...a) => embeddingMock(...a),
 }));
 
 const historyQueue = [];
-vi.mock('../../../api/services/database.js', () => {
+vi.mock('../../../api/_app/services/database.js', () => {
   function builder() {
     const b = {};
     for (const m of ['select', 'eq', 'gte', 'lte', 'lt', 'not', 'order', 'limit']) b[m] = vi.fn(() => b);
@@ -45,7 +45,7 @@ const {
   cosineSim,
   editInsights,
   DEDUP_COSINE,
-} = await import('../../../api/services/insightEditor.js');
+} = await import('../../../api/_app/services/insightEditor.js');
 
 const USER = '167c27b5-a40b-49fb-8d00-deb1b1c57f4d';
 const editorSays = (obj) => completeMock.mockResolvedValue({ content: JSON.stringify(obj) });

@@ -1,0 +1,15 @@
+import { createClient } from '@supabase/supabase-js';
+import crypto from 'node:crypto';
+import dotenv from 'dotenv'; dotenv.config({ path: '.env', quiet: true });
+const API = 'https://twin-ai-learn.vercel.app';
+const sb = createClient(process.env.VITE_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
+const raw = crypto.randomBytes(32).toString('hex');
+await sb.from('magic_link_tokens').insert({ token_hash: crypto.createHash('sha256').update(raw).digest('hex'), email: 'stefanogebara+stranger0913@gmail.com', expires_at: new Date(Date.now() + 600000).toISOString() });
+const r = await fetch(`${API}/api/auth/magic-link/verify?token=${raw}`, { redirect: 'manual' });
+const cookie = (r.headers.get('set-cookie') || '').split(';')[0];
+const { accessToken } = await (await fetch(`${API}/api/auth/refresh`, { method: 'POST', headers: { cookie } })).json();
+const h = { Authorization: `Bearer ${accessToken}` };
+const caps = await (await fetch(`${API}/api/money/capabilities`, { headers: h })).json();
+console.log('capabilities:', JSON.stringify(caps));
+const page = await (await fetch(`${API}/api/money/page?view=you`, { headers: h })).json();
+console.log('page.capabilities:', JSON.stringify(page?.data?.capabilities), '| profile:', JSON.stringify(page?.data?.profile), '| failed:', JSON.stringify(page?.data?.failed));

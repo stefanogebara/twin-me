@@ -6,7 +6,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const rec = vi.hoisted(() => ({ calls: [] }));
-vi.mock('../../../../api/services/database.js', () => {
+vi.mock('../../../../api/_app/services/database.js', () => {
   const chain = (table) => {
     const q = new Proxy({}, {
       get: (_t, key) => {
@@ -18,7 +18,7 @@ vi.mock('../../../../api/services/database.js', () => {
   };
   return { supabaseAdmin: { from: (table) => { rec.calls.push([table, 'from']); return chain(table); } } };
 });
-import * as store from '../../../../api/services/auth/authStore.js';
+import * as store from '../../../../api/_app/services/auth/authStore.js';
 
 const chainOf = () => rec.calls.map(([table, op, ...args]) => `${op}${args.length ? `(${args.map((a) => (typeof a === 'object' ? JSON.stringify(a) : String(a))).join(', ')})` : ''}`).join(' > ');
 

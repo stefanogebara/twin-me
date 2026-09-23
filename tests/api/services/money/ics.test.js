@@ -3,7 +3,7 @@
  * rest of the calendar lens already reads.
  */
 import { describe, it, expect } from 'vitest';
-import { parseIcs, feedKind, isFeedUrl, looksLikeIcs } from '../../../../api/services/money/ics.js';
+import { parseIcs, feedKind, isFeedUrl, looksLikeIcs } from '../../../../api/_app/services/money/ics.js';
 
 const CANVAS = [
   'BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Instructure//Canvas//EN',

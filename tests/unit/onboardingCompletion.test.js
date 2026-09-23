@@ -19,12 +19,12 @@
  */
 import { describe, it, expect } from 'vitest';
 
-// Constants mirrored from api/routes/onboarding-calibration.js — update both if either changes.
+// Constants mirrored from api/_app/routes/onboarding-calibration.js — update both if either changes.
 const MIN_QUESTIONS = 3;
 const MAX_QUESTIONS = 3;
 
 /**
- * Reproduction of the completion check from api/routes/onboarding-calibration.js.
+ * Reproduction of the completion check from api/_app/routes/onboarding-calibration.js.
  * If the production code diverges from this, either the fix regressed or
  * the constants changed intentionally. In the latter case, update both.
  */
@@ -113,7 +113,7 @@ import { resolve } from 'node:path';
 
 describe('production source anchors', () => {
   const ROUTE_SRC = readFileSync(
-    resolve(process.cwd(), 'api/routes/onboarding-calibration.js'),
+    resolve(process.cwd(), 'api/_app/routes/onboarding-calibration.js'),
     'utf8',
   );
 

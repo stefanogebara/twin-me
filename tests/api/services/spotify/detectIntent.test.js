@@ -5,7 +5,7 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { detectSpotifyIntent } from '../../../../api/services/spotify/detectIntent.js';
+import { detectSpotifyIntent } from '../../../../api/_app/services/spotify/detectIntent.js';
 
 describe('detectSpotifyIntent', () => {
   describe('null intent', () => {

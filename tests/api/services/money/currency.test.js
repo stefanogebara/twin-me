@@ -7,9 +7,9 @@
  * changed (2026-09-19).
  */
 import { describe, expect, it } from 'vitest';
-import { ledgerCurrency, currencyWord, money, ours, LEDGER_CCY } from '../../../../api/services/money/currency.js';
-import { withPerson, currentPerson } from '../../../../api/services/money/scope.js';
-import { dayIn, currentZone } from '../../../../api/services/money/zone.js';
+import { ledgerCurrency, currencyWord, money, ours, LEDGER_CCY } from '../../../../api/_app/services/money/currency.js';
+import { withPerson, currentPerson } from '../../../../api/_app/services/money/scope.js';
+import { dayIn, currentZone } from '../../../../api/_app/services/money/zone.js';
 
 /* Intl puts a narrow no-break space before the euro sign; these read the words. */
 const plain = (s) => String(s).replace(/[  ]/g, ' ');

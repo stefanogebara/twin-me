@@ -1,5 +1,5 @@
 /**
- * Tests for validateHeartbeatProposal (api/services/departmentService.js).
+ * Tests for validateHeartbeatProposal (api/_app/services/departmentService.js).
  *
  * replan-2026-06-10 Track B: the department heartbeat queued gmail_draft
  * proposals addressed to the user themselves (the prompt example literally
@@ -14,26 +14,26 @@ process.env.NODE_ENV = 'test';
 
 // departmentService pulls in supabase/redis/llm plumbing at module load.
 // validateHeartbeatProposal itself is pure — mock the heavy deps away.
-vi.mock('../../../api/services/database.js', () => ({ supabaseAdmin: {} }));
-vi.mock('../../../api/services/redisClient.js', () => ({
+vi.mock('../../../api/_app/services/database.js', () => ({ supabaseAdmin: {} }));
+vi.mock('../../../api/_app/services/redisClient.js', () => ({
   get: vi.fn(),
   set: vi.fn(),
 }));
-vi.mock('../../../api/services/llmGateway.js', () => ({
+vi.mock('../../../api/_app/services/llmGateway.js', () => ({
   complete: vi.fn(),
   TIER_EXTRACTION: 'extraction',
   TIER_ANALYSIS: 'analysis',
 }));
-vi.mock('../../../api/services/autonomyService.js', () => ({
+vi.mock('../../../api/_app/services/autonomyService.js', () => ({
   queueActionForApproval: vi.fn(),
   getAutonomyBySkillName: vi.fn(),
   AUTONOMY_LEVELS: {},
 }));
-vi.mock('../../../api/services/departmentBudgetService.js', () => ({
+vi.mock('../../../api/_app/services/departmentBudgetService.js', () => ({
   checkDepartmentBudget: vi.fn(),
 }));
 
-const { validateHeartbeatProposal } = await import('../../../api/services/departmentService.js');
+const { validateHeartbeatProposal } = await import('../../../api/_app/services/departmentService.js');
 
 const USER_EMAIL = 'stefanogebara@gmail.com';
 

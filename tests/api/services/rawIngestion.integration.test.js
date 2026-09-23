@@ -29,16 +29,16 @@ const HAS_DB = Boolean(process.env.VITE_SUPABASE_URL && process.env.SUPABASE_SER
 const d = HAS_DB ? describe : describe.skip;
 
 // ── mock LLM / side-effecting downstream services ────────────────────────────
-vi.mock('../../../api/services/transactions/transactionEmotionTagger.js', () => ({
+vi.mock('../../../api/_app/services/transactions/transactionEmotionTagger.js', () => ({
   tagTransactionsBatch: vi.fn().mockResolvedValue({}),
 }));
-vi.mock('../../../api/services/transactions/transactionNudgeService.js', () => ({
+vi.mock('../../../api/_app/services/transactions/transactionNudgeService.js', () => ({
   maybeNudgeForTransactions: vi.fn().mockResolvedValue({}),
 }));
-vi.mock('../../../api/services/transactions/recurrenceDetector.js', () => ({
+vi.mock('../../../api/_app/services/transactions/recurrenceDetector.js', () => ({
   detectAndMarkRecurring: vi.fn().mockResolvedValue({}),
 }));
-vi.mock('../../../api/services/memoryStreamService.js', () => ({
+vi.mock('../../../api/_app/services/memoryStreamService.js', () => ({
   addPlatformObservation: vi.fn().mockResolvedValue({}),
 }));
 
@@ -56,7 +56,7 @@ afterAll(async () => {
 d('ingestRawTransactions (generic seam)', { timeout: 30_000 }, () => {
   it('inserts rows, normalizes merchants, and returns inserted ids', async () => {
     const { ingestRawTransactions } = await import(
-      '../../../api/services/transactions/rawIngestion.js'
+      '../../../api/_app/services/transactions/rawIngestion.js'
     );
 
     const result = await ingestRawTransactions(
@@ -94,10 +94,10 @@ d('ingestRawTransactions (generic seam)', { timeout: 30_000 }, () => {
 
   it('writes a memory observation for a material outflow (>= 50) — real schema', async () => {
     const { ingestRawTransactions } = await import(
-      '../../../api/services/transactions/rawIngestion.js'
+      '../../../api/_app/services/transactions/rawIngestion.js'
     );
     const { addPlatformObservation } = await import(
-      '../../../api/services/memoryStreamService.js'
+      '../../../api/_app/services/memoryStreamService.js'
     );
     addPlatformObservation.mockClear();
 
@@ -125,7 +125,7 @@ d('ingestRawTransactions (generic seam)', { timeout: 30_000 }, () => {
 
   it('drops garbage amounts (out of range, NaN) and reports them as skipped', async () => {
     const { ingestRawTransactions } = await import(
-      '../../../api/services/transactions/rawIngestion.js'
+      '../../../api/_app/services/transactions/rawIngestion.js'
     );
 
     const result = await ingestRawTransactions(
@@ -145,7 +145,7 @@ d('ingestRawTransactions (generic seam)', { timeout: 30_000 }, () => {
 
   it('is idempotent: re-ingesting the same external_id does not duplicate', async () => {
     const { ingestRawTransactions } = await import(
-      '../../../api/services/transactions/rawIngestion.js'
+      '../../../api/_app/services/transactions/rawIngestion.js'
     );
 
     const tx = {

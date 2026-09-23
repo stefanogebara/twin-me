@@ -14,12 +14,12 @@ process.env.CRON_SECRET = 'test-cron-secret';
 
 const learn = vi.fn();
 const users = vi.fn();
-vi.mock('../../../api/services/money/predictions.js', () => ({ learnFromLedger: (...a) => learn(...a) }));
-vi.mock('../../../api/services/money/transactionRepository.js', () => ({ moneyUserIds: (...a) => users(...a) }));
+vi.mock('../../../api/_app/services/money/predictions.js', () => ({ learnFromLedger: (...a) => learn(...a) }));
+vi.mock('../../../api/_app/services/money/transactionRepository.js', () => ({ moneyUserIds: (...a) => users(...a) }));
 const logged = vi.fn();
-vi.mock('../../../api/services/cronLogger.js', () => ({ logCronExecution: (...a) => logged(...a) }));
+vi.mock('../../../api/_app/services/cronLogger.js', () => ({ logCronExecution: (...a) => logged(...a) }));
 
-const { default: router, BUDGET_MS } = await import('../../../api/routes/cron-money-learn.js');
+const { default: router, BUDGET_MS } = await import('../../../api/_app/routes/cron-money-learn.js');
 const app = () => { const a = express(); a.use('/api/cron/money-learn', router); return a; };
 const AUTH = { Authorization: 'Bearer test-cron-secret' };
 

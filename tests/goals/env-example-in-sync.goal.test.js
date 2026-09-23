@@ -21,7 +21,7 @@ describe('.env.example follows the code', () => {
   it('keeps a note a person wrote above a key, and comments out what is optional', () => {
     const notes = notesInFile('# --- Area ---\n# costs money\n# OPTIONAL_KEY=abc\nREQUIRED_KEY=xyz\n');
     expect(notes.get('OPTIONAL_KEY')).toEqual({ comment: ['# costs money'], value: 'abc', commented: true });
-    const out = render({ keys: new Map([['OPTIONAL_KEY', new Set(['api/services/x.js'])], ['REQUIRED_KEY', new Set(['api/server.js'])], ['NEW_KEY', new Set(['api/routes/money.js'])]]), required: new Set(['REQUIRED_KEY']), notes });
+    const out = render({ keys: new Map([['OPTIONAL_KEY', new Set(['api/_app/services/x.js'])], ['REQUIRED_KEY', new Set(['api/_app/server.js'])], ['NEW_KEY', new Set(['api/_app/routes/money.js'])]]), required: new Set(['REQUIRED_KEY']), notes });
     expect(out).toMatch(/# costs money\n# OPTIONAL_KEY=abc/);
     expect(out).toMatch(/^REQUIRED_KEY=xyz$/m);
     expect(out).toMatch(/# read by routes\/money.js\n# NEW_KEY=$/m);

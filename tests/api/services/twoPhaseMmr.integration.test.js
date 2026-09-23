@@ -33,8 +33,8 @@ d('two-phase MMR equivalence', () => {
   // under full-suite contention; the 10s default hookTimeout tripped
   // nondeterministically on loaded machines.
   beforeAll(async () => {
-    ({ supabaseAdmin } = await import('../../../api/services/database.js'));
-    ({ mmrRerank } = await import('../../../api/services/memoryStreamService.js'));
+    ({ supabaseAdmin } = await import('../../../api/_app/services/database.js'));
+    ({ mmrRerank } = await import('../../../api/_app/services/memoryStreamService.js'));
     cfg = await import('../../../twin-research/twin-config.js');
 
     const { data } = await supabaseAdmin

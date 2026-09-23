@@ -1,5 +1,5 @@
 /**
- * Smoke tests for api/routes/consent.js
+ * Smoke tests for api/_app/routes/consent.js
  * Covers: auth guard, list shape, POST consent_type-required validation,
  * revoke 404 when record missing, downstream 500.
  *
@@ -46,15 +46,15 @@ function revokeOrUpsert() {
   return singleMode === 'revoke' ? revokeResult : upsertResult;
 }
 
-vi.mock('../../../api/config/supabase.js', () => {
+vi.mock('../../../api/_app/config/supabase.js', () => {
   const client = makeConsentClient();
   return { supabaseAdmin: client, supabase: client, default: client };
 });
 
-/* The consent rows are read and written through api/services/consentStore.js, which takes the
+/* The consent rows are read and written through api/_app/services/consentStore.js, which takes the
    client from services/database.js (M2-D, 2026-09-22); the auth middleware reads the same
    module for its users lookup. The consent client answers every table but users. */
-vi.mock('../../../api/services/database.js', () => {
+vi.mock('../../../api/_app/services/database.js', () => {
   const client = makeConsentClient();
   const users = { select: () => users, eq: () => users, single: async () => ({ data: { email_verified: true, created_at: new Date().toISOString() }, error: null }) };
   return { supabaseAdmin: { from: (table) => (table === 'users' ? users : client.from(table)) }, serverDb: {} };
@@ -63,7 +63,7 @@ vi.mock('../../../api/services/database.js', () => {
 const TEST_USER = '167c27b5-a40b-49fb-8d00-deb1b1c57f4d';
 const signToken = () => jwt.sign({ id: TEST_USER }, 'test-secret', { expiresIn: '1h' });
 
-const consentRoutes = (await import('../../../api/routes/consent.js')).default;
+const consentRoutes = (await import('../../../api/_app/routes/consent.js')).default;
 
 function createApp() {
   const app = express();

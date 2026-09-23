@@ -7,7 +7,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const rec = vi.hoisted(() => ({ calls: [] }));
-vi.mock('../../../api/services/database.js', () => {
+vi.mock('../../../api/_app/services/database.js', () => {
   const chain = (table) => {
     const q = new Proxy({}, {
       get: (_t, key) => {
@@ -19,16 +19,16 @@ vi.mock('../../../api/services/database.js', () => {
   };
   return { supabaseAdmin: { from: (table) => { rec.calls.push([table, 'from']); return chain(table); } } };
 });
-import * as account from '../../../api/services/account/accountStore.js';
-import * as billing from '../../../api/services/billing/billingStore.js';
-import * as beta from '../../../api/services/beta/betaStore.js';
-import * as calendar from '../../../api/services/calendar/calendarStore.js';
-import * as extension from '../../../api/services/extension/extensionStore.js';
-import * as channels from '../../../api/services/messagingChannelStore.js';
-import * as actions from '../../../api/services/agentActionStore.js';
-import * as ops from '../../../api/services/opsStore.js';
-import * as consent from '../../../api/services/consentStore.js';
-import * as tx from '../../../api/services/transactions/userTransactionStore.js';
+import * as account from '../../../api/_app/services/account/accountStore.js';
+import * as billing from '../../../api/_app/services/billing/billingStore.js';
+import * as beta from '../../../api/_app/services/beta/betaStore.js';
+import * as calendar from '../../../api/_app/services/calendar/calendarStore.js';
+import * as extension from '../../../api/_app/services/extension/extensionStore.js';
+import * as channels from '../../../api/_app/services/messagingChannelStore.js';
+import * as actions from '../../../api/_app/services/agentActionStore.js';
+import * as ops from '../../../api/_app/services/opsStore.js';
+import * as consent from '../../../api/_app/services/consentStore.js';
+import * as tx from '../../../api/_app/services/transactions/userTransactionStore.js';
 
 const show = (a) => (typeof a === 'object' && a !== null ? JSON.stringify(a) : String(a));
 const chainOf = () => rec.calls.map(([table, op, ...args]) => (op === 'from' ? table : `${op}(${args.map(show).join(', ')})`)).join(' > ');

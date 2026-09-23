@@ -11,28 +11,28 @@ import request from 'supertest';
 
 process.env.NODE_ENV = 'test';
 
-vi.mock('../../../api/middleware/auth.js', () => ({
+vi.mock('../../../api/_app/middleware/auth.js', () => ({
   authenticateUser: (req, _res, next) => { req.user = { id: 'u1' }; next(); },
 }));
 
 const requestMock = vi.fn();
 const verifyMock = vi.fn();
-vi.mock('../../../api/services/messagingChannelOtpService.js', () => ({
+vi.mock('../../../api/_app/services/messagingChannelOtpService.js', () => ({
   requestChannelOtp: (...a) => requestMock(...a),
   verifyChannelOtp: (...a) => verifyMock(...a),
 }));
 
 const sendMock = vi.fn();
-vi.mock('../../../api/services/whatsappService.js', () => ({
+vi.mock('../../../api/_app/services/whatsappService.js', () => ({
   sendWhatsAppMessage: (...a) => sendMock(...a),
 }));
 
 const upsertMock = vi.fn().mockResolvedValue({ error: null });
-vi.mock('../../../api/services/database.js', () => ({
+vi.mock('../../../api/_app/services/database.js', () => ({
   supabaseAdmin: { from: () => ({ upsert: (...a) => upsertMock(...a) }) },
 }));
 
-const { default: router } = await import('../../../api/routes/whatsapp-link.js');
+const { default: router } = await import('../../../api/_app/routes/whatsapp-link.js');
 const app = express();
 app.use(express.json());
 app.use('/api/whatsapp-link', router);

@@ -6,8 +6,8 @@ import { buildPrompt as implementPrompt } from '../../scripts/agentic/implement.
 
 describe('the shadow rule', () => {
   it('refuses the ledger, the feed, the schema, the crons, the workflows and the env', () => {
-    expect(forbiddenPaths(['database/migrations/x.sql', 'api/services/money/ledger.js', 'api/services/money/feeds/enableBanking.js', 'api/routes/cron-money-pull.js', '.github/workflows/ci.yml', '.env.example', 'scripts/money/merge-duplicate-payments.mjs']).length).toBe(7);
-    expect(forbiddenPaths(['src/pages/money/words.ts', 'api/services/money/words.js', 'tests/unit/x.test.js', 'api/services/money/calibration.js'])).toEqual([]);
+    expect(forbiddenPaths(['database/migrations/x.sql', 'api/_app/services/money/ledger.js', 'api/_app/services/money/feeds/enableBanking.js', 'api/_app/routes/cron-money-pull.js', '.github/workflows/ci.yml', '.env.example', 'scripts/money/merge-duplicate-payments.mjs']).length).toBe(7);
+    expect(forbiddenPaths(['src/pages/money/words.ts', 'api/_app/services/money/words.js', 'tests/unit/x.test.js', 'api/_app/services/money/calibration.js'])).toEqual([]);
   });
   it('gives the stages edits and tests, never git or the network', () => {
     for (const tools of [IMPLEMENT_TOOLS, INSPECT_TOOLS]) {

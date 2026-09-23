@@ -19,11 +19,11 @@ delete process.env.TWINME_DISABLE_OUTBOUND_SEND;
 const axiosPostMock = vi.fn();
 vi.mock('axios', () => ({ default: { post: (...a) => axiosPostMock(...a) } }));
 // logOutbound writes to Supabase — make it a no-op (avoid prod audit writes).
-vi.mock('../../../api/config/supabase.js', () => ({
+vi.mock('../../../api/_app/config/supabase.js', () => ({
   supabaseAdmin: { from: () => ({ insert: () => Promise.resolve({ error: null }) }) },
 }));
 
-const { sendWhatsAppCtaButton } = await import('../../../api/services/whatsappService.js');
+const { sendWhatsAppCtaButton } = await import('../../../api/_app/services/whatsappService.js');
 
 beforeEach(() => {
   axiosPostMock.mockReset();

@@ -11,7 +11,7 @@ import {
   tercileHigh,
   tercileLow,
   localParts,
-} from '../../../api/services/correlationSignals.js';
+} from '../../../api/_app/services/correlationSignals.js';
 
 describe('mean', () => {
   it('averages the numeric values', () => {

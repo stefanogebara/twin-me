@@ -7,7 +7,7 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { detectWhoopIntent } from '../../../../api/services/whoop/detectIntent.js';
+import { detectWhoopIntent } from '../../../../api/_app/services/whoop/detectIntent.js';
 
 describe('detectWhoopIntent', () => {
   // -------------------------------------------------------------------------

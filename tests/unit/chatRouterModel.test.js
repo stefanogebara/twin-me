@@ -4,7 +4,7 @@ import {
   CHAT_TIER_LIGHT,
   CHAT_TIER_STANDARD,
   CHAT_TIER_DEEP,
-} from '../../api/services/chatRouter.js';
+} from '../../api/_app/services/chatRouter.js';
 
 // Drift guard (audit #118): CHAT_TIER_MODELS is the documented source of truth for
 // which model each chat tier uses. A commit labelled "lint cleanup" once silently

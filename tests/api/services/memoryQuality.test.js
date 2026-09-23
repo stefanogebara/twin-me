@@ -14,14 +14,14 @@
 import { describe, it, expect, vi } from 'vitest';
 
 // --- Module mocks (hoisted before imports) so the import graph is inert ---
-vi.mock('../../../api/services/database.js', () => ({
+vi.mock('../../../api/_app/services/database.js', () => ({
   supabaseAdmin: { from: vi.fn(), rpc: vi.fn() },
 }));
-vi.mock('../../../api/services/embeddingService.js', () => ({
+vi.mock('../../../api/_app/services/embeddingService.js', () => ({
   generateEmbedding: vi.fn().mockResolvedValue(new Array(1536).fill(0)),
   vectorToString: vi.fn().mockReturnValue('[0,0,0]'),
 }));
-vi.mock('../../../api/services/llmGateway.js', () => ({
+vi.mock('../../../api/_app/services/llmGateway.js', () => ({
   complete: vi.fn().mockResolvedValue({ content: '5' }),
   stream: vi.fn(),
   TIER_CHAT: 'chat',
@@ -33,7 +33,7 @@ process.env.SUPABASE_URL = 'http://localhost';
 process.env.SUPABASE_SERVICE_ROLE_KEY = 'test-key';
 
 const { computeAlpha, applyImportanceFloor, clampNoiseObservation } =
-  await import('../../../api/services/memoryStreamService.js');
+  await import('../../../api/_app/services/memoryStreamService.js');
 
 describe('computeAlpha — memory prominence weight', () => {
   // Formula: confidence * (importance_score/10) * min(1, 0.85 + 0.05*retrieval_count)

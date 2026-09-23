@@ -1,5 +1,5 @@
 /**
- * Smoke tests for api/routes/life-story.js — the Story Chapters API.
+ * Smoke tests for api/_app/routes/life-story.js — the Story Chapters API.
  *
  * The route is thin (auth guard + validation + service delegation + error
  * mapping); these tests pin exactly that. Service behavior is covered in
@@ -17,7 +17,7 @@ process.env.ENCRYPTION_KEY = '0'.repeat(64);
 process.env.NODE_ENV = 'test';
 
 // Auth middleware reads users.email_verified — serve it from the DB mock.
-vi.mock('../../../api/services/database.js', () => ({
+vi.mock('../../../api/_app/services/database.js', () => ({
   supabaseAdmin: {
     from: vi.fn(() => {
       const builder = {
@@ -36,16 +36,16 @@ vi.mock('../../../api/services/database.js', () => ({
   serverDb: {},
 }));
 
-vi.mock('../../../api/services/lifeStoryService.js', () => ({
+vi.mock('../../../api/_app/services/lifeStoryService.js', () => ({
   getLifeStoryStatus: vi.fn(),
   startSession: vi.fn(),
   processTurn: vi.fn(),
 }));
 
 const { getLifeStoryStatus, startSession, processTurn } = await import(
-  '../../../api/services/lifeStoryService.js'
+  '../../../api/_app/services/lifeStoryService.js'
 );
-const lifeStoryRoutes = (await import('../../../api/routes/life-story.js')).default;
+const lifeStoryRoutes = (await import('../../../api/_app/routes/life-story.js')).default;
 
 const TEST_USER = '167c27b5-a40b-49fb-8d00-deb1b1c57f4d';
 const signToken = () => jwt.sign({ id: TEST_USER }, 'test-secret', { expiresIn: '1h' });

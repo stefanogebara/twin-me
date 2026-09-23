@@ -19,9 +19,9 @@ const { store, log } = vi.hoisted(() => ({
   log: { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() },
 }));
 
-vi.mock('../../api/services/presenceStore.js', () => store);
-vi.mock('../../api/services/logger.js', () => ({ createLogger: () => log }));
-vi.mock('../../api/services/database.js', () => ({
+vi.mock('../../api/_app/services/presenceStore.js', () => store);
+vi.mock('../../api/_app/services/logger.js', () => ({ createLogger: () => log }));
+vi.mock('../../api/_app/services/database.js', () => ({
   supabaseAdmin: {
     from: () => {
       throw new Error('presenceCallBrief must read through presenceStore');
@@ -29,7 +29,7 @@ vi.mock('../../api/services/database.js', () => ({
   },
 }));
 
-const { compileCallBrief } = await import('../../api/services/presenceCallBrief.js');
+const { compileCallBrief } = await import('../../api/_app/services/presenceCallBrief.js');
 
 /** What getCallBriefSources resolves to: one response per query plus the first error. */
 function sources(overrides = {}) {

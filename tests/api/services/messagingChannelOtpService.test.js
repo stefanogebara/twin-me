@@ -13,7 +13,7 @@ process.env.JWT_SECRET = 'test-jwt-secret-for-otp';
 let selectResult;        // drives whatever the select chain resolves to
 const ops = [];          // records insert / update / delete operations
 
-vi.mock('../../../api/services/database.js', () => {
+vi.mock('../../../api/_app/services/database.js', () => {
   function builder(table) {
     const state = { table, op: 'select' };
     const b = {
@@ -37,7 +37,7 @@ vi.mock('../../../api/services/database.js', () => {
 });
 
 const { requestChannelOtp, verifyChannelOtp, OTP_MAX_ATTEMPTS } = await import(
-  '../../../api/services/messagingChannelOtpService.js'
+  '../../../api/_app/services/messagingChannelOtpService.js'
 );
 
 const PHONE = '+5511999999999';

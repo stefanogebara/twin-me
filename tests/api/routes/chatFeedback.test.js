@@ -31,7 +31,7 @@ process.env.NODE_ENV = 'test';
 let insertShouldFail = false;
 const recorded = { inserts: [], tablesTouched: [] }; // { table, payload }
 
-vi.mock('../../../api/services/database.js', () => {
+vi.mock('../../../api/_app/services/database.js', () => {
   const makeChain = (table) => {
     recorded.tablesTouched.push(table);
     const chain = {};
@@ -57,7 +57,7 @@ vi.mock('../../../api/services/database.js', () => {
   };
 });
 
-const routes = (await import('../../../api/routes/chat-feedback.js')).default;
+const routes = (await import('../../../api/_app/routes/chat-feedback.js')).default;
 
 function makeApp() {
   const app = express();

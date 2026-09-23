@@ -3,11 +3,11 @@
 * @stefanogebara
 
 # Backend security-critical paths
-/api/middleware/      @stefanogebara
-/api/routes/auth.js   @stefanogebara
-/api/routes/oauth-callback.js @stefanogebara
-/api/services/encryption.js @stefanogebara
-/api/services/gdprImportService.js @stefanogebara
+/api/_app/middleware/      @stefanogebara
+/api/_app/routes/auth.js   @stefanogebara
+/api/_app/routes/oauth-callback.js @stefanogebara
+/api/_app/services/encryption.js @stefanogebara
+/api/_app/services/gdprImportService.js @stefanogebara
 
 # Infrastructure
 /.github/             @stefanogebara

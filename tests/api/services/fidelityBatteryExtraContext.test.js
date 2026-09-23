@@ -16,31 +16,31 @@ process.env.NODE_ENV = 'test';
 
 const { completeMock } = vi.hoisted(() => ({ completeMock: vi.fn() }));
 
-vi.mock('../../../api/services/llmGateway.js', () => ({
+vi.mock('../../../api/_app/services/llmGateway.js', () => ({
   complete: completeMock,
   TIER_ANALYSIS: 'analysis',
 }));
-vi.mock('../../../api/services/twinSummaryService.js', () => ({
+vi.mock('../../../api/_app/services/twinSummaryService.js', () => ({
   getTwinSummary: vi.fn().mockResolvedValue('summary text'),
 }));
-vi.mock('../../../api/services/memoryStreamService.js', () => ({
+vi.mock('../../../api/_app/services/memoryStreamService.js', () => ({
   retrieveDiverseMemories: vi.fn().mockResolvedValue([{ content: 'memory one' }]),
 }));
-vi.mock('../../../api/services/database.js', () => ({
+vi.mock('../../../api/_app/services/database.js', () => ({
   supabaseAdmin: { from: vi.fn() },
 }));
-vi.mock('../../../api/services/logger.js', () => ({
+vi.mock('../../../api/_app/services/logger.js', () => ({
   createLogger: () => ({ info: vi.fn(), warn: vi.fn(), error: vi.fn() }),
 }));
 // Shipped 2026-08-12: production battery grounding fetches the recent
 // platform digest itself. Controllable per-test; default: digest present.
 const { digestMock } = vi.hoisted(() => ({ digestMock: vi.fn() }));
-vi.mock('../../../api/services/recentPlatformDigest.js', () => ({
+vi.mock('../../../api/_app/services/recentPlatformDigest.js', () => ({
   renderRecentPlatformDigest: digestMock,
 }));
 
 const { answerBatteryAsTwin } = await import(
-  '../../../api/services/fidelityBatteryService.js'
+  '../../../api/_app/services/fidelityBatteryService.js'
 );
 
 const SPINE_BLOCK = '=== MY TIMELINE (oldest first) ===\n- [5 months ago] test line';

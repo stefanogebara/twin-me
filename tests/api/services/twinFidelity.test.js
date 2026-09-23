@@ -35,27 +35,27 @@ function makeBuilder(table) {
   return builder;
 }
 
-vi.mock('../../../api/services/database.js', () => ({
+vi.mock('../../../api/_app/services/database.js', () => ({
   supabaseAdmin: { from: vi.fn((table) => makeBuilder(table)) },
 }));
-vi.mock('../../../api/services/llmGateway.js', () => ({
+vi.mock('../../../api/_app/services/llmGateway.js', () => ({
   complete: vi.fn(),
   TIER_ANALYSIS: 'analysis',
 }));
-vi.mock('../../../api/services/memoryStreamService.js', () => ({
+vi.mock('../../../api/_app/services/memoryStreamService.js', () => ({
   retrieveDiverseMemories: vi.fn().mockResolvedValue([
     { content: 'They value deep focus over social breadth.' },
   ]),
 }));
-vi.mock('../../../api/services/twinSummaryService.js', () => ({
+vi.mock('../../../api/_app/services/twinSummaryService.js', () => ({
   getTwinSummary: vi.fn().mockResolvedValue('A focused builder who recharges alone.'),
 }));
 
-const { complete } = await import('../../../api/services/llmGateway.js');
-const { retrieveDiverseMemories } = await import('../../../api/services/memoryStreamService.js');
-const { getTwinSummary } = await import('../../../api/services/twinSummaryService.js');
+const { complete } = await import('../../../api/_app/services/llmGateway.js');
+const { retrieveDiverseMemories } = await import('../../../api/_app/services/memoryStreamService.js');
+const { getTwinSummary } = await import('../../../api/_app/services/twinSummaryService.js');
 const { FIDELITY_BATTERY, BATTERY_VERSION } = await import(
-  '../../../api/config/fidelityBattery.js'
+  '../../../api/_app/config/fidelityBattery.js'
 );
 const {
   scoreItem,
@@ -65,7 +65,7 @@ const {
   answerBatteryAsTwin,
   submitFidelityWave,
   completeFidelityWave,
-} = await import('../../../api/services/fidelityBatteryService.js');
+} = await import('../../../api/_app/services/fidelityBatteryService.js');
 
 const USER = '167c27b5-a40b-49fb-8d00-deb1b1c57f4d';
 

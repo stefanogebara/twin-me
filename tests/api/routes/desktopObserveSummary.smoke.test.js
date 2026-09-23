@@ -1,5 +1,5 @@
 /**
- * Smoke tests for api/routes/desktop-observe-summary.js
+ * Smoke tests for api/_app/routes/desktop-observe-summary.js
  * POST /api/desktop/observe-summary — desktop onboarding "Here's what I noticed".
  *
  * Turns the locally-captured app+title list into a first-person summary + insight.
@@ -14,12 +14,12 @@ process.env.NODE_ENV = 'test';
 
 const completeMock = vi.fn();
 
-vi.mock('../../../api/services/llmGateway.js', () => ({
+vi.mock('../../../api/_app/services/llmGateway.js', () => ({
   complete: (...a) => completeMock(...a),
   TIER_ANALYSIS: 'analysis',
 }));
 
-const observeSummaryRoutes = (await import('../../../api/routes/desktop-observe-summary.js')).default;
+const observeSummaryRoutes = (await import('../../../api/_app/routes/desktop-observe-summary.js')).default;
 
 function createApp() {
   const app = express();

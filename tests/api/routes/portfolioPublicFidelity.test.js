@@ -49,15 +49,15 @@ function makeQuery(table) {
   return chain;
 }
 
-vi.mock('../../../api/services/database.js', () => ({
+vi.mock('../../../api/_app/services/database.js', () => ({
   supabaseAdmin: { from: vi.fn((table) => makeQuery(table)) },
 }));
-vi.mock('../../../api/services/logger.js', () => ({
+vi.mock('../../../api/_app/services/logger.js', () => ({
   createLogger: () => ({ info: vi.fn(), warn: vi.fn(), error: vi.fn() }),
 }));
 
 const { default: portfolioRoutes } = await import(
-  '../../../api/routes/portfolio-public.js'
+  '../../../api/_app/routes/portfolio-public.js'
 );
 
 const app = express();

@@ -20,16 +20,16 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 const { mockFrom } = vi.hoisted(() => ({ mockFrom: vi.fn() }));
 
-vi.mock('../../../api/services/database.js', () => ({
+vi.mock('../../../api/_app/services/database.js', () => ({
   supabaseAdmin: { from: mockFrom },
 }));
-vi.mock('../../../api/services/embeddingService.js', () => ({
+vi.mock('../../../api/_app/services/embeddingService.js', () => ({
   generateEmbedding: vi.fn(),
   vectorToString: vi.fn((v) => `[${v.join(',')}]`),
 }));
 
 const { buildProfile } = await import(
-  '../../../api/services/personalityProfileService.js'
+  '../../../api/_app/services/personalityProfileService.js'
 );
 
 const USER_ID = '167c27b5-a40b-49fb-8d00-deb1b1c57f4d';

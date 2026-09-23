@@ -17,12 +17,12 @@ process.env.ENCRYPTION_KEY = '0'.repeat(64);
 process.env.NODE_ENV = 'test';
 process.env.OG_CARD_RATE_LIMIT_MAX = '3';
 
-vi.mock('../../../api/services/soulCardRenderer.js', () => ({
+vi.mock('../../../api/_app/services/soulCardRenderer.js', () => ({
   renderSoulCard: vi.fn(async () => Buffer.from('soul-card-png')),
   renderFallbackCard: vi.fn(async () => Buffer.from('fallback-png')),
 }));
 
-vi.mock('../../../api/services/redisClient.js', () => ({
+vi.mock('../../../api/_app/services/redisClient.js', () => ({
   get: vi.fn(async () => null),
   set: vi.fn(async () => {}),
   del: vi.fn(async () => {}),
@@ -30,16 +30,16 @@ vi.mock('../../../api/services/redisClient.js', () => ({
   isRedisAvailable: vi.fn(() => false),
 }));
 
-vi.mock('../../../api/services/logger.js', () => ({
+vi.mock('../../../api/_app/services/logger.js', () => ({
   createLogger: () => ({ info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() }),
 }));
 
-vi.mock('../../../api/services/database.js', () => ({
+vi.mock('../../../api/_app/services/database.js', () => ({
   supabaseAdmin: null,
   serverDb: {},
 }));
 
-const ogRoutes = (await import('../../../api/routes/og-image.js')).default;
+const ogRoutes = (await import('../../../api/_app/routes/og-image.js')).default;
 
 function createApp() {
   const app = express();

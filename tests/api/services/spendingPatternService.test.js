@@ -10,7 +10,7 @@
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-vi.mock('../../../api/services/database.js', () => {
+vi.mock('../../../api/_app/services/database.js', () => {
   const holder = globalThis.__sps_holder ?? (globalThis.__sps_holder = { result: { data: [], error: null } });
   globalThis.__sps_set = (r) => { holder.result = r; };
   const chain = {};
@@ -23,7 +23,7 @@ vi.mock('../../../api/services/database.js', () => {
   return { supabaseAdmin: { from: () => chain } };
 });
 
-import { getSpendingPatterns } from '../../../api/services/transactions/spendingPatternService.js';
+import { getSpendingPatterns } from '../../../api/_app/services/transactions/spendingPatternService.js';
 
 /** One discretionary transaction row with an emotional_context tag. */
 function tx({ amount = -100, category = 'shopping', date = '2026-06-15', stress = null, recovery = null, hrv = null, valence = null, stressShop = false }) {

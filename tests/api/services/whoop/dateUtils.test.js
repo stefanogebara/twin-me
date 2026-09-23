@@ -8,7 +8,7 @@ import {
   resolveDateExpression,
   validateDateRange,
   InvalidDateExpression,
-} from '../../../../api/services/whoop/dateUtils.js';
+} from '../../../../api/_app/services/whoop/dateUtils.js';
 
 const FIXED_NOW = new Date('2026-03-15T12:00:00.000Z');
 

@@ -3,7 +3,7 @@ import {
   fenceUntrustedContext,
   CONTEXT_FENCE_OPEN,
   CONTEXT_FENCE_CLOSE,
-} from '../../api/services/promptFencing.js';
+} from '../../api/_app/services/promptFencing.js';
 
 // Contract: user-derived context is wrapped in an explicit DATA fence so the
 // model (told by TWIN_BASE_INSTRUCTIONS that fenced content is data, never

@@ -2,7 +2,7 @@
 import { describe, expect, it } from 'vitest';
 import express from 'express';
 import request from 'supertest';
-import { validate, z } from '../../../api/middleware/validate.js';
+import { validate, z } from '../../../api/_app/middleware/validate.js';
 
 const app = express(); app.use(express.json());
 app.post('/things/:id', validate({ params: z.object({ id: z.string().uuid() }), body: z.object({ amount: z.number().positive(), note: z.string().max(5).optional() }).passthrough(), query: z.object({ dry: z.enum(['1']).optional() }) }), (req, res) => res.json({ ok: true, body: req.body, id: req.params.id, dry: req.query.dry }));

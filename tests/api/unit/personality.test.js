@@ -9,10 +9,10 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { buildPersonalityPrompt } from '../../../api/services/personalityPromptBuilder.js';
+import { buildPersonalityPrompt } from '../../../api/_app/services/personalityPromptBuilder.js';
 // computeCentroid + cosineSimilarity moved out of personalityDriftService
 // (deleted in a refactor) into the shared statsUtils module.
-import { computeCentroid, cosineSimilarity } from '../../../api/services/statsUtils.js';
+import { computeCentroid, cosineSimilarity } from '../../../api/_app/services/statsUtils.js';
 
 // The OCEAN→sampling pipeline got swapped for a 5-layer Soul-Signature→
 // sampling pipeline (deriveSamplingParamsFrom5Layers). The old OCEAN-keyed

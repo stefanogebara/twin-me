@@ -4,7 +4,7 @@
  * discovery "look you up" reveal never shows junk. Pure function; no network.
  */
 import { describe, it, expect } from 'vitest';
-import { cleanBio } from '../../../api/services/enrichment/twitterBraveProvider.js';
+import { cleanBio } from '../../../api/_app/services/enrichment/twitterBraveProvider.js';
 
 describe('twitterBraveProvider cleanBio', () => {
   it('rejects the exact X.com no-JS fallback string observed in production', () => {

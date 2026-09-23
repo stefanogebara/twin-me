@@ -3,8 +3,8 @@ import { expect, it, vi } from 'vitest';
 import express from 'express';
 import request from 'supertest';
 const owner = '00000000-0000-4000-8000-000000000001';
-vi.mock('../../../api/middleware/auth.js', () => ({ authenticateUser: (req, _res, next) => { req.user = { id: owner }; next(); } }));
-import router from '../../../api/routes/money.js';
+vi.mock('../../../api/_app/middleware/auth.js', () => ({ authenticateUser: (req, _res, next) => { req.user = { id: owner }; next(); } }));
+import router from '../../../api/_app/routes/money.js';
 const app = express(); app.use(express.json()); app.use('/money', router);
 
 const cases = [

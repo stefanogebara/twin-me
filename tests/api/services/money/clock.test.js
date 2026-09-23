@@ -1,6 +1,6 @@
 /** Which payments know their hour, and the line that says when they do not. */
 import { describe, expect, it } from 'vitest';
-import { hasRealTime, timedShare, clockLine } from '../../../../api/services/money/clock.js';
+import { hasRealTime, timedShare, clockLine } from '../../../../api/_app/services/money/clock.js';
 
 const at = (iso) => ({ id: iso, occurred_at: iso, amount: -10 });
 

@@ -11,7 +11,7 @@ import {
   buildReplyLatencyCandidate,
   MAX_LATENCY_MS,
   LATENCY_FLOOR_HRS,
-} from '../../../api/services/replyLatency.js';
+} from '../../../api/_app/services/replyLatency.js';
 
 const HOUR = 3600_000;
 const msg = (epoch, fromMe) => ({ internalDate: String(epoch), fromMe });

@@ -1,5 +1,5 @@
 /**
- * Smoke tests for api/routes/privacy-settings.js
+ * Smoke tests for api/_app/routes/privacy-settings.js
  * Covers: auth guard, GET profile shape, cluster privacyLevel 0-100 validation,
  * preset-not-found 404, downstream 500.
  *
@@ -24,7 +24,7 @@ const updateClusterPrivacyMock = vi.fn();
 // preset lookup result holder for the /presets/:key/apply path
 let presetResult = { data: { preset_key: 'friends', global_privacy: 50 }, error: null };
 
-vi.mock('../../../api/services/privacyService.js', () => ({
+vi.mock('../../../api/_app/services/privacyService.js', () => ({
   getOrCreatePrivacyProfile: (...a) => getOrCreatePrivacyProfileMock(...a),
   updateGlobalPrivacyLevel: vi.fn().mockResolvedValue({ success: true, profile: { globalPrivacy: 50 } }),
   updateClusterPrivacy: (...a) => updateClusterPrivacyMock(...a),
@@ -33,7 +33,7 @@ vi.mock('../../../api/services/privacyService.js', () => ({
   DEFAULT_LIFE_CLUSTERS: {},
 }));
 
-vi.mock('../../../api/config/supabase.js', () => {
+vi.mock('../../../api/_app/config/supabase.js', () => {
   const client = {
     from: vi.fn(() => ({
       select: vi.fn().mockReturnThis(),
@@ -45,7 +45,7 @@ vi.mock('../../../api/config/supabase.js', () => {
   return { supabaseAdmin: client, supabase: client, default: client };
 });
 
-vi.mock('../../../api/services/database.js', () => ({
+vi.mock('../../../api/_app/services/database.js', () => ({
   supabaseAdmin: {
     from: vi.fn(() => ({
       select: vi.fn().mockReturnThis(),
@@ -59,7 +59,7 @@ vi.mock('../../../api/services/database.js', () => ({
 const TEST_USER = '167c27b5-a40b-49fb-8d00-deb1b1c57f4d';
 const signToken = () => jwt.sign({ id: TEST_USER }, 'test-secret', { expiresIn: '1h' });
 
-const privacyRoutes = (await import('../../../api/routes/privacy-settings.js')).default;
+const privacyRoutes = (await import('../../../api/_app/routes/privacy-settings.js')).default;
 
 function createApp() {
   const app = express();

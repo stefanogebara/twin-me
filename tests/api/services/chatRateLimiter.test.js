@@ -13,7 +13,7 @@ let redisClientValue;   // what getRedisClient() returns
 let redisAvailable;     // what isRedisAvailable() returns
 let getClientThrows;    // make getRedisClient throw
 
-vi.mock('../../../api/services/redisClient.js', () => ({
+vi.mock('../../../api/_app/services/redisClient.js', () => ({
   getRedisClient: () => {
     if (getClientThrows) throw new Error('redis client boom');
     return redisClientValue;
@@ -22,7 +22,7 @@ vi.mock('../../../api/services/redisClient.js', () => ({
 }));
 
 const { checkChatRateLimit, CHAT_RATE_LIMIT_MAX } = await import(
-  '../../../api/services/chatRateLimiter.js'
+  '../../../api/_app/services/chatRateLimiter.js'
 );
 
 const uid = () => `u-${Math.random().toString(36).slice(2)}`;

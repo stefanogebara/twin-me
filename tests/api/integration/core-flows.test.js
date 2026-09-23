@@ -25,7 +25,7 @@ process.env.NODE_ENV = 'test';
 // ── Module mocks ─────────────────────────────────────────────────────────────
 
 // Mock database module — shared across all service imports
-vi.mock('../../../api/services/database.js', () => {
+vi.mock('../../../api/_app/services/database.js', () => {
   const chain = {
     select: vi.fn(),
     eq: vi.fn(),
@@ -54,7 +54,7 @@ vi.mock('../../../api/services/database.js', () => {
 });
 
 // Mock LLM gateway — no real AI calls in tests
-vi.mock('../../../api/services/llmGateway.js', () => ({
+vi.mock('../../../api/_app/services/llmGateway.js', () => ({
   complete: vi.fn().mockResolvedValue({ content: '5' }),
   stream: vi.fn(),
   TIER_CHAT: 'chat',
@@ -63,15 +63,15 @@ vi.mock('../../../api/services/llmGateway.js', () => ({
 }));
 
 // Mock embedding service — no real OpenAI calls
-vi.mock('../../../api/services/embeddingService.js', () => ({
+vi.mock('../../../api/_app/services/embeddingService.js', () => ({
   generateEmbedding: vi.fn().mockResolvedValue(new Array(1536).fill(0)),
   vectorToString: vi.fn().mockReturnValue('[0,0,0]'),
 }));
 
 // ── Imports (after mocks) ────────────────────────────────────────────────────
-const { supabaseAdmin } = await import('../../../api/services/database.js');
-const { getMemoryStats, archiveOldMemories } = await import('../../../api/services/memoryStreamService.js');
-const { authenticateUser } = await import('../../../api/middleware/auth.js');
+const { supabaseAdmin } = await import('../../../api/_app/services/database.js');
+const { getMemoryStats, archiveOldMemories } = await import('../../../api/_app/services/memoryStreamService.js');
+const { authenticateUser } = await import('../../../api/_app/middleware/auth.js');
 
 // ── Test helpers ─────────────────────────────────────────────────────────────
 
@@ -228,7 +228,7 @@ describe('Flow 4: Goal suggestions', () => {
     );
 
     // Dynamically import goalTrackingService with mocked supabase
-    const { getUserGoals } = await import('../../../api/services/goalTrackingService.js');
+    const { getUserGoals } = await import('../../../api/_app/services/goalTrackingService.js');
     const suggestions = await getUserGoals('user-test-3', 'suggested');
 
     expect(Array.isArray(suggestions)).toBe(true);
@@ -249,13 +249,13 @@ describe('Flow 4: Goal suggestions', () => {
 describe('Flow 5: Reflection trigger threshold', () => {
   it('returns false when importance sum is below threshold (< 80)', async () => {
     // Mock memoryStreamService to return low importance sum
-    const memoryService = await import('../../../api/services/memoryStreamService.js');
+    const memoryService = await import('../../../api/_app/services/memoryStreamService.js');
     const origFn = memoryService.getRecentImportanceSum;
 
     // Patch the imported function via the mock — below the 80 threshold.
     supabaseAdmin.rpc.mockResolvedValue({ data: 50, error: null });
 
-    const { shouldTriggerReflection } = await import('../../../api/services/reflectionEngine.js');
+    const { shouldTriggerReflection } = await import('../../../api/_app/services/reflectionEngine.js');
 
     // Use a unique userId so cooldown doesn't interfere
     const result = await shouldTriggerReflection('threshold-test-user-low-' + Date.now());
@@ -268,7 +268,7 @@ describe('Flow 5: Reflection trigger threshold', () => {
   // reflection cron in half by requiring a denser accumulation of
   // important observations before kicking off a recursion.
   it('IMPORTANCE_THRESHOLD is exported and equals 80', async () => {
-    const { IMPORTANCE_THRESHOLD } = await import('../../../api/services/reflectionEngine.js');
+    const { IMPORTANCE_THRESHOLD } = await import('../../../api/_app/services/reflectionEngine.js');
     expect(IMPORTANCE_THRESHOLD).toBe(80);
   });
 

@@ -18,7 +18,7 @@ vi.mock('resend', () => ({
 async function importFreshEmailService() {
   vi.resetModules();
   vi.stubEnv('RESEND_API_KEY', 're_test_key');
-  return import('../../api/services/emailService.js');
+  return import('../../api/_app/services/emailService.js');
 }
 
 describe('sendMagicLink vs the Resend {data, error} contract', () => {

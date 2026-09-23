@@ -13,7 +13,7 @@ import { translate, ensureDict } from '../../src/lib/i18n';
 /* The dictionaries arrive on demand since 2026-09-19; the tests ask for both first. */
 beforeAll(async () => { await ensureDict('es'); await ensureDict('pt-BR'); });
 
-const source = (name: string) => readFileSync(new URL(`../../api/services/money/${name}`, import.meta.url), 'utf8');
+const source = (name: string) => readFileSync(new URL(`../../api/_app/services/money/${name}`, import.meta.url), 'utf8');
 const files = ['context.js', 'bizum.js'].map(source).join('\n');
 
 /** Every fixed question string the page prints: the ask, the help and the why. */

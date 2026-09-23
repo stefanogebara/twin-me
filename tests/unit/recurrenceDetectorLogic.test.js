@@ -1,7 +1,7 @@
 /**
  * Unit tests for the recurrence detector's pure grouping logic.
  *
- * The real `detectAndMarkRecurring` in api/services/transactions/recurrenceDetector.js
+ * The real `detectAndMarkRecurring` in api/_app/services/transactions/recurrenceDetector.js
  * hits Supabase. We extract just the JS math here: given N transactions grouped
  * by merchant, when does the detector classify as recurring?
  *

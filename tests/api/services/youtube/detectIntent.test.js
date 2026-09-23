@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { detectYoutubeIntent } from '../../../../api/services/youtube/detectIntent.js';
+import { detectYoutubeIntent } from '../../../../api/_app/services/youtube/detectIntent.js';
 
 describe('detectYoutubeIntent', () => {
   it('returns null for empty', () => expect(detectYoutubeIntent('').kind).toBeNull());

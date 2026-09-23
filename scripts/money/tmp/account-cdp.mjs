@@ -1,0 +1,12 @@
+import { chromium } from 'playwright';
+const browser = await chromium.connectOverCDP('http://127.0.0.1:9333');
+const context = browser.contexts()[0];
+const page = context.pages().find((p) => p.url().includes('twinme.me')) || await context.newPage();
+const bad = new Set(); page.on('response', (r) => { if (r.status() >= 400) bad.add(`${r.status()} ${r.url().replace('https://www.twinme.me', '')}`); });
+await page.goto('https://www.twinme.me/money/account', { waitUntil: 'domcontentloaded' }); await page.waitForTimeout(7000);
+const text = (await page.locator('main').innerText()).trim();
+const lines = text.split('\n').map((l) => l.trim()).filter(Boolean);
+console.log('words:', text.split(/\s+/).length);
+console.log(lines.filter((l) => /Santander|statement|Statement|bank|Bank|beta|cleared|country|€/.test(l)).slice(0, 10).join('\n'));
+console.log('failed requests:', [...bad].join(', ') || 'none');
+await browser.close();

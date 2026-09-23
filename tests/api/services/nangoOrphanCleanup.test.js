@@ -12,14 +12,14 @@ process.env.SUPABASE_SERVICE_ROLE_KEY = 'test-service-role';
 process.env.NODE_ENV = 'test';
 
 const rawDeleteMock = vi.fn();
-vi.mock('../../../api/services/nangoService.js', () => ({
+vi.mock('../../../api/_app/services/nangoService.js', () => ({
   deleteNangoConnectionRaw: (...a) => rawDeleteMock(...a),
 }));
 
 let selectResult = { data: [], error: null };
 const deleteCalls = [];
 let inArg = null;
-vi.mock('../../../api/services/database.js', () => {
+vi.mock('../../../api/_app/services/database.js', () => {
   function builder(table) {
     const b = { _table: table };
     b.select = vi.fn(() => b);
@@ -33,7 +33,7 @@ vi.mock('../../../api/services/database.js', () => {
   return { supabaseAdmin: { from: vi.fn((t) => builder(t)) } };
 });
 
-const { cleanupOrphanedNangoConnections, RETIRED_PLATFORMS } = await import('../../../api/services/nangoOrphanCleanup.js');
+const { cleanupOrphanedNangoConnections, RETIRED_PLATFORMS } = await import('../../../api/_app/services/nangoOrphanCleanup.js');
 
 beforeEach(() => {
   vi.clearAllMocks();

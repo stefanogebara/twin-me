@@ -1,5 +1,5 @@
 /**
- * Regression test for updateFromBehavior (api/services/behavioralLearningService.js).
+ * Regression test for updateFromBehavior (api/_app/services/behavioralLearningService.js).
  *
  * Bug (lint audit 2026-07-02, no-undef): commit aef72993 ("full OCEAN removal")
  * deleted `const archetype = mapToArchetype(...)` but left `archetype` in the
@@ -15,7 +15,7 @@ const { state } = vi.hoisted(() => ({
   state: { singleResults: [] },
 }));
 
-vi.mock('../../../api/config/supabase.js', () => {
+vi.mock('../../../api/_app/config/supabase.js', () => {
   const builder = {
     select: () => builder,
     eq: () => builder,
@@ -30,7 +30,7 @@ vi.mock('../../../api/config/supabase.js', () => {
   };
 });
 
-const { updateFromBehavior } = await import('../../../api/services/behavioralLearningService.js');
+const { updateFromBehavior } = await import('../../../api/_app/services/behavioralLearningService.js');
 
 const USER_ID = '167c27b5-a40b-49fb-8d00-deb1b1c57f4d';
 

@@ -32,7 +32,7 @@ async function importFreshEmailService() {
   vi.resetModules();
   vi.stubEnv('RESEND_API_KEY', 're_test_key');
   vi.stubEnv('CRON_SECRET', 'test_cron_secret');
-  return import('../../api/services/emailService.js');
+  return import('../../api/_app/services/emailService.js');
 }
 
 /** Minimum viable arguments for each sender — enough to render its template. */
@@ -135,7 +135,7 @@ describe('every email sender honours the Resend { data, error } contract', () =>
     vi.resetModules();
     vi.stubEnv('RESEND_API_KEY', '');
     vi.stubEnv('CRON_SECRET', 'test_cron_secret');
-    const mod = await import('../../api/services/emailService.js');
+    const mod = await import('../../api/_app/services/emailService.js');
     for (const name of SENDER_NAMES) {
       await expect(mod[name](SENDERS[name]), name).resolves.toBe(false);
     }

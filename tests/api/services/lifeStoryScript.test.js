@@ -1,7 +1,7 @@
 /**
  * Schema validation for the Story Chapters interview script.
  *
- * The script is data (api/config/lifeStoryScript.js) consumed by
+ * The script is data (api/_app/config/lifeStoryScript.js) consumed by
  * lifeStoryService.js. These tests pin the contract the engine relies on:
  * unique ids, per-question objectives (the follow-up engine's steering
  * signal), bounded turn budgets (the anti-dropout cap), and the verbatim
@@ -11,7 +11,7 @@
 import { describe, it, expect } from 'vitest';
 
 const { LIFE_STORY_CHAPTERS, DEFAULT_TURN_BUDGET } = await import(
-  '../../../api/config/lifeStoryScript.js'
+  '../../../api/_app/config/lifeStoryScript.js'
 );
 
 describe('lifeStoryScript — schema contract', () => {

@@ -5,7 +5,7 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { parseEvolutionMessage } from '../../../api/services/evolutionParse.js';
+import { parseEvolutionMessage } from '../../../api/_app/services/evolutionParse.js';
 
 const base = (msg, over = {}) => ({
   event: 'messages.upsert',

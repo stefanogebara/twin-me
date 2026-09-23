@@ -1,5 +1,5 @@
 /**
- * Smoke tests for api/routes/observations-clip.js
+ * Smoke tests for api/_app/routes/observations-clip.js
  * POST /api/observations/clip — desktop activity clip sync.
  *
  * Covers: auth guard (401), malformed payload (400), happy-path sync mapping,
@@ -18,12 +18,12 @@ process.env.NODE_ENV = 'test';
 
 const addMemoryMock = vi.fn();
 
-vi.mock('../../../api/services/memoryStreamService.js', () => ({
+vi.mock('../../../api/_app/services/memoryStreamService.js', () => ({
   addMemory: (...a) => addMemoryMock(...a),
 }));
 
 // Auth middleware does an email-verification lookup against supabaseAdmin.
-vi.mock('../../../api/services/database.js', () => ({
+vi.mock('../../../api/_app/services/database.js', () => ({
   supabaseAdmin: {
     from: vi.fn(() => ({
       select: vi.fn().mockReturnThis(),
@@ -37,7 +37,7 @@ vi.mock('../../../api/services/database.js', () => ({
 const TEST_USER = '167c27b5-a40b-49fb-8d00-deb1b1c57f4d';
 const signToken = () => jwt.sign({ id: TEST_USER }, 'test-secret', { expiresIn: '1h' });
 
-const observationsClipRoutes = (await import('../../../api/routes/observations-clip.js')).default;
+const observationsClipRoutes = (await import('../../../api/_app/routes/observations-clip.js')).default;
 
 function createApp() {
   const app = express();

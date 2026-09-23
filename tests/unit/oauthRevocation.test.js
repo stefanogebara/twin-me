@@ -4,7 +4,7 @@ import {
   getProviderClientCreds,
   GOOGLE_PROVIDERS,
   REVOCABLE_PROVIDERS,
-} from '../../api/services/oauthRevocation.js';
+} from '../../api/_app/services/oauthRevocation.js';
 
 const ok = (status = 200) => ({ ok: true, status });
 const nonOk = (status = 400) => ({ ok: false, status });

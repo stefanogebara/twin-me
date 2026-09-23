@@ -1,6 +1,6 @@
 /** What a stretch of time cost, in the person's own days: today, yesterday, last night, the weeks, each day. */
 import { describe, expect, it } from 'vitest';
-import { spendWindows, windowLines, breakdown } from '../../../../api/services/money/windows.js';
+import { spendWindows, windowLines, breakdown } from '../../../../api/_app/services/money/windows.js';
 
 /* Saturday 2026-09-19 at 10:00 in Madrid (08:00 UTC). */
 const now = new Date('2026-09-19T08:00:00Z');
@@ -51,7 +51,7 @@ describe('spendWindows', () => {
 
 describe('weekAverageLine', () => {
   it('averages the last four full weeks, Monday to Sunday, and names each', async () => {
-    const { weekAverageLine } = await import('../../../../api/services/money/windows.js');
+    const { weekAverageLine } = await import('../../../../api/_app/services/money/windows.js');
     const rows = [
       tx('w1', '2026-09-08T10:00:00Z', -100), // week of 7 Sep
       tx('w2', '2026-09-02T10:00:00Z', -50),  // week of 31 Aug
@@ -70,7 +70,7 @@ describe('weekAverageLine', () => {
 
 describe('dayTotals', () => {
   it('clips the first and last day to the instants given', async () => {
-    const { dayTotals } = await import('../../../../api/services/money/windows.js');
+    const { dayTotals } = await import('../../../../api/_app/services/money/windows.js');
     const from = new Date('2026-09-18T16:00:00Z').getTime(); // Friday 18:00 Madrid
     const to = new Date('2026-09-19T04:00:00Z').getTime();   // Saturday 06:00 Madrid
     const days = dayTotals(ledger, from, to);
@@ -80,12 +80,12 @@ describe('dayTotals', () => {
 
 describe('costliestDayLine and weekdayLine', () => {
   it('names the costliest day of the month with its largest payment', async () => {
-    const { costliestDayLine } = await import('../../../../api/services/money/windows.js');
+    const { costliestDayLine } = await import('../../../../api/_app/services/money/windows.js');
     expect(costliestDayLine(ledger, now)).toBe('Costliest day this month: Thursday 10 Sep 500,00 EUR (1), the largest rent 500,00 EUR.');
     expect(costliestDayLine([], now)).toBe('Costliest day this month: nothing spent yet.');
   });
   it('totals the last full weeks by day of the week, costliest first', async () => {
-    const { weekdayLine } = await import('../../../../api/services/money/windows.js');
+    const { weekdayLine } = await import('../../../../api/_app/services/money/windows.js');
     const rows = [tx('m1', '2026-09-07T10:00:00Z', -30), tx('m2', '2026-08-31T10:00:00Z', -20), tx('f1', '2026-09-11T20:00:00Z', -60), tx('this', '2026-09-15T10:00:00Z', -999)];
     expect(weekdayLine(rows, now, 8)).toBe('Spent by day of the week, last 8 full weeks, costliest first: Friday 60,00 EUR; Monday 50,00 EUR; Tuesday 0,00 EUR; Wednesday 0,00 EUR; Thursday 0,00 EUR; Saturday 0,00 EUR; Sunday 0,00 EUR.');
     expect(weekdayLine([], now)).toBe('Spent by day of the week, last 8 full weeks: nothing.');
@@ -94,7 +94,7 @@ describe('costliestDayLine and weekdayLine', () => {
 
 describe('cheapestDayLine and monthPaceLine', () => {
   it('names the cheapest day with a payment and counts the empty ones, and the average per day so far', async () => {
-    const { cheapestDayLine, monthPaceLine } = await import('../../../../api/services/money/windows.js');
+    const { cheapestDayLine, monthPaceLine } = await import('../../../../api/_app/services/money/windows.js');
     expect(cheapestDayLine(ledger, now)).toBe('Cheapest day with a payment this month: Saturday 19 Sep 14,50 EUR (2); days with nothing spent: 15.');
     expect(monthPaceLine(ledger, now)).toBe('Average per day this month: 32,01 EUR over 19 days (spent 608,10 EUR so far).');
     expect(monthPaceLine([], now)).toBe('Average per day this month: 0,00 EUR over 19 days (spent 0,00 EUR so far).');

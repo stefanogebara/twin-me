@@ -2,7 +2,7 @@
  * Audio-features must never take a Spotify extraction down with it.
  *
  * IMPORTERS/CALLERS: exercises realTimeExtractor.extractSpotifySignature
- * (called by api/routes/soul-extraction.js:112) and
+ * (called by api/_app/routes/soul-extraction.js:112) and
  * spotifyEnhancedExtractor.getAudioFeaturesForTracks, used by
  * extractComprehensiveProfile (soul-extraction.js:220).
  * AFFECTED API: Spotify top-tracks / top-artists / recently-played / playlists
@@ -29,7 +29,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 // realTimeExtractor imports supabaseAdmin at module load, which throws without
 // env. These tests exercise HTTP behaviour only and never touch the DB.
-vi.mock('../../../api/config/supabase.js', () => ({
+vi.mock('../../../api/_app/config/supabase.js', () => ({
   supabaseAdmin: { from: vi.fn() },
 }));
 
@@ -94,7 +94,7 @@ describe('realTimeExtractor.fetchSpotifyData', () => {
   it('returns the fetched data instead of failing when audio-features is unavailable', async () => {
     installFetch();
     const { default: RealTimeExtractor } = await import(
-      '../../../api/services/realTimeExtractor.js'
+      '../../../api/_app/services/realTimeExtractor.js'
     );
     const extractor = new RealTimeExtractor();
 
@@ -108,7 +108,7 @@ describe('realTimeExtractor.fetchSpotifyData', () => {
   it('does not spend requests on a known-restricted endpoint', async () => {
     const calls = installFetch();
     const { default: RealTimeExtractor } = await import(
-      '../../../api/services/realTimeExtractor.js'
+      '../../../api/_app/services/realTimeExtractor.js'
     );
     const extractor = new RealTimeExtractor();
 
@@ -121,7 +121,7 @@ describe('realTimeExtractor.fetchSpotifyData', () => {
     process.env.SPOTIFY_AUDIO_FEATURES_ENABLED = 'true';
     const calls = installFetch();
     const { default: RealTimeExtractor } = await import(
-      '../../../api/services/realTimeExtractor.js'
+      '../../../api/_app/services/realTimeExtractor.js'
     );
     const extractor = new RealTimeExtractor();
 
@@ -137,7 +137,7 @@ describe('spotifyEnhancedExtractor.getAudioFeaturesForTracks', () => {
   it('returns empty rather than throwing when the endpoint is restricted', async () => {
     installFetch();
     const { default: extractor } = await import(
-      '../../../api/services/spotifyEnhancedExtractor.js'
+      '../../../api/_app/services/spotifyEnhancedExtractor.js'
     );
 
     await expect(
@@ -149,7 +149,7 @@ describe('spotifyEnhancedExtractor.getAudioFeaturesForTracks', () => {
     process.env.SPOTIFY_AUDIO_FEATURES_ENABLED = 'true';
     installFetch();
     const { default: extractor } = await import(
-      '../../../api/services/spotifyEnhancedExtractor.js'
+      '../../../api/_app/services/spotifyEnhancedExtractor.js'
     );
 
     await expect(
@@ -160,7 +160,7 @@ describe('spotifyEnhancedExtractor.getAudioFeaturesForTracks', () => {
   it('still returns nothing for an empty track list', async () => {
     installFetch();
     const { default: extractor } = await import(
-      '../../../api/services/spotifyEnhancedExtractor.js'
+      '../../../api/_app/services/spotifyEnhancedExtractor.js'
     );
 
     await expect(extractor.getAudioFeaturesForTracks('token', [])).resolves.toEqual([]);
@@ -185,7 +185,7 @@ describe('spotifyEnhancedExtractor.analyzeMusicalSophistication', () => {
 
   it('produces no NaN when there are no audio features', async () => {
     const { default: extractor } = await import(
-      '../../../api/services/spotifyEnhancedExtractor.js'
+      '../../../api/_app/services/spotifyEnhancedExtractor.js'
     );
 
     const result = await extractor.analyzeMusicalSophistication(topArtistsLong, []);
@@ -197,7 +197,7 @@ describe('spotifyEnhancedExtractor.analyzeMusicalSophistication', () => {
 
   it('survives JSON serialization without turning scores into null', async () => {
     const { default: extractor } = await import(
-      '../../../api/services/spotifyEnhancedExtractor.js'
+      '../../../api/_app/services/spotifyEnhancedExtractor.js'
     );
 
     const result = await extractor.analyzeMusicalSophistication(topArtistsLong, []);
@@ -207,7 +207,7 @@ describe('spotifyEnhancedExtractor.analyzeMusicalSophistication', () => {
 
   it('still uses audio complexity when features are present', async () => {
     const { default: extractor } = await import(
-      '../../../api/services/spotifyEnhancedExtractor.js'
+      '../../../api/_app/services/spotifyEnhancedExtractor.js'
     );
 
     const withFeatures = await extractor.analyzeMusicalSophistication(topArtistsLong, [

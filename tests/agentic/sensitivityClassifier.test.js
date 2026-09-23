@@ -6,7 +6,7 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { classifySensitivity, tagSensitivity } from '../../api/services/sensitivityClassifier.js';
+import { classifySensitivity, tagSensitivity } from '../../api/_app/services/sensitivityClassifier.js';
 
 describe('Sensitivity Classifier', () => {
   describe('classifySensitivity', () => {

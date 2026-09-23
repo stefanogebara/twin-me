@@ -5,7 +5,7 @@
  * before the Editor ever saw them. The balanced-first-array strategy fixes it.
  */
 import { describe, it, expect } from 'vitest';
-import { _parseInsightsJSON } from '../../../api/services/proactiveInsights.js';
+import { _parseInsightsJSON } from '../../../api/_app/services/proactiveInsights.js';
 
 describe('_parseInsightsJSON — doubled / fenced arrays', () => {
   it('parses a clean array', () => {

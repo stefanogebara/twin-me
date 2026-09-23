@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { isMoneyChannelUser, moneyChannelUserIds, plainForChannel, cutAtSentence, renderReply, CHANNEL_MAX_CHARS, offerMessage, offerIdFrom, numberedChoice, asForwarded, labelOf } from '../../../../api/services/money/channel.js';
+import { isMoneyChannelUser, moneyChannelUserIds, plainForChannel, cutAtSentence, renderReply, CHANNEL_MAX_CHARS, offerMessage, offerIdFrom, numberedChoice, asForwarded, labelOf } from '../../../../api/_app/services/money/channel.js';
 
 describe('who is on the channel', () => {
   it('reads a comma-separated list and nothing else', () => {

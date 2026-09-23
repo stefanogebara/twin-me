@@ -10,7 +10,7 @@ import {
   median,
   computeFocusShape,
   buildFocusShapeCandidate,
-} from '../../../api/services/focusShape.js';
+} from '../../../api/_app/services/focusShape.js';
 
 // n sessions of `app` each lasting `sec` seconds.
 const s = (app, n, sec) => Array.from({ length: n }, () => ({ app, dwellSec: sec }));
