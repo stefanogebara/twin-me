@@ -5,7 +5,6 @@
  */
 
 import { euro, moneyAPI } from '../../../../services/api/moneyAPI';
-import { KindTile } from '../../Carved';
 import { cap, merchantName } from '../../words';
 import type { MoneyAccount } from '../../useMoneyAccount';
 
@@ -31,7 +30,8 @@ export default function WhereItWent({ m }: { m: MoneyAccount }) {
                 {categories.groups.map((g) => (
                   <li key={g.category} className={g.known ? '' : 'is-unknown'}>
                     <div className="mv-item">
-                      <KindTile kind={g.known ? g.category : null} label={g.category} />
+                      {/* No tile: the last card-like surface on the product (the owner, 2026-09-23).
+                          The share is drawn under the words, and that is the picture. */}
                       <span className="mv-item-text">
                         <span className="mv-item-title">{cap(t(g.category))}</span>
                         <span className="mv-item-sub">{g.share}%{g.merchants.length ? `, ${g.merchants.map((m) => merchantName(m.name, t)).slice(0, 3).join(', ')}` : ''}</span>

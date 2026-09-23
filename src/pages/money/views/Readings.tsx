@@ -54,7 +54,9 @@ export default function Readings({ m, view }: { m: MoneyAccount; view: 'today' |
                           {(() => { const said = readingWords(r, t, locale); return (<>
                             {/* A row is not a heading: no full stop at the end of its title. */}
                             <span className="mv-item-title">{said.sentence.replace(/\.$/, '')}</span>
-                            {said.detail ? <span className="mv-item-sub">{said.detail}</span> : null}
+                            {/* On Today the headline is the row; the detail waits behind the chevron
+                                (the owner, 2026-09-23). Month keeps the grey line. */}
+                            {said.detail && view !== 'today' ? <span className="mv-item-sub">{said.detail}</span> : null}
                           </>); })()}
                         </span>
                         <span className="mv-item-end"><Chevron /></span>
