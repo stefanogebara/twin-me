@@ -1,3 +1,5 @@
+/* The per-platform timeout is measured with real timers, and on a loaded CI runner a 500 ms wait
+   measures 499 (twice on 2026-09-24, under the coverage floor); ten milliseconds of slack. */
 /**
  * Tests for H9 — parallel platform fetch pattern in observationIngestion.js
  *
@@ -105,7 +107,7 @@ describe('H9 parallel platform fetch with per-platform timeout', () => {
     // spotify's ms should be ~50ms, well under the timeout, proving it wasn't
     // blocked by gmail hanging.
     expect(byName.spotify.ms).toBeLessThan(200);
-    expect(byName.gmail.ms).toBeGreaterThanOrEqual(TEST_TIMEOUT_MS);
+    expect(byName.gmail.ms).toBeGreaterThanOrEqual(TEST_TIMEOUT_MS - 10);
   });
 
   it('errors thrown by fetchers are isolated — they do not reject the outer allSettled', async () => {
