@@ -253,6 +253,15 @@ export const moneyAPI = {
   removeAccount: (id: string) => moneyFetch(`/money/bank/accounts/${encodeURIComponent(id)}`, { method: 'DELETE' }).then((r) => json<{ id: string; name: string | null; transactions: number; sightings: number; consent_ended: boolean }>(r)),
   statementAccounts: () => moneyFetch('/money/statement/accounts').then((r) => json<MoneyStatementAccount[]>(r)),
   createStatementAccount: (name: string) => moneyFetch('/money/statement/accounts', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name }) }).then((r) => json<MoneyStatementAccount>(r)),
+  /** The month as a sheet: the bytes come with the session's own header, so a plain link would not do. */
+  monthSheet: async (month: string): Promise<{ blob: Blob; filename: string; rows: number }> => {
+    const auth = getAuthHeaders() as unknown as Record<string, string>;
+    const headers: Record<string, string> = {};
+    if (auth.Authorization) headers.Authorization = auth.Authorization;
+    const res = await fetch(`${API_URL}/money/sheet?month=${encodeURIComponent(month)}`, { headers, credentials: 'include' });
+    if (!res.ok) throw new Error('The sheet could not be made.');
+    return { blob: await res.blob(), filename: `twinme-${month}.xlsx`, rows: Number(res.headers.get('X-Rows')) || 0 };
+  },
   importStatement: async (file: File, accountId: string) => {
     const body = new FormData();
     body.append('file', file);
