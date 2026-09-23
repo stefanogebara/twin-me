@@ -9,13 +9,13 @@ import { answer } from '../../../../api/services/money/chat.js';
 describe('when the model does not answer', () => {
   it('says the answer took too long, not that the ledger lacks it, and asked for fifty seconds', async () => {
     complete.mockRejectedValueOnce(new Error('[LLM Gateway] Request timed out after 50000ms for chat/deepseek (money-chat)'));
-    const r = await answer('00000000-0000-4000-8000-000000000001', 'The Cafe payment of 12,50 is not mine, my flatmate used my card');
+    const r = await answer('00000000-0000-4000-8000-000000000001', 'why did the cafe cost more this month than last?');
     expect(r.text).toBe('That took too long to answer. Ask it again.');
     expect(complete).toHaveBeenCalledWith(expect.objectContaining({ tier: 'chat', timeoutMs: 50000 }));
   });
   it('keeps the old line for any other failure', async () => {
     complete.mockRejectedValueOnce(new Error('boom'));
-    const r = await answer('00000000-0000-4000-8000-000000000001', 'The Cafe payment of 12,50 is not mine');
+    const r = await answer('00000000-0000-4000-8000-000000000001', 'why did the cafe cost more?');
     expect(r.text).toBe('The ledger cannot answer that from what it has.');
   });
 });

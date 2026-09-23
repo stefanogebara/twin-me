@@ -138,7 +138,9 @@ async function take(token, action) {
     try { reply = await ask(token, scenario.message, step.history || history, Boolean(s.stream || step.stream)); } catch (e) { error = e.message; }
     const ms = Date.now() - t0;
     const sc = reply ? score(scenario, reply, ms) : { checks: {}, kinds: [], acts: [], sentences: 0, amounts: [], fetched: [] };
-    const jd = reply && JUDGE && scenario.route !== 'short' && scenario.judge !== false ? await grade(scenario, reply, reply.thinking) : null;
+    /* a computed reply ("Noted: ...", the offer as the answer) is a template, like the short route */
+    const computed = /^(Noted|Anotado):/.test(String(reply?.text || ''));
+    const jd = reply && JUDGE && scenario.route !== 'short' && scenario.judge !== false && !computed ? await grade(scenario, reply, reply.thinking) : null;
     if (jd && jd.addresses !== null) sc.checks.judge = jd.addresses > 0;
     const pass = !error && Object.values(sc.checks).every(Boolean);
     let took = null;

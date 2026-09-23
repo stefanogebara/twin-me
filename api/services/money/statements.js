@@ -140,3 +140,40 @@ export function personStatement(text) {
   if (!name || /^(transfer|payment|pago|pagamento|transferencia|bizum)\b/i.test(name)) return { role: hit[0], name: null };
   return { role: hit[0], name };
 }
+
+/** "I want to keep 300 at the end of the month": the amount they want left, or null. */
+export function keepStatement(text) {
+  const t = norm(text);
+  if (!/\b(keep|save|left over|have left|guardar|quedarme|que me queden?|sobrar|sobre|ficar com|manter|deixar)\b/.test(t)) return null;
+  if (!/\b(end of (the )?month|month end|by the end|a final de mes|fin de mes|final del mes|fim do mes|final do mes|no fim|at the end)\b/.test(t)) return null;
+  const a = amountIn(t);
+  return a && a.amount > 0 ? { amount: a.amount } : null;
+}
+
+/** "the 1,68 at Lidl is not mine", "that Cabify wasn't me": the amount and the name words, or null. */
+export function notMineStatement(text) {
+  const t = norm(text);
+  if (!/\b(not mine|isn'?t mine|is not mine|wasn'?t me|was not me|not my payment|not my charge|n[a]o (e|eh|foi) meu|n[a]o fui eu|no es mi[o]|no fue mi[o]|no fui yo)\b/.test(t)) return null;
+  const a = amountIn(t);
+  const words = t.replace(/\b(the|that|this|those|these|payment|charge|at|in|on|of|from|is|was|not|mine|me|my|isn'?t|wasn'?t|o|a|de|do|da|em|no|na|el|la|en|eur|euros?)\b/g, ' ').replace(/[\d.,]+/g, ' ').replace(/\s+/g, ' ').trim().split(' ').filter((w) => w.length >= 3);
+  return { amount: a ? a.amount : null, words };
+}
+
+/** "Banamani is a bar", "Torre IE should count as eating out", "X is not education, it is a cafe": the name and the kind words after it. */
+export function recategoriseStatement(text) {
+  const t = norm(text);
+  const m = t.match(/^(?:the\s+)?([\p{L}\p{N}][\p{L}\p{N} .&'-]{1,40}?)\s+(?:is|are|es|e|eh|should count as|should be|counts? as|deberia contar como|cuenta como|deveria contar como|conta como)\b(.*)$/u);
+  if (!m) return null;
+  const tail = m[2];
+  if (!/\b(count|counts|contar|conta|bar|cafe|caf|restaurant|restaurante|supermercado|supermarket|groceries|software|transport|taxi|eating out|comer fora|comida fuera|entertainment|clothing|ropa|roupa|health|pharmacy|farmacia|sport|gym|travel|hotel|bills|kind|tipo)\b/.test(tail)) return null;
+  return { name: stripNoise(m[1]).toLowerCase(), tail };
+}
+
+/** "forget what I said about Valencia", "esquece o que falei da viagem": the topic words, or null. */
+export function forgetStatement(text) {
+  const t = norm(text);
+  const m = t.match(/^(?:please\s+)?(?:forget|olvida|olvidate|esquece|esqueca|apaga|borra)\b(.*)$/);
+  if (!m) return null;
+  const words = m[1].replace(/\b(what|that|the|about|i|said|told|you|de|do|da|o|a|que|lo|falei|dije|disse|sobre|of|my|el|la|isso|eso|it)\b/g, ' ').replace(/[^\p{L}\p{N} ]/gu, ' ').replace(/\s+/g, ' ').trim().split(' ').filter((w) => w.length >= 4);
+  return { words };
+}

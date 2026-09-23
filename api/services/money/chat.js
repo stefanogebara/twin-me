@@ -30,7 +30,7 @@ import { complete, stream as streamComplete, TIER_CHAT } from '../llmGateway.js'
 import { stretchLine, windowLines, weekAverageLine, costliestDayLine, cheapestDayLine, monthPaceLine, weekdayLine, spendWindows, breakdown, eur, NO_NAME } from './windows.js';
 import { askedLines, askedDays, askedWindows, askedAhead } from './asked.js';
 import { clockLine } from './clock.js';
-import { personStatement, incomeStatement, subscriptionStatement, cancelStatement } from './statements.js';
+import { keepStatement, notMineStatement, recategoriseStatement, forgetStatement, personStatement, incomeStatement, subscriptionStatement, cancelStatement } from './statements.js';
 import { listReturnsClosing } from './returns.js';
 import { tripDays } from './when.js';
 import { balances, describeBetweenPeople, monthBetweenPeople, describeMonthBetweenPeople, splitFindings, MIN_WAYS, MAX_WAYS } from './bizum.js';
@@ -60,7 +60,7 @@ export const ACTION_KINDS = Object.freeze(['not_me', 'recategorise', 'answer', '
    15th", "I cancelled Spotify": kept as notes, they changed no number (2026-09-21). The
    readers in statements.js pull the parts out; this offers the fact itself when the parts
    are there, and asks for the missing one when they are not. Computed, never the model's. */
-export const FACT_KINDS_OFFERED = Object.freeze(['income', 'commitment', 'merchant_kind']);
+export const FACT_KINDS_OFFERED = Object.freeze(['income', 'commitment', 'merchant_kind', 'keep']);
 const keyOf = (name) => String(name || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, ' ').trim();
 const dayWord = (L, d) => say(L, 'the {d}', { d: ordinalIn(L, d) });
 function ordinalIn(L, d) {
@@ -95,6 +95,32 @@ export function learnFromStatement(message, ctx, { now = new Date() } = {}) {
   /* Who somebody is: a role word and a name the ledger has seen as a transfer or Bizum
      counterpart become the person offer here, computed; the model offered remember for
      "she is my landlord" one run in two (2026-09-23). */
+  /* Four more things a person says, offered by computation (the benchmark of 2026-09-23: the
+     model offered a note for "the 1,68 at Lidl is not mine", for "Banamani is a bar" and for
+     "keep 300 at month end", and nothing for "forget what I said about Valencia"). */
+  const forget = forgetStatement(message);
+  if (forget) {
+    const note = (ctx.facts || []).filter((f) => f.id && f.kind === 'note' && f.value).find((f) => forget.words.some((w) => String(f.value).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').includes(w)));
+    if (note) return { offer: { kind: 'forget', fact_id: note.id, label: say(L, 'Forget: {what}', { what: String(note.value).slice(0, 60) }) } };
+  }
+  const notMine = notMineStatement(message);
+  if (notMine) {
+    const norm = (x) => String(x || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    const rows = (ctx.transactions || []).filter((t) => Number(t.amount) < 0 && t.verdict !== 'not_me')
+      .filter((t) => (notMine.amount == null || Math.abs(Math.abs(Number(t.amount)) - notMine.amount) < 0.005))
+      .filter((t) => !notMine.words.length || notMine.words.some((w) => norm(t.merchant_raw).includes(w) || norm(t.merchant_key).includes(w)))
+      .sort((a, b) => new Date(b.occurred_at) - new Date(a.occurred_at));
+    if (rows.length && (notMine.amount != null || notMine.words.length)) return { offer: { kind: 'not_me', transaction_id: rows[0].id } };
+  }
+  const recat = recategoriseStatement(message);
+  if (recat) {
+    const category = kindInMessage(recat.tail.split(/\b(?:not|nao|n\u00e3o|no)\b/).pop());
+    const key = [...(ctx.placeByKey?.keys() || [])].find((k) => String(k).toLowerCase() === recat.name || String(k).toLowerCase().startsWith(recat.name) || recat.name.startsWith(String(k).toLowerCase()))
+      || (ctx.transactions || []).map((t) => t.merchant_key).find((k) => k && (String(k).toLowerCase() === recat.name || String(k).toLowerCase().startsWith(recat.name)));
+    if (category && key) return { offer: { kind: 'recategorise', merchant_key: key, category } };
+  }
+  const keep = keepStatement(message);
+  if (keep) return { offer: { kind: 'fact', fact: { kind: 'keep', subject: 'month', subjectLabel: null, value: null, amount: keep.amount, day: null }, label: say(L, 'Keep {amount} at month end', { amount: amountText(keep.amount) }) } };
   const who = personStatement(message);
   if (who && who.role) {
     const row = who.name ? personRow(ctx.transactions, who.name) : null;
@@ -504,6 +530,7 @@ export function validateAction(action, ctx) {
     if (!f || !FACT_KINDS_OFFERED.includes(f.kind) || !f.subject) return null;
     const fact = { kind: f.kind, subject: String(f.subject).slice(0, 120), subjectLabel: f.subjectLabel ? String(f.subjectLabel).slice(0, 120) : null, value: f.value == null ? null : String(f.value).slice(0, 240), amount: Number.isFinite(Number(f.amount)) ? Number(f.amount) : null, day: Number.isFinite(Number(f.day)) ? Number(f.day) : null, note: f.note ? String(f.note).slice(0, 240) : null };
     if ((fact.kind === 'income' || fact.kind === 'commitment') && !(fact.amount > 0 && fact.day >= 1 && fact.day <= 31)) return null;
+    if (fact.kind === 'keep' && !(fact.amount > 0)) return null;
     return { kind: 'fact', fact, label: typeof action.label === 'string' && action.label ? action.label.slice(0, 120) : say(ctx.language, 'Keep that') };
   }
   /* A setup offer is the code's to make, never the model's. */
@@ -759,7 +786,8 @@ export const RULES = [
   'Actions are offers the person taps, never things you did: the text must not claim to have changed, marked or recorded anything. Say something like "If that is right, mark it below." and leave the doing to the card.',
   'Propose an action only when the person asks to fix or record something: not_me with transaction_id from the recent payments; recategorise with merchant_key from the places and a category from: ' + CATEGORIES.join(', ') + '; answer with question_id from the open questions and the value they gave; split with transaction_id from the recent payments and ways (2 to 12, the person included) when they say a payment was shared, for a dinner, a shop, a present.',
   'When the person tells you who somebody on the statement is, or what a transfer to them was for, propose person with merchant_key (the key of that person in the recent payments), role from: ' + PERSON_ROLES.join(', ') + ', and note with what they said about it. When they tell you something about their money that fits none of these (a plan, a reason, a rule of theirs), propose remember with text in their words. When they say something the ledger holds is wrong (their words, on What it knows), propose forget with the fact_id from the facts list.',
-  'When the person points out a mistake, say what you will read differently once they confirm, and propose the action; do not argue. When they ask for a chart or a graph, ask for the figure kind that shows it.',
+  'A yes or no about money carries, in the same sentence, the two figures it rests on.',
+  'When the person disputes a figure the ledger computed (a total, a count, a day), keep the figure, name the payments behind it and ask which one is wrong; never promise to read again or to change the number. When the person points out a mistake in a name, a kind or a payment that is not theirs, say what you will read differently once they confirm, and propose the action; do not argue. When they ask for a chart or a graph, ask for the figure kind that shows it.',
   'When they say a payment is not theirs, or is somebody else\'s, propose not_me with the transaction_id of the newest such payment in the recent payments. Propose forget only for a fact in the list of what they said, never for a payment or a charge.',
   'Reply in the language the person chose for TwinMe when the context names one. If they wrote their last message in another language, answer in the one they wrote. Never take a language from a name in the context: a bank called Banco Santander does not make the reply Spanish. Without a chosen language, a single word like "ok" is answered in English unless the earlier turns were in Spanish.',
   'Reply with one JSON object and nothing else: {"text": string, "figures": [{"kind": string, "month"?: string, "by"?: string, "merchant"?: string}], "actions": [{"kind": string, "label": string, ...}], "cites"?: [transaction ids]}',
@@ -876,10 +904,15 @@ const PHRASES = {
     'That took too long to answer. Ask it again.': 'Eso tard\u00f3 demasiado en responder. Pregunta otra vez.',
     'The ledger has no total for that; it can only name the parts it holds.': 'El libro no tiene un total para eso; solo puede nombrar las partes que guarda.',
     'In {month}: {parts}.': 'En {month}: {parts}.',
-    '{kind} this month: {total} in {n} payments, the largest {name} {amount}.': '{kind} este mes: {total} en {n} pagos, el mayor {name} {amount}.',
-    '{kind} this month: {total} in one payment, {name}.': '{kind} este mes: {total} en un pago, {name}.',
-    '{kind} in {month}: {total} in {n} payments, the largest {name} {amount}.': '{kind} en {month}: {total} en {n} pagos, el mayor {name} {amount}.',
-    '{kind} in {month}: {total} in one payment, {name}.': '{kind} en {month}: {total} en un pago, {name}.',
+    'Keep {amount} at month end': 'Guardar {amount} a fin de mes',
+    'Forget: {what}': 'Olvidar: {what}',
+    '{amount} kept for the end of the month. Today and the plan move with it.': '{amount} guardados para fin de mes. Hoy y el plan se mueven con ello.',
+    'And {names}, which you said comes back, {total} a month.': 'Y {names}, que dijiste que vuelve, {total} al mes.',
+    'And {names}, which you said come back, {total} a month together.': 'Y {names}, que dijiste que vuelven, {total} al mes en total.',
+    '{kind} this month: {total} in one payment, {name}, {pct}% of the month.': '{kind} este mes: {total} en un pago, {name}, el {pct}% del mes.',
+    '{kind} this month: {total} in {n} payments, {pct}% of the month, the largest {name} {amount}.': '{kind} este mes: {total} en {n} pagos, el {pct}% del mes, el mayor {name} {amount}.',
+    '{kind} in {month}: {total} in one payment, {name}, {pct}% of the month.': '{kind} en {month}: {total} en un pago, {name}, el {pct}% del mes.',
+    '{kind} in {month}: {total} in {n} payments, {pct}% of the month, the largest {name} {amount}.': '{kind} en {month}: {total} en {n} pagos, el {pct}% del mes, el mayor {name} {amount}.',
     'Nothing on {kind} this month.': 'Nada en {kind} este mes.',
     'Nothing on {kind} in {month}.': 'Nada en {kind} en {month}.',
     'In {month}, {kind} was {amount}.': 'En {month}, {kind} fue {amount}.',
@@ -989,10 +1022,15 @@ const PHRASES = {
     'That took too long to answer. Ask it again.': 'Isso demorou demais para responder. Pergunte de novo.',
     'The ledger has no total for that; it can only name the parts it holds.': 'O livro n\u00e3o tem um total para isso; s\u00f3 pode nomear as partes que guarda.',
     'In {month}: {parts}.': 'Em {month}: {parts}.',
-    '{kind} this month: {total} in {n} payments, the largest {name} {amount}.': '{kind} este m\u00eas: {total} em {n} pagamentos, o maior {name} {amount}.',
-    '{kind} this month: {total} in one payment, {name}.': '{kind} este m\u00eas: {total} em um pagamento, {name}.',
-    '{kind} in {month}: {total} in {n} payments, the largest {name} {amount}.': '{kind} em {month}: {total} em {n} pagamentos, o maior {name} {amount}.',
-    '{kind} in {month}: {total} in one payment, {name}.': '{kind} em {month}: {total} em um pagamento, {name}.',
+    'Keep {amount} at month end': 'Guardar {amount} no fim do m\u00eas',
+    'Forget: {what}': 'Esquecer: {what}',
+    '{amount} kept for the end of the month. Today and the plan move with it.': '{amount} guardados para o fim do m\u00eas. Hoje e o plano se movem com isso.',
+    'And {names}, which you said comes back, {total} a month.': 'E {names}, que voc\u00ea disse que volta, {total} por m\u00eas.',
+    'And {names}, which you said come back, {total} a month together.': 'E {names}, que voc\u00ea disse que voltam, {total} por m\u00eas no total.',
+    '{kind} this month: {total} in one payment, {name}, {pct}% of the month.': '{kind} este m\u00eas: {total} em um pagamento, {name}, {pct}% do m\u00eas.',
+    '{kind} this month: {total} in {n} payments, {pct}% of the month, the largest {name} {amount}.': '{kind} este m\u00eas: {total} em {n} pagamentos, {pct}% do m\u00eas, o maior {name} {amount}.',
+    '{kind} in {month}: {total} in one payment, {name}, {pct}% of the month.': '{kind} em {month}: {total} em um pagamento, {name}, {pct}% do m\u00eas.',
+    '{kind} in {month}: {total} in {n} payments, {pct}% of the month, the largest {name} {amount}.': '{kind} em {month}: {total} em {n} pagamentos, {pct}% do m\u00eas, o maior {name} {amount}.',
     'Nothing on {kind} this month.': 'Nada em {kind} este m\u00eas.',
     'Nothing on {kind} in {month}.': 'Nada em {kind} em {month}.',
     'In {month}, {kind} was {amount}.': 'Em {month}, {kind} foi {amount}.',
@@ -1072,7 +1110,7 @@ export function shortCircuit(message, ctx) {
   const byKind = kindAnswer(message, ctx);
   if (byKind) return byKind;
   if (!isShortAsk(message)) return null;
-  if (/\b(subscri|suscrip|assinatura|recurring|comes? back)/.test(m) || (/\b(every month|cada mes|todo mes|todos os meses)\b/.test(m) && !/\b(software|groceries|food|transport|eating|comida|supermercado|transporte|bares?|restaurantes?|em |en |on |at )\b/.test(m)) && !/\b(cancel|not mine|isn'?t mine|fix|wrong|change)\b/.test(m)) {
+  if ((/\b(subscri|suscrip|assinatura|recurring|comes? back)/.test(m) || (/\b(every month|cada mes|todo mes|todos os meses)\b/.test(m) && !/\b(software|groceries|food|transport|eating|comida|supermercado|transporte|bares?|restaurantes?|em |en |on |at )\b/.test(m))) && !/\b(cancel|not mine|isn'?t mine|fix|wrong|change|worth|least|most|should|why|which|cheapest|dearest|useless|need)\b/.test(m)) {
     const built = buildFigure({ kind: 'recurring' }, ctx);
     const L = ctx.language;
     if (!built) return { text: say(L, 'Nothing comes back regularly yet. The ledger needs to see a charge at least twice to call it that.'), figures: [], actions: [], receipts: [] };
@@ -1085,10 +1123,14 @@ export function shortCircuit(message, ctx) {
     }
     const total = monthly.reduce((s, x) => s + Number(x.typical_amount || 0), 0);
     const names = monthly.slice(0, 3).map((s) => s.merchant_name || s.merchant_key);
+    /* What they told the ledger comes back, before the ledger has seen it twice: Netflix,
+       said an hour ago, was missing from "what comes back" (the benchmark of 2026-09-23). */
+    const stated = (ctx.facts || []).filter((f) => f.kind === 'commitment' && f.value === 'subscription' && Number(f.amount) > 0 && !monthly.some((s) => String(s.merchant_key || '').toLowerCase() === String(f.subject || '').toLowerCase()));
+    const statedText = stated.length ? ' ' + say(L, stated.length === 1 ? 'And {names}, which you said comes back, {total} a month.' : 'And {names}, which you said come back, {total} a month together.', { names: stated.map((f) => f.subject_label || f.subjectLabel || f.subject).join(', '), total: amountText(stated.reduce((s, f) => s + Number(f.amount), 0)) }) : '';
     const text = monthly.length
       ? `${say(L, monthly.length === 1 ? '{n} charge comes back every month, {total} together' : '{n} charges come back every month, {total} together', { n: monthly.length, total: amountText(total) })}${names.length ? `: ${names.join(', ')}${monthly.length > 3 ? say(L, ' and {n} more', { n: monthly.length - 3 }) : ''}` : ''}.`
       : say(L, ctx.recurring.length === 1 ? '{n} charge comes back regularly, none of them monthly.' : '{n} charges come back regularly, none of them monthly.', { n: ctx.recurring.length });
-    return { text: euroGlyphs(text), figures: [built.figure], actions: [], receipts: receiptsFor([built], ctx) };
+    return { text: euroGlyphs(text + statedText), figures: [built.figure], actions: [], receipts: receiptsFor([built], ctx) };
   }
   if (/\b(per month|by month|each month|month by month|months?\b.*(compare|side|trend)|mes a mes)/.test(m)) {
     const built = buildFigure({ kind: 'months' }, ctx);
@@ -1137,6 +1179,8 @@ export function kindAnswer(message, ctx) {
   const rows = ctx.transactions.filter((t) => out(t) && monthKeyOf(t.occurred_at) === key && ofKind(t)).sort((a, b) => abs(b) - abs(a));
   const before = ctx.transactions.filter((t) => out(t) && monthKeyOf(t.occurred_at) === prev && ofKind(t));
   const sum = (xs) => round2(xs.reduce((s, t) => s + abs(t), 0));
+  const monthTotal = sum(ctx.transactions.filter((t) => out(t) && monthKeyOf(t.occurred_at) === key));
+  const pct = monthTotal > 0 && rows.length ? Math.round((sum(rows) / monthTotal) * 100) : null;
   const word = kindWord(L, kind);
   const thisMonth = monthKeyOf(ctx.now.toISOString()) === key;
   const monthName = monthLong(`${key}-01`, L);
@@ -1144,10 +1188,10 @@ export function kindAnswer(message, ctx) {
   if (!rows.length) parts.push(thisMonth ? say(L, 'Nothing on {kind} this month.', { kind: word }) : say(L, 'Nothing on {kind} in {month}.', { kind: word, month: monthName }));
   else {
     const largest = rows[0];
-    const holes = { kind: word, month: monthName, total: amountText(sum(rows)), n: rows.length, name: nameOf(largest), amount: amountText(abs(largest)) };
+    const holes = { kind: word, month: monthName, total: amountText(sum(rows)), n: rows.length, name: nameOf(largest), amount: amountText(abs(largest)), pct };
     parts.push(say(L, thisMonth
-      ? (rows.length === 1 ? '{kind} this month: {total} in one payment, {name}.' : '{kind} this month: {total} in {n} payments, the largest {name} {amount}.')
-      : (rows.length === 1 ? '{kind} in {month}: {total} in one payment, {name}.' : '{kind} in {month}: {total} in {n} payments, the largest {name} {amount}.'), holes));
+      ? (rows.length === 1 ? '{kind} this month: {total} in one payment, {name}, {pct}% of the month.' : '{kind} this month: {total} in {n} payments, {pct}% of the month, the largest {name} {amount}.')
+      : (rows.length === 1 ? '{kind} in {month}: {total} in one payment, {name}, {pct}% of the month.' : '{kind} in {month}: {total} in {n} payments, {pct}% of the month, the largest {name} {amount}.'), holes));
   }
   parts.push(before.length ? say(L, 'In {month}, {kind} was {amount}.', { month: monthLong(`${prev}-01`, L), kind: word, amount: amountText(sum(before)) }) : say(L, 'Nothing on {kind} in {month}.', { kind: word, month: monthLong(`${prev}-01`, L) }));
   const monthly = (ctx.recurring || []).filter((r) => r.cadence === 'monthly' && (ctx.categoryOf({ merchant_key: r.merchant_key, channel: 'card' }) || 'not read yet') === kind);
@@ -1233,8 +1277,8 @@ export function isStatement(message) {
 
 /** Does a message ask where the money went, or speak in categories? */
 export function asksWhereItWent(message) {
-  const m = String(message || '').toLowerCase();
-  return /\b(where|what)\b.*\b(money|it|spend|spending|month|euros?)\b.*\b(go|went|gone|goes|on)\b/.test(m)
+  const m = String(message || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  return /\b(where|what)\b.*\b(money|it|spend|spending|month|euros?|january|february|march|april|may|june|july|august|september|october|november|december|enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|octubre|noviembre|diciembre|janeiro|fevereiro|marco|maio|junho|julho|setembro|outubro|novembro|dezembro)\b.*\b(go|went|gone|goes|on)\b/.test(m)
     || /\b(categor|kind of place|kinds of place|by type|breakdown|split|en que|en qu\u00e9|donde)/.test(m)
     || /\bspen[dt]\b.*\bon\b/.test(m);
 }
@@ -1298,6 +1342,11 @@ export function asksTable(message) {
   return /\b(table|tabela|tabla|ranking|rank|list(a|e|ame)?|largest first|biggest first|mais caro pr[ao] baixo|do mais caro|del mas caro|de mayor a menor|do maior pro menor|do maior para o menor|ordena\w*|sorted)\b/.test(m);
 }
 
+export function asksWeekday(message) {
+  const m = String(message || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  return /\b(day of the week|weekday|which day|what day|dia de la semana|dia da semana|que dia|qual dia|cual dia)\b/.test(m) && !/\b(yesterday|today|ayer|hoy|ontem|hoje)\b/.test(m);
+}
+
 export function asksGraph(message) {
   const m = String(message || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
   return /\b(graph|chart|plot|grafico|grafica|diagrama)\b/.test(m);
@@ -1318,9 +1367,16 @@ export function assembleReply(parsed, ctx, message = '') {
     const i = requests.findIndex((r) => r?.kind === 'weekdays' || r?.kind === 'history');
     if (i >= 0) requests[i] = { kind: 'week' }; else requests.unshift({ kind: 'week' });
   }
+  /* "Which day of the week do I spend the most?" is the weekdays figure, whatever the model
+     asked for (the benchmark of 2026-09-23: words and no chart). */
+  if (asksWeekday(message) && !requests.some((r) => r?.kind === 'weekdays' || r?.kind === 'week')) requests.unshift({ kind: 'weekdays' });
   /* A question about one kind draws that kind by place, whatever the model asked for: asked
      about software, it drew the whole month's kinds under its words (2026-09-23). */
-  const tableKind = kindInMessage(message);
+  /* A question about subscriptions is about what comes back, not about the software kind the
+     word maps to: "which subscription is the least worth it" drew software by place (2026-09-23). */
+  const aboutRecurring = /\b(subscri|suscrip|assinatura|recurring|comes? back)/i.test(String(message || ''));
+  if (aboutRecurring && !requests.some((r) => r?.kind === 'recurring' || r?.kind === 'history')) requests.unshift({ kind: 'recurring' });
+  const tableKind = isStatement(message) || aboutRecurring ? null : kindInMessage(message);
   if (tableKind) {
     const i = requests.findIndex((r) => r?.kind === 'shares');
     const named = monthInMessage(message);
@@ -1474,6 +1530,14 @@ function plainReplyRaw(text, ctx, now) {
 export async function answer(userId, message, history = [], { now = new Date() } = {}) {
   const text = String(message || '').trim();
   if (!text) return { text: NO_ANSWER, figures: [], actions: [], receipts: [] };
+  /* "hi" and "thanks" need no ledger: the read is a second or more (the benchmark of 2026-09-23). */
+  const early = smalltalkReply(text, languageOf(text) === 'pt' ? 'pt-BR' : (languageOf(text) || 'en'));
+  if (early) {
+    const reply = { text: early, figures: [], actions: [], receipts: [] };
+    await saveChatTurn(userId, { role: 'user', text }).catch(quietly('chat/save-user-turn', null));
+    await saveChatTurn(userId, { role: 'twin', text: early, figures: null, actions: null, basis: null, receipts: null }).catch(quietly('chat/save-twin-turn', null));
+    return reply;
+  }
   const ctx = await gather(userId, now);
   const keep = async (reply) => {
     await saveChatTurn(userId, { role: 'user', text }).catch(quietly('chat/save-user-turn', null));
@@ -1693,6 +1757,8 @@ export async function answerStream(userId, message, history = [], { now = new Da
 
   if (!asked) return closeWith({ text: (whole(NO_ANSWER), NO_ANSWER), figures: [], actions: [], receipts: [] });
 
+  const early = smalltalkReply(asked, languageOf(asked) === 'pt' ? 'pt-BR' : (languageOf(asked) || 'en'));
+  if (early) { whole(early); return closeWith({ text: early, figures: [], actions: [], receipts: [] }); }
   let ctx;
   try {
     ctx = await gather(userId, now);
@@ -1927,7 +1993,19 @@ export function amountsTyped(text) {
   return out;
 }
 
+/**
+ * "1,630.13 €" and "352.77 €" are the same money written the American way; the model does it
+ * on long answers. The ledger writes 1630,13 and 352,77, and every check downstream reads
+ * that form (the benchmark of 2026-09-23).
+ */
+export function ledgerAmounts(text) {
+  return String(text || '')
+    .replace(/\b(\d{1,3}(?:,\d{3})+)\.(\d{2})(?=\s?(?:\u20ac|EUR))/g, (m, a, b) => `${a.replace(/,/g, '')},${b}`)
+    .replace(/\b(\d+)\.(\d{2})(?=\s?(?:\u20ac|EUR))/g, '$1,$2');
+}
+
 export function dropUngrounded(text, ctx) {
+  text = ledgerAmounts(text);
   /* The amounts the person just typed are theirs to hear back: "you subscribed to Netflix,
      12,99 a month" was cut for a number the ledger had not computed (2026-09-21). */
   const known = amountsInText(contextText(ctx)).concat(amountsTyped(ctx.asked || ''));
@@ -2069,6 +2147,7 @@ export async function act(userId, action, { now = new Date() } = {}) {
     const f = checked.fact;
     await answerQuestion(userId, { questionId: null, kind: f.kind, subject: f.subject, subjectLabel: f.subjectLabel, value: f.value, amount: f.amount, day: f.day, note: f.note });
     if (f.kind === 'merchant_kind') return { done: true, said: say(ctx.language, '{name} is no longer expected. The month and the day move with it.', { name: f.subjectLabel || f.subject }) };
+    if (f.kind === 'keep') return { done: true, said: say(ctx.language, '{amount} kept for the end of the month. Today and the plan move with it.', { amount: amountText(f.amount) }) };
     if (f.kind === 'commitment') return { done: true, said: say(ctx.language, '{name}, {amount} on {day}, now counts as spoken for.', { name: f.subjectLabel || f.subject, amount: amountText(f.amount), day: dayWord(ctx.language, f.day) }) };
     return { done: true, said: say(ctx.language, '{source}, {amount}, now counts as coming in. Today and the plan move with it.', { source: f.subjectLabel || f.subject, amount: amountText(f.amount) }) };
   }
