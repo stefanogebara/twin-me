@@ -77,3 +77,13 @@ describe('whatsapp kapso webhook — the quoted message', () => {
     expect(processInboundWhatsApp).toHaveBeenCalledWith(expect.objectContaining({ context: { messageId: null, forwarded: true } }), expect.anything());
   });
 });
+
+describe('whatsapp kapso webhook - a reaction', () => {
+  it('passes the reacted message and the emoji, with no text', async () => {
+    const raw = JSON.stringify({ message: { id: 'wamid.rx1', from: '34600000000', type: 'reaction', reaction: { message_id: 'wamid.buttons', emoji: '\u{1F44D}' } } });
+    await post(raw);
+    expect(processInboundWhatsApp).toHaveBeenCalledTimes(1);
+    const parsed = processInboundWhatsApp.mock.calls[0][0];
+    expect(parsed).toMatchObject({ phone: '34600000000', text: null, messageId: 'wamid.rx1', format: 'kapso_v2_reaction', reaction: { messageId: 'wamid.buttons', emoji: '\u{1F44D}' } });
+  });
+});

@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 vi.mock('../../../../api/_app/services/logger.js', () => ({ createLogger: () => ({ warn() {}, error() {}, info() {}, debug() {} }) }));
 vi.mock('../../../../api/_app/services/money/chat.js', () => ({ answer: vi.fn(), act: vi.fn(), looksLikeInstruction: () => false }));
 vi.mock('../../../../api/_app/services/money/store.js', () => ({ inPersonScope: (id, fn) => fn(), personProfileCached: async () => ({ timezone: 'Europe/Madrid', country: 'ES', currency: 'EUR', language: null }),  listChatTurns: vi.fn(), userLanguage: vi.fn(), saveChatTurn: vi.fn() }));
-vi.mock('../../../../api/_app/services/money/channelStore.js', () => ({ claimInbound: vi.fn(), keepOffers: vi.fn(), takeOffer: vi.fn(), recentOffers: vi.fn(), offerSaid: vi.fn(), releaseOffer: vi.fn() }));
+vi.mock('../../../../api/_app/services/money/channelStore.js', () => ({ claimInbound: vi.fn(), keepOffers: vi.fn(), takeOffer: vi.fn(), recentOffers: vi.fn(), noteOfferMessage: vi.fn(), offersOfMessage: vi.fn(), offerSaid: vi.fn(), releaseOffer: vi.fn() }));
 vi.mock('../../../../api/_app/services/whatsappService.js', () => ({ sendWhatsAppCtaButton: vi.fn(), sendWhatsAppButtons: vi.fn(), downloadWhatsAppMedia: vi.fn() }));
 vi.mock('../../../../api/_app/services/money/attachments.js', () => ({ readAttachment: vi.fn(), acceptsAttachment: vi.fn(() => true), MAX_ATTACHMENT_BYTES: 4194304 }));
 vi.mock('../../../../api/_app/services/money/attachmentDeps.js', () => ({ ATTACHMENT_DEPS: {} }));
@@ -24,7 +24,9 @@ beforeEach(() => {
     recentOffers: vi.fn().mockResolvedValue([]),
     offerSaid: vi.fn().mockResolvedValue(),
     releaseOffer: vi.fn().mockResolvedValue(),
-    sendButtons: vi.fn().mockResolvedValue({ success: true }),
+    sendButtons: vi.fn().mockResolvedValue({ success: true, messageId: 'wamid.buttons' }),
+    noteOfferMessage: vi.fn().mockResolvedValue(undefined),
+    offersOfMessage: vi.fn().mockResolvedValue([]),
     looksLikeInstruction: vi.fn().mockReturnValue(false),
     download: vi.fn().mockResolvedValue(Buffer.from('x')),
     readAttachment: vi.fn().mockResolvedValue({ kind: 'receipt', said: 'Zara, 49,95 €, on 20 Sep. It can go back until 20 Oct.', receipts: [] }),
@@ -176,5 +178,38 @@ describe('a forwarded message on the channel', () => {
     expect(deps.answer).not.toHaveBeenCalled();
     expect(send).toHaveBeenCalledWith('34600000000', expect.stringMatching(/read as data/));
     expect(r.kind).toBe('money_forward_refused');
+  });
+});
+
+describe('a reaction on the message that carried the offers', () => {
+  const OFFER = '11111111-1111-4111-8111-111111111111';
+  const action = { kind: 'not_me', transaction_id: 't1', label: 'Not mine: Cafe, -3,50' };
+  it('a thumbs-up takes the first offer as a tap would', async () => {
+    deps.offersOfMessage.mockResolvedValue([{ id: OFFER, position: 0, action }]);
+    deps.takeOffer.mockResolvedValue({ id: OFFER, action });
+    deps.act.mockResolvedValue({ said: 'Marked as not yours.' });
+    const r = await handleMoneyInbound({ phone: '34600000000', text: null, messageId: 'wamid.re1', reaction: { messageId: 'wamid.buttons', emoji: '\u{1F44D}' } }, { userId: 'u1', send, deps });
+    expect(r).toMatchObject({ handled: true, kind: 'money_act' });
+    expect(deps.offersOfMessage).toHaveBeenCalledWith('u1', 'wamid.buttons');
+    expect(deps.takeOffer).toHaveBeenCalledWith('u1', OFFER);
+    expect(send).toHaveBeenCalledWith('34600000000', 'Marked as not yours.');
+  });
+  it('a thumbs-down leaves the offers, and a heart is nothing', async () => {
+    deps.offersOfMessage.mockResolvedValue([{ id: OFFER, position: 0, action }]);
+    expect(await handleMoneyInbound({ phone: '34600000000', text: null, messageId: 'wamid.re2', reaction: { messageId: 'wamid.buttons', emoji: '\u{1F44E}' } }, { userId: 'u1', send, deps })).toMatchObject({ kind: 'money_reaction_no' });
+    expect(await handleMoneyInbound({ phone: '34600000000', text: null, messageId: 'wamid.re3', reaction: { messageId: 'wamid.buttons', emoji: '\u2764\uFE0F' } }, { userId: 'u1', send, deps })).toMatchObject({ kind: 'money_reaction' });
+    expect(deps.takeOffer).not.toHaveBeenCalled();
+    expect(send).not.toHaveBeenCalled();
+  });
+  it('a thumbs-up on a message without offers is nothing', async () => {
+    deps.offersOfMessage.mockResolvedValue([]);
+    expect(await handleMoneyInbound({ phone: '34600000000', text: null, messageId: 'wamid.re4', reaction: { messageId: 'wamid.plain', emoji: '\u{1F44D}' } }, { userId: 'u1', send, deps })).toMatchObject({ kind: 'money_reaction' });
+    expect(deps.takeOffer).not.toHaveBeenCalled();
+  });
+  it('notes the sent message on the offers, so a reaction can find them', async () => {
+    deps.answer.mockResolvedValue({ text: 'Groceries were 40,00 EUR.', figures: [], actions: [action], receipts: [] });
+    deps.keepOffers.mockResolvedValue([{ id: OFFER, position: 0, action }]);
+    await handleMoneyInbound({ phone: '34600000000', text: 'what about that cafe', messageId: 'wamid.q9' }, { userId: 'u1', send, deps });
+    expect(deps.noteOfferMessage).toHaveBeenCalledWith('u1', [OFFER], 'wamid.buttons');
   });
 });
