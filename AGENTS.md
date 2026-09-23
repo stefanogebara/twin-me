@@ -138,8 +138,13 @@ all of them (a `DO ... EXECUTE` block, so static scans undercount); `anon` is re
 every money table.
 
 The WhatsApp channel is gated by `MONEY_WHATSAPP_USER_IDS` (comma-separated
-`public.users.id`; unset means nobody is on it) on top of the same beta allowlist the
-rest of money uses.
+`public.users.id`; unset means nobody is on it). **Bank connections are a capability computed
+per person** (`betaCapabilities.js`, since 2026-09-23): open when the aggregator is configured
+and the person is already linked, or on `MONEY_ADVANCED_BETA_USER_IDS`, or the production
+application is unrestricted (`ENABLE_BANKING_UNRESTRICTED=true`, set by the owner when Enable
+Banking confirms the contract and KYB; their API does not say) and their country is one it
+serves; `why` names the reason and the Sources page says it. Phone capture is open to everyone
+signed in (D23).
 
 ### The twin — what still exists (secondary)
 

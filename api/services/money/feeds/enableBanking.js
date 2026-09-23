@@ -85,8 +85,18 @@ export async function applicationInfo() {
   const keep = Object.fromEntries(Object.entries(rest).filter(([k, v]) => /environment|active|restrict|status|state|countries|services|name|linked|mode|type/i.test(k) && JSON.stringify(v).length < 400));
   return { keys: Object.keys(rest), ...keep };
 }
+/** The countries the application serves, from the same object, asked once per process. */
+let countriesPromise = null;
+export function applicationCountries() {
+  if (!countriesPromise) {
+    countriesPromise = api('/application')
+      .then((j) => (Array.isArray(j?.countries) ? j.countries.map((c) => String(c).toUpperCase()) : null))
+      .catch(quietly('enable-banking/api', () => { countriesPromise = null; return null; }));
+  }
+  return countriesPromise;
+}
 /** Tests swap the credentials mid-process; the answer must not outlive them. */
-export function resetApplicationEnvironment() { environmentPromise = null; }
+export function resetApplicationEnvironment() { environmentPromise = null; countriesPromise = null; }
 
 /** Banks available in a country. */
 export async function listBanks(country = 'ES') {

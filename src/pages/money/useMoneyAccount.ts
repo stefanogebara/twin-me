@@ -8,7 +8,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { dayPartsIn, browserZone } from './readingHelpers';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLocale, useT } from '@/lib/i18n';
-import { moneyAPI, shortDay, BANKS, setLedgerCurrency, ownCurrency, type MoneyProfile, type MoneyAccount as MoneyBankAccount, type MoneyCalendar, type MoneyCategories, type MoneyFact, type MoneyForecast, type MoneyPattern, type MoneyQuestions, type MoneyToday, type MoneyMonth, type MoneyPage, type MoneyReading, type MoneyRecurring, type MoneyTransaction, type MoneyUsage, type MoneySourceCounts } from '../../services/api/moneyAPI';
+import { moneyAPI, shortDay, BANKS, setLedgerCurrency, ownCurrency, type MoneyProfile, type MoneyCapabilities, type MoneyAccount as MoneyBankAccount, type MoneyCalendar, type MoneyCategories, type MoneyFact, type MoneyForecast, type MoneyPattern, type MoneyQuestions, type MoneyToday, type MoneyMonth, type MoneyPage, type MoneyReading, type MoneyRecurring, type MoneyTransaction, type MoneyUsage, type MoneySourceCounts } from '../../services/api/moneyAPI';
 import { moneyRevision, MONEY_CHANGED } from '../../services/api/moneyChanges';
 import { todayHere, localDay } from './readingWords';
 import type { MoneyView } from './navLinks';
@@ -23,7 +23,7 @@ import { CHANGE_BOUNDARY, readingRank, readingStake } from './readingOrder';
 type Snapshot = {
   userId: string | null; revision: number; at: number; forecast: MoneyForecast | null; today: MoneyToday | null; ledger: MoneyTransaction[]; recurring: MoneyRecurring[];
   accounts: MoneyBankAccount[]; months: MoneyMonth[]; readings: MoneyReading[]; categories: MoneyCategories | null; usage: MoneyUsage | null; unread: boolean;
-  capabilities: { bank: boolean; capture: boolean; whatsapp?: boolean }; inbox: { address: string; receiving: boolean } | null; facts: MoneyFact[] | null; seen: Record<string, string[]>; sources: MoneySourceCounts | null;
+  capabilities: MoneyCapabilities; inbox: { address: string; receiving: boolean } | null; facts: MoneyFact[] | null; seen: Record<string, string[]>; sources: MoneySourceCounts | null;
 };
 let SNAPSHOT: Snapshot | null = null;
 const SNAPSHOT_FRESH_MS = 30000;

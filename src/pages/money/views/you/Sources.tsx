@@ -74,7 +74,13 @@ export default function Sources({ m }: { m: MoneyAccount }) {
                   </li>
                 );
               })}
-              {!capabilities.bank && <li className="mv-item"><p className="mv-quiet">{t('Live bank connections are not available in this beta. Add a statement instead.')}</p></li>}
+              {/* Why the bank is closed, in the person's words: the reason the gate computed, never "beta". */}
+              {!capabilities.bank && <li className="mv-item"><p className="mv-quiet">{
+                capabilities.why === 'restricted' ? t('Bank connections open for everyone once our bank access is cleared. Until then, add a statement.')
+                  : capabilities.why === 'country' ? t('Bank connections are not available in your country yet. Add a statement instead.')
+                    : capabilities.why === 'unread' ? t('Your accounts could not be read. Try again.')
+                      : t('Live bank connections are not set up here. Add a statement instead.')
+              }</p></li>}
               <li>
                 <div className="mv-item mv-item--icon">
                   <span className="mv-icon" aria-hidden="true">{calendar?.google ? <Mark name="google_calendar" /> : <img className="mv-carved" src={`/images/money/carved/${markFor('diary')}.png`} alt="" width={26} height={26} />}</span>
