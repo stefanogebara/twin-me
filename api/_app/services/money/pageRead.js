@@ -15,7 +15,7 @@ import { listFacts, publicFacts } from './factsRepository.js';
 import { personProfileCached, refreshRecurring, listBankAccounts, reconnectByAccount, listReadings, categorySpend, subscriptionUsage } from './store.js';
 import { accountsWithCards } from './instruments.js';
 import { capabilitiesFor } from './betaCapabilities.js';
-import { inboxAddress, inboxDomain, isInboxConfigured } from './inbox.js';
+import { inboxSummary } from './inbox.js';
 import { firstOfMonthIn } from './zone.js';
 import { seenBy, sourceCounts } from './seen.js';
 import { quietly } from './quietly.js';
@@ -69,7 +69,7 @@ export async function readPage(userId, { view = 'today', now = new Date() } = {}
     capabilities: capabilitiesFor(userId),
     /* Where the person is, for the page's own day reads: their zone, country, currency, language. */
     profile: personProfileCached(userId).then((p) => ({ timezone: p.timezone, country: p.country, currency: p.currency, language: p.language })),
-    inbox: facts.then((f) => inboxAddress(userId, { facts: f })).then((address) => ({ address, domain: inboxDomain(), receiving: isInboxConfigured() })),
+    inbox: facts.then((f) => inboxSummary(userId, { facts: f, now })),
   };
   const names = Object.keys(reads);
   const settled = await Promise.allSettled(names.map((n) => reads[n]));

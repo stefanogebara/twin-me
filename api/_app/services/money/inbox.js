@@ -420,6 +420,21 @@ export async function listHeldStatements(userId, { now = new Date() } = {}) {
   return (data || []).map((n) => ({ filename: n.evidence?.filename || null, rows: Number(n.evidence?.rows) || 0, accounts: Number(n.evidence?.accounts) || 0, at: n.created_at }));
 }
 
+/**
+ * The inbox as the page and the route both say it: the address, whether the domain receives,
+ * and what waits under it (Gmail's forwarding confirmations, statements held for an account).
+ * The page read composed its own copy without the two lists and the rows never showed
+ * (2026-09-23). A failed read of a list is an empty list, never a failed address.
+ */
+export async function inboxSummary(userId, { facts, now = new Date() } = {}) {
+  const address = await inboxAddress(userId, facts ? { facts } : {});
+  const [forwarding, statements] = await Promise.all([
+    listForwardingRequests(userId, { now }).catch(() => []),
+    listHeldStatements(userId, { now }).catch(() => []),
+  ]);
+  return { address, domain: inboxDomain(), receiving: isInboxConfigured(), forwarding, statements };
+}
+
 export async function ingestReceivedEmail(event, deps = null) {
   const data = event?.data || {};
   const to = Array.isArray(data.to) ? data.to[0] : data.to;

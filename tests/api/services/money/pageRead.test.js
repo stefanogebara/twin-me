@@ -13,7 +13,7 @@ vi.mock('../../../../api/_app/services/money/seen.js', () => ({ seenBy: f.seen, 
 vi.mock('../../../../api/_app/services/money/store.js', () => ({ inPersonScope: (id, fn) => fn(), personProfileCached: async () => ({ timezone: 'Europe/Madrid', country: 'ES', currency: 'EUR', language: null }),  refreshRecurring: f.recurring, listBankAccounts: f.accounts, reconnectByAccount: f.reconnect, listReadings: f.readings, categorySpend: f.categories, subscriptionUsage: f.usage }));
 vi.mock('../../../../api/_app/services/money/instruments.js', () => ({ accountsWithCards: f.cards }));
 vi.mock('../../../../api/_app/services/money/betaCapabilities.js', () => ({ capabilitiesFor: async () => ({ bank: true, capture: false }) }));
-vi.mock('../../../../api/_app/services/money/inbox.js', () => ({ inboxAddress: f.inbox, inboxDomain: () => 'in.twinme.me', isInboxConfigured: () => true }));
+vi.mock('../../../../api/_app/services/money/inbox.js', () => ({ inboxSummary: f.inbox }));
 import { readPage, accountsView } from '../../../../api/_app/services/money/pageRead.js';
 
 const owner = '00000000-0000-4000-8000-000000000001';
@@ -29,7 +29,7 @@ function happy() {
   f.accounts.mockResolvedValue([{ id: 'a1', session_id: 's', created_at: 'c', bank_name: 'Santander' }]);
   f.reconnect.mockResolvedValue(new Set(['a1']));
   f.cards.mockImplementation(async (_u, accounts) => accounts.map((a) => ({ ...a, cards: [] })));
-  f.inbox.mockResolvedValue('u1@in.twinme.me');
+  f.inbox.mockResolvedValue({ address: 'u1@in.twinme.me', domain: 'in.twinme.me', receiving: true, forwarding: [], statements: [] });
   f.facts.mockResolvedValue([{ id: 'f1', kind: 'home_area' }, { id: 'f2', kind: 'calendar_feed' }]);
   f.seen.mockResolvedValue({ t1: ['bankfeed', 'phone'] });
   f.sources.mockResolvedValue({ by: { bankfeed: 2 }, month: { payments: 2, named: 2, timed: 1 } });
@@ -59,12 +59,12 @@ describe('readPage', () => {
     expect(f.usage).toHaveBeenCalledWith(owner, now, given);
     expect(f.categories).toHaveBeenCalledWith(owner, { month: '2026-09-01', facts: allFacts });
     expect(f.cards).toHaveBeenCalledWith(owner, expect.any(Array), given);
-    expect(f.inbox).toHaveBeenCalledWith(owner, { facts: allFacts });
+    expect(f.inbox).toHaveBeenCalledWith(owner, { facts: allFacts, now: expect.any(Date) });
     /* What the page shows keeps the old shape: the facts without the internal ones, the ledger without the rejected rows. */
     expect(data.facts).toEqual([{ id: 'f1', kind: 'home_area' }]);
     expect(data.ledger.map((r) => r.id)).toEqual(['t1']);
     expect(data.accounts).toEqual([{ id: 'a1', bank_name: 'Santander', cards: [], needs_reconnect: true }]);
-    expect(data.inbox).toEqual({ address: 'u1@in.twinme.me', domain: 'in.twinme.me', receiving: true });
+    expect(data.inbox).toEqual({ address: 'u1@in.twinme.me', domain: 'in.twinme.me', receiving: true, forwarding: [], statements: [] });
     expect(data.capabilities).toEqual({ bank: true, capture: false });
   });
   it('names the parts that could not be read and keeps the rest', async () => {
