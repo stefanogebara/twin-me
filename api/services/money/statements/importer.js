@@ -343,7 +343,7 @@ export function toSightings(rows, { accountId = null, defaultCurrency = 'EUR' } 
     if (signed === 0) { skipped.push({ index: i, row, reason: 'zero_amount' }); continue; }
 
     const concept = cell(row, columns.concept).replace(/ /g, ' ').trim();
-    const read = parseNarrative(concept);
+    const read = parseNarrative(concept, { amount: signed });
     /* When the sentence names nobody — a settlement, an interest line — the sentence
        itself is the best name there is, the way the feed adapter keeps it. */
     const name = read.merchant || concept || null;
