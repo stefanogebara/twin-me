@@ -17,7 +17,9 @@ describe('incomeStatement', () => {
   it('reads a one-off in another currency, a monthly income with its day, in three languages', () => {
     expect(incomeStatement('150 usd is coming from Vercel this month')).toMatchObject({ source: 'Vercel', amount: 150, currency: 'USD', once: true, day: null });
     expect(incomeStatement('My parents send me 1750 on the 1st of every month')).toMatchObject({ source: 'Parents', amount: 1750, currency: 'EUR', day: 1, cadence: 'monthly', once: false });
-    expect(incomeStatement('recebo 800 euros do estagio no dia 5')).toMatchObject({ source: 'Estagio', amount: 800, day: 5 });
+    expect(incomeStatement('recebo 800 euros do estagio no dia 5')).toMatchObject({ source: 'Estagio', amount: 800, day: 5, irregular: false });
+    expect(incomeStatement('my father sends me 100 euros sometimes')).toMatchObject({ amount: 100, irregular: true });
+    expect(incomeStatement('as vezes recebo 50 euros do meu pai')).toMatchObject({ amount: 50, irregular: true });
     expect(incomeStatement('me llegan 300 euros de mi padre el 10')).toMatchObject({ source: 'Padre', amount: 300, day: 10 });
   });
   it('is nothing for spending, a subscription or a question', () => {

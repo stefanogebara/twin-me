@@ -71,7 +71,11 @@ export function incomeStatement(text) {
   if (!source) return null;
   const cadence = cadenceIn(t);
   const once = !cadence && /\b(this month|this week|tomorrow|today|next week|este mes|esse mes|neste mes|este mes|esta semana|essa semana|amanha|manana|hoje|hoy|proxima semana|semana que vem|once|one-off|so uma vez|solo una vez)\b/.test(t);
-  return { source: source.charAt(0).toUpperCase() + source.slice(1), amount: a.amount, currency: a.currency || 'EUR', day: dayIn(t), cadence, once };
+  /* "sometimes", "many times", "it depends": money with no rule to it. The ledger keeps the
+     words, never a day (the owner, 2026-09-23: "it's not a rule that he will deposit 100 or
+     that he will deposit the same day every month"). */
+  const irregular = /\b(sometimes|some times|many times|now and then|depends|it varies|as vezes|muitas vezes|depende|varia|a veces|muchas veces|de vez en cuando|de vez em quando)\b/.test(t);
+  return { source: source.charAt(0).toUpperCase() + source.slice(1), amount: a.amount, currency: a.currency || 'EUR', day: dayIn(t), cadence, once, irregular };
 }
 
 /** A subscription or standing charge they took on: { name, amount, currency, cadence, day } or null. */

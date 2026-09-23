@@ -92,6 +92,10 @@ export function learnFromStatement(message, ctx, { now = new Date() } = {}) {
     return { offer: { kind: 'fact', fact: { kind: 'commitment', subject: keyOf(sub.name), subjectLabel: sub.name, value: 'subscription', amount: sub.amount, day: sub.day, note: sub.cadence }, label: say(L, 'Expect {name}: {amount} {cadence}, {day}', { name: sub.name, amount: amountText(sub.amount), cadence: say(L, sub.cadence), day: dayWord(L, sub.day) }) } };
   }
   const inc = incomeStatement(message);
+  /* Money that comes "sometimes" has no day to ask for and no amount to count on: nothing
+     is asked, nothing dated is offered, and the model keeps their words (remember) or names
+     the person (person) as the rules say (2026-09-23). */
+  if (inc && inc.irregular) return null;
   if (inc) {
     if (inc.currency !== 'EUR') return { ask: say(L, '{source} pays in {ccy}: about how much is that in euros? Then the month can count it.', { source: inc.source, ccy: inc.currency }) };
     const day = inc.day || (inc.once ? partsIn(now)?.day || 1 : null);
@@ -167,6 +171,18 @@ const MONTH_NAMES = {
 };
 const weekdayNames = (language) => WEEKDAY_NAMES[language] || WEEKDAYS;
 const monthNames = (language) => MONTH_NAMES[language] || MONTHS;
+const MONTH_LONG = {
+  en: ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'],
+  es: ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'],
+  'pt-BR': ['janeiro', 'fevereiro', 'mar\u00e7o', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'],
+};
+const monthLong = (iso, language) => { const d = new Date(iso); return Number.isNaN(d.getTime()) ? '' : (MONTH_LONG[language] || MONTH_LONG.en)[d.getUTCMonth()]; };
+/* The page's word for each kind (src/lib/i18n/*.money.ts), lower case for the middle of a sentence. */
+const KIND_PHRASES = {
+  es: { groceries: 'la compra', 'eating out': 'comer fuera', coffee: 'caf\u00e9', transport: 'transporte', taxi: 'taxis', fuel: 'gasolina', health: 'salud', pharmacy: 'farmacia', sport: 'deporte', education: 'estudios', clothing: 'ropa', home: 'casa', electronics: 'electr\u00f3nica', entertainment: 'salir', software: 'software', advertising: 'publicidad', travel: 'viajes', lodging: 'alojamiento', cash: 'efectivo', fees: 'comisiones', transfers: 'transferencias', bills: 'facturas', other: 'otros', 'not read yet': 'sin leer todav\u00eda' },
+  'pt-BR': { groceries: 'mercado', 'eating out': 'comer fora', coffee: 'caf\u00e9', transport: 'transporte', taxi: 't\u00e1xis', fuel: 'combust\u00edvel', health: 'sa\u00fade', pharmacy: 'farm\u00e1cia', sport: 'esporte', education: 'estudos', clothing: 'roupas', home: 'casa', electronics: 'eletr\u00f4nicos', entertainment: 'sair', software: 'software', advertising: 'publicidade', travel: 'viagens', lodging: 'hospedagem', cash: 'dinheiro', fees: 'tarifas', transfers: 'transfer\u00eancias', bills: 'contas', other: 'outros', 'not read yet': 'ainda n\u00e3o lido' },
+};
+export const kindWord = (language, kind) => (KIND_PHRASES[language] && KIND_PHRASES[language][kind]) || kind;
 const DECIMAL = new Intl.NumberFormat('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
 /* ------------------------------------------------------------------------ basics */
@@ -344,7 +360,7 @@ export function buildFigure(request, ctx) {
     const rows = [...groups.values()].flatMap((g) => g.rows).sort((a, b) => abs(b) - abs(a));
     if (onlyKind && !items.length) return null;
     const title = onlyKind
-      ? say(ctx.language, 'Where {month} went in {kind}, by place', { month: monthLabel(month, ctx.language), kind: say(ctx.language, onlyKind) })
+      ? say(ctx.language, 'Where {month} went in {kind}, by place', { month: monthLabel(month, ctx.language), kind: kindWord(ctx.language, onlyKind) })
       : byMerchant
         ? say(ctx.language, 'Where {month} went, by place', { month: monthLabel(month, ctx.language) })
         : say(ctx.language, 'Where {month} went', { month: monthLabel(month, ctx.language) });
@@ -416,6 +432,24 @@ export function buildFigure(request, ctx) {
 /* ------------------------------------------------------------------------ actions */
 
 /** An action the model proposed, checked against what is real; null when it is not. */
+/**
+ * The transfer or Bizum counterpart a key names. The bank keys a person short ("maria dolores
+ * tomas") and the person writes the whole name ("Maria Dolores Tomas Obon"), so the model's key
+ * came back one word longer and the offer was dropped (2026-09-23). Exact first; else the
+ * shorter key's words must each begin the longer key's words, and only one row may fit.
+ */
+export function personRow(transactions, merchantKey) {
+  const key = String(merchantKey || '').toLowerCase().trim();
+  if (!key) return null;
+  const people = transactions.filter((x) => x.channel === 'transfer' || x.channel === 'bizum');
+  const exact = people.find((x) => String(x.merchant_key || '').toLowerCase() === key);
+  if (exact) return exact;
+  const fits = (a, b) => { const [short, long] = a.length <= b.length ? [a, b] : [b, a]; return short[0].length >= 3 && short.every((w, i) => long[i].startsWith(w.replace(/\.$/, ''))); };
+  const words = key.split(/\s+/);
+  const keys = [...new Set(people.map((x) => String(x.merchant_key || '').toLowerCase()).filter((k) => k && fits(words, k.split(/\s+/))))];
+  return keys.length === 1 ? people.find((x) => String(x.merchant_key || '').toLowerCase() === keys[0]) : null;
+}
+
 export function validateAction(action, ctx) {
   if (!action || !ACTION_KINDS.includes(action.kind)) return null;
   const label = typeof action.label === 'string' && action.label.trim() ? action.label.trim() : null;
@@ -447,7 +481,7 @@ export function validateAction(action, ctx) {
      whatever else they said about them. The key must be a person the ledger has seen. */
   if (action.kind === 'person') {
     const key = String(action.merchant_key || '').toLowerCase().trim();
-    const t = ctx.transactions.find((x) => String(x.merchant_key || '').toLowerCase() === key && (x.channel === 'transfer' || x.channel === 'bizum'));
+    const t = personRow(ctx.transactions, key);
     const role = String(action.role || '').toLowerCase().trim();
     if (!t || !PERSON_ROLES.includes(role)) return null;
     const note = typeof action.note === 'string' && action.note.trim() ? action.note.trim().slice(0, 240) : null;
@@ -606,7 +640,7 @@ export function contextText(ctx) {
     for (const [kind, months] of kindByMonth) {
       lines.push(`${kind} by month: ${coveredKeys.map((key) => `${monthLabel(`${key}-01`)} ${eur(months.get(key) || 0)}`).join('; ')}.`);
     }
-    lines.push('Words people use for the kinds: eating out is a bar, a cafe, a restaurant, a pub, a terrace, a night out, comida fuera, restaurantes, bares, food when it is not groceries; groceries is a supermarket (Mercadona, Lidl, Carrefour, Dia), mantimentos, supermercado; transport is metro, bus, Renfe, Cercanias, Uber, Cabify, taxi; entertainment is cinema, concerts, tickets, games; software is apps and subscriptions like Spotify or OpenAI. Answer a question about one of these words from the kind\'s own line.');
+    lines.push('Words people use for the kinds: eating out is a bar, a cafe, a coffee, a restaurant, a pub, a terrace, a night out, comida fuera, restaurantes, bares, food when it is not groceries; groceries is a supermarket (Mercadona, Lidl, Carrefour, Dia), mantimentos, supermercado; transport is metro, bus, Renfe, Cercanias, Uber, Cabify, taxi; entertainment is cinema, concerts, tickets, games; software is apps and subscriptions like Spotify or OpenAI. Answer a question about one of these words from the kind\'s own line.');
   }
   const lastGroups = ctx.lastCategories?.groups || [];
   if (lastGroups.length) {
@@ -684,10 +718,10 @@ export const RULES = [
   'Every number you write must appear in the context above. Never estimate, round differently, or add up numbers yourself; if the context does not hold the number, say the ledger cannot tell.',
   'Write amounts exactly as the context does, like 12,50 EUR.',
   'Do not say "always" for an amount that varies; say "usually" or "about".',
-  'Never add numbers up: if a total would need adding, give the parts and say the ledger has no total for that. Never work out a daily amount or a difference yourself. The totals for today, yesterday, last night, this week, last week and each of the last seven days are in the context, each with its kinds of place and its places, and each place has its total and count for this month and last: quote them when asked about a stretch, a kind of place, or a place; "how much is left" is the line that begins "Left for". A place missing from the by-place line had no payment that month: say so, never assemble a count or a total from other lines. The biggest or largest payment is one line of the recent payments, never a place\'s total over several.',
+  'Never add numbers up: if a total would need adding, name each part with its own figure and say the ledger has no total for that. Never work out a daily amount or a difference yourself. The totals for today, yesterday, last night, this week, last week and each of the last seven days are in the context, each with its kinds of place and its places, and each place has its total and count for this month and last: quote them when asked about a stretch, a kind of place, or a place; "how much is left" is the line that begins "Left for". A place missing from the by-place line had no payment that month: say so, never assemble a count or a total from other lines. The biggest or largest payment is one line of the recent payments, never a place\'s total over several.',
   'When a line beginning "Hours are not complete" is present, the answer about that night, morning or afternoon must carry a short clause saying how many of the payments around it know their hour; never give a part of a day as a complete figure without it.',
   'When the question names a weekday, a night, a weekend, a date, a stretch between two dates or "since" a date, the line beginning "Asked stretch" holds exactly that stretch: quote its total, count and largest, and its kinds and places. Asked what a week costs on average, quote the line beginning "Average week", never the last seven days. A comparison of two stretches is the two lines side by side; never work out the difference.',
-  'A line is about the days it names and no others: never give a line\'s numbers for a different day, weekend or stretch. When the stretch asked about has no line, say the ledger cannot tell for those days. The month\'s costliest day and the spend by day of the week over the last full weeks are lines of their own: quote them for "which day" questions, never the per-day line of the last seven.',
+  'A line is about the days it names and no others: never give a line\'s numbers for a different day, weekend or stretch. When the stretch asked about has no line, say the ledger cannot tell for those days; when its line is there and shows nothing spent, say nothing was spent, never that the ledger cannot tell. The month\'s costliest day and the spend by day of the week over the last full weeks are lines of their own: quote them for "which day" questions, never the per-day line of the last seven.',
   'Asked whether somebody sent or paid this month, answer from the line beginning "From people this month" (or "To people this month"): a name missing there did not, this month, whatever the 90-day line says; then say when they last did, from "last on". Asked about a place over several months or "since" a month, quote the line beginning "Whole ledger by place" and say since when the ledger goes back; this month\'s figure is never the answer to a longer question. "Average per day" and the cheapest day are lines of their own.',
   'Asked for two or more places or kinds together, the answer is the one figure when all but one are absent from the lines (a place with no payment adds nothing); when two or more have figures, give each and say the ledger has no total for the pair. A kind\'s largest payment is the one its own line names, never the window\'s.',
   'Asked what TwinMe or the ledger can read, do or connect, answer only from the line beginning "Sources the ledger can read"; never claim or deny an ability that line does not name.',
@@ -702,7 +736,7 @@ export const RULES = [
   'When they say what they want to keep at the end of the month, or a limit for a kind of place, propose answer with the keep or cap question id from the questions list if it is there, else remember.',
   'An answer is a claim: prefer naming the payments behind it.',
   'The earlier turns are the conversation so far. Do not restate the question, do not repeat a number or a sentence you already said unless asked for it again, and do not explain again what the ledger is or where answers come from.',
-  'Vary your openings; never begin two answers the same way. On a follow-up ("and last month?", "why?", "and Spotify?") answer only what is new.',
+  'Vary your openings; never begin two answers the same way. On a follow-up ("and last month?", "why?", "and Spotify?") answer only what is new, and with its figures: the same question moved to another month, stretch or kind is answered from that month\'s, stretch\'s or kind\'s own line.',
   'Calendar overlaps and merchant patterns are associations, not evidence of what caused spending. Do not infer attendance, a commute, work expenses or a causal effect from location or timing alone. A note kept in their words changes conversational context; it does not change numeric forecasts unless a structured action is confirmed.',
   'When the calendar lines say what a kind of event usually costs, you may say what the days ahead are likely to cost, always as "usually about", never as a promise.',
   'Asked for each day, per day, day by day, or how the week went, draw the week figure (one bar per day, the last seven) and say in words only the total for the stretch and the day that cost most; never list every day as a sentence.',
@@ -829,6 +863,8 @@ const PHRASES = {
     'The ledger cannot answer that from what it has.': 'El libro no puede responder eso con lo que tiene.',
     'That took too long to answer. Ask it again.': 'Eso tard\u00f3 demasiado en responder. Pregunta otra vez.',
     'The ledger has no total for that; it can only name the parts it holds.': 'El libro no tiene un total para eso; solo puede nombrar las partes que guarda.',
+    'In {month}: {parts}.': 'En {month}: {parts}.',
+    'The ledger keeps no total across kinds.': 'El libro no guarda un total entre tipos.',
     'That could not be read right now.': 'Eso no se pudo leer ahora.',
     'Nothing comes back regularly yet. The ledger needs to see a charge at least twice to call it that.': 'Todav\u00eda no vuelve nada con regularidad. El libro necesita ver un cargo al menos dos veces para llamarlo as\u00ed.',
     '{n} charge comes back every month, {total} together': '{n} cargo vuelve cada mes, {total} en total',
@@ -921,6 +957,8 @@ const PHRASES = {
     'The ledger cannot answer that from what it has.': 'O livro n\u00e3o consegue responder isso com o que tem.',
     'That took too long to answer. Ask it again.': 'Isso demorou demais para responder. Pergunte de novo.',
     'The ledger has no total for that; it can only name the parts it holds.': 'O livro n\u00e3o tem um total para isso; s\u00f3 pode nomear as partes que guarda.',
+    'In {month}: {parts}.': 'Em {month}: {parts}.',
+    'The ledger keeps no total across kinds.': 'O livro n\u00e3o guarda um total entre tipos.',
     'That could not be read right now.': 'Isso n\u00e3o p\u00f4de ser lido agora.',
     'Nothing comes back regularly yet. The ledger needs to see a charge at least twice to call it that.': 'Nada volta com regularidade ainda. O livro precisa ver uma cobran\u00e7a pelo menos duas vezes para cham\u00e1-la assim.',
     '{n} charge comes back every month, {total} together': '{n} cobran\u00e7a volta todo m\u00eas, {total} no total',
@@ -1128,7 +1166,7 @@ export function notMineOffer(message, ctx) {
 /** The kind a question names, in the words people use (a subset of the vocabulary line), or null. */
 const KIND_WORDS = [
   ['software', /\b(software|apps?|subscri\w*|suscripci\w*|assinaturas?|saas)\b/],
-  ['eating out', /\b(bars?|bares|cafes?|caf\u00e9s?|restaurants?|restaurantes?|pubs?|comer fora|comida fuera|eating out|night out|terraza|terra\u00e7o)\b/],
+  ['eating out', /\b(bars?|bares|cafes?|caf\u00e9s?|coffees?|cafeter[i\u00ed]as?|cafetarias?|restaurants?|restaurantes?|pubs?|comer fora|comida fuera|eating out|night out|terraza|terra\u00e7o)\b/],
   ['groceries', /\b(groceries|supermarkets?|supermercados?|mantimentos|mercado|compras de casa)\b/],
   ['transport', /\b(transport\w*|metro|bus|renfe|cercanias|trains?|trens?|autob\u00fas)\b/],
   ['taxi', /\b(taxis?|uber|cabify|bolt)\b/],
@@ -1180,8 +1218,11 @@ export function assembleReply(parsed, ctx, message = '') {
     const want = { kind: 'shares', by: 'merchant', category: tableKind, ...(named ? { month: named } : {}) };
     if (i >= 0) requests[i] = want; else requests.unshift(want);
   }
-  if (asksWhereItWent(message) && !requests.some((r) => r?.kind === 'shares')) {
-    const named = monthInMessage(message);
+  /* "and last month?" after "where did the money go?": the follow-up carries the question
+     (askedText), so the shares for August are drawn for it (2026-09-23). */
+  const carried = ctx.asked && String(ctx.asked).endsWith(String(message || '').trim()) ? ctx.asked : message;
+  if (asksWhereItWent(carried) && !requests.some((r) => r?.kind === 'shares')) {
+    const named = monthInMessage(carried);
     let month = null;
     if (named === 'last') {
       const segs = [...ctx.segments].sort((a, b) => new Date(b.month) - new Date(a.month));
@@ -1281,7 +1322,7 @@ export async function answer(userId, message, history = [], { now = new Date() }
   const quick = shortCircuit(text, ctx);
   if (quick) return keep(quick);
 
-  ctx.asked = text;
+  ctx.asked = askedText(text, history);
   const learnedHint = learnFromStatement(text, ctx, { now })?.ask ? `\n\nBefore the ledger can keep what they just said it needs one thing: ask exactly this, in their language, and nothing else about it: ${learnFromStatement(text, ctx, { now }).ask}` : '';
   const hint = (LANGUAGE_HINT[languageOf(text)] || '') + learnedHint;
   const system = `${RULES}\n\nWhat the ledger knows:\n${contextText(ctx)}${hint ? `\n\n${hint}` : ''}`;
@@ -1303,11 +1344,12 @@ export async function answer(userId, message, history = [], { now = new Date() }
   }
 
   const parsed = parseReply(raw);
+  if (process.env.MONEY_CHAT_DEBUG) log.info('parsed reply', { actions: parsed?.actions || null, figures: parsed?.figures || null, prose: !parsed });
   if (!parsed) {
     /* Prose where an object was asked for is still an answer: kept, grounded, with its basis. */
     const prose = plainProse(raw);
     const grounded = prose ? dropUngrounded(euroGlyphs(prose), ctx) : { text: '', dropped: 0 };
-    const said = grounded.text || say(ctx.language, grounded.dropped ? NO_TOTAL : NO_ANSWER);
+    const said = grounded.text || (grounded.dropped ? (partsSentence(ctx, ctx.asked) || say(ctx.language, NO_TOTAL)) : say(ctx.language, NO_ANSWER));
     /* Prose still earns the figure the question asks for ("where did it go" draws the shares). */
     /* The assembled text, not the raw prose: the chart question and "mark it below" strippers
        live in assembleReply, and this path used to skip them (2026-09-21). */
@@ -1317,7 +1359,7 @@ export async function answer(userId, message, history = [], { now = new Date() }
   }
   const reply = assembleReply(parsed, ctx, text);
   const grounded = dropUngrounded(withoutRepeats(reply.text, history), ctx);
-  const finalText = grounded.text || (grounded.dropped ? say(ctx.language, NO_TOTAL) : reply.text);
+  const finalText = grounded.text || (grounded.dropped ? (partsSentence(ctx, ctx.asked) || say(ctx.language, NO_TOTAL)) : reply.text);
   return keep({ ...reply, text: finalText, basis: basisOf(finalText, ctx) });
 }
 
@@ -1507,7 +1549,7 @@ export async function answerStream(userId, message, history = [], { now = new Da
     return closeWith(quick);
   }
 
-  ctx.asked = asked;
+  ctx.asked = askedText(asked, history);
   const learnedHint = learnFromStatement(asked, ctx, { now })?.ask ? `\n\nBefore the ledger can keep what they just said it needs one thing: ask exactly this, in their language, and nothing else about it: ${learnFromStatement(asked, ctx, { now }).ask}` : '';
   const hint = (LANGUAGE_HINT[languageOf(asked)] || '') + learnedHint;
   const system = `${RULES}\n\nWhat the ledger knows:\n${contextText(ctx)}${hint ? `\n\n${hint}` : ''}`;
@@ -1745,6 +1787,47 @@ export function amountKey(token) {
   if (/^\d{1,3}(?:,\d{3})+\.\d{2}$/.test(t)) return t.replace(/,/g, '').replace('.', ',');
   return t.replace('.', ',');
 }
+/**
+ * What a message asks about, for the computed lines. "no, I meant last month" names no kind and
+ * "and the weekend before?" names no question: a short follow-up carries the previous message
+ * with it, so the stretch and kind parsers see "food ... last month" (2026-09-23).
+ */
+export function askedText(text, history) {
+  const now = String(text || '').trim();
+  const words = now.split(/\s+/).filter(Boolean).length;
+  const followUp = words <= 6 || /^(no|n\u00e3o|nao|and|e|y|i meant|quis dizer|quer\u00eda decir|queria decir|what about|e o|e a|y el|y la)\b/i.test(now);
+  if (!followUp) return now;
+  const prev = [...(Array.isArray(history) ? history : [])].reverse().find((h) => h && h.role !== 'twin' && typeof h.text === 'string' && h.text.trim());
+  return prev ? `${prev.text.trim()} ${now}` : now;
+}
+
+/**
+ * The parts the ledger holds for what was asked, computed: the kinds the words name (food is
+ * eating out and groceries), in the month they name, each with its own figure. Said when the
+ * model's every sentence was dropped for a figure the ledger does not hold, which is what adding
+ * the parts up produces; the ledger then names the parts itself instead of saying only that it
+ * cannot (2026-09-23).
+ */
+export function partsSentence(ctx, asked) {
+  const m = String(asked || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  let kinds = KIND_WORDS.filter(([, re]) => re.test(m)).map(([k]) => k);
+  if (!kinds.length && /\b(food|comida|comer|alimenta\w*)\b/.test(m)) kinds = ['eating out', 'groceries'];
+  if (!kinds.length) return null;
+  const monthKey = (ctx.forecast?.month || ctx.now.toISOString()).slice(0, 7);
+  const named = monthInMessage(m);
+  let key = monthKey;
+  if (named === 'last') { const d = new Date(`${monthKey}-01T12:00:00Z`); d.setUTCMonth(d.getUTCMonth() - 1); key = d.toISOString().slice(0, 7); }
+  else if (named) { for (let back = 0; back < 12; back += 1) { const d = new Date(`${monthKey}-01T12:00:00Z`); d.setUTCMonth(d.getUTCMonth() - back); if (MONTHS[d.getUTCMonth()] === named) { key = d.toISOString().slice(0, 7); break; } } }
+  const rows = (ctx.transactions || []).filter((t) => Number(t.amount) < 0 && t.verdict !== 'not_me' && String(t.occurred_at || '').slice(0, 7) === key);
+  const parts = kinds.map((kind) => {
+    const mine = rows.filter((t) => ctx.categoryOf(t) === kind);
+    return `${kindWord(ctx.language, kind)} ${eur(mine.reduce((n, t) => n + Math.abs(Number(t.amount)), 0))}`;
+  });
+  const month = monthLong(`${key}-01`, ctx.language);
+  const one = say(ctx.language, 'In {month}: {parts}.', { month, parts: parts.join(', ') });
+  return euroGlyphs(kinds.length > 1 ? `${one} ${say(ctx.language, 'The ledger keeps no total across kinds.')}` : one);
+}
+
 export function basisOf(text, ctx) {
   const numbers = new Set((String(text || '').match(AMOUNT_TOKEN) || []).map(amountKey));
   if (!numbers.size) return [];

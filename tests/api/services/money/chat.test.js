@@ -544,6 +544,20 @@ describe('the offers a correction becomes', () => {
     expect(validateAction({ kind: 'person', merchant_key: person.merchant_key, role: 'boss' }, c)).toBeNull();
     expect(validateAction({ kind: 'person', merchant_key: 'nobody', role: 'friend' }, c)).toBeNull();
   });
+  it('person offer: the whole name the person typed finds the shorter key the bank gave, and an ambiguous one finds nobody', async () => {
+    const { personRow } = await import('../../../../api/services/money/chat.js');
+    const rows = [
+      t('p1', '2026-09-11T10:00:00Z', -200, 'maria dolores tomas', 'Maria Dolores Tomas', { channel: 'bizum' }),
+      t('p2', '2026-09-12T10:00:00Z', -30, 'maria fernandes', 'Maria Fernandes', { channel: 'transfer' }),
+      t('p3', '2026-09-12T11:00:00Z', -12, 'maria dolores tomas', 'MARIA DOLORES TOMAS', { channel: 'card' }),
+    ];
+    const c = assemble({ transactions: [...transactions, ...rows], segments, forecast: cast, recurring, readings: [], facts: [], questions, places, categories, now: NOW });
+    expect(personRow(c.transactions, 'maria dolores tomas obon')?.id).toBe('p1');
+    expect(personRow(c.transactions, 'Maria Dolores')?.id).toBe('p1');
+    expect(personRow(c.transactions, 'maria')).toBeNull();
+    expect(personRow(c.transactions, 'ma')).toBeNull();
+    expect(validateAction({ kind: 'person', merchant_key: 'maria dolores tomas obon', role: 'landlord' }, c)).toMatchObject({ kind: 'person', merchant_key: 'maria dolores tomas', role: 'landlord' });
+  });
   it('remember keeps their words; forget needs a fact the ledger holds', () => {
     const c = ctx();
     expect(validateAction({ kind: 'remember', text: 'I stop eating out in exam weeks' }, c)).toMatchObject({ kind: 'remember', text: 'I stop eating out in exam weeks' });
@@ -713,6 +727,30 @@ describe('the largest per kind', () => {
   });
 });
 
+describe('a short follow-up asks about what the previous message asked about', () => {
+  it('carries the previous message into the asked text, and the computed parts name each kind with its figure', async () => {
+    const { askedText, partsSentence, RULES } = await import('../../../../api/services/money/chat.js');
+    const history = [{ role: 'user', text: 'How much did I spend on food?' }, { role: 'twin', text: 'Este mes 335,06 EUR em comida.' }];
+    expect(askedText('no, I meant last month', history)).toBe('How much did I spend on food? no, I meant last month');
+    expect(askedText('and the weekend before?', history)).toMatch(/^How much did I spend on food\? and the weekend before\?$/);
+    expect(askedText('Show me what I spent each day this week, with the largest', history)).toBe('Show me what I spent each day this week, with the largest');
+    const c = ctx();
+    expect(partsSentence(c, askedText('no, I meant last month', history))).toBe('In August: eating out 0,00 \u20ac, groceries 48,88 \u20ac. The ledger keeps no total across kinds.');
+    expect(partsSentence({ ...c, language: 'es' }, 'cuanto gaste en supermercados el mes pasado?')).toBe('En agosto: la compra 48,88 \u20ac.');
+    expect(partsSentence(c, 'how much on software in July?')).toBe('In July: software 11,99 \u20ac.');
+    const { learnFromStatement } = await import('../../../../api/services/money/chat.js');
+    expect(learnFromStatement('my father sends me 100 euros sometimes', c)).toBeNull();
+    expect(learnFromStatement('My parents send me 1750 on the 1st of every month', c)?.offer?.kind).toBe('fact');
+    expect(partsSentence(c, 'how much is left?')).toBeNull();
+    expect(RULES).toMatch(/when its line is there and shows nothing spent, say nothing was spent/);
+    const { assembleReply } = await import('../../../../api/services/money/chat.js');
+    const carried = { ...c, asked: askedText('and last month?', [{ role: 'user', text: 'Where did the money go?' }, { role: 'twin', text: 'Most went to clothing.' }]) };
+    const reply = assembleReply({ text: 'Last month, most went to groceries.', figures: [], actions: [], cites: [] }, carried, 'and last month?');
+    expect(reply.figures.map((f) => f.kind)).toEqual(['shares']);
+    expect(reply.figures[0].title).toMatch(/Aug/);
+  });
+});
+
 describe('each kind, largest first, and each kind by month', () => {
   it('are computed lines, so a table and a month-by-month answer are readings and not guesses', async () => {
     const { contextText, RULES } = await import('../../../../api/services/money/chat.js');
@@ -731,6 +769,7 @@ describe('a table of one kind, largest first', () => {
     const { kindInMessage, asksTable, assembleReply, buildFigure, isStatement, shortCircuit } = await import('../../../../api/services/money/chat.js');
     expect(kindInMessage('me crie uma tabela com os gastos de software com o mais caro pra baixo')).toBe('software');
     expect(kindInMessage('quanto gastei em bares?')).toBe('eating out');
+    expect(kindInMessage('How much on coffee this week?')).toBe('eating out');
     expect(kindInMessage('how much is left?')).toBeNull();
     expect(asksTable('me crie uma tabela com os gastos de software com o mais caro pra baixo')).toBe(true);
     expect(asksTable('how much did I spend on software?')).toBe(false);
