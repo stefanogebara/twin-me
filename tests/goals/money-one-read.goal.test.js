@@ -33,7 +33,7 @@ vi.mock('../../api/services/database.js', () => {
     },
   };
 });
-vi.mock('../../api/services/money/betaCapabilities.js', () => ({ moneyCapabilities: () => ({ bank: true, capture: true }) }));
+vi.mock('../../api/services/money/betaCapabilities.js', () => ({ capabilitiesFor: async () => ({ bank: true, capture: true }) }));
 
 import { readPage } from '../../api/services/money/pageRead.js';
 

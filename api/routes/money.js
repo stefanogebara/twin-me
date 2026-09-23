@@ -53,7 +53,8 @@ import { ATTACHMENT_DEPS } from '../services/money/attachmentDeps.js';
 import { accuracy } from '../services/money/predictions.js';
 import { createLogger } from '../services/logger.js';
 import { captureFromBody } from '../services/money/captureParser.js';
-import { moneyCapabilities } from '../services/money/betaCapabilities.js';
+import { capabilitiesFor } from '../services/money/betaCapabilities.js';
+const bankClosed = (c) => ({ unconfigured: 'Live bank connections are not set up here. Add a statement instead.', restricted: 'Bank connections open for everyone once our bank access is cleared. Until then, add a statement.', country: 'Bank connections are not available in your country yet. Add a statement instead.', unread: 'Your accounts could not be read. Try again.' })[c.why] || 'Live bank connections are not available. Add a statement instead.';
 import { holdUndatedCapture } from '../services/money/legacyCapture.js';
 import { recordOptIn } from '../services/money/channelStore.js';
 import { isMoneyChannelUser } from '../services/money/channel.js';
@@ -96,7 +97,6 @@ async function authenticateUserOrKey(req, res, next) {
 }
 
 router.post('/capture', authenticateUserOrKey, validate({ body: S.CAPTURE }), async (req, res) => {
-  if (!moneyCapabilities(req.user.id).capture) return res.status(403).json({ success: false, error: 'Phone capture is not available in this beta. Add a statement instead.' });
   if (req.body?.ownerId && req.body.ownerId !== req.user.id) return res.status(403).json({ success: false, error: 'Capture belongs to a different account' });
   /* The Android listener sends the notification's text; an iPhone Wallet automation sends the
      merchant and amount it was handed (captureFromBody says which wins and why). */
@@ -146,7 +146,10 @@ router.use(authenticateUser);
 /* Every read and write below runs in the person's own zone (profile.js): the day a payment
    falls on, the day that is "today", the start of the month, all where they are. */
 router.use((req, res, next) => { inPersonScope(req.user.id, () => new Promise((resolve) => { res.on('finish', resolve); res.on('close', resolve); next(); })).catch((error) => { log.warn('zone scope failed', { error: error.message }); next(); }); });
-router.get('/capabilities', (req, res) => res.json({ success: true, data: moneyCapabilities(req.user.id) }));
+router.get('/capabilities', async (req, res) => {
+  try { res.json({ success: true, data: await capabilitiesFor(req.user.id) }); }
+  catch (error) { log.error('capabilities failed', { error: error.message }); res.status(500).json({ success: false, error: 'Internal server error' }); }
+});
 
 /**
  * The page in one read (M2-3). Every part the three views share, under one authentication,
@@ -247,14 +250,16 @@ router.get('/plan', async (req, res) => {
 });
 
 router.get('/banks', async (req, res) => {
-  if (!moneyCapabilities(req.user.id).bank) return res.status(403).json({ success: false, error: 'Live bank connections are not available in this beta. Add a statement instead.' });
+  const can = await capabilitiesFor(req.user.id);
+  if (!can.bank) return res.status(403).json({ success: false, error: bankClosed(can) });
   if (!isConfigured()) return res.status(503).json({ success: false, error: 'Bank feed not configured' });
   try { res.json({ success: true, data: await listBanks(typeof req.query.country === 'string' ? req.query.country : (await personProfile(req.user.id)).country) }); }
   catch (error) { log.error('banks failed', { error: error.message }); res.status(502).json({ success: false, error: 'Bank feed unavailable' }); }
 });
 
 router.post('/bank/connect', validate({ body: S.BANK_CONNECT }), async (req, res) => {
-  if (!moneyCapabilities(req.user.id).bank) return res.status(403).json({ success: false, error: 'Live bank connections are not available in this beta. Add a statement instead.' });
+  const can = await capabilitiesFor(req.user.id);
+  if (!can.bank) return res.status(403).json({ success: false, error: bankClosed(can) });
   if (!isConfigured()) return res.status(503).json({ success: false, error: 'Bank feed not configured' });
   try {
     const { bank = 'Banco Santander', country = (await personProfile(req.user.id)).country, back = '' } = req.body || {};
@@ -935,7 +940,7 @@ bankCallback.get('/bank/callback', async (req, res) => {
   const back = read ? read.back : '/money/you';
   const code = typeof req.query.code === 'string' ? req.query.code : null;
   if (!userId) return res.status(400).send('This link is not valid.');
-  if (!moneyCapabilities(userId).bank) return res.redirect(302, `${back}?bank=failed&why=statement-only-beta`);
+  if (!(await capabilitiesFor(userId)).bank) return res.redirect(302, `${back}?bank=failed&why=closed`);
   if (!code) {
     /* The bank or the person said no: Enable Banking comes back with `error` and no code.
        This used to answer a bare "This link is not valid." and keep no record, so a refused

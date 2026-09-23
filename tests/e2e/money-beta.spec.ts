@@ -35,7 +35,8 @@ test('student beta offers statements without bank or phone setup', async ({page}
   await expect(page.getByRole('link',{name:'Add a statement',exact:true})).toBeVisible();
   await expect(page.getByRole('button',{name:'Connect Santander',exact:true})).toHaveCount(0);
   await page.getByRole('link',{name:'Add a statement',exact:true}).click();
-  await expect(page.getByText('Live bank connections are not available in this beta. Add a statement instead.',{exact:true})).toBeVisible();
+  /* The gate computes its reason (M3-8); today's production reason for a stranger is the restricted application. */
+  await expect(page.getByText('Bank connections open for everyone once our bank access is cleared. Until then, add a statement.',{exact:true})).toBeVisible();
   await expect(page.getByRole('button',{name:'Connect',exact:true})).toHaveCount(0);
   await expect(page.getByRole('button',{name:'Make a key',exact:true})).toHaveCount(0);
   await page.getByRole('button',{name:/Add a statement/}).click();

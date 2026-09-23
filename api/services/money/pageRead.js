@@ -14,7 +14,7 @@ import { listTransactions, selectTransactions } from './transactionRepository.js
 import { listFacts, publicFacts } from './factsRepository.js';
 import { personProfileCached, refreshRecurring, listBankAccounts, reconnectByAccount, listReadings, categorySpend, subscriptionUsage } from './store.js';
 import { accountsWithCards } from './instruments.js';
-import { moneyCapabilities } from './betaCapabilities.js';
+import { capabilitiesFor } from './betaCapabilities.js';
 import { inboxAddress, inboxDomain, isInboxConfigured } from './inbox.js';
 import { firstOfMonthIn } from './zone.js';
 import { seenBy, sourceCounts } from './seen.js';
@@ -66,7 +66,7 @@ export async function readPage(userId, { view = 'today', now = new Date() } = {}
     sources: sourceCounts(userId, { now }),
     categories: facts.then((f) => categorySpend(userId, { month: firstOfMonthIn(now), facts: f })),
     usage: given.then((g) => subscriptionUsage(userId, now, g)),
-    capabilities: Promise.resolve(moneyCapabilities(userId)),
+    capabilities: capabilitiesFor(userId),
     /* Where the person is, for the page's own day reads: their zone, country, currency, language. */
     profile: personProfileCached(userId).then((p) => ({ timezone: p.timezone, country: p.country, currency: p.currency, language: p.language })),
     inbox: facts.then((f) => inboxAddress(userId, { facts: f })).then((address) => ({ address, domain: inboxDomain(), receiving: isInboxConfigured() })),

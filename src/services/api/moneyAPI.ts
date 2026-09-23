@@ -187,12 +187,14 @@ async function completeLedger(since?: string): Promise<MoneyTransaction[]> {
   throw new Error('Choose a shorter ledger date range.');
 }
 
+/* What this person may connect, computed from facts; `why` says the bank's reason in one word. */
+export type MoneyCapabilities = { bank: boolean; capture: boolean; whatsapp?: boolean; why?: 'unconfigured' | 'linked' | 'listed' | 'restricted' | 'country' | 'open' | 'unread' };
 export type MoneyProfile = { timezone: string; country: string; currency: string; language: string | null };
 
 export type MoneyPage = {
   forecast: MoneyForecast | null; today: MoneyToday | null; ledger: MoneyTransaction[] | null; recurring: MoneyRecurring[] | null;
   accounts: MoneyAccount[] | null; months: MoneyMonth[] | null; readings: MoneyReading[] | null; categories: MoneyCategories | null;
-  usage: MoneyUsage | null; capabilities: { bank: boolean; capture: boolean; whatsapp?: boolean } | null; inbox: { address: string; receiving: boolean } | null;
+  usage: MoneyUsage | null; capabilities: MoneyCapabilities | null; inbox: { address: string; receiving: boolean } | null;
   facts: MoneyFact[] | null;
   /* Where the person is, from their own data: the zone the page reads its days in. */
   profile: MoneyProfile | null;
@@ -240,7 +242,7 @@ export const moneyAPI = {
    * Raw fetch: authFetch always sets a JSON content type, and multipart needs the
    * browser to write its own boundary.
    */
-  capabilities: () => moneyFetch('/money/capabilities').then((r) => json<{ bank: boolean; capture: boolean; whatsapp?: boolean }>(r)),
+  capabilities: () => moneyFetch('/money/capabilities').then((r) => json<MoneyCapabilities>(r)),
   statementAccounts: () => moneyFetch('/money/statement/accounts').then((r) => json<MoneyStatementAccount[]>(r)),
   createStatementAccount: (name: string) => moneyFetch('/money/statement/accounts', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name }) }).then((r) => json<MoneyStatementAccount>(r)),
   importStatement: async (file: File, accountId: string) => {
