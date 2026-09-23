@@ -12,6 +12,7 @@
 import { euro } from '../../services/api/moneyAPI';
 import { type T, type Numbers, type Sayable, s, weekdayName, type Allowance, bankNames } from './readingHelpers';
 import { SAYERS } from './readingSayers';
+import type { LiveFigures } from './readingSayers';
 import type { Said } from './readingHelpers';
 export * from './readingHelpers';
 
@@ -84,7 +85,7 @@ export function allowanceWords(a: Allowance, t: T, locale: string): string | nul
  * One reading in the reader's language, or the stored English when this kind is not known
  * here or a number it needs is missing.
  */
-export function readingWords(r: Sayable, t: T, locale: string, now = new Date()): Said {
+export function readingWords(r: Sayable, t: T, locale: string, now = new Date(), live: LiveFigures | null = null): Said {
   const keep: Said = { sentence: r.sentence, detail: r.detail ?? null };
   const num = (r.numbers || {}) as Numbers;
   const receipts = r.receipts || [];
@@ -92,7 +93,7 @@ export function readingWords(r: Sayable, t: T, locale: string, now = new Date())
 
   try {
     const sayer = SAYERS[r.kind];
-    return sayer ? sayer({ r, t, locale, now, num, keep, receipts, nameFromReceipt }) : keep;
+    return sayer ? sayer({ r, t, locale, now, num, keep, receipts, nameFromReceipt, live }) : keep;
   } catch {
     /* A reading that cannot be said again is still a reading: the stored line stands. */
     return keep;

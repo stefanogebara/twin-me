@@ -39,6 +39,22 @@ describe('a reading in the reader own language', () => {
     expect(spanish.detail).toBe('Son 224,30 € más.');
   });
 
+  it('says the hero figures when the page hands them over, and ignores them for another month', () => {
+    const r = {
+      kind: 'month_pace', month: '2026-09-01', sentence: 'STORED', detail: 'STORED',
+      numbers: { spent: 1204.5, previous_spent: 980.2, gap: 224.3, day: 16 },
+    };
+    const live = { month: '2026-09-01', spent: 1630.13, previousSpent: 1500.13, day: 23 };
+    const said = readingWords(r, en, 'en-GB', NOW, live);
+    const plain = (x: string | null) => String(x).replace(/[\u00a0\u202f]/g, ' ');
+    expect(plain(said.sentence)).toBe('By the 23rd you had spent 1630,13 €. By the 23rd of August it was 1500,13 €.');
+    expect(plain(said.detail)).toBe('That is 130,00 € more.');
+    const stale = readingWords(r, en, 'en-GB', NOW, { ...live, month: '2026-10-01' });
+    expect(plain(stale.sentence)).toBe('By the 16th you had spent 1204,50 €. By the 16th of August it was 980,20 €.');
+    const half = readingWords(r, en, 'en-GB', NOW, { ...live, previousSpent: null });
+    expect(plain(half.sentence)).toBe('By the 16th you had spent 1204,50 €. By the 16th of August it was 980,20 €.');
+  });
+
   it('keeps the stored sentence when a number it needs is missing', () => {
     const r = { kind: 'month_pace', month: '2026-09-01', sentence: 'STORED', detail: 'ALSO STORED', numbers: { spent: 10 } };
     expect(readingWords(r, es, 'es-ES', NOW)).toEqual({ sentence: 'STORED', detail: 'ALSO STORED' });
