@@ -212,6 +212,7 @@ export type MoneyPage = {
 
 export const moneyAPI = {
   /* The page in one read: every part Today, Month and You share, and which could not be read. */
+  chatOpeners: () => moneyFetch('/money/chat/openers').then((r) => json<ChatOpener[]>(r)),
   page: (view: 'today' | 'month' | 'you') => moneyFetch(`/money/page?view=${view}`).then((r) => json<MoneyPage>(r)),
   forecast: () => moneyFetch('/money/forecast').then((r) => json<MoneyForecast>(r)),
   ledger: completeLedger,
@@ -362,7 +363,9 @@ export type ChatFigure =
 export type ChatReceipt = { id: string; occurred_at: string; merchant: string; amount: number | string };
 export type ChatAction = { kind: string; label: string; [key: string]: unknown };
 export type ChatTurn = { role: 'user' | 'twin'; text: string };
-export type ChatReply = { text: string; figures?: ChatFigure[]; actions?: ChatAction[]; receipts?: ChatReceipt[]; basis?: string[]; thinking?: string | null };
+export type ChatReply = { text: string; figures?: ChatFigure[]; actions?: ChatAction[]; receipts?: ChatReceipt[]; basis?: string[]; thinking?: string | null; next?: string[] };
+/** A question the page offers, with the figure the ledger would answer it with when it has one. */
+export type ChatOpener = { ask: string; figure: string | null };
 /** One kept turn of the conversation, as the server hands it back. */
 export type ChatTurnKept = { id: string; role: 'user' | 'twin'; text: string; figures?: ChatFigure[] | null; actions?: ChatAction[] | null; receipts?: ChatReceipt[] | null; thinking?: string | null; basis?: string[] | null; created_at: string };
 /** One answer, in the pieces the server sends. The phases arrive in this order. */
@@ -374,7 +377,7 @@ export type ChatStreamEvent =
   | { phase: 'text'; delta: string }
   | { phase: 'thinking'; delta: string }
   | { phase: 'figures'; figures?: ChatFigure[] }
-  | { phase: 'actions'; actions?: ChatAction[]; receipts?: ChatReceipt[]; basis?: string[] }
+  | { phase: 'actions'; actions?: ChatAction[]; receipts?: ChatReceipt[]; basis?: string[]; next?: string[] }
   | { phase: 'done' }
   | { phase: 'failed'; detail?: string };
 

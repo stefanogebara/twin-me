@@ -404,13 +404,13 @@ describe('the streamed answer', () => {
     expect(reply.figures).toEqual([]);
   });
 
-  it('sends only the eight named fields, never a row or an id of its own', async () => {
+  it('sends only the nine named fields, never a row or an id of its own', async () => {
     streamCall.mockImplementation(streamsIn(['{"text":"Clothing took 116,76 EUR.","figures":[{"kind":"months"}],"actions":[],"cites":["t1"]}']));
     const { events, onEvent } = recorder();
     await answerStream('u1', 'where did september go?', [], { now: NOW, onEvent });
     /* basis: the context lines the answer stood on, computed, so the person can see how it got there. */
     /* computed: whether the ledger answered without the model, so a reader knows a sum is its own arithmetic. */
-    const allowed = new Set(['phase', 'delta', 'figures', 'actions', 'receipts', 'detail', 'basis', 'computed']);
+    const allowed = new Set(['phase', 'delta', 'figures', 'actions', 'receipts', 'detail', 'basis', 'computed', 'next']);
     for (const e of events) for (const key of Object.keys(e)) expect(allowed.has(key)).toBe(true);
   });
 

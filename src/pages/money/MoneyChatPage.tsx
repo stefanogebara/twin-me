@@ -199,8 +199,11 @@ function MoneyConversation() {
 
                 {offersShown ? (
                   <div className="mc-offers" role="group" aria-label={t('Things to ask')}>
-                    {offers.map((q) => (
-                      <button key={q} type="button" className="mv-pill mv-pill--ghost" onClick={() => ask(t(q))}><span>{t(q)}</span></button>
+                    {offers.map((o) => (
+                      <button key={o.ask} type="button" className="mv-pill mv-pill--ghost mc-offer" onClick={() => ask(o.ask)}>
+                        <span>{o.ask}</span>
+                        {o.figure ? <span className="mc-offer-figure">{o.figure}</span> : null}
+                      </button>
                     ))}
                   </div>
                 ) : null}

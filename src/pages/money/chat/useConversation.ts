@@ -9,7 +9,7 @@ import { useReducedMotion } from 'framer-motion';
 import { moneyAPI, moneyChat, type ChatTurn, type ChatAction } from '../../../services/api/moneyAPI';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { useLocale, useT } from '@/lib/i18n';
-import { MAX_UPLOAD, OFFERS, shrink, nextAsk, type AskLine } from './askLine';
+import { MAX_UPLOAD, OFFERS, shrink, nextAsk, type AskLine, type Offer } from './askLine';
 import { useLedgerTrace } from './useLedgerTrace';
 
 export function useConversation() {
@@ -83,11 +83,24 @@ export function useConversation() {
   /* The offer is sent in the person's language, so the transcript holds the translated words
      and the English source never matched: in Spanish and Portuguese the same suggestion came
      back after it had been asked (2026-09-16). */
-  const offers = useMemo(
-    () => OFFERS.filter((q) => !asked.has(q.toLowerCase()) && !asked.has(t(q).toLowerCase())).slice(0, asked.size === 0 ? 3 : 2),
-    [asked, t],
-  );
+  /* Before the first question, three openers with the ledger's own figures, read once; while
+     they load, or when the read fails, the fixed list stands in. After an answer, what the
+     ledger computed as the next thing to ask; the fixed list again when it offered nothing. */
+  const [openers, setOpeners] = useState<Offer[] | null>(null);
+  useEffect(() => {
+    if (lines.length !== 0 || openers !== null) return;
+    let live = true;
+    moneyAPI.chatOpeners().then((o) => { if (live) setOpeners(Array.isArray(o) ? o : []); }).catch(() => { if (live) setOpeners([]); });
+    return () => { live = false; };
+  }, [lines.length, openers]);
   const last = lines[lines.length - 1];
+  const offers = useMemo<Offer[]>(() => {
+    const fixed = OFFERS.map((q) => ({ ask: t(q), figure: null }));
+    const fresh = !asked.size && openers && openers.length ? openers : null;
+    const computed = last?.who === 'twin' && Array.isArray(last.next) && last.next.length ? last.next.map((ask) => ({ ask, figure: null })) : null;
+    const pool = fresh || computed || fixed;
+    return pool.filter((o) => !asked.has(o.ask.trim().toLowerCase())).slice(0, asked.size === 0 ? 3 : 2);
+  }, [asked, t, openers, last]);
   const offersShown = offers.length > 0 && !asking && (!last || (last.who === 'twin' && !last.pending));
 
   /* The newest line should sit where the eye already is: the page follows the end of the
@@ -132,7 +145,7 @@ export function useConversation() {
         } else if (e.phase === 'figures') {
           amend((l) => ({ ...l, figures: e.figures || [] }));
         } else if (e.phase === 'actions') {
-          amend((l) => ({ ...l, receipts: e.receipts || [], actions: e.actions || [], basis: e.basis || [] }));
+          amend((l) => ({ ...l, receipts: e.receipts || [], actions: e.actions || [], basis: e.basis || [], next: Array.isArray(e.next) ? e.next : undefined }));
         } else if (e.phase === 'failed') {
           amend((l) => ({ ...l, pending: false, text: wrote ? l.text : '', error: e.detail ? t(e.detail) : t('That could not be read right now.') }));
           wrote = true;

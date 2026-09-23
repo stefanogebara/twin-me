@@ -38,6 +38,8 @@
  */
 
 import { ledgerCurrency } from '../services/money/currency.js';
+import { openers as chatOpeners } from '../services/money/next.js';
+import { gather as gatherChat } from '../services/money/chat.js';
 import { labelCard } from '../services/money/instruments.js';
 import { readPage, accountsView, PAGE_VIEWS } from '../services/money/pageRead.js';
 import { listReceiptNotices } from '../services/money/notices.js';
@@ -661,6 +663,12 @@ router.delete('/facts/:id', validate({ params: S.ID_PARAM }), async (req, res) =
 router.get('/chat/history', async (req, res) => {
   try { res.json({ success: true, data: await listChatTurns(req.user.id, { limit: 30 }) }); }
   catch (error) { log.error('chat history failed', { error: error.message }); res.status(500).json({ success: false, error: 'Internal server error' }); }
+});
+
+/** Three questions for an empty conversation, each with the figure the ledger would answer with. */
+router.get('/chat/openers', async (req, res) => {
+  try { res.json({ success: true, data: chatOpeners(await gatherChat(req.user.id, new Date())) }); }
+  catch (error) { log.error('openers failed', { error: error.message }); res.status(500).json({ success: false, error: 'Internal server error' }); }
 });
 
 router.post('/chat', validate({ body: S.CHAT }), async (req, res) => {
