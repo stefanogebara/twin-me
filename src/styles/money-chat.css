@@ -144,7 +144,8 @@
 .mc-bar-track { display: flex; align-items: flex-end; min-height: 0; }
 /* --track is the letter-spacing token, not a colour: written here as a background it was
    invalid, so every bar but the current one painted nothing (2026-09-16). */
-.mc-bar-track > i { display: block; width: 100%; background: var(--mark); border-radius: 2px 2px 0 0; }
+/* Signal blue is the register's stroke for data; grey bars read as disabled (the owner, 2026-09-23). Today's own bar stays ink. */
+.mc-bar-track > i { display: block; width: 100%; background: var(--rg-signal); border-radius: 2px 2px 0 0; }
 .mc-bar.is-current .mc-bar-track > i { background: var(--ink); }
 .mc .mc-bar-label { color: var(--ink-2); font-size: 13px; line-height: 16px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 

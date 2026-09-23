@@ -210,7 +210,8 @@
 .mv .mv-share > i, .mv .mv-pair > i { display: block; height: 100%; background: var(--ink); }
 .mv .mv-mark-small { display: inline-grid; place-items: center; width: 12px; height: 12px; margin-right: 6px; vertical-align: -1px; color: var(--ink); }
 /* Where it went: rows with a tile, the share bar under the text. */
-.mv .mv-where > li > .mv-item { grid-template-columns: 32px minmax(0, 1fr) auto; }
+/* The tiles left the category rows on 2026-09-23; the rows are words and a figure, like every other row. */
+.mv .mv-where > li > .mv-item { grid-template-columns: minmax(0, 1fr) auto; }
 /* A second grey line inside a section, above a second list. */
 .mv .mv-more { margin-top: 24px; }
 /* A small select in a row's end: the field, 32 tall, sized to its words. */
