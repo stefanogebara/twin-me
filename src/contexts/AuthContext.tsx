@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useRef, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef, ReactNode, useCallback } from 'react';
 import { setAccessToken, getAccessToken, clearAccessToken, authFetch, getDesktopFreshAccessToken, markNoSession } from '../services/api/apiBase';
 import { queryClient } from '@/lib/queryClient';
 import { singleFlight } from '@/utils/singleFlight';
@@ -18,6 +18,8 @@ import { API_URL } from '@/services/api/apiBase';
  */
 
 interface User {
+  /* The language TwinMe speaks to them (users.preferred_language): en, es, pt-BR; null when never asked. */
+  preferred_language?: string | null;
   id: string;
   email: string;
   firstName?: string;
@@ -45,6 +47,10 @@ interface AuthContextType {
   signInWithOAuth: (provider: 'google', redirectAfterAuth?: string) => Promise<void>;
   clearAuth: () => void;
   refreshAccessToken: () => Promise<boolean>;
+  /* A field the person just changed, written into the cached user at once: the snapshot only
+     refreshes with the token, so the language sheet asked again on the next load and the pages
+     stayed in English after the choice was kept (2026-09-23). */
+  patchUser: (fields: Partial<User>) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -504,6 +510,15 @@ setUser(null);
     window.location.href = finalUrl;
   };
 
+  const patchUser = useCallback((fields: Partial<User>) => {
+    setUser((prev) => {
+      if (!prev) return prev;
+      const next = { ...prev, ...fields };
+      try { localStorage.setItem('auth_user', JSON.stringify(next)); } catch { /* the state still carries it */ }
+      return next;
+    });
+  }, []);
+
   const value: AuthContextType = {
     user,
     authToken,
@@ -517,6 +532,7 @@ setUser(null);
     signInWithOAuth,
     clearAuth,
     refreshAccessToken,
+    patchUser,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

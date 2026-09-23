@@ -15,7 +15,7 @@ import { languageRows, nextDeleteStep, keepsLine, deleteWarning, type DeleteStep
 
 export default function Account({ m }: { m: MoneyAccount }) {
   const { t } = m;
-  const { user, signOut } = useAuth();
+  const { user, signOut, patchUser } = useAuth();
   const lang = useLang();
   const navigate = useNavigate();
   const [busy, setBusy] = useState<'language' | 'signout' | 'delete' | null>(null);
@@ -25,7 +25,7 @@ export default function Account({ m }: { m: MoneyAccount }) {
   async function pick(code: Parameters<typeof saveLanguage>[0]) {
     if (code === lang || busy) return;
     setBusy('language'); setError(null);
-    try { await saveLanguage(code); window.location.reload(); } catch (e) { setError((e as Error).message); setBusy(null); }
+    try { await saveLanguage(code); patchUser?.({ preferred_language: code }); window.location.reload(); } catch (e) { setError((e as Error).message); setBusy(null); }
   }
   async function leave() {
     setBusy('signout');
