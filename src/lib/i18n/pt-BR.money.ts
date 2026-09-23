@@ -871,7 +871,7 @@ export const PT_BR_MONEY: Record<string, string> = {
   "WhatsApp": "WhatsApp",
   "Linked.": "Vinculado.",
   "It answers when you write. Nothing is sent unless you write first.": "Responde quando você escreve. Nada é enviado se você não escrever.",
-  "Nothing is sent unless you write first. Remove the number here to disconnect it.": "Nada é enviado se você não escrever. Remova o número aqui para desconectá-lo.",
+  "Remove the number here to disconnect it.": "Remova o n\u00famero aqui para desconectar.",
   "Your WhatsApp number": "Seu número de WhatsApp",
   "Send a code": "Enviar um código",
   "The code sent to your WhatsApp": "O código enviado ao seu WhatsApp",

@@ -33,7 +33,7 @@ export default function WhatsAppSource({ m }: { m: MoneyAccount }) {
         </span>
       </div>
       <p className="mv-body mv-body--icon mv-quiet">
-        {t('Nothing is sent unless you write first. Remove the number here to disconnect it.')}
+        {t('Remove the number here to disconnect it.')}
       </p>
       {link.step === 'phone' ? (
         <form className="mv-body mv-body--icon" onSubmit={(e) => { e.preventDefault(); void link.requestCode(phone); }}>
