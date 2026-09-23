@@ -144,7 +144,7 @@ export default function Sources({ m }: { m: MoneyAccount }) {
                     <span className="mv-icon" aria-hidden="true"><Mail size={16} /></span>
                     <span className="mv-item-text">
                       <span className="mv-item-title">{t('Receipts by email')}</span>
-                      <span className="mv-item-sub">{inbox.receiving ? t("Forward receipts, or your bank's alert mails; they join the ledger.") : t('Forward receipts here once the domain is switched on.')}</span>
+                      <span className="mv-item-sub">{inbox.receiving ? t("Forward receipts, statements or your bank's alert mails; they join the ledger.") : t('Forward receipts here once the domain is switched on.')}</span>
                     </span>
                     <span className="mv-item-end">
                       <button type="button" className="mv-pill mv-pill--ghost" onClick={() => void copyInbox()}>{copied ? t('Copied') : t('Copy address')}</button>
@@ -152,6 +152,15 @@ export default function Sources({ m }: { m: MoneyAccount }) {
                   </div>
                   <div className="mv-body mv-body--icon"><code className="mv-code">{inbox.address}</code></div>
                   {/* Gmail confirms a forwarding address by mail to that address, which is this one: the code and the link are shown here, where the person can act on them. */}
+                  {/* A statement mailed in with more than one account to choose from waits here; the form above is where it is chosen. */}
+                  {(inbox.statements || []).map((h) => (
+                    <div key={h.at} className="mv-item mv-item--sub">
+                      <span className="mv-item-text">
+                        <span className="mv-item-title">{t('A statement arrived by mail')}</span>
+                        <span className="mv-item-sub">{t('{name}, {n} rows. Upload it above and choose the account.', { name: h.filename || t('a file'), n: h.rows })}</span>
+                      </span>
+                    </div>
+                  ))}
                   {(inbox.forwarding || []).map((f) => (
                     <div key={f.at} className="mv-item mv-item--sub">
                       <span className="mv-item-text">

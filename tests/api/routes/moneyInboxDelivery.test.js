@@ -6,6 +6,8 @@ vi.mock('../../../api/services/money/inbox.js', () => ({
   inboxAddress: vi.fn(), inboxDomain: vi.fn(), isInboxConfigured: () => true,
   verifySvix: () => f.signature, ingestReceivedEmail: (...a) => f.ingest(...a),
   extractReceipt: vi.fn(), receiptToSighting: vi.fn(),
+  /* The mail-attachment path (mailAttachments.js) reads these from the same module. */
+  fetchReceivedAttachment: vi.fn(), HELD_STATEMENT_KIND: 'statement_mail', listForwardingRequests: vi.fn(async () => []), listHeldStatements: vi.fn(async () => []),
 }));
 import router from '../../../api/routes/money.js';
 const app = express(); app.use(express.json()); app.use('/money', router);

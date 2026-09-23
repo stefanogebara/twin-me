@@ -360,7 +360,67 @@ export async function listForwardingRequests(userId, { now = new Date() } = {}) 
   return (data || []).map((n) => ({ requester: n.merchant || n.evidence?.requester || null, code: n.evidence?.code || null, link: n.evidence?.link || null, at: n.created_at }));
 }
 
-export async function ingestReceivedEmail(event) {
+/* ---------------------------------------------------------------- attachments on a mail */
+
+/** The attachments worth reading: an accepted type, under the size cap, at most three. Pure. */
+export function attachmentsToRead(message, { accepts, maxBytes }) {
+  return (message?.attachments || [])
+    .filter((a) => a && a.id && accepts(a.filename || '', a.content_type || '') && (!a.size || Number(a.size) <= maxBytes))
+    .slice(0, 3);
+}
+
+/** One attachment's bytes: Resend answers with a signed link, the link with the file. */
+export async function fetchReceivedAttachment(emailId, attachmentId) {
+  const res = await fetch(`https://api.resend.com/emails/receiving/${encodeURIComponent(emailId)}/attachments/${encodeURIComponent(attachmentId)}`, {
+    headers: { Authorization: `Bearer ${process.env.RESEND_API_KEY}` },
+    signal: AbortSignal.timeout(10000),
+  });
+  if (!res.ok) throw new Error(`resend attachment ${res.status}`);
+  const meta = await res.json();
+  if (!meta?.download_url) throw new Error('resend attachment without a link');
+  const file = await fetch(meta.download_url, { signal: AbortSignal.timeout(20000) });
+  if (!file.ok) throw new Error(`attachment download ${file.status}`);
+  return Buffer.from(await file.arrayBuffer());
+}
+
+/**
+ * A statement or a receipt attached to a mail sent to the ledger address reads the way it does
+ * from the page and from WhatsApp (2026-09-23). `deps` carries every side effect: accepts,
+ * maxBytes, fetchAttachment(emailId, id) -> Buffer, readStatement(userId, buffer, name, origin),
+ * readAttachment(userId, file). One failing attachment never fails the others or the mail.
+ */
+export async function readMailAttachments(userId, message, { emailId, deps }) {
+  const outcomes = [];
+  for (const a of attachmentsToRead(message, deps)) {
+    const filename = String(a.filename || 'file').slice(0, 120);
+    try {
+      const buffer = await deps.fetchAttachment(emailId, a.id);
+      if (!Buffer.isBuffer(buffer) || !buffer.length || buffer.length > deps.maxBytes) { outcomes.push({ filename, kind: 'unreadable' }); continue; }
+      const statement = /\.(xlsx|xls|csv|tsv)$/i.test(filename);
+      const read = statement
+        ? await deps.readStatement(userId, buffer, filename, { emailId, attachmentId: a.id })
+        : await deps.readAttachment(userId, { buffer, filename, mimeType: a.content_type || '' });
+      outcomes.push({ filename, kind: read?.kind || 'nothing', ...(read?.read != null ? { read: read.read } : {}), ...(read?.created != null ? { created: read.created } : {}), ...(read?.rows != null ? { rows: read.rows } : {}) });
+    } catch (error) {
+      log.warn('mail attachment not read', { userId, filename, error: error.message });
+      outcomes.push({ filename, kind: 'unreadable' });
+    }
+  }
+  return outcomes;
+}
+
+export const HELD_STATEMENT_KIND = 'statement_mail';
+/** Statements that arrived by mail in the last two days and wait for an account to be chosen. */
+export async function listHeldStatements(userId, { now = new Date() } = {}) {
+  if (!userId) return [];
+  const since = new Date(new Date(now).getTime() - FORWARDING_WINDOW_MS).toISOString();
+  const { data, error } = await supabaseAdmin.from('money_notices').select('evidence, created_at')
+    .eq('user_id', userId).eq('kind', HELD_STATEMENT_KIND).gte('created_at', since).order('created_at', { ascending: false }).limit(5);
+  if (error) throw new Error(`Cannot read held statements: ${error.message}`);
+  return (data || []).map((n) => ({ filename: n.evidence?.filename || null, rows: Number(n.evidence?.rows) || 0, accounts: Number(n.evidence?.accounts) || 0, at: n.created_at }));
+}
+
+export async function ingestReceivedEmail(event, deps = null) {
   const data = event?.data || {};
   const to = Array.isArray(data.to) ? data.to[0] : data.to;
   const userId = await userForAddress(to);
@@ -373,6 +433,15 @@ export async function ingestReceivedEmail(event) {
     await saveForwardingRequest(userId, forwarding, { emailId: id, receivedAt: message.created_at });
     log.info('forwarding confirmation kept', { userId, requester: forwarding.requester || null });
     return { outcome: 'forwarding_request', userId };
+  }
+  /* A file on the mail is read first: a statement is rows, and a receipt as PDF is the receipt
+     itself; the body of such a mail is a line of prose that would read as nothing. */
+  if (deps?.attachments && Array.isArray(message.attachments) && message.attachments.length) {
+    const outcomes = await readMailAttachments(userId, message, { emailId: id, deps: deps.attachments });
+    if (outcomes.some((o) => ['statement', 'receipt', 'notice', 'held'].includes(o.kind))) {
+      log.info('mail attachments read', { userId, outcomes: outcomes.map((o) => `${o.kind}:${o.read ?? o.rows ?? ''}`).join(' ') });
+      return { outcome: 'attachments_read', userId, attachments: outcomes };
+    }
   }
   const alert = bankAlertSighting(message, { emailId: id, receivedAt: message.created_at });
   if (alert) {
