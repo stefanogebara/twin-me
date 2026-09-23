@@ -105,8 +105,12 @@ Rules that hold everywhere in money:
   the bank routes. **The timezone follows the person too** (2026-09-23): every `zone.js` helper
   takes a zone and otherwise reads the request's, set by the money router's middleware, the
   crons' per-person loop and the WhatsApp inbound (`inPersonZone`, `withZone`); the page reads
-  its days in the zone the payload carries (`profile.timezone`). Currency still reads the one
-  deployment value (tracker, M3-7 stage three).
+  its days in the zone the payload carries (`profile.timezone`). **The currency follows the
+  person too** (2026-09-23, stage three): `currency.js` reads `ledgerCurrency()` from the same
+  scope (`scope.js`: `withPerson`, `currentPerson`), `ours()` and `money()` follow it, every
+  euro literal in the reads is the ledger's own currency, and the page's `euro()`, `ownCurrency()`
+  and filters follow `profile.currency` (`setLedgerCurrency`). Conversion is still deliberately
+  absent: a row in another currency is refused, never added.
 
 Key money files (`api/services/money/`): `ledger.js` (reconcile), `ingestion.js`
 (atomic plan/commit), `store.js` (persistence, being split), `projection.js`,

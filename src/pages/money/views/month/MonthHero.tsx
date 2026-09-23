@@ -4,7 +4,7 @@
  * useMoneyAccount and each view is its own file. The words on the page did not move.
  */
 
-import { euro } from '../../../../services/api/moneyAPI';
+import { ownCurrency, ledgerCurrency, euro } from '../../../../services/api/moneyAPI';
 import { orbFor } from '../../orbFor';
 import Wait from '../../../../components/Wait';
 import MonthOrbits from '../../figures/MonthOrbits';
@@ -40,7 +40,7 @@ export default function MonthHero({ m }: { m: MoneyAccount }) {
               const amount = forecast ? euro(forecast.spent) : (months[0] ? euro(months[0].spent) : '\u2026');
               return incomeEdge ? t('{month}, {amount} of {income}.', { month: monthLabel, amount, income: euro(incomeEdge) }) : t('{month}, {amount}.', { month: monthLabel, amount });
             })()}</h1> : null}
-            {ledger.some((row) => row.currency && row.currency !== 'EUR') ? <p className="mv-sub">{t('Totals include euros only. Other currencies stay on their original receipts.')}</p> : null}
+            {ledger.some((row) => !ownCurrency(row.currency)) ? <p className="mv-sub">{ledgerCurrency() === 'EUR' ? t('Totals include euros only. Other currencies stay on their original receipts.') : t('Totals include {ccy} only. Other currencies stay on their original receipts.', { ccy: ledgerCurrency() })}</p> : null}
             {incomeEdge ? <p className="mv-sub">{today?.keep
               ? t('{income} is what you said comes in, {keep} of it to keep.', { income: euro(incomeEdge), keep: euro(today.keep) })
               : t('{income} is what you said comes in.', { income: euro(incomeEdge) })}</p> : null}

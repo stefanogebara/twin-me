@@ -12,7 +12,7 @@ import request from 'supertest';
 
 const owner = '00000000-0000-4000-8000-000000000001';
 const f = vi.hoisted(() => ({ listFacts: vi.fn(), listTransactions: vi.fn(), forecast: vi.fn() }));
-vi.mock('../../../api/services/money/store.js', () => ({ inPersonZone: (id, fn) => fn(), personProfileCached: async () => ({ timezone: 'Europe/Madrid', country: 'ES', currency: 'EUR', language: null }), 
+vi.mock('../../../api/services/money/store.js', () => ({ inPersonScope: (id, fn) => fn(), personProfileCached: async () => ({ timezone: 'Europe/Madrid', country: 'ES', currency: 'EUR', language: null }), 
   ingestSighting: vi.fn(),
   ingestSightings: vi.fn(),
   listTransactions: f.listTransactions,

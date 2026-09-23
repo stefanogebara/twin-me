@@ -20,7 +20,29 @@
  */
 
 /** The currency every figure in the ledger is in. */
+import { currentPerson } from './scope.js';
+
 export const LEDGER_CCY = (process.env.MONEY_CURRENCY || 'EUR').toUpperCase();
+
+/**
+ * The currency of the ledger being read: the person's (profile.js, from their accounts) when
+ * an entry point has set them (scope.js), else the deployment's.
+ */
+export function ledgerCurrency() {
+  const c = currentPerson()?.currency;
+  return typeof c === 'string' && /^[A-Za-z]{3}$/.test(c) ? c.toUpperCase() : LEDGER_CCY;
+}
+
+/** The word for a currency in a sentence, in the languages the product speaks. */
+const CURRENCY_WORDS = {
+  en: { EUR: 'euros', USD: 'dollars', GBP: 'pounds', BRL: 'reais', CHF: 'francs', MXN: 'pesos', ARS: 'pesos' },
+  es: { EUR: 'euros', USD: 'd\u00f3lares', GBP: 'libras', BRL: 'reales', CHF: 'francos', MXN: 'pesos', ARS: 'pesos' },
+  'pt-BR': { EUR: 'euros', USD: 'd\u00f3lares', GBP: 'libras', BRL: 'reais', CHF: 'francos', MXN: 'pesos', ARS: 'pesos' },
+};
+export function currencyWord(language, currency = ledgerCurrency()) {
+  const ccy = String(currency || '').toUpperCase();
+  return (CURRENCY_WORDS[language] || CURRENCY_WORDS.en)[ccy] || ccy;
+}
 
 /**
  * How a figure is written where the ledger's money is spent. Spain writes 1.234,56 €; the
@@ -33,7 +55,7 @@ const LOCALES = { EUR: 'es-ES', USD: 'en-US', GBP: 'en-GB', BRL: 'pt-BR', CHF: '
 /** A formatter per currency, made once. */
 const formatters = new Map();
 function formatterFor(currency, maximumFractionDigits) {
-  const ccy = String(currency || LEDGER_CCY).toUpperCase();
+  const ccy = String(currency || ledgerCurrency()).toUpperCase();
   const key = `${ccy}:${maximumFractionDigits}`;
   if (!formatters.has(key)) {
     formatters.set(key, new Intl.NumberFormat(LOCALES[ccy] || 'en-US', { style: 'currency', currency: ccy, maximumFractionDigits }));
@@ -46,8 +68,8 @@ function formatterFor(currency, maximumFractionDigits) {
  * @param {number} amount
  * @param {object} [opts]  { currency, maximumFractionDigits = 2 }
  */
-export function money(amount, { currency = LEDGER_CCY, maximumFractionDigits = 2 } = {}) {
-  return formatterFor(currency, maximumFractionDigits).format(Number(amount) || 0);
+export function money(amount, { currency = null, maximumFractionDigits = 2 } = {}) {
+  return formatterFor(currency || ledgerCurrency(), maximumFractionDigits).format(Number(amount) || 0);
 }
 
 /**
@@ -55,7 +77,7 @@ export function money(amount, { currency = LEDGER_CCY, maximumFractionDigits = 2
  * written before there was a column to say otherwise was in it.
  */
 export function ours(currency) {
-  return !currency || String(currency).toUpperCase() === LEDGER_CCY;
+  return !currency || String(currency).toUpperCase() === ledgerCurrency();
 }
 
 /** The ledger's money, as the bank spells it, for a row being written. */

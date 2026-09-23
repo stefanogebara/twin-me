@@ -11,7 +11,7 @@ vi.mock('../../../../api/services/money/figureScoreStore.js', () => ({ currentFi
 vi.mock('../../../../api/services/money/returns.js', () => ({ listReturnsClosing: f.returns }));
 vi.mock('../../../../api/services/money/transactionRepository.js', async (importOriginal) => {
   const actual = await importOriginal();
-  return { ...actual, listTransactions: f.listTransactions, listEuroTransactions: (u, o = {}) => f.listTransactions(u, { ...o, currency: 'EUR' }) };
+  return { ...actual, listTransactions: f.listTransactions, listOwnTransactions: (u, o = {}) => f.listTransactions(u, { ...o, currency: 'EUR' }) };
 });
 vi.mock('../../../../api/services/money/factsRepository.js', async (importOriginal) => {
   const actual = await importOriginal();

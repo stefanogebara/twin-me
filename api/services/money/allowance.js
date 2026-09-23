@@ -23,7 +23,7 @@
 import { studentMonth } from './priors.js';
 import { keepAmount } from './intention.js';
 import { dayIn, weekdayIn, daysBetweenIn } from './zone.js';
-import { ours } from './currency.js';
+import { ledgerCurrency, ours } from './currency.js';
 
 /** Two complete months is the least that can stand for "a typical month" of this person. */
 export const MIN_MONTHS_FOR_TYPICAL = 2;
@@ -217,7 +217,7 @@ export function safeToSpend({ cast = null, segments = [], facts = [], accounts =
   if (!cast) return none('There is no month to read yet.');
   /* Money that is not this ledger's is refused rather than converted: a figure that quietly
      adds dollars to euros is worse than one that says it cannot. */
-  if (cast.unsupported_currency || accounts.some((a) => !ours(a.currency))) return none('Spending guidance is available for euro accounts only. Foreign currencies have not been converted.');
+  if (cast.unsupported_currency || accounts.some((a) => !ours(a.currency))) return none(ledgerCurrency() === 'EUR' ? 'Spending guidance is available for euro accounts only. Foreign currencies have not been converted.' : `Spending guidance is available for ${ledgerCurrency()} accounts only. Foreign currencies have not been converted.`);
 
   const income = statedIncome(facts);
   const keep = keepAmount(facts);

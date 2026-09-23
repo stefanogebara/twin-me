@@ -29,7 +29,7 @@ import { TWIN_PREDICTION_CONFIDENCE } from './brain.js';
 import { dayForecast, calibrate, carriedWiden } from './calibration.js';
 import { dayIn } from './zone.js';
 import { currentFigureScores } from './figureScoreStore.js';
-import { money } from './currency.js';
+import { ledgerCurrency, money } from './currency.js';
 
 const log = createLogger('MoneyPredictions');
 /** A charge counts as on the day if it lands within this many days of when it was expected. */
@@ -223,7 +223,7 @@ export async function learnFromLedger(userId, now = new Date()) {
   if (tableGone()) return { recorded: 0, scored: 0, charges };
   const [cast, transactions, facts, segments] = await Promise.all([
     forecast(userId, now),
-    listTransactions(userId, { currency: 'EUR', limit: 5000 }),
+    listTransactions(userId, { currency: ledgerCurrency(), limit: 5000 }),
     listFacts(userId),
     months(userId, now),
   ]);

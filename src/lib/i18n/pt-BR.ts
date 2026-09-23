@@ -2,6 +2,7 @@
 export const PT_BR: Record<string, string> = {
   'Bank snapshot from {day}.': 'Saldo informado pelo banco em {day}.',
   'Totals include euros only. Other currencies stay on their original receipts.': 'Os totais incluem apenas euros. As outras moedas permanecem nos recibos originais.',
+  'Totals include {ccy} only. Other currencies stay on their original receipts.': 'Os totais incluem apenas {ccy}. As outras moedas permanecem nos recibos originais.',
   'Today': 'Hoje', 'Month': 'M\u00eas', 'Plan': 'Plano', 'You': 'Voc\u00ea', 'Ask': 'Pergunte', 'Settings': 'Ajustes', 'Money': 'Dinheiro',
   'Your twin': 'Seu g\u00eameo',
   'Which language should TwinMe speak?': 'Em que idioma o TwinMe fala com voc\u00ea?',

@@ -11,7 +11,7 @@
  * person's own row, and when it exists it should be passed in here; until then the product's
  * own scope is the honest answer, and it is stated in one place instead of assumed in twenty.
  */
-import { AsyncLocalStorage } from 'node:async_hooks';
+import { withPerson, currentPerson } from './scope.js';
 
 export const LEDGER_TZ = process.env.MONEY_TZ || 'Europe/Madrid';
 
@@ -30,9 +30,8 @@ const PARTS_FMTS = new Map();
  * middleware, a cron's per-person loop, the WhatsApp inbound) and every helper here reads
  * when it is given no zone. Outside any such scope the deployment's zone stands.
  */
-const ZONE = new AsyncLocalStorage();
-export function withZone(tz, fn) { return ZONE.run(knownZone(tz) ? tz : LEDGER_TZ, fn); }
-export function currentZone() { return ZONE.getStore() || LEDGER_TZ; }
+export function withZone(tz, fn) { return withPerson({ ...(currentPerson() || {}), timezone: knownZone(tz) ? tz : LEDGER_TZ }, fn); }
+export function currentZone() { const tz = currentPerson()?.timezone; return knownZone(tz) ? tz : LEDGER_TZ; }
 const zoneOf = (tz) => (typeof tz === 'string' && tz ? tz : currentZone());
 /* en-CA gives YYYY-MM-DD, which is the shape every key in the ledger already has. */
 function dayFmt(tz) {

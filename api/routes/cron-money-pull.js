@@ -22,7 +22,7 @@ import express from 'express';
 import { verifyCronSecret } from '../middleware/verifyCronSecret.js';
 import { logCronExecution } from '../services/cronLogger.js';
 import { createLogger } from '../services/logger.js';
-import { inPersonZone, pullBankFeed, enrichPlaces, refreshReadings, refreshRecurring, learn, bankFeedUserIds, finishBankFeedJob } from '../services/money/store.js';
+import { inPersonScope, pullBankFeed, enrichPlaces, refreshReadings, refreshRecurring, learn, bankFeedUserIds, finishBankFeedJob } from '../services/money/store.js';
 import { isConfigured } from '../services/money/feeds/enableBanking.js';
 import { learnFromLedger } from '../services/money/predictions.js';
 import { refreshIfStale as refreshCalendar } from '../services/money/calendar.js';
@@ -72,7 +72,7 @@ router.all('/', async (req, res) => {
       let fresh = 0;
       let outcome = 'ok';
       try {
-        const pulled = await inPersonZone(userId, () => pullBankFeed(userId, { deadline: Math.min(startedAt+PULL_BY_MS,Date.now()+15000) }));
+        const pulled = await inPersonScope(userId, () => pullBankFeed(userId, { deadline: Math.min(startedAt+PULL_BY_MS,Date.now()+15000) }));
         const expectedPause = new Set(['continuation_pending', 'time_budget_exhausted', 'already_reading', 'feed_budget_spent']);
         if (pulled.some((p) => p.error && !expectedPause.has(p.error))) { outcome = 'error'; failed++; }
         else if (pulled.some((p) => p.error || p.complete === false)) { outcome = 'partial'; partial++; }

@@ -4,6 +4,7 @@
  * few payments that weighed most on the week and still have no verdict, so the review is
  * five presses. Pure: the ledger in, the rows out.
  */
+import { ownCurrency } from '../../services/api/moneyAPI';
 import type { MoneyTransaction } from '../../services/api/moneyAPI';
 
 export const REVIEW_DAYS = 7;
@@ -12,7 +13,7 @@ export const REVIEW_MAX = 5;
 export function reviewRows(ledger: MoneyTransaction[], now = new Date(), { days = REVIEW_DAYS, max = REVIEW_MAX } = {}): MoneyTransaction[] {
   const since = now.getTime() - days * 86400000;
   return ledger
-    .filter((t) => Number(t.amount) < 0 && !t.verdict && (!t.currency || t.currency === 'EUR') && !t.is_recurring)
+    .filter((t) => Number(t.amount) < 0 && !t.verdict && ownCurrency(t.currency) && !t.is_recurring)
     /* "Was it worth it?" about a payment the bank sent without a name cannot be answered:
        two of the five rows were "a payment without a name" (2026-09-21). */
     .filter((t) => { const n = String(t.merchant_name || t.merchant_raw || '').trim(); return n !== '' && !/^unknown$/i.test(n); })

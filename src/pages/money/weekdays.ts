@@ -2,6 +2,7 @@
  * Spending by day of the week over the last full weeks, computed on the page from the ledger
  * rows it already holds: the same shape the chat draws, now on Month (2026-09-21). Pure.
  */
+import { ownCurrency } from '../../services/api/moneyAPI';
 export type WeekdayPoint = { label: string; value: number; current?: boolean };
 
 const DAY_MS = 86400000;
@@ -18,7 +19,7 @@ export function weekdayTotals(rows: { occurred_at: string; amount: number | stri
   let any = false;
   for (const t of rows || []) {
     const amount = Number(t.amount);
-    if (!(amount < 0) || t.verdict === 'not_me' || t.counts === false || (t.currency && t.currency !== 'EUR')) continue;
+    if (!(amount < 0) || t.verdict === 'not_me' || t.counts === false || !ownCurrency(t.currency)) continue;
     const at = new Date(t.occurred_at).getTime();
     if (Number.isNaN(at) || at < from || at >= to) continue;
     totals[new Date(at).getDay()] += Math.abs(amount);
