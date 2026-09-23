@@ -122,7 +122,7 @@ export function cancelStatement(text) {
  * role comes from the product's list (context.js PERSON_ROLES); the words for each role are
  * here in the three languages the product speaks.
  */
-const ROLE_WORDS = [
+export const ROLE_WORDS = [
   ['landlord', /\b(landlord|landlady|casero|casera|arrendador|arrendadora|senhorio|senhoria|proprietari[oa]|dono d[oa] (apartamento|piso|casa)|due[nñ][oa] del piso)\b/],
   ['flatmate', /\b(flatmates?|roommates?|housemates?|compa[nñ]er[oa] de (piso|casa|cuarto)|colega de (apartamento|casa|quarto)|companheir[oa] de (apartamento|casa|quarto))\b/],
   ['partner', /\b(partner|girlfriend|boyfriend|wife|husband|novi[oa]|pareja|esposa|esposo|marido|mujer|namorad[oa]|companheir[oa])\b/],
@@ -130,8 +130,9 @@ const ROLE_WORDS = [
   ['work', /\b(boss|employer|manager|company|client|jefe|jefa|empresa|cliente|chefe|patr[aã]o|empregador)\b/],
   ['friend', /\b(friends?|amig[oa]s?|mate|buddy|colega)\b/],
 ];
+const LEAD_IN = /^(?:no|nao|not|actually|wait|hmm|en realidad|na verdade|pues no|nope)[,;:\s]+/;
 export function personStatement(text) {
-  const t = norm(text);
+  const t = norm(text).replace(LEAD_IN, '');
   const hit = ROLE_WORDS.find(([, re]) => re.test(t));
   if (!hit) return null;
   /* The name: "X is my landlord", "the transfer to X is ... she is my landlord", "X e minha mae". */
@@ -163,7 +164,7 @@ export function notMineStatement(text) {
 
 /** "Banamani is a bar", "Torre IE should count as eating out", "X is not education, it is a cafe": the name and the kind words after it. */
 export function recategoriseStatement(text) {
-  const t = norm(text);
+  const t = norm(text).replace(LEAD_IN, '');
   const m = t.match(/^(?:the\s+)?([\p{L}\p{N}][\p{L}\p{N} .&'-]{1,40}?)\s+(?:is|are|es|e|eh|should count as|should be|counts? as|deberia contar como|cuenta como|deveria contar como|conta como)\b(.*)$/u);
   if (!m) return null;
   const tail = m[2];

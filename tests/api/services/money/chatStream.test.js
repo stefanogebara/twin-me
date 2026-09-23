@@ -18,6 +18,7 @@ const store = {
   saveChatTurn: vi.fn(), listTransactions: vi.fn(), months: vi.fn(), forecast: vi.fn(), categorySpend: vi.fn(), refreshRecurring: vi.fn(),
   listReadings: vi.fn(), listFacts: vi.fn(), questionsFor: vi.fn(), listPlaces: vi.fn(),
   setVerdict: vi.fn(), setPlaceCategory: vi.fn(), answerQuestion: vi.fn(), listBankAccounts: vi.fn(), userLanguage: vi.fn(),
+  subscriptionUsage: vi.fn(async () => ({ findings: [], unmeasurable: [], measured: [] })),
 };
 /* One kind for a payment, and the real resolver decides it: the month page and the chat
    disagreed about the same euros while each had its own copy, so the mock must not hold a
@@ -403,12 +404,13 @@ describe('the streamed answer', () => {
     expect(reply.figures).toEqual([]);
   });
 
-  it('sends only the seven named fields, never a row or an id of its own', async () => {
+  it('sends only the eight named fields, never a row or an id of its own', async () => {
     streamCall.mockImplementation(streamsIn(['{"text":"Clothing took 116,76 EUR.","figures":[{"kind":"months"}],"actions":[],"cites":["t1"]}']));
     const { events, onEvent } = recorder();
     await answerStream('u1', 'where did september go?', [], { now: NOW, onEvent });
     /* basis: the context lines the answer stood on, computed, so the person can see how it got there. */
-    const allowed = new Set(['phase', 'delta', 'figures', 'actions', 'receipts', 'detail', 'basis']);
+    /* computed: whether the ledger answered without the model, so a reader knows a sum is its own arithmetic. */
+    const allowed = new Set(['phase', 'delta', 'figures', 'actions', 'receipts', 'detail', 'basis', 'computed']);
     for (const e of events) for (const key of Object.keys(e)) expect(allowed.has(key)).toBe(true);
   });
 
