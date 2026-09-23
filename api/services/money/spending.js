@@ -33,6 +33,26 @@ export function personRoles(facts = []) {
   return roles;
 }
 
+/**
+ * The role of a counterparty, by the name the bank wrote. A Bizum arrives as "Mauad G." while
+ * the person was named "Mauad Gebara Christian" (2026-09-23): the short form is the same
+ * person when every word of it is the start of the matching word of the long one, in order,
+ * the first word whole. Exact keys win; a one-letter first word never matches.
+ */
+export function roleOf(roles, merchantKey) {
+  const key = String(merchantKey || '').toLowerCase().trim();
+  if (!key) return null;
+  if (roles.has(key)) return roles.get(key);
+  const short = key.split(/\s+/);
+  if (short[0].length < 3) return null;
+  for (const [name, role] of roles) {
+    const long = name.split(/\s+/);
+    if (short.length > long.length || short[0] !== long[0]) continue;
+    if (short.every((w, i) => long[i].startsWith(w.replace(/\.$/, '')))) return role;
+  }
+  return null;
+}
+
 /** The predicate, bound to what the person said. */
 export function spendingRule(facts = []) {
   const roles = personRoles(facts);
@@ -40,7 +60,7 @@ export function spendingRule(facts = []) {
     if (t?.verdict === 'not_me') return false;
     if (!ours(t?.currency)) return false;
     if (!t || !PERSON_CHANNELS.has(t.channel)) return true;
-    const role = roles.get(String(t.merchant_key || '').toLowerCase());
+    const role = roleOf(roles, t.merchant_key);
     return !(role && NOT_SPENDING.has(role));
   };
 }

@@ -42,7 +42,7 @@ import {
 import { learnMerchants, learnPatterns, predictNext, describeForTwin } from './brain.js';
 import { describeContext, PERSON_ROLES } from './context.js';
 import { CATEGORIES } from './places.js';
-import { markCounted, personRoles } from './spending.js';
+import { markCounted, personRoles, roleOf } from './spending.js';
 import { calendarLines } from './calendar.js';
 import { safeToSpend, allowanceLine } from './allowance.js';
 import { partsIn, weekdayIn, dayIn } from './zone.js';
@@ -256,7 +256,7 @@ export function assemble({ transactions: rawTransactions = [], segments = [], fo
      person called a landlord, so without them Ask filed the same 600 EUR under transfers
      while the month page called it rent (2026-09-16). */
   const roles = personRoles(facts);
-  const categoryOf = (t) => categoryOfPayment(placeByKey.get(t.merchant_key), t.channel, roles.get(String(t.merchant_key || '').toLowerCase()) || null);
+  const categoryOf = (t) => categoryOfPayment(placeByKey.get(t.merchant_key), t.channel, roleOf(roles, t.merchant_key) || null);
   const profiles = learnMerchants(transactions, { now, categoryOf });
   const patterns = learnPatterns({ transactions, profiles, categoryOf, now });
   const predictions = predictNext(profiles, { now });

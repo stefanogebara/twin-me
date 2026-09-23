@@ -19,7 +19,7 @@ import { detectRecurring, withoutCancelled } from './recurring.js';
 import { projectMonth } from './projection.js';
 import { fetchTransactions, toSighting, distinctPending, fetchBalances } from './feeds/enableBanking.js';
 import { readLedger, monthSegments } from './analyst.js';
-import { spendingRule, markCounted, personRoles } from './spending.js';
+import { spendingRule, markCounted, personRoles, roleOf } from './spending.js';
 import { judgePlace, shouldJudge } from './judge.js';
 import { poolMerchantPriors } from './priors.js';
 import { nudgeFindings, retiredKinds, NUDGE_KINDS, expiredNudge } from './nudges.js';
@@ -597,7 +597,9 @@ export function categoryOfPayment(place, channel, role = null) {
 /** @param {{ month?: string|null, facts?: object[] }} options `facts`: every fact, already read, when the caller holds them (M2-A). */
 export async function categorySpend(userId, { month = null, facts: givenFacts = null } = {}) {
   let q = supabaseAdmin.from('money_transactions')
-    .select('id, amount, merchant_key, merchant_raw, occurred_at, channel')
+    /* `verdict` rides along so the spending rule can drop what the person rejected: a
+       payment marked not_me stood in the categories at its full amount (2026-09-23). */
+    .select('id, amount, merchant_key, merchant_raw, occurred_at, channel, verdict')
     .eq('user_id', userId).lt('amount', 0);
   if (month) {
     const start = `${String(month).slice(0, 7)}-01`;
@@ -634,7 +636,7 @@ export async function categorySpend(userId, { month = null, facts: givenFacts = 
        recorded so the same question is not asked twice, and it must not pass for an answer. */
     /* A transfer to a person is a transfer, whatever a places provider thinks: the channel
        the bank recorded is itself an answer, and a truthful one. */
-    const category = categoryOfPayment(place, r.channel, roles.get(String(r.merchant_key || '').toLowerCase()) || null);
+    const category = categoryOfPayment(place, r.channel, roleOf(roles, r.merchant_key));
     if (category) read += amount;
     const key = category || 'not read yet';
     if (!groups.has(key)) groups.set(key, { category: key, known: Boolean(category), spent: 0, lines: 0, merchants: new Map() });
