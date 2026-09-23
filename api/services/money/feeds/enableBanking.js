@@ -91,7 +91,7 @@ export function applicationCountries() {
   if (!countriesPromise) {
     countriesPromise = api('/application')
       .then((j) => (Array.isArray(j?.countries) ? j.countries.map((c) => String(c).toUpperCase()) : null))
-      .catch(quietly('enable-banking/api', () => { countriesPromise = null; return null; }));
+      .catch(quietly('enable-banking/application-countries', () => { countriesPromise = null; return null; }));
   }
   return countriesPromise;
 }
