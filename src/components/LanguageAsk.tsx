@@ -14,7 +14,7 @@ import '@/styles/money-v2.css';
 
 export default function LanguageAsk({ onDone }: { onDone?: () => void } = {}) {
   const t = useT();
-  const { user } = useAuth();
+  const { user, patchUser } = useAuth();
   const [picked, setPicked] = useState<LanguageCode>('en');
   const [busy, setBusy] = useState(false);
   const [done, setDone] = useState(false);
@@ -26,7 +26,7 @@ export default function LanguageAsk({ onDone }: { onDone?: () => void } = {}) {
   async function keep() {
     if (busy) return;
     setBusy(true); setError(null);
-    try { await saveLanguage(picked); setDone(true); onDone?.(); } catch (e) { setError((e as Error).message); } finally { setBusy(false); }
+    try { await saveLanguage(picked); patchUser?.({ preferred_language: picked }); setDone(true); onDone?.(); } catch (e) { setError((e as Error).message); } finally { setBusy(false); }
   }
 
   return (
