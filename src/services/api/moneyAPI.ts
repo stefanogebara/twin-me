@@ -187,11 +187,15 @@ async function completeLedger(since?: string): Promise<MoneyTransaction[]> {
   throw new Error('Choose a shorter ledger date range.');
 }
 
+export type MoneyProfile = { timezone: string; country: string; currency: string; language: string | null };
+
 export type MoneyPage = {
   forecast: MoneyForecast | null; today: MoneyToday | null; ledger: MoneyTransaction[] | null; recurring: MoneyRecurring[] | null;
   accounts: MoneyAccount[] | null; months: MoneyMonth[] | null; readings: MoneyReading[] | null; categories: MoneyCategories | null;
   usage: MoneyUsage | null; capabilities: { bank: boolean; capture: boolean; whatsapp?: boolean } | null; inbox: { address: string; receiving: boolean } | null;
   facts: MoneyFact[] | null;
+  /* Where the person is, from their own data: the zone the page reads its days in. */
+  profile: MoneyProfile | null;
   /* Which sources saw each payment, by transaction id: the reconciliation, visible. */
   seen: Record<string, string[]> | null;
   /* What each source has given, and what it cannot give. */

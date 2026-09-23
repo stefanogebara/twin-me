@@ -7,7 +7,7 @@
  * These tests hold the boundary at local midnight, in summer and in winter.
  */
 import { describe, it, expect } from 'vitest';
-import { dayIn, monthIn, partsIn, weekdayIn, dayOfMonthIn, startOfDayIn, offsetAt, daysBetweenIn, LEDGER_TZ } from '../../../../api/services/money/zone.js';
+import { withZone, currentZone, knownZone, dayIn, monthIn, partsIn, weekdayIn, dayOfMonthIn, startOfDayIn, offsetAt, daysBetweenIn, LEDGER_TZ } from '../../../../api/services/money/zone.js';
 import { monthPlan } from '../../../../api/services/money/plan.js';
 import { safeToSpend } from '../../../../api/services/money/allowance.js';
 
@@ -67,5 +67,28 @@ describe('what the boundary changes on the screen', () => {
     expect(a.amount).not.toBeNull();
     /* The day the allowance is speaking about is the one the person is in. */
     expect(a.today_events).toEqual([]);
+  });
+});
+
+describe('the person\'s zone', () => {
+  it('every helper takes a zone, and the deployment\'s stands when none is given', () => {
+    const at = '2026-09-23T23:30:00Z';
+    expect(dayIn(at)).toBe('2026-09-24');
+    expect(dayIn(at, 'America/Sao_Paulo')).toBe('2026-09-23');
+    expect(partsIn(at, 'America/New_York')).toMatchObject({ day: 23, hour: 19, weekday: 3 });
+    expect(startOfDayIn('2026-09-23', 'America/New_York').toISOString()).toBe('2026-09-23T04:00:00.000Z');
+    expect(daysBetweenIn('2026-09-22T03:00:00Z', at, 'America/Los_Angeles')).toBe(2);
+    expect(dayIn(at, 'Mars/Olympus')).toBe(dayIn(at));
+    expect(knownZone('Europe/Lisbon')).toBe(true);
+    expect(knownZone('Mars/Olympus')).toBe(false);
+  });
+  it('withZone sets the zone for everything inside it, across an await, and nothing outside', async () => {
+    const at = '2026-09-23T23:30:00Z';
+    const inside = await withZone('America/New_York', async () => { await new Promise((r) => setTimeout(r, 2)); return [dayIn(at), currentZone(), weekdayIn(at)]; });
+    expect(inside).toEqual(['2026-09-23', 'America/New_York', 3]);
+    expect(dayIn(at)).toBe('2026-09-24');
+    expect(currentZone()).toBe(LEDGER_TZ);
+    expect(withZone('Mars/Olympus', () => currentZone())).toBe(LEDGER_TZ);
+    expect(withZone(null, () => currentZone())).toBe(LEDGER_TZ);
   });
 });

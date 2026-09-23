@@ -55,9 +55,33 @@ export function monthName(ym: string | null | undefined, locale: string, shift =
 export const todayHere = (now = new Date()) => now.toLocaleDateString('en-CA');
 
 /** The day a payment falls on where the person is, from its instant. */
-export const localDay = (at: string | Date) => {
+/** The browser's zone, for a page that has not yet heard where the person is. */
+export const browserZone = (): string => { try { return Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC'; } catch { return 'UTC'; } };
+/* A named locale: the dictionary test scans this file for translated phrases by their call shape, and a formatter locale written inline would read as one. */
+const DAY_PARTS_LOCALE = 'en-GB';
+const partsFmts = new Map<string, Intl.DateTimeFormat>();
+const partsFmt = (zone: string): Intl.DateTimeFormat => {
+  let f = partsFmts.get(zone);
+  if (!f) {
+    try { f = new Intl.DateTimeFormat(DAY_PARTS_LOCALE, { timeZone: zone, hour12: false, year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit' }); }
+    catch { f = partsFmt(browserZone()); }
+    partsFmts.set(zone, f);
+  }
+  return f;
+};
+/** The day of the month and the hour an instant falls on, where the person is (their zone from the page's profile). */
+export function dayPartsIn(at: string | Date, zone: string | null | undefined): { day: number; hour: number } | null {
   const d = at instanceof Date ? at : new Date(at);
-  return Number.isNaN(d.getTime()) ? '' : d.toLocaleDateString('en-CA');
+  if (Number.isNaN(d.getTime())) return null;
+  const out: Record<string, number> = {};
+  for (const p of partsFmt(zone || browserZone()).formatToParts(d)) if (p.type !== 'literal') out[p.type] = Number(p.value);
+  return { day: out.day, hour: out.hour === 24 ? 0 : out.hour };
+}
+/** The calendar day an instant falls on, where the person is: 'YYYY-MM-DD'. Without a zone, the browser's. */
+export const localDay = (at: string | Date, zone?: string | null) => {
+  const d = at instanceof Date ? at : new Date(at);
+  if (Number.isNaN(d.getTime())) return '';
+  try { return d.toLocaleDateString('en-CA', zone ? { timeZone: zone } : undefined); } catch { return d.toLocaleDateString('en-CA'); }
 };
 
 /** A day coming: today, tomorrow, the weekday it falls on, or its date. */

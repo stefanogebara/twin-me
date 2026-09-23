@@ -5,9 +5,10 @@
  */
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { dayPartsIn, browserZone } from './readingHelpers';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLocale, useT } from '@/lib/i18n';
-import { moneyAPI, shortDay, BANKS, type MoneyAccount as MoneyBankAccount, type MoneyCalendar, type MoneyCategories, type MoneyFact, type MoneyForecast, type MoneyPattern, type MoneyQuestions, type MoneyToday, type MoneyMonth, type MoneyPage, type MoneyReading, type MoneyRecurring, type MoneyTransaction, type MoneyUsage, type MoneySourceCounts } from '../../services/api/moneyAPI';
+import { moneyAPI, shortDay, BANKS, type MoneyProfile, type MoneyAccount as MoneyBankAccount, type MoneyCalendar, type MoneyCategories, type MoneyFact, type MoneyForecast, type MoneyPattern, type MoneyQuestions, type MoneyToday, type MoneyMonth, type MoneyPage, type MoneyReading, type MoneyRecurring, type MoneyTransaction, type MoneyUsage, type MoneySourceCounts } from '../../services/api/moneyAPI';
 import { moneyRevision, MONEY_CHANGED } from '../../services/api/moneyChanges';
 import { todayHere, localDay } from './readingWords';
 import type { MoneyView } from './navLinks';
@@ -53,6 +54,8 @@ function storeSnapshot(snapshot: Snapshot) {
 export function useMoneyRead(userId: string | null, view: MoneyView) {
   if (SNAPSHOT?.userId !== userId || SNAPSHOT?.revision !== moneyRevision()) SNAPSHOT = storedSnapshot(userId);
   const [forecast, setForecast] = useState<MoneyForecast | null>(SNAPSHOT?.forecast ?? null);
+  /* Where the person is, from the page: the zone every day on this screen is read in. */
+  const [profile, setProfile] = useState<MoneyProfile | null>(null);
   /* The one number a person opens the app for. It leads Today; the month sits under it. */
   const [today, setToday] = useState<MoneyToday | null>(SNAPSHOT?.today ?? null);
   const [unread, setUnread] = useState(SNAPSHOT?.unread ?? false);
@@ -121,6 +124,7 @@ export function useMoneyRead(userId: string | null, view: MoneyView) {
     const fa = got('facts'); if (fa !== undefined) setFacts(fa);
     const sn = got('seen'); if (sn !== undefined) setSeen(sn);
     const sc = got('sources'); if (sc !== undefined) setSources(sc);
+    const pf = got('profile'); if (pf !== undefined) setProfile(pf);
     setFailedParts(page ? failed : new Set(['forecast', 'today', 'ledger', 'recurring', 'accounts', 'months', 'readings', 'categories', 'usage', 'capabilities', 'inbox', 'facts']));
     /* A month that could not be read is not an empty month. Every rejection was dropped, so a
        server that was down told the person their ledger was empty and offered to connect the
@@ -191,7 +195,7 @@ export function useMoneyRead(userId: string | null, view: MoneyView) {
       .catch(() => {});
     return () => { live = false; };
   }, [load]);
-  return { forecast, today, unread, ledger, setLedger, recurring, accounts, months, readings, categories, setCategories, usage, capabilities, inbox, facts, seen, sources, failedParts, loaded, needsReconnect, setNeedsReconnect, load };
+  return { forecast, profile, today, unread, ledger, setLedger, recurring, accounts, months, readings, categories, setCategories, usage, capabilities, inbox, facts, seen, sources, failedParts, loaded, needsReconnect, setNeedsReconnect, load };
 }
 
 /** What only You shows, read only there: the calendar, the questions, the patterns. */
@@ -360,7 +364,7 @@ export function useMoneyAccount(view: MoneyView, userId: string | null) {
   const r = useMoneyRead(userId, view);
   const y = useYouReads(view, r.inbox);
   const a = useMoneyActions({ t, load: r.load, loadCalendar: y.loadCalendar, loadYou: y.loadYou, setLedger: r.setLedger, setCategories: r.setCategories, setNeedsReconnect: r.setNeedsReconnect });
-  const { forecast, today, ledger, recurring, accounts, months, readings, usage, loaded, needsReconnect } = r;
+  const { forecast, today, ledger, recurring, accounts, months, readings, usage, loaded, needsReconnect, profile } = r;
   const { busy, read, bankReady } = a;
   /* Two ways to learn the connection has ended, and the page must not depend on the luckier
      one. The refresh call says so when it is the call that hits the dead session; the accounts
@@ -404,7 +408,7 @@ export function useMoneyAccount(view: MoneyView, userId: string | null) {
      every render, so any unrelated state change tore down the orbits and replayed their
      entrance; for the second and a half that took, nothing on the figure could be clicked. */
   const monthKey = (forecast?.month || new Date().toISOString()).slice(0, 7);
-  const monthRows = useMemo(() => ledger.filter((tx) => tx.verdict !== 'not_me' && (!tx.currency || tx.currency === 'EUR') && localDay(tx.occurred_at).slice(0, 7) === monthKey), [ledger, monthKey]);
+  const monthRows = useMemo(() => ledger.filter((tx) => tx.verdict !== 'not_me' && (!tx.currency || tx.currency === 'EUR') && localDay(tx.occurred_at, profile?.timezone).slice(0, 7) === monthKey), [ledger, monthKey, profile?.timezone]);
   /* What they said comes in each month is the band's right edge; the month is drawn against
      it, not against its own worst case. Without a stated income the band keeps its old edge. */
   /* The month is framed by what they said comes in even when the day rests on the balance. */
@@ -416,7 +420,9 @@ export function useMoneyAccount(view: MoneyView, userId: string | null) {
     ? t('Bank snapshot from {day}.', { day: shortDay(today.balance.at, locale) })
     : null;
   /* The same days of every month, for the pair bars on the month rows. */
-  const todayDay = new Date().getUTCDate();
+  /* The person's zone, else the browser's: the day the pace bars and the orbits are drawn against. */
+  const zone = profile?.timezone || browserZone();
+  const todayDay = dayPartsIn(new Date(), zone)?.day ?? new Date().getDate();
   const pairMax = Math.max(0, ...months.map((m) => Number(m.spent_to_day) || 0));
   /* The readings that changed something today come first: a change against the person's own
      past, an income that has not come, a cap or a keep, a charge the month cannot carry, a
@@ -461,7 +467,7 @@ export function useMoneyAccount(view: MoneyView, userId: string | null) {
   return {
     t, locale, user, ...r, ...y, ...a,
     youFailed: r.failedParts.has('facts'),
-    reconnect, quietDays, bookedLine, bankLine, empty, monthKey, monthRows, incomeEdge, edge, balanceLine, todayDay, pairMax,
+    reconnect, quietDays, bookedLine, bankLine, empty, monthKey, monthRows, incomeEdge, edge, balanceLine, todayDay, pairMax, profile, zone,
     ranked, changed, shown, lead, rest, projectable, monthlyLoad, subscriptions, bills, byMonth, monthLabel, last, unmeasured, ahead,
   };
 }

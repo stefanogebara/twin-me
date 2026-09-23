@@ -4,7 +4,7 @@
  * needs is missing. Was one 375-line switch inside readingWords (split 2026-09-19, M2-2b).
  */
 import { euro } from '../../services/api/moneyAPI';
-import { n, s, ordinal, weekdayName, monthName, dayAhead, dayBehind, dayAndMonth, listOf, categoryWord, categoryInline, CADENCE_AMOUNT, platformLabel, weekPhrase } from './readingHelpers';
+import { n, s, ordinal, weekdayName, monthName, dayAhead, dayBehind, dayAndMonth, listOf, categoryWord, categoryInline, CADENCE_AMOUNT, platformLabel, weekPhrase, dayPartsIn } from './readingHelpers';
 import type { T, Numbers, Sayable, Said } from './readingHelpers';
 
 /**
@@ -15,7 +15,7 @@ import type { T, Numbers, Sayable, Said } from './readingHelpers';
 export type LiveFigures = { month: string | null; spent: number | null; previousSpent: number | null; day: number | null };
 export type SayContext = {
   r: Sayable; t: T; locale: string; now: Date; num: Numbers; keep: Said;
-  receipts: NonNullable<Sayable['receipts']>; nameFromReceipt: () => string | null; live?: LiveFigures | null;
+  receipts: NonNullable<Sayable['receipts']>; nameFromReceipt: () => string | null; live?: LiveFigures | null; zone?: string | null;
 };
 export type Sayer = (c: SayContext) => Said;
 
@@ -229,13 +229,13 @@ export const SAYERS: Record<string, Sayer> = {
     return { sentence, detail: t('Your share is {amount}. {n} of {of} shares still to come.', { amount: euro(share), n: expected - paid, of: expected }) };
   },
 
-  income_late: ({ r, t, num, keep, receipts }) => {
+  income_late: ({ r, t, num, keep, receipts , zone }) => {
     const amount = n(num.typical_amount); const day = n(num.typical_day);
     if (amount === null || day === null) return keep;
     const source = num.source_is_default === true ? t('Comes in') : s(num.source);
     if (!source) return keep;
     const sentence = t('{source}, usually about {amount} on the {day}, has not come this month.', { source, amount: euro(amount), day: ordinal(t, day) });
-    const days = receipts.map((x) => new Date(x.occurred_at).getUTCDate()).filter((d) => Number.isFinite(d));
+    const days = receipts.map((x) => dayPartsIn(x.occurred_at, zone)?.day ?? NaN).filter((d) => Number.isFinite(d));
     if (!days.length) return { sentence, detail: r.detail ?? null };
     const detail = days.length === 1
       ? t('The last one came on the {day}.', { day: ordinal(t, days[0]) })

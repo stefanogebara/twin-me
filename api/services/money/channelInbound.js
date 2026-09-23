@@ -7,7 +7,7 @@
  */
 import { createLogger } from '../logger.js';
 import { answer, act, looksLikeInstruction } from './chat.js';
-import { listChatTurns, userLanguage, saveChatTurn } from './store.js';
+import { inPersonZone, listChatTurns, userLanguage, saveChatTurn } from './store.js';
 import { claimInbound, keepOffers, takeOffer, recentOffers, offerSaid, releaseOffer } from './channelStore.js';
 import { sendWhatsAppCtaButton, sendWhatsAppButtons, downloadWhatsAppMedia } from '../whatsappService.js';
 import { readAttachment, acceptsAttachment, MAX_ATTACHMENT_BYTES } from './attachments.js';
@@ -24,7 +24,13 @@ const DEADLINE = Symbol('money_channel_deadline');
 const DEFAULT_DEPS = { answer, act, listChatTurns, userLanguage, claimInbound, keepOffers, takeOffer, recentOffers, offerSaid, releaseOffer, sendCta: sendWhatsAppCtaButton, sendButtons: sendWhatsAppButtons, looksLikeInstruction, download: downloadWhatsAppMedia, readAttachment, saveChatTurn, attachmentDeps: ATTACHMENT_DEPS, deadlineMs: CHANNEL_DEADLINE_MS };
 const APP_URL = () => String(process.env.APP_URL || process.env.VITE_APP_URL || 'https://twinme.me').replace(/\/+$/, '');
 
-export async function handleMoneyInbound(parsed, { userId, send, deps = {} }) {
+/** The one effectful entry point, run in the person's own zone. */
+export async function handleMoneyInbound(parsed, opts) {
+  const scope = opts?.deps?.inPersonZone || inPersonZone;
+  return scope(opts.userId, () => handleMoneyInboundIn(parsed, opts));
+}
+
+async function handleMoneyInboundIn(parsed, { userId, send, deps = {} }) {
   const startedAt = Date.now();
   const d = { ...DEFAULT_DEPS, ...deps };
   const { phone, text, messageId } = parsed;

@@ -16,7 +16,7 @@ import type { MoneyAccount } from '../useMoneyAccount';
      three that changed something today, the one that moved most as the heading; the month
      carries all of them, last, after where the money went. */
 export default function Readings({ m, view }: { m: MoneyAccount; view: 'today' | 'month' }) {
-  const { t, locale, readings, quietDays, shown, lead, rest, months, forecast, todayDay } = m;
+  const { t, locale, readings, quietDays, shown, lead, rest, months, forecast, todayDay, zone } = m;
   /* The hero's figures, handed to the sayers: the month so far as this load computed it, the
      same days of last month, and today's day, so a reading that compares the month says the
      hero's numbers and not the ones stored at the last refresh. */
@@ -40,7 +40,7 @@ export default function Readings({ m, view }: { m: MoneyAccount; view: 'today' |
                   <button type="button" className="mv-lead" aria-expanded={openReading === lead.id} onClick={() => setOpenReading(openReading === lead.id ? null : lead.id)}>
                     {/* The ledger keeps the English sentence for the twin; the page says the same
                         numbers in the reader's own language (readingWords.ts, 2026-09-16). */}
-                    {(() => { const said = readingWords(lead, t, locale, new Date(), live); return (<>
+                    {(() => { const said = readingWords(lead, t, locale, new Date(), live, zone); return (<>
                       <h2>{said.sentence}</h2>
                       {said.detail ? <p className="mv-sub">{said.detail}</p> : null}
                     </>); })()}
@@ -60,7 +60,7 @@ export default function Readings({ m, view }: { m: MoneyAccount; view: 'today' |
                     <li key={r.id}>
                       <button type="button" className="mv-item" aria-expanded={isOpen} onClick={() => setOpenReading(isOpen ? null : r.id)}>
                         <span className="mv-item-text">
-                          {(() => { const said = readingWords(r, t, locale, new Date(), live); return (<>
+                          {(() => { const said = readingWords(r, t, locale, new Date(), live, zone); return (<>
                             {/* A row is not a heading: no full stop at the end of its title. */}
                             <span className="mv-item-title">{said.sentence.replace(/\.$/, '')}</span>
                             {/* On Today the headline is the row; the detail waits behind the chevron

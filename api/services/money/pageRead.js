@@ -12,7 +12,7 @@ import { forecast, months } from './forecastService.js';
 import { todayAllowance } from './allowanceService.js';
 import { listTransactions, selectTransactions } from './transactionRepository.js';
 import { listFacts, publicFacts } from './factsRepository.js';
-import { refreshRecurring, listBankAccounts, reconnectByAccount, listReadings, categorySpend, subscriptionUsage } from './store.js';
+import { personProfileCached, refreshRecurring, listBankAccounts, reconnectByAccount, listReadings, categorySpend, subscriptionUsage } from './store.js';
 import { accountsWithCards } from './instruments.js';
 import { moneyCapabilities } from './betaCapabilities.js';
 import { inboxAddress, inboxDomain, isInboxConfigured } from './inbox.js';
@@ -67,6 +67,8 @@ export async function readPage(userId, { view = 'today', now = new Date() } = {}
     categories: facts.then((f) => categorySpend(userId, { month: firstOfMonthIn(now), facts: f })),
     usage: given.then((g) => subscriptionUsage(userId, now, g)),
     capabilities: Promise.resolve(moneyCapabilities(userId)),
+    /* Where the person is, for the page's own day reads: their zone, country, currency, language. */
+    profile: personProfileCached(userId).then((p) => ({ timezone: p.timezone, country: p.country, currency: p.currency, language: p.language })),
     inbox: facts.then((f) => inboxAddress(userId, { facts: f })).then((address) => ({ address, domain: inboxDomain(), receiving: isInboxConfigured() })),
   };
   const names = Object.keys(reads);

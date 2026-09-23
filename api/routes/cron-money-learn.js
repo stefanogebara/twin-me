@@ -11,6 +11,7 @@
  *
  * Nothing here calls a model. learnFromLedger is reads and arithmetic.
  */
+import { inPersonZone } from '../services/money/store.js';
 import express from 'express';
 import { verifyCronSecret } from '../middleware/verifyCronSecret.js';
 import { logCronExecution } from '../services/cronLogger.js';
@@ -35,7 +36,7 @@ router.all('/', async (req, res) => {
     for (const userId of userIds) {
       if (Date.now() - startedAt > BUDGET_MS) { skipped += 1; continue; }
       try {
-        const r = await learnFromLedger(userId);
+        const r = await inPersonZone(userId, () => learnFromLedger(userId));
         learned += 1; recorded += r?.recorded || 0; scored += r?.scored || 0;
       } catch (err) {
         failed += 1;
