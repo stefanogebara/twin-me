@@ -30,13 +30,13 @@ import { complete, stream as streamComplete, TIER_CHAT } from '../llmGateway.js'
 import { stretchLine, windowLines, weekAverageLine, costliestDayLine, cheapestDayLine, monthPaceLine, weekdayLine, spendWindows, breakdown, eur, NO_NAME } from './windows.js';
 import { askedLines, askedDays, askedWindows, askedAhead } from './asked.js';
 import { clockLine } from './clock.js';
-import { personStatement, incomeStatement, subscriptionStatement, cancelStatement } from './statements.js';
+import { keepStatement, notMineStatement, recategoriseStatement, forgetStatement, personStatement, incomeStatement, subscriptionStatement, cancelStatement, ROLE_WORDS } from './statements.js';
 import { listReturnsClosing } from './returns.js';
 import { tripDays } from './when.js';
 import { balances, describeBetweenPeople, monthBetweenPeople, describeMonthBetweenPeople, splitFindings, MIN_WAYS, MAX_WAYS } from './bizum.js';
 import crypto from 'node:crypto';
 import { createLogger } from '../logger.js';
-import {
+import { subscriptionUsage,
   listTransactions, months, forecast, categorySpend, refreshRecurring, listReadings, listFacts,
   questionsFor, listPlaces, setVerdict, setPlaceCategory, answerQuestion, categoryOfPayment, deleteFact, saveChatTurn, listBankAccounts, userLanguage,
 } from './store.js';
@@ -60,7 +60,7 @@ export const ACTION_KINDS = Object.freeze(['not_me', 'recategorise', 'answer', '
    15th", "I cancelled Spotify": kept as notes, they changed no number (2026-09-21). The
    readers in statements.js pull the parts out; this offers the fact itself when the parts
    are there, and asks for the missing one when they are not. Computed, never the model's. */
-export const FACT_KINDS_OFFERED = Object.freeze(['income', 'commitment', 'merchant_kind']);
+export const FACT_KINDS_OFFERED = Object.freeze(['income', 'commitment', 'merchant_kind', 'keep']);
 const keyOf = (name) => String(name || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, ' ').trim();
 const dayWord = (L, d) => say(L, 'the {d}', { d: ordinalIn(L, d) });
 function ordinalIn(L, d) {
@@ -95,6 +95,32 @@ export function learnFromStatement(message, ctx, { now = new Date() } = {}) {
   /* Who somebody is: a role word and a name the ledger has seen as a transfer or Bizum
      counterpart become the person offer here, computed; the model offered remember for
      "she is my landlord" one run in two (2026-09-23). */
+  /* Four more things a person says, offered by computation (the benchmark of 2026-09-23: the
+     model offered a note for "the 1,68 at Lidl is not mine", for "Banamani is a bar" and for
+     "keep 300 at month end", and nothing for "forget what I said about Valencia"). */
+  const forget = forgetStatement(message);
+  if (forget) {
+    const note = (ctx.facts || []).filter((f) => f.id && f.kind === 'note' && f.value).find((f) => forget.words.some((w) => String(f.value).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').includes(w)));
+    if (note) return { offer: { kind: 'forget', fact_id: note.id, label: say(L, 'Forget: {what}', { what: String(note.value).slice(0, 60) }) } };
+  }
+  const notMine = notMineStatement(message);
+  if (notMine) {
+    const norm = (x) => String(x || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    const rows = (ctx.transactions || []).filter((t) => Number(t.amount) < 0 && t.verdict !== 'not_me')
+      .filter((t) => (notMine.amount == null || Math.abs(Math.abs(Number(t.amount)) - notMine.amount) < 0.005))
+      .filter((t) => !notMine.words.length || notMine.words.some((w) => norm(t.merchant_raw).includes(w) || norm(t.merchant_key).includes(w)))
+      .sort((a, b) => new Date(b.occurred_at) - new Date(a.occurred_at));
+    if (rows.length && (notMine.amount != null || notMine.words.length)) return { offer: { kind: 'not_me', transaction_id: rows[0].id } };
+  }
+  const recat = recategoriseStatement(message);
+  if (recat) {
+    const category = kindInMessage(recat.tail.split(/\b(?:not|nao|n\u00e3o|no)\b/).pop());
+    const key = [...(ctx.placeByKey?.keys() || [])].find((k) => String(k).toLowerCase() === recat.name || String(k).toLowerCase().startsWith(recat.name) || recat.name.startsWith(String(k).toLowerCase()))
+      || (ctx.transactions || []).map((t) => t.merchant_key).find((k) => k && (String(k).toLowerCase() === recat.name || String(k).toLowerCase().startsWith(recat.name)));
+    if (category && key) return { offer: { kind: 'recategorise', merchant_key: key, category } };
+  }
+  const keep = keepStatement(message);
+  if (keep) return { offer: { kind: 'fact', fact: { kind: 'keep', subject: 'month', subjectLabel: null, value: null, amount: keep.amount, day: null }, label: say(L, 'Keep {amount} at month end', { amount: amountText(keep.amount) }) } };
   const who = personStatement(message);
   if (who && who.role) {
     const row = who.name ? personRow(ctx.transactions, who.name) : null;
@@ -266,15 +292,19 @@ export async function gather(userId, now = new Date()) {
     settled(categorySpend(userId, { month: thisMonth, facts }), { month: thisMonth, total: 0, read: 0, groups: [] }),
     settled(categorySpend(userId, { month: lastMonth, facts }), { month: lastMonth, total: 0, read: 0, groups: [] }),
   ]);
-  const returns = await settled(listReturnsClosing(userId, now, { within: 14 }), []);
-  return assemble({ transactions, segments, forecast: cast, recurring, readings, facts: facts || [], questions, places, categories, lastCategories, accounts, language, now, returns });
+  const [returns, usage] = await Promise.all([
+    settled(listReturnsClosing(userId, now, { within: 14 }), []),
+    /* what each subscription is used for, against what it costs: "least worth it" was answered by size (2026-09-23) */
+    settled(Promise.resolve().then(() => subscriptionUsage(userId, now, { transactions: allTransactions || undefined })), null),
+  ]);
+  return assemble({ transactions, segments, forecast: cast, recurring, readings, facts: facts || [], questions, places, categories, lastCategories, accounts, language, now, returns, usage });
 }
 
 /**
  * The pure half of gathering: the same rows, learned and indexed. Tests hand rows straight
  * to this and skip the database.
  */
-export function assemble({ transactions: rawTransactions = [], segments = [], forecast: cast = null, recurring = [], readings = [], facts = [], questions = null, places = [], categories = null, lastCategories = null, accounts = [], language = null, now = new Date(), returns = [] } = {}) {
+export function assemble({ transactions: rawTransactions = [], segments = [], forecast: cast = null, recurring = [], readings = [], facts = [], questions = null, places = [], categories = null, lastCategories = null, accounts = [], language = null, now = new Date(), returns = [], usage = null } = {}) {
   /* The same rule the month page uses decides which transfers are spending, so a share the
      twin quotes and the hero above it are the same euros. */
   const transactions = markCounted(rawTransactions, facts);
@@ -291,7 +321,7 @@ export function assemble({ transactions: rawTransactions = [], segments = [], fo
   const open = [...(questions?.opening || []), ...(questions?.fromLedger || [])];
   return {
     now, transactions, byId, segments, forecast: cast, recurring, readings, facts, roles, returns: returns || [],
-    questions: open, places: places || [], placeByKey, categoryOf, categories, lastCategories, accounts: accounts || [], language: language || null, profiles, patterns, predictions,
+    questions: open, places: places || [], placeByKey, categoryOf, categories, lastCategories, accounts: accounts || [], language: language || null, usage: usage || null, profiles, patterns, predictions,
   };
 }
 
@@ -504,6 +534,7 @@ export function validateAction(action, ctx) {
     if (!f || !FACT_KINDS_OFFERED.includes(f.kind) || !f.subject) return null;
     const fact = { kind: f.kind, subject: String(f.subject).slice(0, 120), subjectLabel: f.subjectLabel ? String(f.subjectLabel).slice(0, 120) : null, value: f.value == null ? null : String(f.value).slice(0, 240), amount: Number.isFinite(Number(f.amount)) ? Number(f.amount) : null, day: Number.isFinite(Number(f.day)) ? Number(f.day) : null, note: f.note ? String(f.note).slice(0, 240) : null };
     if ((fact.kind === 'income' || fact.kind === 'commitment') && !(fact.amount > 0 && fact.day >= 1 && fact.day <= 31)) return null;
+    if (fact.kind === 'keep' && !(fact.amount > 0)) return null;
     return { kind: 'fact', fact, label: typeof action.label === 'string' && action.label ? action.label.slice(0, 120) : say(ctx.language, 'Keep that') };
   }
   /* A setup offer is the code's to make, never the model's. */
@@ -541,6 +572,15 @@ export function receiptsFor(built, ctx, citedIds = []) {
 /* ------------------------------------------------------------------------ context */
 
 /** The whole of what the model may say, as plain lines. Nothing it says may leave this text. */
+/* One subscription's use against its cost, for the "Subscriptions against use" line. */
+function usageLine(f) {
+  const n = f?.numbers || {};
+  if (!n.name) return null;
+  if (f.kind === 'subscription_unused') return `${n.name} unused: ${amountText(n.typical_amount)} ${n.cadence || ''}, ${n.charges} charges ${amountText(n.total)}, nothing used in ${n.days_silent} days`.replace(/\s+,/g, ',');
+  if (f.kind === 'subscription_cost_per_use') return `${n.name} thin: ${amountText(n.total)} for ${n.uses} uses, ${amountText(n.cost_per_use)} a use${n.peer_cost_per_use ? ` (others ${amountText(n.peer_cost_per_use)} a use)` : ''}`;
+  return null;
+}
+
 export function contextText(ctx) {
   const lines = [];
   const today = ctx.now;
@@ -590,6 +630,12 @@ export function contextText(ctx) {
     }
   }
 
+  if (ctx.usage && (ctx.usage.findings?.length || ctx.usage.unmeasurable?.length)) {
+    /* From the finding's numbers, not its sentence: the sentence carries the euro glyph and the prompt stays ASCII. */
+    const found = (ctx.usage.findings || []).map((f) => usageLine(f)).filter(Boolean).join('; ');
+    const blind = (ctx.usage.unmeasurable || []).map((u) => `${u.name || u.merchant_key} ${amountText(u.typical_amount)}`).filter(Boolean);
+    lines.push(`Subscriptions against use: ${found || 'none measured'}${blind.length ? `. Use not measurable (cost only): ${blind.join(', ')}` : ''}.`);
+  }
   if (ctx.segments.length) {
     lines.push('Per month, spent / received / payments: ' + [...ctx.segments]
       .sort((a, b) => new Date(a.month) - new Date(b.month))
@@ -759,7 +805,9 @@ export const RULES = [
   'Actions are offers the person taps, never things you did: the text must not claim to have changed, marked or recorded anything. Say something like "If that is right, mark it below." and leave the doing to the card.',
   'Propose an action only when the person asks to fix or record something: not_me with transaction_id from the recent payments; recategorise with merchant_key from the places and a category from: ' + CATEGORIES.join(', ') + '; answer with question_id from the open questions and the value they gave; split with transaction_id from the recent payments and ways (2 to 12, the person included) when they say a payment was shared, for a dinner, a shop, a present.',
   'When the person tells you who somebody on the statement is, or what a transfer to them was for, propose person with merchant_key (the key of that person in the recent payments), role from: ' + PERSON_ROLES.join(', ') + ', and note with what they said about it. When they tell you something about their money that fits none of these (a plan, a reason, a rule of theirs), propose remember with text in their words. When they say something the ledger holds is wrong (their words, on What it knows), propose forget with the fact_id from the facts list.',
-  'When the person points out a mistake, say what you will read differently once they confirm, and propose the action; do not argue. When they ask for a chart or a graph, ask for the figure kind that shows it.',
+  'A yes or no about money carries, in the same sentence, the two figures it rests on.',
+  'Asked which subscription is least worth it, or which to cancel, read the line "Subscriptions against use": an unused or thinly used one comes first, with its cost; for a charge whose use is not measurable, say the ledger cannot see its use and give only what it costs; never rank by size alone.',
+  'When the person disputes a figure the ledger computed (a total, a count, a day), keep the figure, name the payments behind it and ask which one is wrong; never promise to read again or to change the number. When the person points out a mistake in a name, a kind or a payment that is not theirs, say what you will read differently once they confirm, and propose the action; do not argue. When they ask for a chart or a graph, ask for the figure kind that shows it.',
   'When they say a payment is not theirs, or is somebody else\'s, propose not_me with the transaction_id of the newest such payment in the recent payments. Propose forget only for a fact in the list of what they said, never for a payment or a charge.',
   'Reply in the language the person chose for TwinMe when the context names one. If they wrote their last message in another language, answer in the one they wrote. Never take a language from a name in the context: a bank called Banco Santander does not make the reply Spanish. Without a chosen language, a single word like "ok" is answered in English unless the earlier turns were in Spanish.',
   'Reply with one JSON object and nothing else: {"text": string, "figures": [{"kind": string, "month"?: string, "by"?: string, "merchant"?: string}], "actions": [{"kind": string, "label": string, ...}], "cites"?: [transaction ids]}',
@@ -876,10 +924,42 @@ const PHRASES = {
     'That took too long to answer. Ask it again.': 'Eso tard\u00f3 demasiado en responder. Pregunta otra vez.',
     'The ledger has no total for that; it can only name the parts it holds.': 'El libro no tiene un total para eso; solo puede nombrar las partes que guarda.',
     'In {month}: {parts}.': 'En {month}: {parts}.',
-    '{kind} this month: {total} in {n} payments, the largest {name} {amount}.': '{kind} este mes: {total} en {n} pagos, el mayor {name} {amount}.',
-    '{kind} this month: {total} in one payment, {name}.': '{kind} este mes: {total} en un pago, {name}.',
-    '{kind} in {month}: {total} in {n} payments, the largest {name} {amount}.': '{kind} en {month}: {total} en {n} pagos, el mayor {name} {amount}.',
-    '{kind} in {month}: {total} in one payment, {name}.': '{kind} en {month}: {total} en un pago, {name}.',
+    'Keep {amount} at month end': 'Guardar {amount} a fin de mes',
+    'TwinMe, your own ledger: the bank\'s lines, your phone\'s notifications and your receipts, read into one book. Ask about your money.': 'TwinMe, tu propio libro: las l\u00edneas del banco, los avisos del m\u00f3vil y tus recibos, le\u00eddos en un solo libro. Pregunta por tu dinero.',
+    'Ask what today can carry, where the month went, what a place or a kind cost, and what comes back. Tell me who somebody on the statement is, or what a payment was, and the ledger reads with that.': 'Pregunta qu\u00e9 aguanta hoy, ad\u00f3nde fue el mes, cu\u00e1nto cost\u00f3 un sitio o un tipo, y qu\u00e9 vuelve cada mes. Dime qui\u00e9n es alguien del extracto, o qu\u00e9 fue un pago, y el libro lee con eso.',
+    'The biggest payment this month: {name} {amount}, on {day}.': 'El mayor pago de este mes: {name} {amount}, el {day}.',
+    'This month: {spent} spent, {received} came in.': 'Este mes: {spent} gastados, {received} entraron.',
+    '{month} {amount} so far': '{month} {amount} hasta ahora',
+    '{month} {amount}': '{month} {amount}',
+    '{total} together, this month still open.': '{total} en total, este mes sigue abierto.',
+    '{total} together.': '{total} en total.',
+    'Nothing from {name} in the ledger.': 'Nada de {name} en el libro.',
+    'Nothing to {name} in the ledger.': 'Nada para {name} en el libro.',
+    'From {name}: {amount} on {day}, the one transfer in the ledger.': 'De {name}: {amount} el {day}, la \u00fanica transferencia en el libro.',
+    'To {name}: {amount} on {day}, the one transfer in the ledger.': 'Para {name}: {amount} el {day}, la \u00fanica transferencia en el libro.',
+    'From {name}: {total} in {n} transfers since {since}, the last {amount} on {day}.': 'De {name}: {total} en {n} transferencias desde {since}, la \u00faltima {amount} el {day}.',
+    'To {name}: {total} in {n} transfers since {since}, the last {amount} on {day}.': 'Para {name}: {total} en {n} transferencias desde {since}, la \u00faltima {amount} el {day}.',
+    'No payment to {place} this month or last.': 'Ning\u00fan pago a {place} este mes ni el pasado.',
+    '{place} this month: one payment, {amount} on {day}.': '{place} este mes: un pago, {amount} el {day}.',
+    '{place} this month: {n} payments: {list}.': '{place} este mes: {n} pagos: {list}.',
+    'No payment of {amount} to {place} this month or last.': 'Ning\u00fan pago de {amount} a {place} este mes ni el pasado.',
+    'No payment of {amount} this month or last.': 'Ning\u00fan pago de {amount} este mes ni el pasado.',
+    '{amount} appears once: {name}, {day}.': '{amount} aparece una vez: {name}, {day}.',
+    'Other {place} payments this month: {list}.': 'Otros pagos a {place} este mes: {list}.',
+    '{amount} appears {n} times: {list}. If one is not yours, mark it below.': '{amount} aparece {n} veces: {list}. Si alguno no es tuyo, m\u00e1rcalo abajo.',
+    '{amount} on {day}': '{amount} el {day}',
+    '{name} on {day}': '{name} el {day}',
+    '{month} has not begun; the ledger has nothing of it to add up.': '{month} no ha empezado; el libro no tiene nada suyo que sumar.',
+    'What comes back every month is {total}, one charge.': 'Lo que vuelve cada mes es {total}, un cargo.',
+    'What comes back every month is {total} in {n} charges.': 'Lo que vuelve cada mes son {total} en {n} cargos.',
+    'This month: {spent} so far, likely {p50} by its end.': 'Este mes: {spent} hasta ahora, probablemente {p50} al cierre.',
+    '{amount} kept for the end of the month. Today and the plan move with it.': '{amount} guardados para fin de mes. Hoy y el plan se mueven con ello.',
+    'And {names}, which you said comes back, {total} a month.': 'Y {names}, que dijiste que vuelve, {total} al mes.',
+    'And {names}, which you said come back, {total} a month together.': 'Y {names}, que dijiste que vuelven, {total} al mes en total.',
+    '{kind} this month: {total} in one payment, {name}, {pct}% of the month.': '{kind} este mes: {total} en un pago, {name}, el {pct}% del mes.',
+    '{kind} this month: {total} in {n} payments, {pct}% of the month, the largest {name} {amount}.': '{kind} este mes: {total} en {n} pagos, el {pct}% del mes, el mayor {name} {amount}.',
+    '{kind} in {month}: {total} in one payment, {name}, {pct}% of the month.': '{kind} en {month}: {total} en un pago, {name}, el {pct}% del mes.',
+    '{kind} in {month}: {total} in {n} payments, {pct}% of the month, the largest {name} {amount}.': '{kind} en {month}: {total} en {n} pagos, el {pct}% del mes, el mayor {name} {amount}.',
     'Nothing on {kind} this month.': 'Nada en {kind} este mes.',
     'Nothing on {kind} in {month}.': 'Nada en {kind} en {month}.',
     'In {month}, {kind} was {amount}.': 'En {month}, {kind} fue {amount}.',
@@ -989,10 +1069,42 @@ const PHRASES = {
     'That took too long to answer. Ask it again.': 'Isso demorou demais para responder. Pergunte de novo.',
     'The ledger has no total for that; it can only name the parts it holds.': 'O livro n\u00e3o tem um total para isso; s\u00f3 pode nomear as partes que guarda.',
     'In {month}: {parts}.': 'Em {month}: {parts}.',
-    '{kind} this month: {total} in {n} payments, the largest {name} {amount}.': '{kind} este m\u00eas: {total} em {n} pagamentos, o maior {name} {amount}.',
-    '{kind} this month: {total} in one payment, {name}.': '{kind} este m\u00eas: {total} em um pagamento, {name}.',
-    '{kind} in {month}: {total} in {n} payments, the largest {name} {amount}.': '{kind} em {month}: {total} em {n} pagamentos, o maior {name} {amount}.',
-    '{kind} in {month}: {total} in one payment, {name}.': '{kind} em {month}: {total} em um pagamento, {name}.',
+    'Keep {amount} at month end': 'Guardar {amount} no fim do m\u00eas',
+    'TwinMe, your own ledger: the bank\'s lines, your phone\'s notifications and your receipts, read into one book. Ask about your money.': 'TwinMe, o seu pr\u00f3prio livro: as linhas do banco, os avisos do celular e os seus recibos, lidos em um s\u00f3 livro. Pergunte sobre o seu dinheiro.',
+    'Ask what today can carry, where the month went, what a place or a kind cost, and what comes back. Tell me who somebody on the statement is, or what a payment was, and the ledger reads with that.': 'Pergunte quanto o dia aguenta, para onde foi o m\u00eas, quanto custou um lugar ou um tipo, e o que volta todo m\u00eas. Diga quem \u00e9 algu\u00e9m do extrato, ou o que foi um pagamento, e o livro l\u00ea com isso.',
+    'The biggest payment this month: {name} {amount}, on {day}.': 'O maior pagamento deste m\u00eas: {name} {amount}, em {day}.',
+    'This month: {spent} spent, {received} came in.': 'Este m\u00eas: {spent} gastos, {received} entraram.',
+    '{month} {amount} so far': '{month} {amount} at\u00e9 agora',
+    '{month} {amount}': '{month} {amount}',
+    '{total} together, this month still open.': '{total} no total, este m\u00eas ainda aberto.',
+    '{total} together.': '{total} no total.',
+    'Nothing from {name} in the ledger.': 'Nada de {name} no livro.',
+    'Nothing to {name} in the ledger.': 'Nada para {name} no livro.',
+    'From {name}: {amount} on {day}, the one transfer in the ledger.': 'De {name}: {amount} em {day}, a \u00fanica transfer\u00eancia no livro.',
+    'To {name}: {amount} on {day}, the one transfer in the ledger.': 'Para {name}: {amount} em {day}, a \u00fanica transfer\u00eancia no livro.',
+    'From {name}: {total} in {n} transfers since {since}, the last {amount} on {day}.': 'De {name}: {total} em {n} transfer\u00eancias desde {since}, a \u00faltima {amount} em {day}.',
+    'To {name}: {total} in {n} transfers since {since}, the last {amount} on {day}.': 'Para {name}: {total} em {n} transfer\u00eancias desde {since}, a \u00faltima {amount} em {day}.',
+    'No payment to {place} this month or last.': 'Nenhum pagamento a {place} este m\u00eas nem no passado.',
+    '{place} this month: one payment, {amount} on {day}.': '{place} este m\u00eas: um pagamento, {amount} em {day}.',
+    '{place} this month: {n} payments: {list}.': '{place} este m\u00eas: {n} pagamentos: {list}.',
+    'No payment of {amount} to {place} this month or last.': 'Nenhum pagamento de {amount} a {place} este m\u00eas nem no passado.',
+    'No payment of {amount} this month or last.': 'Nenhum pagamento de {amount} este m\u00eas nem no passado.',
+    '{amount} appears once: {name}, {day}.': '{amount} aparece uma vez: {name}, {day}.',
+    'Other {place} payments this month: {list}.': 'Outros pagamentos a {place} este m\u00eas: {list}.',
+    '{amount} appears {n} times: {list}. If one is not yours, mark it below.': '{amount} aparece {n} vezes: {list}. Se algum n\u00e3o for seu, marque abaixo.',
+    '{amount} on {day}': '{amount} em {day}',
+    '{name} on {day}': '{name} em {day}',
+    '{month} has not begun; the ledger has nothing of it to add up.': '{month} n\u00e3o come\u00e7ou; o livro n\u00e3o tem nada dele para somar.',
+    'What comes back every month is {total}, one charge.': 'O que volta todo m\u00eas \u00e9 {total}, uma cobran\u00e7a.',
+    'What comes back every month is {total} in {n} charges.': 'O que volta todo m\u00eas s\u00e3o {total} em {n} cobran\u00e7as.',
+    'This month: {spent} so far, likely {p50} by its end.': 'Este m\u00eas: {spent} at\u00e9 agora, provavelmente {p50} no fechamento.',
+    '{amount} kept for the end of the month. Today and the plan move with it.': '{amount} guardados para o fim do m\u00eas. Hoje e o plano se movem com isso.',
+    'And {names}, which you said comes back, {total} a month.': 'E {names}, que voc\u00ea disse que volta, {total} por m\u00eas.',
+    'And {names}, which you said come back, {total} a month together.': 'E {names}, que voc\u00ea disse que voltam, {total} por m\u00eas no total.',
+    '{kind} this month: {total} in one payment, {name}, {pct}% of the month.': '{kind} este m\u00eas: {total} em um pagamento, {name}, {pct}% do m\u00eas.',
+    '{kind} this month: {total} in {n} payments, {pct}% of the month, the largest {name} {amount}.': '{kind} este m\u00eas: {total} em {n} pagamentos, {pct}% do m\u00eas, o maior {name} {amount}.',
+    '{kind} in {month}: {total} in one payment, {name}, {pct}% of the month.': '{kind} em {month}: {total} em um pagamento, {name}, {pct}% do m\u00eas.',
+    '{kind} in {month}: {total} in {n} payments, {pct}% of the month, the largest {name} {amount}.': '{kind} em {month}: {total} em {n} pagamentos, {pct}% do m\u00eas, o maior {name} {amount}.',
     'Nothing on {kind} this month.': 'Nada em {kind} este m\u00eas.',
     'Nothing on {kind} in {month}.': 'Nada em {kind} em {month}.',
     'In {month}, {kind} was {amount}.': 'Em {month}, {kind} foi {amount}.',
@@ -1062,6 +1174,8 @@ export function smalltalkReply(message, language) {
   if (/^(hi|hello|hey|hola|oi|ol[a\u00e1]|ola|bom dia|boa tarde|boa noite|buenos d[i\u00ed]as|buenas|good (morning|afternoon|evening))( there| again)?$/.test(m)) return say(language, 'Hi. Ask me about your money: what today can carry, where the month went, what comes back.');
   if (/^(thanks|thank you|thx|gracias|obrigad[oa]|valeu|muito obrigad[oa]|muchas gracias)( a lot| very much| mesmo)?$/.test(m)) return say(language, 'You are welcome.');
   if (/^(ok|okay|vale|t[a\u00e1] bom|ta bom|beleza|entendido|perfecto|perfeito|got it|sure|alright)$/.test(m)) return say(language, 'All right.');
+  if (/^(who are you|what are you|que eres|quien eres|qui[e\u00e9]n eres|o que voc[e\u00ea] [e\u00e9]|quem [e\u00e9] voc[e\u00ea]|quem e voce)\??$/.test(m)) return say(language, 'TwinMe, your own ledger: the bank\'s lines, your phone\'s notifications and your receipts, read into one book. Ask about your money.');
+  if (/^(help|what can you do|what do you do|what can i ask( you)?|how does this work|ayuda|que puedes hacer|qu\u00e9 puedes hacer|que sabes hacer|ajuda|o que voc[e\u00ea] faz|o que posso perguntar|como funciona)\??$/.test(m)) return say(language, 'Ask what today can carry, where the month went, what a place or a kind cost, and what comes back. Tell me who somebody on the statement is, or what a payment was, and the ledger reads with that.');
   return null;
 }
 
@@ -1071,8 +1185,16 @@ export function shortCircuit(message, ctx) {
   if (small) return { text: small, figures: [], actions: [], receipts: [] };
   const byKind = kindAnswer(message, ctx);
   if (byKind) return byKind;
+  const plainSum = plainSums(message, ctx);
+  if (plainSum) return plainSum;
+  const ahead = monthAhead(message, ctx);
+  if (ahead) return ahead;
+  const person = personSums(message, ctx);
+  if (person) return person;
+  const twice = duplicateAnswer(message, ctx);
+  if (twice) return twice;
   if (!isShortAsk(message)) return null;
-  if (/\b(subscri|suscrip|assinatura|recurring|comes? back)/.test(m) || (/\b(every month|cada mes|todo mes|todos os meses)\b/.test(m) && !/\b(software|groceries|food|transport|eating|comida|supermercado|transporte|bares?|restaurantes?|em |en |on |at )\b/.test(m)) && !/\b(cancel|not mine|isn'?t mine|fix|wrong|change)\b/.test(m)) {
+  if ((/\b(subscri|suscrip|assinatura|recurring|comes? back)/.test(m) || (/\b(every month|cada mes|todo mes|todos os meses)\b/.test(m) && !/\b(software|groceries|food|transport|eating|comida|supermercado|transporte|bares?|restaurantes?|em |en |on |at )\b/.test(m))) && !/\b(cancel|not mine|isn'?t mine|fix|wrong|change|worth|least|most|should|why|which|cheapest|dearest|useless|need)\b/.test(m)) {
     const built = buildFigure({ kind: 'recurring' }, ctx);
     const L = ctx.language;
     if (!built) return { text: say(L, 'Nothing comes back regularly yet. The ledger needs to see a charge at least twice to call it that.'), figures: [], actions: [], receipts: [] };
@@ -1085,10 +1207,14 @@ export function shortCircuit(message, ctx) {
     }
     const total = monthly.reduce((s, x) => s + Number(x.typical_amount || 0), 0);
     const names = monthly.slice(0, 3).map((s) => s.merchant_name || s.merchant_key);
+    /* What they told the ledger comes back, before the ledger has seen it twice: Netflix,
+       said an hour ago, was missing from "what comes back" (the benchmark of 2026-09-23). */
+    const stated = (ctx.facts || []).filter((f) => f.kind === 'commitment' && f.value === 'subscription' && Number(f.amount) > 0 && !monthly.some((s) => String(s.merchant_key || '').toLowerCase() === String(f.subject || '').toLowerCase()));
+    const statedText = stated.length ? ' ' + say(L, stated.length === 1 ? 'And {names}, which you said comes back, {total} a month.' : 'And {names}, which you said come back, {total} a month together.', { names: stated.map((f) => f.subject_label || f.subjectLabel || f.subject).join(', '), total: amountText(stated.reduce((s, f) => s + Number(f.amount), 0)) }) : '';
     const text = monthly.length
       ? `${say(L, monthly.length === 1 ? '{n} charge comes back every month, {total} together' : '{n} charges come back every month, {total} together', { n: monthly.length, total: amountText(total) })}${names.length ? `: ${names.join(', ')}${monthly.length > 3 ? say(L, ' and {n} more', { n: monthly.length - 3 }) : ''}` : ''}.`
       : say(L, ctx.recurring.length === 1 ? '{n} charge comes back regularly, none of them monthly.' : '{n} charges come back regularly, none of them monthly.', { n: ctx.recurring.length });
-    return { text: euroGlyphs(text), figures: [built.figure], actions: [], receipts: receiptsFor([built], ctx) };
+    return { text: euroGlyphs(text + statedText), figures: [built.figure], actions: [], receipts: receiptsFor([built], ctx) };
   }
   if (/\b(per month|by month|each month|month by month|months?\b.*(compare|side|trend)|mes a mes)/.test(m)) {
     const built = buildFigure({ kind: 'months' }, ctx);
@@ -1102,6 +1228,176 @@ export function shortCircuit(message, ctx) {
   }
   return null;
 }
+
+/**
+ * Three sums the ledger already holds, said without the model: the biggest payment this
+ * month (a 45 s model turn for one line, 2026-09-23), spent against received this month
+ * (the model answered yes with no figures twice), and the last months side by side ("total
+ * over the last three months", answered as "no total").
+ */
+export function plainSums(message, ctx) {
+  const m = String(message || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  const L = ctx.language;
+  const segs = [...(ctx.segments || [])].sort((a, b) => new Date(b.month) - new Date(a.month));
+  const here = segs[0];
+  if (!here) return null;
+  if (/\b(biggest|largest|most expensive|highest|mayor|m[a]s (caro|grande|alto)|maior|mais car[oa])\b.*\b(payment|purchase|expense|charge|transaction|pago|compra|gasto|pagamento|movimiento)\b/.test(m) && !kindInMessage(message) && !/\b(kind|category|place|tipo|lugar|yesterday|ayer|ontem|week|semana|august|july|agosto|julho|julio|last month|mes pasado|m[e]s passado|subscri|suscri|assina)\b/.test(m) && !askedWindows(message, ctx.now).length) {
+    const rows = (ctx.transactions || []).filter((t) => out(t) && monthKeyOf(t.occurred_at) === monthKeyOf(here.month)).sort((a, b) => abs(b) - abs(a));
+    if (!rows.length) return null;
+    const top = rows[0];
+    const text = say(L, 'The biggest payment this month: {name} {amount}, on {day}.', { name: nameOf(top), amount: amountText(abs(top)), day: dayMonth(top.occurred_at, L) });
+    return { text: euroGlyphs(text), figures: [], actions: [], receipts: receiptsFor([{ rows: rows.slice(0, 3) }], ctx) };
+  }
+  if (/\b(spend(ing)?|gast(o|ando|ei)|llevo)\b.*\b(more|mas|mais)\b.*\b(than|que|do que)\b.*\b(receive|earn|get|make|recibo|gano|ingreso|recebo|ganho|entra)/.test(m) || /\b(receive|earn|recibo|gano|recebo|ganho)\b.*\b(more|less|mas|menos|mais)\b.*\b(than|que)\b.*\b(spend|gasto)/.test(m)) {
+    const text = say(L, 'This month: {spent} spent, {received} came in.', { spent: amountText(here.spent), received: amountText(here.received || 0) });
+    return { text: euroGlyphs(text), figures: [], actions: [], receipts: [] };
+  }
+  const span = m.match(/\b(last|past|ultimos?|ultimas?)\s+(two|three|four|2|3|4|dos|tres|cuatro|dois|tres|quatro)\s+(months?|meses)\b/) || m.match(/\b(two|three|four|2|3|4|dos|tres|cuatro|dois|quatro)\s+(months?|meses)\b.*\b(total|together|juntos|en total|no total|somados?)\b/);
+  if (span) {
+    const n = { two: 2, dos: 2, dois: 2, '2': 2, three: 3, tres: 3, '3': 3, four: 4, cuatro: 4, quatro: 4, '4': 4 }[span[2] || span[1]] || 3;
+    const shown = segs.slice(0, n);
+    if (shown.length < 2) return null;
+    return spanReply(shown, ctx, L);
+  }
+  /* Two or more months by name ("July and August together"): the model refused to add them
+     (2026-09-23); the months are whole figures of the ledger and their sum is arithmetic. */
+  const named = monthsInMessage(m);
+  if (named.length >= 2 && !kindInMessage(message) && !askedWindows(message, ctx.now).length && (KIND_ASK.test(m) || /\b(total|together|combined|juntos|somados|en total|no total)\b/.test(m))) {
+    const shown = named.map((i) => segs.find((x) => new Date(x.month).getUTCMonth() === i)).filter(Boolean);
+    if (shown.length !== named.length) return null;
+    return spanReply(shown.sort((a, b) => new Date(b.month) - new Date(a.month)), ctx, L);
+  }
+  return null;
+}
+
+/* Months side by side and their sum; the month still running is said to be so. */
+function spanReply(shown, ctx, L) {
+  const hereKey = monthKeyOf(ctx.now.toISOString());
+  const open = shown.some((x) => monthKeyOf(x.month) === hereKey);
+  const built = buildFigure({ kind: 'months' }, ctx);
+  const total = round2(shown.reduce((acc, x) => acc + Number(x.spent || 0), 0));
+  const list = shown.map((x) => say(L, monthKeyOf(x.month) === hereKey ? '{month} {amount} so far' : '{month} {amount}', { month: monthLabel(x.month, L), amount: amountText(x.spent) })).join('; ');
+  const text = `${list}: ${say(L, open ? '{total} together, this month still open.' : '{total} together.', { total: amountText(total) })}`;
+  return { text: euroGlyphs(text), figures: built ? [built.figure] : [], actions: [], receipts: built ? receiptsFor([built], ctx) : [] };
+}
+
+/* Lower case, accents off: the shape every computed answer reads the question in. */
+const flat = (text) => String(text || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+const capFirst = (w) => (w ? w[0].toUpperCase() + w.slice(1) : w);
+/* A month named in any of the three languages, to its index. Short forms that are also words
+   ("may", "mar", "ago", "set", "out") count only after "in", "for", "en", "em", "de". */
+const MONTH_WORDS = MONTHS.map((_, i) => {
+  const long = [MONTH_LONG.en[i], MONTH_LONG.es[i], MONTH_LONG['pt-BR'][i]].map(flat);
+  const short = [MONTHS[i], MONTH_NAMES.es[i], MONTH_NAMES['pt-BR'][i]].map(flat).filter((w) => !long.includes(w));
+  const uniq = (xs) => [...new Set(xs)];
+  return new RegExp(`\\b(?:${uniq(long).join('|')})\\b|\\b(?:in|for|of|en|em|de|desde|until|hasta|ate)\\s+(?:${uniq(short).join('|')})\\b`);
+});
+function monthsInMessage(m) { return MONTHS.map((_, i) => i).filter((i) => MONTH_WORDS[i].test(m)); }
+
+/**
+ * A month that has not begun, asked how much: nothing of it exists to add up, so the answer is
+ * what comes back every month and how this month stands. The model wrote four sentences of
+ * hedging (2026-09-23).
+ */
+export function monthAhead(message, ctx) {
+  const m = flat(message);
+  if (!/\b(how much|spend|spent|spending|gastar|gasto|gastare|gastarei|voy a|vou|will|forecast|prevision|previsao|expect|estimate|cost)\b/.test(m)) return null;
+  if (askedWindows(message, ctx.now).length) return null;
+  const nowIdx = ctx.now.getUTCMonth();
+  const named = monthsInMessage(m);
+  let idx = null;
+  if (/\b(next month|the coming month|mes que viene|proximo mes|mes proximo|proximo m[e]s)\b/.test(m)) idx = (nowIdx + 1) % 12;
+  else if (named.length === 1 && named[0] > nowIdx) idx = named[0];
+  if (idx === null) return null;
+  const L = ctx.language;
+  const monthly = (ctx.recurring || []).filter((x) => x.cadence === 'monthly');
+  const committed = round2(monthly.reduce((acc, x) => acc + Number(x.typical_amount || 0), 0));
+  const parts = [say(L, '{month} has not begun; the ledger has nothing of it to add up.', { month: capFirst((MONTH_LONG[L] || MONTH_LONG.en)[idx]) })];
+  if (monthly.length) parts.push(say(L, monthly.length === 1 ? 'What comes back every month is {total}, one charge.' : 'What comes back every month is {total} in {n} charges.', { total: amountText(committed), n: monthly.length }));
+  const here = ctx.forecast;
+  if (here && here.projected_p50 != null) parts.push(say(L, 'This month: {spent} so far, likely {p50} by its end.', { spent: amountText(here.spent), p50: amountText(here.projected_p50) }));
+  const built = monthly.length ? buildFigure({ kind: 'recurring' }, ctx) : null;
+  return { text: euroGlyphs(parts.join(' ')), figures: built ? [built.figure] : [], actions: [], receipts: built ? receiptsFor([built], ctx) : [] };
+}
+
+/**
+ * "How much has my father sent me?": the person is a kept fact (a role, or a name), the
+ * transfers are rows, the sum is arithmetic. The model answered "nothing this month" to a
+ * question with no month in it (2026-09-23). Two people in the role, or none known, go to the
+ * model, which asks. A stretch in the question goes to the model with the lines.
+ */
+const SENT_IN = /\b(sent me|sends me|send me|paid me|pays me|gave me|gives me|given me|received from|got from|came from|comes from|me (?:ha |han )?(?:mandado|enviado|pagado|pasado|hecho)|me (?:manda|envia|paga|pasa)|me (?:mandou|enviou|pagou|passou)|me (?:manda|envia|paga|passa)|recib(?:i|ido|o) de|receb(?:i|ido|o) de)\b/;
+const SENT_OUT = /\b(i (?:have )?(?:sent|paid|gave|transferred)|le (?:he )?(?:mandado|enviado|pagado|pasado)|le (?:mando|envio|pago|paso)|mandei|enviei|paguei|passei|owe)\b/;
+export function personSums(message, ctx) {
+  const m = flat(message);
+  if (!/\b(how much|what|total|cuanto|quanto)\b/.test(m)) return null;
+  const dir = SENT_IN.test(m) ? 'in' : SENT_OUT.test(m) ? 'out' : null;
+  if (!dir || askedWindows(message, ctx.now).length) return null;
+  /* A stretch (this month, in June, this year) goes to the model with the lines. */
+  if (/\b(month|mes|week|semana|year|ano|anio|today|hoy|hoje|yesterday|ayer|ontem)\b/.test(m) || monthsInMessage(m).length) return null;
+  const role = ROLE_WORDS.find(([, re]) => re.test(m))?.[0] || null;
+  const people = (ctx.facts || []).filter((f) => f.kind === 'person');
+  let named = role ? people.filter((f) => String(f.value || '').toLowerCase() === role) : [];
+  if (!named.length) named = people.filter((f) => { const first = flat(f.subject_label || f.subject || '').split(/\s+/)[0]; return first.length >= 3 && new RegExp(`\\b${first}\\b`).test(m); });
+  if (named.length !== 1) return null;
+  const name = named[0].subject_label || named[0].subject;
+  const anchor = personRow(ctx.transactions, name);
+  const key = anchor ? String(anchor.merchant_key || '').toLowerCase() : null;
+  /* A transfer to or from a person never counts as spending (spending.js marks it counts: false); here it is the very thing asked. Rows the person disowned stay out. */
+  const rows = key ? ctx.transactions.filter((t) => String(t.merchant_key || '').toLowerCase() === key && !t.rejected && (dir === 'in' ? Number(t.amount) > 0 : Number(t.amount) < 0)).sort((a, b) => new Date(b.occurred_at) - new Date(a.occurred_at)) : [];
+  const L = ctx.language;
+  if (!rows.length) return { text: euroGlyphs(say(L, dir === 'in' ? 'Nothing from {name} in the ledger.' : 'Nothing to {name} in the ledger.', { name })), figures: [], actions: [], receipts: [] };
+  const last = rows[0];
+  const first = rows[rows.length - 1];
+  const total = round2(rows.reduce((acc, t) => acc + abs(t), 0));
+  const text = rows.length === 1
+    ? say(L, dir === 'in' ? 'From {name}: {amount} on {day}, the one transfer in the ledger.' : 'To {name}: {amount} on {day}, the one transfer in the ledger.', { name, amount: amountText(abs(last)), day: dayMonth(last.occurred_at, L) })
+    : say(L, dir === 'in' ? 'From {name}: {total} in {n} transfers since {since}, the last {amount} on {day}.' : 'To {name}: {total} in {n} transfers since {since}, the last {amount} on {day}.', { name, total: amountText(total), n: rows.length, since: monthLong(first.occurred_at, L), amount: amountText(abs(last)), day: dayMonth(last.occurred_at, L) });
+  return { text: euroGlyphs(text), figures: [], actions: [], receipts: receiptsFor([{ rows: rows.slice(0, 4) }], ctx) };
+}
+
+/**
+ * "El Corte Ingles 101,39 appears twice, is that a duplicate?": how many times that amount
+ * (or that place) appears in this month and the last, each with its day, and the offer to
+ * mark one as not theirs. Counted, never judged: two coffees at 2,50 are two coffees.
+ */
+const DUPLICATE = /\b(duplicat\w*|duplicad\w*|twice|two times|dos veces|duas vezes|double|doble|dobrad[oa]|repeated|repetid[oa]|appears? (?:2|two)|charged (?:2|two))\b/;
+export function duplicateAnswer(message, ctx) {
+  const m = flat(message);
+  if (!DUPLICATE.test(m) || /\b(not mine|isn'?t mine|not me|no es mio|no es mia|no era mio|nao e meu|nao e minha|nao fui eu)\b/.test(m)) return null;
+  const amounts = amountsInText(message);
+  const a = amounts.length === 1 ? amounts[0] : null;
+  const placeKey = [...(ctx.placeByKey?.keys() || [])].find((k) => String(k).length >= 4 && m.includes(flat(k)));
+  if (a === null && !placeKey) return null;
+  const L = ctx.language;
+  const hereKey = monthKeyOf(ctx.now.toISOString());
+  const lastKey = (() => { const d = new Date(`${hereKey}-01T12:00:00Z`); d.setUTCMonth(d.getUTCMonth() - 1); return d.toISOString().slice(0, 7); })();
+  let rows = ctx.transactions.filter((t) => Number(t.amount) < 0 && t.counts !== false && [hereKey, lastKey].includes(monthKeyOf(t.occurred_at))).sort((x, y) => new Date(y.occurred_at) - new Date(x.occurred_at));
+  if (placeKey) rows = rows.filter((t) => String(t.merchant_key || '').toLowerCase() === placeKey);
+  const place = placeKey ? (ctx.placeByKey.get(placeKey)?.name || placeKey) : null;
+  const item = (t) => say(L, '{name} on {day}', { name: nameOf(t), day: dayMonth(t.occurred_at, L) });
+  const offers = (xs) => xs.map((t) => validateAction({ kind: 'not_me', transaction_id: t.id }, ctx)).filter(Boolean);
+  if (a === null) {
+    if (!rows.length) return { text: euroGlyphs(say(L, 'No payment to {place} this month or last.', { place })), figures: [], actions: [], receipts: [] };
+    const thisMonth = rows.filter((t) => monthKeyOf(t.occurred_at) === hereKey);
+    const text = thisMonth.length === 1
+      ? say(L, '{place} this month: one payment, {amount} on {day}.', { place, amount: amountText(abs(thisMonth[0])), day: dayMonth(thisMonth[0].occurred_at, L) })
+      : say(L, '{place} this month: {n} payments: {list}.', { place, n: thisMonth.length, list: thisMonth.map((t) => say(L, '{amount} on {day}', { amount: amountText(abs(t)), day: dayMonth(t.occurred_at, L) })).join(', ') });
+    return { text: euroGlyphs(text), figures: [], actions: thisMonth.length > 1 ? offers(thisMonth) : [], receipts: receiptsFor([{ rows: thisMonth.slice(0, 4) }], ctx) };
+  }
+  const same = rows.filter((t) => Math.abs(abs(t) - a) < 0.005);
+  const amount = amountText(a);
+  if (!same.length) return { text: euroGlyphs(say(L, place ? 'No payment of {amount} to {place} this month or last.' : 'No payment of {amount} this month or last.', { amount, place })), figures: [], actions: [], receipts: [] };
+  if (same.length === 1) {
+    const others = place ? rows.filter((t) => t.id !== same[0].id && monthKeyOf(t.occurred_at) === hereKey) : [];
+    const text = say(L, '{amount} appears once: {name}, {day}.', { amount, name: nameOf(same[0]), day: dayMonth(same[0].occurred_at, L) })
+      + (others.length ? ' ' + say(L, 'Other {place} payments this month: {list}.', { place, list: others.map((t) => say(L, '{amount} on {day}', { amount: amountText(abs(t)), day: dayMonth(t.occurred_at, L) })).join(', ') }) : '');
+    return { text: euroGlyphs(text), figures: [], actions: [], receipts: receiptsFor([{ rows: [same[0], ...others].slice(0, 4) }], ctx) };
+  }
+  const text = say(L, '{amount} appears {n} times: {list}. If one is not yours, mark it below.', { amount, n: same.length, list: same.map(item).join(', ') });
+  return { text: euroGlyphs(text), figures: [], actions: offers(same.slice(0, 4)), receipts: receiptsFor([{ rows: same.slice(0, 4) }], ctx) };
+}
+
 
 /**
  * One kind, one month, asked how much: the answer a person wants is a shape, not a paragraph.
@@ -1137,6 +1433,8 @@ export function kindAnswer(message, ctx) {
   const rows = ctx.transactions.filter((t) => out(t) && monthKeyOf(t.occurred_at) === key && ofKind(t)).sort((a, b) => abs(b) - abs(a));
   const before = ctx.transactions.filter((t) => out(t) && monthKeyOf(t.occurred_at) === prev && ofKind(t));
   const sum = (xs) => round2(xs.reduce((s, t) => s + abs(t), 0));
+  const monthTotal = sum(ctx.transactions.filter((t) => out(t) && monthKeyOf(t.occurred_at) === key));
+  const pct = monthTotal > 0 && rows.length ? Math.round((sum(rows) / monthTotal) * 100) : null;
   const word = kindWord(L, kind);
   const thisMonth = monthKeyOf(ctx.now.toISOString()) === key;
   const monthName = monthLong(`${key}-01`, L);
@@ -1144,10 +1442,10 @@ export function kindAnswer(message, ctx) {
   if (!rows.length) parts.push(thisMonth ? say(L, 'Nothing on {kind} this month.', { kind: word }) : say(L, 'Nothing on {kind} in {month}.', { kind: word, month: monthName }));
   else {
     const largest = rows[0];
-    const holes = { kind: word, month: monthName, total: amountText(sum(rows)), n: rows.length, name: nameOf(largest), amount: amountText(abs(largest)) };
+    const holes = { kind: word, month: monthName, total: amountText(sum(rows)), n: rows.length, name: nameOf(largest), amount: amountText(abs(largest)), pct };
     parts.push(say(L, thisMonth
-      ? (rows.length === 1 ? '{kind} this month: {total} in one payment, {name}.' : '{kind} this month: {total} in {n} payments, the largest {name} {amount}.')
-      : (rows.length === 1 ? '{kind} in {month}: {total} in one payment, {name}.' : '{kind} in {month}: {total} in {n} payments, the largest {name} {amount}.'), holes));
+      ? (rows.length === 1 ? '{kind} this month: {total} in one payment, {name}, {pct}% of the month.' : '{kind} this month: {total} in {n} payments, {pct}% of the month, the largest {name} {amount}.')
+      : (rows.length === 1 ? '{kind} in {month}: {total} in one payment, {name}, {pct}% of the month.' : '{kind} in {month}: {total} in {n} payments, {pct}% of the month, the largest {name} {amount}.'), holes));
   }
   parts.push(before.length ? say(L, 'In {month}, {kind} was {amount}.', { month: monthLong(`${prev}-01`, L), kind: word, amount: amountText(sum(before)) }) : say(L, 'Nothing on {kind} in {month}.', { kind: word, month: monthLong(`${prev}-01`, L) }));
   const monthly = (ctx.recurring || []).filter((r) => r.cadence === 'monthly' && (ctx.categoryOf({ merchant_key: r.merchant_key, channel: 'card' }) || 'not read yet') === kind);
@@ -1233,9 +1531,9 @@ export function isStatement(message) {
 
 /** Does a message ask where the money went, or speak in categories? */
 export function asksWhereItWent(message) {
-  const m = String(message || '').toLowerCase();
-  return /\b(where|what)\b.*\b(money|it|spend|spending|month|euros?)\b.*\b(go|went|gone|goes|on)\b/.test(m)
-    || /\b(categor|kind of place|kinds of place|by type|breakdown|split|en que|en qu\u00e9|donde)/.test(m)
+  const m = String(message || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  return /\b(where|what)\b.*\b(money|it|spend|spending|month|euros?|january|february|march|april|may|june|july|august|september|october|november|december|enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|octubre|noviembre|diciembre|janeiro|fevereiro|marco|maio|junho|julho|setembro|outubro|novembro|dezembro)\b.*\b(go|went|gone|goes|on)\b/.test(m)
+    || /\b(categor|kind of place|kinds of place|by type|breakdown|split|en que|en qu\u00e9|donde|onde|aonde|summary|resumen|resumo|overview|how am i doing|como estoy|como estou)/.test(m)
     || /\bspen[dt]\b.*\bon\b/.test(m);
 }
 
@@ -1298,6 +1596,16 @@ export function asksTable(message) {
   return /\b(table|tabela|tabla|ranking|rank|list(a|e|ame)?|largest first|biggest first|mais caro pr[ao] baixo|do mais caro|del mas caro|de mayor a menor|do maior pro menor|do maior para o menor|ordena\w*|sorted)\b/.test(m);
 }
 
+/* "Show me Cabify over time": the history figure for the place named, whatever the model asked
+   for; one run in two it wrote "I'll show you how that looks over time" and drew nothing (2026-09-23). */
+export function asksOverTime(message) {
+  return /\b(over time|over the months|history|trend|evolution|evolucion|evolucao|ao longo do tempo|con el tiempo|a lo largo|month by month|by month|mes a mes|each month|every month|cada mes|todo mes|todos os meses)\b/.test(flat(message));
+}
+export function asksWeekday(message) {
+  const m = String(message || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  return /\b(day of the week|weekday|which day|what day|dia de la semana|dia da semana|que dia|qual dia|cual dia)\b/.test(m) && !/\b(yesterday|today|ayer|hoy|ontem|hoje)\b/.test(m);
+}
+
 export function asksGraph(message) {
   const m = String(message || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
   return /\b(graph|chart|plot|grafico|grafica|diagrama)\b/.test(m);
@@ -1318,9 +1626,21 @@ export function assembleReply(parsed, ctx, message = '') {
     const i = requests.findIndex((r) => r?.kind === 'weekdays' || r?.kind === 'history');
     if (i >= 0) requests[i] = { kind: 'week' }; else requests.unshift({ kind: 'week' });
   }
+  /* "Which day of the week do I spend the most?" is the weekdays figure, whatever the model
+     asked for (the benchmark of 2026-09-23: words and no chart). */
+  if (asksWeekday(message) && !requests.some((r) => r?.kind === 'weekdays' || r?.kind === 'week')) requests.unshift({ kind: 'weekdays' });
+  if (asksOverTime(message) && !requests.some((r) => r?.kind === 'history')) {
+    const m = flat(message);
+    const placeKey = [...(ctx.placeByKey?.keys() || [])].filter((k) => String(k).length >= 4 && m.includes(flat(k))).sort((a, b) => b.length - a.length)[0];
+    if (placeKey) requests.unshift({ kind: 'history', merchant: placeKey });
+  }
   /* A question about one kind draws that kind by place, whatever the model asked for: asked
      about software, it drew the whole month's kinds under its words (2026-09-23). */
-  const tableKind = kindInMessage(message);
+  /* A question about subscriptions is about what comes back, not about the software kind the
+     word maps to: "which subscription is the least worth it" drew software by place (2026-09-23). */
+  const aboutRecurring = /\b(subscri|suscrip|assinatura|recurring|comes? back)/i.test(String(message || ''));
+  if (aboutRecurring && !requests.some((r) => r?.kind === 'recurring' || r?.kind === 'history')) requests.unshift({ kind: 'recurring' });
+  const tableKind = isStatement(message) || aboutRecurring ? null : kindInMessage(message);
   if (tableKind) {
     const i = requests.findIndex((r) => r?.kind === 'shares');
     const named = monthInMessage(message);
@@ -1474,6 +1794,14 @@ function plainReplyRaw(text, ctx, now) {
 export async function answer(userId, message, history = [], { now = new Date() } = {}) {
   const text = String(message || '').trim();
   if (!text) return { text: NO_ANSWER, figures: [], actions: [], receipts: [] };
+  /* "hi" and "thanks" need no ledger: the read is a second or more (the benchmark of 2026-09-23). */
+  const early = smalltalkReply(text, languageOf(text) === 'pt' ? 'pt-BR' : (languageOf(text) || 'en'));
+  if (early) {
+    const reply = { text: early, figures: [], actions: [], receipts: [] };
+    await saveChatTurn(userId, { role: 'user', text }).catch(quietly('chat/smalltalk-user-turn', null));
+    await saveChatTurn(userId, { role: 'twin', text: early, figures: null, actions: null, basis: null, receipts: null }).catch(quietly('chat/smalltalk-twin-turn', null));
+    return reply;
+  }
   const ctx = await gather(userId, now);
   const keep = async (reply) => {
     await saveChatTurn(userId, { role: 'user', text }).catch(quietly('chat/save-user-turn', null));
@@ -1483,11 +1811,11 @@ export async function answer(userId, message, history = [], { now = new Date() }
   if (!ctx.transactions.length) return keep({ text: say(ctx.language, EMPTY_LEDGER), figures: [], actions: [setupOffer(text, ctx)].filter(Boolean), receipts: [] });
 
   const quick = shortCircuit(text, ctx);
-  if (quick) return keep(quick);
+  if (quick) return keep({ ...quick, computed: true, basis: quick.basis || basisOf(quick.text, ctx) });
 
   ctx.asked = askedText(text, history);
   const plain = plainReplyFor(text, ctx, now);
-  if (plain) return keep(plain);
+  if (plain) return keep({ ...plain, computed: true, basis: plain.basis || basisOf(plain.text, ctx) });
   const hint = LANGUAGE_HINT[languageOf(text)] || '';
   const system = `${RULES}\n\nWhat the ledger knows:\n${contextText(ctx)}${hint ? `\n\n${hint}` : ''}`;
   const turns = (Array.isArray(history) ? history : []).slice(-MAX_HISTORY_TURNS)
@@ -1678,7 +2006,7 @@ export async function answerStream(userId, message, history = [], { now = new Da
   const whole = (text) => { if (text) send({ phase: 'text', delta: text }); };
   const closeWith = async (reply) => {
     send({ phase: 'figures', figures: reply.figures || [] });
-    send({ phase: 'actions', actions: reply.actions || [], receipts: reply.receipts || [], basis: reply.basis || [] });
+    send({ phase: 'actions', actions: reply.actions || [], receipts: reply.receipts || [], basis: reply.basis || [], computed: Boolean(reply.computed) });
     try {
       // The route must await both writes before ending a serverless invocation.
       await saveChatTurn(userId, { role: 'user', text: asked });
@@ -1693,6 +2021,8 @@ export async function answerStream(userId, message, history = [], { now = new Da
 
   if (!asked) return closeWith({ text: (whole(NO_ANSWER), NO_ANSWER), figures: [], actions: [], receipts: [] });
 
+  const early = smalltalkReply(asked, languageOf(asked) === 'pt' ? 'pt-BR' : (languageOf(asked) || 'en'));
+  if (early) { whole(early); return closeWith({ text: early, figures: [], actions: [], receipts: [] }); }
   let ctx;
   try {
     ctx = await gather(userId, now);
@@ -1710,14 +2040,14 @@ export async function answerStream(userId, message, history = [], { now = new Da
   const quick = shortCircuit(asked, ctx);
   if (quick) {
     whole(quick.text);
-    return closeWith(quick);
+    return closeWith({ ...quick, computed: true, basis: quick.basis || basisOf(quick.text, ctx) });
   }
 
   ctx.asked = askedText(asked, history);
   const plain = plainReplyFor(asked, ctx, now);
   if (plain) {
     whole(plain.text);
-    return closeWith(plain);
+    return closeWith({ ...plain, computed: true, basis: plain.basis || basisOf(plain.text, ctx) });
   }
   const hint = LANGUAGE_HINT[languageOf(asked)] || '';
   const system = `${RULES}\n\nWhat the ledger knows:\n${contextText(ctx)}${hint ? `\n\n${hint}` : ''}`;
@@ -1927,7 +2257,19 @@ export function amountsTyped(text) {
   return out;
 }
 
+/**
+ * "1,630.13 €" and "352.77 €" are the same money written the American way; the model does it
+ * on long answers. The ledger writes 1630,13 and 352,77, and every check downstream reads
+ * that form (the benchmark of 2026-09-23).
+ */
+export function ledgerAmounts(text) {
+  return String(text || '')
+    .replace(/\b(\d{1,3}(?:,\d{3})+)\.(\d{2})(?=\s?(?:\u20ac|EUR))/g, (m, a, b) => `${a.replace(/,/g, '')},${b}`)
+    .replace(/\b(\d+)\.(\d{2})(?=\s?(?:\u20ac|EUR))/g, '$1,$2');
+}
+
 export function dropUngrounded(text, ctx) {
+  text = ledgerAmounts(text);
   /* The amounts the person just typed are theirs to hear back: "you subscribed to Netflix,
      12,99 a month" was cut for a number the ledger had not computed (2026-09-21). */
   const known = amountsInText(contextText(ctx)).concat(amountsTyped(ctx.asked || ''));
@@ -2069,6 +2411,7 @@ export async function act(userId, action, { now = new Date() } = {}) {
     const f = checked.fact;
     await answerQuestion(userId, { questionId: null, kind: f.kind, subject: f.subject, subjectLabel: f.subjectLabel, value: f.value, amount: f.amount, day: f.day, note: f.note });
     if (f.kind === 'merchant_kind') return { done: true, said: say(ctx.language, '{name} is no longer expected. The month and the day move with it.', { name: f.subjectLabel || f.subject }) };
+    if (f.kind === 'keep') return { done: true, said: say(ctx.language, '{amount} kept for the end of the month. Today and the plan move with it.', { amount: amountText(f.amount) }) };
     if (f.kind === 'commitment') return { done: true, said: say(ctx.language, '{name}, {amount} on {day}, now counts as spoken for.', { name: f.subjectLabel || f.subject, amount: amountText(f.amount), day: dayWord(ctx.language, f.day) }) };
     return { done: true, said: say(ctx.language, '{source}, {amount}, now counts as coming in. Today and the plan move with it.', { source: f.subjectLabel || f.subject, amount: amountText(f.amount) }) };
   }

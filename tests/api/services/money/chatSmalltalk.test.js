@@ -13,7 +13,9 @@ describe('smalltalk', () => {
     for (const line of [smalltalkReply('hi', 'en'), smalltalkReply('gracias', 'es')]) expect(line).not.toMatch(/\d/);
   });
   it('leaves anything with a question or a claim in it to the rest', () => {
-    for (const m of ['hi, how much did I spend?', 'ok but why', 'thanks, and last month?', 'food?', 'who are you?']) expect(smalltalkReply(m, 'en')).toBeNull();
+    for (const m of ['hi, how much did I spend?', 'ok but why', 'thanks, and last month?', 'food?', 'who is my father?']) expect(smalltalkReply(m, 'en')).toBeNull();
+    /* "Who are you?" is about the ledger, not the money: answered by computation since 2026-09-23 (the benchmark's ed-who-are-you). */
+    expect(smalltalkReply('who are you?', 'en')).toMatch(/^TwinMe, your own ledger/);
   });
   it('is the first thing the short circuit tries', () => {
     const ctx = assemble({ transactions: [], now: new Date('2026-09-19T08:00:00Z'), language: 'pt-BR' });

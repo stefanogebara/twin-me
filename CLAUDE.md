@@ -127,7 +127,10 @@ POST /chat/attach). Routes: `routes/money.js`, `routes/cron-money-pull.js` (hour
 bank read yields to the loop at 30 s).
 Repair and evaluation scripts: `scripts/money/` (`merge-duplicate-payments.mjs`,
 `merge-duplicate-accounts.mjs`, `rescore-figures.mjs`, `evaluate-day-forecast.mjs`),
-`scripts/eval/page-eval.mjs`.
+`scripts/eval/page-eval.mjs`. The Ask benchmark (since 2026-09-23): `tests/api/services/money/chatBench.js`
+(the questions, statements and sequences in ten dimensions), `scripts/money/chat-bench.mjs` (runs them
+against a local API, checks figures, actions, grounding, speed, asks a grader, undoes what it taught;
+run it under `caffeinate -i`), `scripts/money/chat-bench-report.mjs` (the HTML).
 
 Tables: `money_transactions`, `money_sightings`, `money_accounts`, `money_recurring`,
 `money_facts`, `money_figure_scores`, `money_predictions`, `money_readings`,

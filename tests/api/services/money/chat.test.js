@@ -12,6 +12,7 @@ const store = {
   listTransactions: vi.fn(), months: vi.fn(), forecast: vi.fn(), categorySpend: vi.fn(), refreshRecurring: vi.fn(),
   listReadings: vi.fn(), listFacts: vi.fn(), questionsFor: vi.fn(), listPlaces: vi.fn(),
   setVerdict: vi.fn(), setPlaceCategory: vi.fn(), answerQuestion: vi.fn(), listBankAccounts: vi.fn(), userLanguage: vi.fn(),
+  subscriptionUsage: vi.fn(async () => ({ findings: [], unmeasurable: [], measured: [] })),
 };
 /* One kind for a payment, and the real resolver decides it: the month page and the chat
    disagreed about the same euros while each had its own copy, so the mock must not hold a
@@ -268,6 +269,10 @@ describe('where the money went', () => {
 
   it('attaches shares by category when the model returned none', () => {
     const reply = assembleReply({ text: 'Mostly clothing.', figures: [], actions: [] }, ctx(), 'Where did my money go this month?');
+    const over = assembleReply({ text: 'Spotify is 11,99 EUR a month.', figures: [], actions: [] }, ctx(), 'Show me Spotify over time');
+    expect(over.figures.map((f) => f.kind)).toEqual(['history']);
+    expect(over.figures[0].merchant).toBe('Spotify');
+    expect(assembleReply({ text: 'x', figures: [], actions: [] }, ctx(), 'Show me my spending over time').figures.map((f) => f.kind)).not.toContain('history');
     expect(reply.figures.map((f) => f.kind)).toEqual(['shares']);
     expect(reply.figures[0].items[0].label).toBe('clothing');
   });
@@ -417,7 +422,67 @@ describe('shortCircuit', () => {
   });
 });
 
+describe('computed answers about people, repeats and months ahead', () => {
+  const people = [
+    ...transactions,
+    t('p1', '2026-08-15T10:00:00Z', 200, 'ana lopez', 'Ana Lopez', { channel: 'transfer' }),
+    t('p2', '2026-09-02T10:00:00Z', 60, 'ana lopez', 'Ana Lopez', { channel: 'transfer' }),
+    t('p3', '2026-09-03T10:00:00Z', -25, 'ana lopez', 'Ana Lopez', { channel: 'bizum' }),
+  ];
+  const facts = [{ id: 'f1', kind: 'person', subject_label: 'Ana Lopez', value: 'family', source: 'asked' }];
+  const c = () => assemble({ transactions: people, segments, forecast: cast, recurring, facts, places, categories, now: NOW });
+  it('sums what a person by role sent, and what went to them', async () => {
+    const { personSums } = await import('../../../../api/services/money/chat.js');
+    expect(personSums('How much has my mother sent me?', c())?.text).toBe('From Ana Lopez: 260,00 \u20ac in 2 transfers since August, the last 60,00 \u20ac on 2 Sep.');
+    expect(personSums('How much have I sent my mother?', c())?.text).toBe('To Ana Lopez: 25,00 \u20ac on 3 Sep, the one transfer in the ledger.');
+    expect(personSums('How much has Ana sent me?', c())?.text).toMatch(/^From Ana Lopez: 260,00/);
+    expect(personSums('How much has my landlord sent me?', c())).toBeNull();
+    expect(personSums('How much did my mother send me this month?', c())).toBeNull();
+    expect(personSums('Who is my mother?', c())).toBeNull();
+    const es = assemble({ transactions: people, segments, forecast: cast, recurring, facts, places, categories, now: NOW, language: 'es' });
+    expect(personSums('cuanto me ha mandado mi madre?', es)?.text).toBe('De Ana Lopez: 260,00 \u20ac en 2 transferencias desde agosto, la \u00faltima 60,00 \u20ac el 2 sep.');
+  });
+  it('counts how often an amount or a place appears, this month and last, with the offer to disown one', async () => {
+    const { duplicateAnswer } = await import('../../../../api/services/money/chat.js');
+    const twice = duplicateAnswer('Spotify 11,99 appears twice, is that a duplicate?', c());
+    expect(twice?.text).toBe('11,99 \u20ac appears 2 times: Spotify on 4 Sep, Spotify on 4 Aug. If one is not yours, mark it below.');
+    expect(twice?.actions.map((a) => a.transaction_id)).toEqual(['t2', 't3']);
+    expect(duplicateAnswer('El Corte Ingles 116,76 charged twice?', c())?.text).toBe('116,76 \u20ac appears once: El Corte Ingles, 7 Sep.');
+    expect(duplicateAnswer('is 9,50 duplicated?', c())?.text).toBe('9,50 \u20ac appears once: Oakberry Acai, 5 Sep.');
+    expect(duplicateAnswer('is 77,77 duplicated?', c())?.text).toBe('No payment of 77,77 \u20ac this month or last.');
+    expect(duplicateAnswer('Spotify charged me twice, one is not mine', c())).toBeNull();
+    expect(duplicateAnswer('Did I pay twice?', c())).toBeNull();
+  });
+  it('answers a month that has not begun with what comes back and how this month stands', async () => {
+    const { monthAhead } = await import('../../../../api/services/money/chat.js');
+    expect(monthAhead('How much will I spend in October?', c())?.text).toBe('October has not begun; the ledger has nothing of it to add up. What comes back every month is 11,99 \u20ac, one charge. This month: 138,25 \u20ac so far, likely 320,50 \u20ac by its end.');
+    expect(monthAhead('How much will I spend in October?', c())?.figures?.[0]?.kind).toBe('recurring');
+    expect(monthAhead('what will next month cost?', c())?.text).toMatch(/^October has not begun/);
+    expect(monthAhead('How much did I spend in August?', c())).toBeNull();
+    expect(monthAhead('How much may I spend this weekend?', c())).toBeNull();
+    const pt = assemble({ transactions: people, segments, forecast: cast, recurring, facts, places, categories, now: NOW, language: 'pt-BR' });
+    expect(monthAhead('quanto vou gastar em outubro?', pt)?.text).toMatch(/^Outubro n\u00e3o come\u00e7ou; o livro/);
+  });
+});
+
 describe('contextText', () => {
+  it('writes each subscription against its use from the numbers, ASCII, cost only for the unmeasurable', () => {
+    const usage = {
+      findings: [
+        { kind: 'subscription_unused', sentence: 'Spotify took 11,99 \u20ac', numbers: { name: 'Spotify', cadence: 'monthly', typical_amount: 11.99, charges: 3, total: 35.97, uses: 0, days_silent: 41 } },
+        { kind: 'subscription_cost_per_use', sentence: 'x', numbers: { name: 'Netflix', total: 25.98, uses: 2, cost_per_use: 12.99, peer_cost_per_use: 0.4 } },
+      ],
+      unmeasurable: [{ merchant_key: 'gym', name: 'Gym', typical_amount: 39.9 }],
+      measured: ['spotify'],
+    };
+    const text = contextText(assemble({ transactions, segments, forecast: cast, recurring, places, categories, now: NOW, usage }));
+    expect(/[^\x00-\x7f]/.test(text)).toBe(false);
+    expect(text).toContain('Subscriptions against use: Spotify unused: 11,99 EUR monthly, 3 charges 35,97 EUR, nothing used in 41 days; Netflix thin: 25,98 EUR for 2 uses, 12,99 EUR a use (others 0,40 EUR a use). Use not measurable (cost only): Gym 39,90 EUR.');
+    expect(String(RULES)).toContain('never rank by size alone');
+  });
+  it('says nothing about use when nothing was measured', () => {
+    expect(contextText(ctx())).not.toContain('Subscriptions against use');
+  });
   it('is ASCII and carries every number the model may say', () => {
     const text = contextText(ctx());
     expect(/[^\x00-\x7f]/.test(text)).toBe(false);
@@ -784,15 +849,48 @@ describe('one kind, one month, asked how much', () => {
     const { kindAnswer, shortCircuit } = await import('../../../../api/services/money/chat.js');
     const c = ctx();
     const r = kindAnswer("How's software expenditure?", c);
-    expect(r?.text).toBe('Software this month: 11,99 \u20ac in one payment, Spotify. In August, software was 11,99 \u20ac. Coming back every month in software: Spotify, 11,99 \u20ac together.');
+    expect(r?.text).toBe('Software this month: 11,99 \u20ac in one payment, Spotify, 9% of the month. In August, software was 11,99 \u20ac. Coming back every month in software: Spotify, 11,99 \u20ac together.');
     expect(r?.figures.map((f) => [f.kind, f.category, f.by])).toEqual([['shares', 'software', 'merchant']]);
     expect(r?.receipts.length).toBeGreaterThan(0);
     expect(shortCircuit('how much on software this month?', c)?.text).toMatch(/^Software this month/);
-    expect(kindAnswer('cuanto llevo gastado en software?', { ...c, language: 'es' })?.text).toMatch(/^Software este mes: 11,99 \u20ac en un pago, Spotify\. En agosto, software fue 11,99 \u20ac\./);
-    expect(kindAnswer('how much on clothing this month?', c)?.text).toMatch(/^Clothing this month: 116,76 \u20ac in one payment, El Corte Ingles\. Nothing on clothing in August\.$/);
+    expect(kindAnswer('cuanto llevo gastado en software?', { ...c, language: 'es' })?.text).toMatch(/^Software este mes: 11,99 \u20ac en un pago, Spotify, el 9% del mes\. En agosto, software fue 11,99 \u20ac\./);
+    expect(kindAnswer('how much on clothing this month?', c)?.text).toMatch(/^Clothing this month: 116,76 \u20ac in one payment, El Corte Ingles, 84% of the month\. Nothing on clothing in August\.$/);
     expect(kindAnswer('how much on clothes and spotify?', c)).toBeNull();
     expect(kindAnswer('did I spend more on groceries this month than in August?', c)).toBeNull();
     expect(kindAnswer('How much did I spend on Glovo and Uber Eats?', c)).toBeNull();
+    /* the benchmark of 2026-09-23 */
+    const { asksWhereItWent, asksWeekday, ledgerAmounts, learnFromStatement: learn } = await import('../../../../api/services/money/chat.js');
+    expect(asksWhereItWent('Where did August go?')).toBe(true);
+    expect(asksWhereItWent('\u00bfA d\u00f3nde se fue el dinero este mes?')).toBe(true);
+    expect(asksWeekday('Which day of the week do I spend the most?')).toBe(true);
+    expect(asksWeekday('what did I spend yesterday?')).toBe(false);
+    expect(ledgerAmounts('1,630.13 \u20ac spent, the largest 352.77 \u20ac; 12,50 \u20ac stays; version 2.0 too')).toBe('1630,13 \u20ac spent, the largest 352,77 \u20ac; 12,50 \u20ac stays; version 2.0 too');
+    expect(shortCircuit('which subscription is the least worth it?', c)).toBeNull();
+    const subs = assembleReply({ text: 'Spotify, 11,99 EUR, is the one you use least.', figures: [], actions: [], cites: [] }, c, 'which subscription is the least worth it?');
+    expect(subs.figures.map((f) => f.kind)).toEqual(['recurring']);
+    expect(learn('I want to keep 300 euros at the end of the month', c)?.offer).toMatchObject({ kind: 'fact', fact: { kind: 'keep', amount: 300 } });
+    expect(learn('the 9,50 at Oakberry is not mine', c)?.offer).toMatchObject({ kind: 'not_me', transaction_id: 't6' });
+    expect(learn('that Oakberry payment was not me', c)?.offer).toMatchObject({ kind: 'not_me', transaction_id: 't6' });
+    expect(learn('Oakberry is a cafe, it should count as eating out', c)?.offer).toMatchObject({ kind: 'recategorise', merchant_key: 'oakberry acai', category: 'eating out' });
+    const withNote = { ...c, facts: [{ id: 'n1', kind: 'note', value: 'Going to Valencia next weekend with Ana', source: 'asked' }] };
+    expect(learn('forget what I said about Valencia', withNote)?.offer).toMatchObject({ kind: 'forget', fact_id: 'n1' });
+    expect(learn('forget what I said about Valencia', c)).toBeNull();
+    const { plainSums, smalltalkReply: small } = await import('../../../../api/services/money/chat.js');
+    expect(plainSums('What was my biggest payment this month?', c)?.text).toBe('The biggest payment this month: El Corte Ingles 116,76 \u20ac, on 7 Sep.');
+    expect(plainSums('Am I spending more than I receive this month?', c)?.text).toBe('This month: 138,25 \u20ac spent, 15,15 \u20ac came in.');
+    expect(plainSums('total spent over the last three months?', c)?.text).toBe('Sep 138,25 \u20ac so far; Aug 65,12 \u20ac; Jul 11,99 \u20ac: 215,36 \u20ac together, this month still open.');
+    expect(plainSums('How much did I spend in July and August together?', c)?.text).toBe('Aug 65,12 \u20ac; Jul 11,99 \u20ac: 77,11 \u20ac together.');
+    expect(plainSums('How much did I spend in July and August together?', c)?.figures?.[0]?.kind).toBe('months');
+    expect(plainSums('How much did I spend in March and April?', c)).toBeNull();
+    expect(plainSums('what was the biggest software payment?', c)).toBeNull();
+    const { answer: ask } = await import('../../../../api/services/money/chat.js');
+    const quickReply = await ask('u1', 'What was my biggest payment this month?', [], { now: NOW });
+    expect(quickReply.text).toMatch(/^The biggest payment this month/);
+    expect(Array.isArray(quickReply.basis) && quickReply.basis.length).toBeTruthy();
+    expect(small('what can you do?', 'en')).toMatch(/^Ask what today can carry/);
+    expect(asksWhereItWent('para onde foi o dinheiro este m\u00eas?')).toBe(true);
+    expect(asksWhereItWent('Give me a summary of my month so far.')).toBe(true);
+    expect(learn('Zara refunded me 39,95 today', c)?.offer).toMatchObject({ kind: 'fact', fact: { kind: 'income', amount: 39.95 } });
     expect(kindAnswer('why is software so high this month?', c)).toBeNull();
     expect(kindAnswer('software every month?', c)).toBeNull();
     expect(kindAnswer('how much on software last Friday night?', c)).toBeNull();

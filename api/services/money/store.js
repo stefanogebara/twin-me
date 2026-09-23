@@ -706,7 +706,7 @@ export async function listPlaces(userId) {
 export async function setPlaceCategory(userId, merchantKey, category, { name = null } = {}) {
   if (category) {
     const { error } = await supabaseAdmin.from('money_place_overrides')
-      .upsert({ user_id: userId, merchant_key: merchantKey, category, source: 'person', confidence: null, created_at: new Date().toISOString() }, { onConflict: 'user_id,merchant_key' });
+      .upsert({ user_id: userId, merchant_key: merchantKey, category, created_at: new Date().toISOString() }, { onConflict: 'user_id,merchant_key' });
     if (error) throw new Error(error.message);
   } else {
     const { error } = await supabaseAdmin.from('money_place_overrides').delete().eq('user_id', userId).eq('merchant_key', merchantKey);

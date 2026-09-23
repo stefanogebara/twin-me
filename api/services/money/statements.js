@@ -69,17 +69,19 @@ const stripNoise = (s) => String(s || '').replace(/\b(the|my|a|an|o|a|os|as|el|l
  */
 export function incomeStatement(text) {
   const t = norm(text);
-  if (!/\b(coming|comes|come|arrives?|arriving|receive|receiving|get|getting|paid|pays?|send|sends|sending|transfer|income|salary|scholarship|recebo|recebi|vou receber|chega|chegam|entra|entram|me pagam?|me mandan|me manda|me mandam|salario|bolsa|ingreso|cobro|me llega|me llegan|me pagan|me envia|me envian|nomina|beca)\b/.test(t)) return null;
+  if (!/\b(refund(ed|s)?|reimburse[ds]?|devolvi[o\u00f3]|devolveu|reembols\w*|coming|comes|come|arrives?|arriving|receive|receiving|get|getting|paid|pays?|send|sends|sending|transfer|income|salary|scholarship|recebo|recebi|vou receber|chega|chegam|entra|entram|me pagam?|me mandan|me manda|me mandam|salario|bolsa|ingreso|cobro|me llega|me llegan|me pagan|me envia|me envian|nomina|beca)\b/.test(t)) return null;
   if (/\b(spent|spend|gastei|gaste|pay for|cancel|subscri|assin)\b/.test(t)) return null;
   const a = amountIn(t);
   if (!a || !a.amount) return null;
   const family = t.match(/\b(?:my|meus?|minha|mis?)\s+(parents?|father|mother|dad|mum|mom|pais|pai|mae|padres?|madre|papa|mama|boss|company|job|work|employer|empresa|trabalho|trabajo|chefe|jefe|estagio|beca|bolsa)\b/u);
-  const from = family || t.match(/\b(?:from|de|do|da|por parte de|of)\s+(?:the |my |o |a |os |as |el |la |mi |meu |minha |mis )?([\p{L}][\p{L}\p{N} .&'-]{1,40}?)(?=\s+(?:this|next|on|every|each|the|every|tomorrow|today|esse|este|neste|nesse|no|na|em|dia|todo|cada|el|al|mensal|amanha|manana|hoje|hoy|por)\b|[,.;]|$)/u);
+  /* "Zara refunded me 39,95": the source is the word before the verb (2026-09-23). */
+  const refunder = t.match(/^(?:the\s+)?([\p{L}][\p{L}\p{N} .&'-]{1,30}?)\s+(?:refunded|reimbursed|me devolvi[o\u00f3]|me devolveu|me reembols\w*)\b/u);
+  const from = family || refunder || t.match(/\b(?:from|de|do|da|por parte de|of)\s+(?:the |my |o |a |os |as |el |la |mi |meu |minha |mis )?([\p{L}][\p{L}\p{N} .&'-]{1,40}?)(?=\s+(?:this|next|on|every|each|the|every|tomorrow|today|esse|este|neste|nesse|no|na|em|dia|todo|cada|el|al|mensal|amanha|manana|hoje|hoy|por)\b|[,.;]|$)/u);
   let source = from ? stripNoise(from[1]) : null;
   if (source && /^(every|each|this|next|that|todo|toda|cada|este|esse|esta|essa|el|la)\b/.test(source)) source = null;
   if (!source) return null;
   const cadence = cadenceIn(t);
-  const once = !cadence && /\b(this month|this week|tomorrow|today|next week|este mes|esse mes|neste mes|este mes|esta semana|essa semana|amanha|manana|hoje|hoy|proxima semana|semana que vem|once|one-off|so uma vez|solo una vez)\b/.test(t);
+  const once = !cadence && /\b(refund|reimburs|devolv|reembols|this month|this week|tomorrow|today|next week|este mes|esse mes|neste mes|este mes|esta semana|essa semana|amanha|manana|hoje|hoy|proxima semana|semana que vem|once|one-off|so uma vez|solo una vez)\b/.test(t);
   /* "sometimes", "many times", "it depends": money with no rule to it. The ledger keeps the
      words, never a day (the owner, 2026-09-23: "it's not a rule that he will deposit 100 or
      that he will deposit the same day every month"). */
@@ -120,7 +122,7 @@ export function cancelStatement(text) {
  * role comes from the product's list (context.js PERSON_ROLES); the words for each role are
  * here in the three languages the product speaks.
  */
-const ROLE_WORDS = [
+export const ROLE_WORDS = [
   ['landlord', /\b(landlord|landlady|casero|casera|arrendador|arrendadora|senhorio|senhoria|proprietari[oa]|dono d[oa] (apartamento|piso|casa)|due[nñ][oa] del piso)\b/],
   ['flatmate', /\b(flatmates?|roommates?|housemates?|compa[nñ]er[oa] de (piso|casa|cuarto)|colega de (apartamento|casa|quarto)|companheir[oa] de (apartamento|casa|quarto))\b/],
   ['partner', /\b(partner|girlfriend|boyfriend|wife|husband|novi[oa]|pareja|esposa|esposo|marido|mujer|namorad[oa]|companheir[oa])\b/],
@@ -128,8 +130,9 @@ const ROLE_WORDS = [
   ['work', /\b(boss|employer|manager|company|client|jefe|jefa|empresa|cliente|chefe|patr[aã]o|empregador)\b/],
   ['friend', /\b(friends?|amig[oa]s?|mate|buddy|colega)\b/],
 ];
+const LEAD_IN = /^(?:no|nao|not|actually|wait|hmm|en realidad|na verdade|pues no|nope)[,;:\s]+/;
 export function personStatement(text) {
-  const t = norm(text);
+  const t = norm(text).replace(LEAD_IN, '');
   const hit = ROLE_WORDS.find(([, re]) => re.test(t));
   if (!hit) return null;
   /* The name: "X is my landlord", "the transfer to X is ... she is my landlord", "X e minha mae". */
@@ -139,4 +142,41 @@ export function personStatement(text) {
   const name = said ? stripNoise(said[1]).replace(/^(the|my|a|an|o|a|el|la|meu|minha|mi)\s+/i, '').trim() : null;
   if (!name || /^(transfer|payment|pago|pagamento|transferencia|bizum)\b/i.test(name)) return { role: hit[0], name: null };
   return { role: hit[0], name };
+}
+
+/** "I want to keep 300 at the end of the month": the amount they want left, or null. */
+export function keepStatement(text) {
+  const t = norm(text);
+  if (!/\b(keep|save|left over|have left|guardar|quedarme|que me queden?|sobrar|sobre|ficar com|manter|deixar)\b/.test(t)) return null;
+  if (!/\b(end of (the )?month|month end|by the end|a final de mes|fin de mes|final del mes|fim do mes|final do mes|no fim|at the end)\b/.test(t)) return null;
+  const a = amountIn(t);
+  return a && a.amount > 0 ? { amount: a.amount } : null;
+}
+
+/** "the 1,68 at Lidl is not mine", "that Cabify wasn't me": the amount and the name words, or null. */
+export function notMineStatement(text) {
+  const t = norm(text);
+  if (!/\b(not mine|isn'?t mine|is not mine|wasn'?t me|was not me|not my payment|not my charge|n[a]o (e|eh|foi) meu|n[a]o fui eu|no es mi[o]|no fue mi[o]|no fui yo)\b/.test(t)) return null;
+  const a = amountIn(t);
+  const words = t.replace(/\b(the|that|this|those|these|payment|charge|at|in|on|of|from|is|was|not|mine|me|my|isn'?t|wasn'?t|o|a|de|do|da|em|no|na|el|la|en|eur|euros?)\b/g, ' ').replace(/[\d.,]+/g, ' ').replace(/\s+/g, ' ').trim().split(' ').filter((w) => w.length >= 3);
+  return { amount: a ? a.amount : null, words };
+}
+
+/** "Banamani is a bar", "Torre IE should count as eating out", "X is not education, it is a cafe": the name and the kind words after it. */
+export function recategoriseStatement(text) {
+  const t = norm(text).replace(LEAD_IN, '');
+  const m = t.match(/^(?:the\s+)?([\p{L}\p{N}][\p{L}\p{N} .&'-]{1,40}?)\s+(?:is|are|es|e|eh|should count as|should be|counts? as|deberia contar como|cuenta como|deveria contar como|conta como)\b(.*)$/u);
+  if (!m) return null;
+  const tail = m[2];
+  if (!/\b(count|counts|contar|conta|bar|cafe|caf|restaurant|restaurante|supermercado|supermarket|groceries|software|transport|taxi|eating out|comer fora|comida fuera|entertainment|clothing|ropa|roupa|health|pharmacy|farmacia|sport|gym|travel|hotel|bills|kind|tipo)\b/.test(tail)) return null;
+  return { name: stripNoise(m[1]).toLowerCase(), tail };
+}
+
+/** "forget what I said about Valencia", "esquece o que falei da viagem": the topic words, or null. */
+export function forgetStatement(text) {
+  const t = norm(text);
+  const m = t.match(/^(?:please\s+)?(?:forget|olvida|olvidate|esquece|esqueca|apaga|borra)\b(.*)$/);
+  if (!m) return null;
+  const words = m[1].replace(/\b(what|that|the|about|i|said|told|you|de|do|da|o|a|que|lo|falei|dije|disse|sobre|of|my|el|la|isso|eso|it)\b/g, ' ').replace(/[^\p{L}\p{N} ]/gu, ' ').replace(/\s+/g, ' ').trim().split(' ').filter((w) => w.length >= 4);
+  return { words };
 }
