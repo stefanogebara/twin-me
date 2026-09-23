@@ -107,7 +107,7 @@ export const SCENARIOS = [
 
   /* round 11 (2026-09-21): the words for a kind, the largest within a kind in a thread, the language of a short English statement */
   { id: 'refund-english', kind: 'ask', message: 'I got a refund from Zara, does that count?', route: 'model', figures: { only: ['shares', 'history'] }, actions: { none: true }, judge: false, avoid: [/\b(voc[eê]|reembolso da|o livro|n[aã]o v[eê])\b/i], maxSentences: 4 },
-  { id: 'bares-month', kind: 'ask', message: 'quanto gastei em bares este mes?', route: 'model', figures: { only: ['shares', 'history', 'week'] }, actions: { none: true }, mention: [/\d+,\d{2}\s?(EUR|€)/], avoid: [/nenhum pagamento|n[aã]o viu/i], maxSentences: 3 },
+  { id: 'bares-month', kind: 'ask', message: 'quanto gastei em bares este mes?', route: 'short', figures: { only: ['shares', 'history', 'week'] }, actions: { none: true }, mention: [/\d+,\d{2}\s?(EUR|€)/], avoid: [/nenhum pagamento|n[aã]o viu/i], maxSentences: 3 },
   { id: 'thread-biggest-in-kind', kind: 'ask', message: 'which was the biggest?', route: 'model', history: [{ role: 'user', text: 'quanto gastei em bares este mes?' }, { role: 'twin', text: 'Este m\u00eas voc\u00ea gastou 112,46 \u20ac em restaurantes e bares.' }, { role: 'user', text: 'and in August?' }, { role: 'twin', text: 'Em agosto foram 122,99 \u20ac.' }], figures: { only: ['shares', 'history'] }, actions: { none: true }, mention: [/\d+,\d{2}\s?(EUR|€)/], avoid: [/corte ingl/i], maxSentences: 3 },
 
   /* 2026-09-21, from Stefano's own thread: a kind every month, a table of a kind largest first (both had become "the ledger cannot answer that") */

@@ -1114,11 +1114,12 @@ export function shortCircuit(message, ctx) {
  * model with the lines.
  */
 const KIND_ASK = /\b(how much|how'?s|how is|how are|what did i spend|what have i spent|what am i spending|spend(ing)?|spent|expenditure|expenses?|costs?|total|quanto|cu[a\u00e1]nto|gast(ei|o|os|ando|ado|aste)|llevo|gastos?)\b/;
-const NOT_A_KIND_ASK = /\b(why|por ?qu[e\u00ea]|porqu[e\u00ea]|more|less|than|compared?|versus|vs|mais|menos|mas|every month|each month|per month|by month|month by month|mes a mes|m[e\u00ea]s a m[e\u00ea]s|todo m[e\u00ea]s|todos os meses|cada m[e\u00ea]s|yesterday|ontem|ayer|today|hoje|hoy|week|semana|weekend|fim de semana|fin de semana|night|noite|noche|morning|manh[a\u00e3]|ma[n\u00f1]ana|last month|mes pasado|m[e\u00ea]s passado)\b/;
+const NOT_A_KIND_ASK = /\b(why|por ?qu[e\u00ea]|porqu[e\u00ea]|than|do que|compared?|versus|vs|and|or|y|e|ou|every month|each month|per month|by month|month by month|mes a mes|m[e\u00ea]s a m[e\u00ea]s|todo m[e\u00ea]s|todos os meses|cada m[e\u00ea]s|yesterday|ontem|ayer|today|hoje|hoy|week|semana|weekend|fim de semana|fin de semana|night|noite|noche|morning|manh[a\u00e3]|ma[n\u00f1]ana|last month|mes pasado|m[e\u00ea]s passado)\b/;
 export function kindAnswer(message, ctx) {
   const m = String(message || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
   const kind = kindInMessage(message);
-  if (!kind || NOT_A_KIND_ASK.test(m) || !(KIND_ASK.test(m) || asksTable(message))) return null;
+  const comparative = /\b(more|less|mais|menos|mas)\s+(than|que|do que|de lo que)\b/.test(m);
+  if (!kind || comparative || NOT_A_KIND_ASK.test(m) || !(KIND_ASK.test(m) || asksTable(message))) return null;
   if (askedWindows(message, ctx.now).length) return null;
   /* Two kinds, or a kind and a place ("clothes and spotify"): more than one subject, the
      model answers from the lines. */

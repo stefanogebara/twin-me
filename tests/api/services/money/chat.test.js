@@ -792,6 +792,7 @@ describe('one kind, one month, asked how much', () => {
     expect(kindAnswer('how much on clothing this month?', c)?.text).toMatch(/^Clothing this month: 116,76 \u20ac in one payment, El Corte Ingles\. Nothing on clothing in August\.$/);
     expect(kindAnswer('how much on clothes and spotify?', c)).toBeNull();
     expect(kindAnswer('did I spend more on groceries this month than in August?', c)).toBeNull();
+    expect(kindAnswer('How much did I spend on Glovo and Uber Eats?', c)).toBeNull();
     expect(kindAnswer('why is software so high this month?', c)).toBeNull();
     expect(kindAnswer('software every month?', c)).toBeNull();
     expect(kindAnswer('how much on software last Friday night?', c)).toBeNull();
