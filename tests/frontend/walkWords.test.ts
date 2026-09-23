@@ -12,7 +12,7 @@ import type { MoneyForecast } from '../../src/services/api/moneyAPI';
 beforeAll(async () => { await ensureDict('es'); });
 const en = (s: string, vars?: Record<string, string | number>) => translate('en', s, vars);
 const es = (s: string, vars?: Record<string, string | number>) => translate('es', s, vars);
-const plain = (line: string | null | undefined) => String(line).replace(/[  ]/g, ' ');
+const plain = (line: string | null | undefined) => String(line).replace(/[\u00a0\u202f]/g, ' ');
 
 const forecast = (income: Record<string, unknown>) => ({
   month: '2026-09-01', as_of: '2026-09-23', days_left: 7, spent: 0, committed: 0, expected: 0, baseline_rest: 0,
