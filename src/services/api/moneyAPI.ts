@@ -190,7 +190,9 @@ async function completeLedger(since?: string): Promise<MoneyTransaction[]> {
 /* What this person may connect, computed from facts; `why` says the bank's reason in one word. */
 /** Gmail asked this address to confirm forwarding: the code from the subject, the link that confirms. */
 export type ForwardingRequest = { requester: string | null; code: string | null; link: string | null; at: string };
-export type MoneyInbox = { address: string; receiving: boolean; forwarding?: ForwardingRequest[] };
+/** A statement that arrived by mail and waits for the account to be chosen on Sources. */
+export type HeldStatement = { filename: string | null; rows: number; accounts: number; at: string };
+export type MoneyInbox = { address: string; receiving: boolean; forwarding?: ForwardingRequest[]; statements?: HeldStatement[] };
 export type MoneyCapabilities = { bank: boolean; capture: boolean; whatsapp?: boolean; why?: 'unconfigured' | 'linked' | 'listed' | 'restricted' | 'country' | 'open' | 'unread' };
 export type MoneyProfile = { timezone: string; country: string; currency: string; language: string | null };
 

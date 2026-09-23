@@ -4,7 +4,7 @@
  */
 import { describe, it, expect } from 'vitest';
 import crypto from 'node:crypto';
-import { verifySvix, gateReceipt, amountsIn, messageText, receiptToSighting, bankAlertSighting, forwardingConfirmation } from '../../../../api/services/money/inbox.js';
+import { verifySvix, gateReceipt, amountsIn, messageText, receiptToSighting, bankAlertSighting, forwardingConfirmation, attachmentsToRead, readMailAttachments } from '../../../../api/services/money/inbox.js';
 
 describe('verifySvix', () => {
   const secret = `whsec_${Buffer.from('a-test-secret-of-some-length-xx').toString('base64')}`;
@@ -176,5 +176,43 @@ describe('forwardingConfirmation', () => {
   });
   it('is not a receipt and not a bank alert', () => {
     expect(bankAlertSighting(gmail, { emailId: 'e1', receivedAt: '2026-09-23T10:00:00Z' })).toBeNull();
+  });
+});
+
+describe('attachments on a mail', () => {
+  const accepts = (name, mime) => /\.(csv|xlsx|pdf|jpg)$/i.test(name) || mime === 'application/pdf';
+  const deps = { accepts, maxBytes: 1000 };
+  it('picks accepted types under the cap, three at most', () => {
+    const message = { attachments: [
+      { id: 'a1', filename: 'movimientos.csv', content_type: 'text/csv', size: 400 },
+      { id: 'a2', filename: 'huge.csv', content_type: 'text/csv', size: 5000 },
+      { id: 'a3', filename: 'signature.exe', content_type: 'application/octet-stream', size: 10 },
+      { id: 'a4', filename: 'r1.pdf', content_type: 'application/pdf', size: 10 },
+      { id: 'a5', filename: 'r2.pdf', content_type: 'application/pdf', size: 10 },
+      { id: 'a6', filename: 'r3.pdf', content_type: 'application/pdf', size: 10 },
+    ] };
+    expect(attachmentsToRead(message, deps).map((a) => a.id)).toEqual(['a1', 'a4', 'a5']);
+    expect(attachmentsToRead({}, deps)).toEqual([]);
+  });
+  it('reads a statement through the statement reader and anything else through the attachment reader; one failure fails only itself', async () => {
+    const calls = [];
+    const full = {
+      ...deps,
+      fetchAttachment: async (emailId, id) => { if (id === 'bad') throw new Error('resend attachment 500'); return Buffer.from(`bytes of ${id}`); },
+      readStatement: async (userId, buffer, name, origin) => { calls.push(['statement', name, origin.emailId]); return { kind: 'statement', read: 3, created: 2 }; },
+      readAttachment: async (userId, file) => { calls.push(['file', file.filename, file.mimeType]); return { kind: 'receipt' }; },
+    };
+    const message = { attachments: [
+      { id: 's1', filename: 'extracto.csv', content_type: 'text/csv', size: 12 },
+      { id: 'bad', filename: 'ticket.pdf', content_type: 'application/pdf', size: 12 },
+      { id: 'p1', filename: 'recibo.pdf', content_type: 'application/pdf', size: 12 },
+    ] };
+    const out = await readMailAttachments('u1', message, { emailId: 'e9', deps: full });
+    expect(out).toEqual([
+      { filename: 'extracto.csv', kind: 'statement', read: 3, created: 2 },
+      { filename: 'ticket.pdf', kind: 'unreadable' },
+      { filename: 'recibo.pdf', kind: 'receipt' },
+    ]);
+    expect(calls).toEqual([['statement', 'extracto.csv', 'e9'], ['file', 'recibo.pdf', 'application/pdf']]);
   });
 });

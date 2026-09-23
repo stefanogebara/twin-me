@@ -47,7 +47,8 @@ import multer from 'multer';
 import { authenticateUser } from '../middleware/auth.js';
 import { validate } from '../middleware/validate.js';
 import * as S from './moneySchemas.js';
-import { inboxAddress, inboxDomain, isInboxConfigured, verifySvix, ingestReceivedEmail, listForwardingRequests } from '../services/money/inbox.js';
+import { inboxAddress, inboxDomain, isInboxConfigured, verifySvix, ingestReceivedEmail, listForwardingRequests, listHeldStatements } from '../services/money/inbox.js';
+import { MAIL_ATTACHMENT_DEPS } from '../services/money/mailAttachments.js';
 import { readAttachment, acceptsAttachment, MAX_ATTACHMENT_BYTES } from '../services/money/attachments.js';
 import { ATTACHMENT_DEPS } from '../services/money/attachmentDeps.js';
 import { accuracy } from '../services/money/predictions.js';
@@ -134,7 +135,7 @@ router.post('/inbox/resend', async (req, res) => {
   if (!ok) return res.status(401).json({ success: false, error: 'Bad signature' });
   if (req.body?.type !== 'email.received') return res.json({ success: true, data: { outcome: 'ignored' } });
   try {
-    const result = await ingestReceivedEmail(req.body);
+    const result = await ingestReceivedEmail(req.body, MAIL_ATTACHMENT_DEPS);
     res.json({ success: true, data: result });
   } catch (error) {
     log.error('inbox failed', { error: error.message });
@@ -182,8 +183,11 @@ router.get('/inbox', async (req, res) => {
   try {
     const address = await inboxAddress(req.user.id);
     /* Gmail's forwarding confirmations of the last two days ride along: a failed read of them is an empty list, never a failed address. */
-    const forwarding = await listForwardingRequests(req.user.id).catch(quietly('inbox/forwarding-read', []));
-    res.json({ success: true, data: { address, domain: inboxDomain(), receiving: isInboxConfigured(), forwarding } });
+    const [forwarding, statements] = await Promise.all([
+      listForwardingRequests(req.user.id).catch(quietly('inbox/forwarding-read', [])),
+      listHeldStatements(req.user.id).catch(quietly('inbox/held-statements-read', [])),
+    ]);
+    res.json({ success: true, data: { address, domain: inboxDomain(), receiving: isInboxConfigured(), forwarding, statements } });
   } catch (error) {
     log.error('inbox address failed', { error: error.message });
     res.status(500).json({ success: false, error: 'Internal server error' });
