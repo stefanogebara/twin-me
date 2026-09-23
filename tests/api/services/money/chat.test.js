@@ -752,10 +752,15 @@ describe('a short follow-up asks about what the previous message asked about', (
     expect(partsSentence(c, 'how much on software in July?')).toBe('In July: software 11,99 \u20ac.');
     const { learnFromStatement } = await import('../../../../api/services/money/chat.js');
     expect(learnFromStatement('my father sends me 100 euros sometimes', c)).toBeNull();
+    const rows = [t('q1', '2026-09-11T10:00:00Z', -200, 'maria dolores tomas', 'Maria Dolores Tomas', { channel: 'bizum' })];
+    const withHer = assemble({ transactions: [...transactions, ...rows], segments, forecast: cast, recurring, readings: [], facts: [], questions, places, categories, now: NOW });
+    expect(learnFromStatement('The 200 euro transfer to Maria Dolores Tomas Obon is my rent, she is my landlord.', withHer)?.offer).toMatchObject({ kind: 'person', merchant_key: 'maria dolores tomas', role: 'landlord' });
+    expect(learnFromStatement('Nobody Here is my landlord', withHer)).toBeNull();
+    const twice = assembleReply({ text: 'Noted. If that is right, mark it below.', figures: [], actions: [{ kind: 'person', merchant_key: 'maria dolores tomas obon', role: 'landlord' }, { kind: 'remember', text: 'rent' }], cites: [] }, withHer, 'The 200 euro transfer to Maria Dolores Tomas Obon is my rent, she is my landlord.');
+    expect(twice.actions.map((x) => x.kind)).toEqual(['person']);
     expect(learnFromStatement('My parents send me 1750 on the 1st of every month', c)?.offer?.kind).toBe('fact');
     expect(partsSentence(c, 'how much is left?')).toBeNull();
     expect(RULES).toMatch(/when its line is there and shows nothing spent, say nothing was spent/);
-    const { assembleReply } = await import('../../../../api/services/money/chat.js');
     const carried = { ...c, asked: askedText('and last month?', [{ role: 'user', text: 'Where did the money go?' }, { role: 'twin', text: 'Most went to clothing.' }]) };
     const reply = assembleReply({ text: 'Last month, most went to groceries.', figures: [], actions: [], cites: [] }, carried, 'and last month?');
     expect(reply.figures.map((f) => f.kind)).toEqual(['shares']);

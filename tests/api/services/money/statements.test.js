@@ -1,6 +1,6 @@
 /** What a sentence tells the ledger: money coming in, a subscription taken on, a charge ended; en/es/pt. */
 import { describe, expect, it } from 'vitest';
-import { incomeStatement, subscriptionStatement, cancelStatement, amountIn, cadenceIn, dayIn } from '../../../../api/services/money/statements.js';
+import { personStatement, incomeStatement, subscriptionStatement, cancelStatement, amountIn, cadenceIn, dayIn } from '../../../../api/services/money/statements.js';
 
 describe('the parts', () => {
   it('reads an amount with its currency, a cadence and a day of the month', () => {
@@ -49,5 +49,16 @@ describe('cancelStatement', () => {
     expect(cancelStatement('me di de baja de Spotify')).toEqual({ name: 'Spotify' });
     expect(cancelStatement('Higgsfield is cancelled')).toEqual({ name: 'Higgsfield' });
     expect(cancelStatement('how much is Spotify?')).toBeNull();
+  });
+});
+
+describe('who somebody is', () => {
+  it('reads a role word and the name, in three languages, and nothing from a question', () => {
+    expect(personStatement('The 200 euro transfer to Maria Dolores Tomas Obon is my rent, she is my landlord.')).toEqual({ role: 'landlord', name: 'maria dolores tomas obon' });
+    expect(personStatement('Rafaella is my flatmate')).toEqual({ role: 'flatmate', name: 'rafaella' });
+    expect(personStatement('Pedro es mi casero')).toEqual({ role: 'landlord', name: 'pedro' });
+    expect(personStatement('Ana e minha mae')).toEqual({ role: 'family', name: 'ana' });
+    expect(personStatement('how much did I spend on friends?')).toEqual({ role: 'friend', name: null });
+    expect(personStatement('150 euros are coming from Vercel this month')).toBeNull();
   });
 });
