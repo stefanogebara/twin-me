@@ -274,6 +274,11 @@
 /* Phone: 24px gutters, the navigation behind a menu button, every other size unchanged. */
 @media (max-width: 767px) {
   .mv { --section: var(--rg-section-phone); }
+  /* A row whose action is a set of choices (the language) keeps the choices at their width
+     and leaves the words a column of single letters on a phone (seen 2026-09-23); the choices
+     go under the words instead. */
+  .mv .mv-item:has(> .mv-item-end.rg-choices) { grid-template-columns: minmax(0, 1fr); }
+  .mv .mv-item:has(> .mv-item-end.rg-choices) > .mv-item-end { justify-self: start; white-space: normal; }
   .mv-shell { grid-template-columns: minmax(0, 1fr); }
   .mv-side { position: static; gap: 0; padding-top: 12px; }
   .mv .mv-side-toggle { display: inline-flex; }
