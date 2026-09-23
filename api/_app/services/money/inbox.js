@@ -27,6 +27,7 @@ import crypto from 'node:crypto';
 import { returnWindow } from './returns.js';
 import { supabaseAdmin } from '../database.js';
 import { createLogger } from '../logger.js';
+import { quietly } from './quietly.js';
 import { complete, TIER_EXTRACTION } from '../llmGateway.js';
 import { ingestSighting } from './ingestion.js';
 import { isPaidReceipt, saveReceiptNotice, receiptReference } from './notices.js';
@@ -429,8 +430,8 @@ export async function listHeldStatements(userId, { now = new Date() } = {}) {
 export async function inboxSummary(userId, { facts, now = new Date() } = {}) {
   const address = await inboxAddress(userId, facts ? { facts } : {});
   const [forwarding, statements] = await Promise.all([
-    listForwardingRequests(userId, { now }).catch(() => []),
-    listHeldStatements(userId, { now }).catch(() => []),
+    listForwardingRequests(userId, { now }).catch(quietly('inbox/forwarding-read', [])),
+    listHeldStatements(userId, { now }).catch(quietly('inbox/held-statements-read', [])),
   ]);
   return { address, domain: inboxDomain(), receiving: isInboxConfigured(), forwarding, statements };
 }
