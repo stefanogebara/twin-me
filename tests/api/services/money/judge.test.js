@@ -24,6 +24,8 @@ describe('the question', () => {
   });
 
   it('is nothing at all without a name', () => {
+    expect(placeQuestion({ name: 'Trader Joes', country: 'US', countryName: 'the United States' }).state).toMatchObject({ country: 'US', the_person: 'a university student in the United States' });
+    expect(placeQuestion({ name: 'Mercadona' }).state).toMatchObject({ country: 'ES', the_person: 'a university student in Spain' });
     expect(placeQuestion({ name: '' })).toBe(null);
     expect(placeQuestion({})).toBe(null);
   });

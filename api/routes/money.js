@@ -56,7 +56,7 @@ import { moneyCapabilities } from '../services/money/betaCapabilities.js';
 import { holdUndatedCapture } from '../services/money/legacyCapture.js';
 import { recordOptIn } from '../services/money/channelStore.js';
 import { isMoneyChannelUser } from '../services/money/channel.js';
-import { ingestSighting, ingestSightings, listTransactions, transactionPage, sightingsFor, refreshRecurring, forecast, setVerdict, userForCaptureKey, saveBankAccounts, listBankAccounts, pullBankFeed, refreshReadings, listReadings, setReadingVerdict, months, feedBudget, categorySpend, listPlaces, setPlaceCategory, enrichPlaces, subscriptionUsage, questionsFor, answerQuestion, skipQuestion, listFacts, deleteFact, recordCallbackFailure, listChatTurns, saveChatTurn, learn, userLanguage, patternsFor } from '../services/money/store.js';
+import { personProfile, ingestSighting, ingestSightings, listTransactions, transactionPage, sightingsFor, refreshRecurring, forecast, setVerdict, userForCaptureKey, saveBankAccounts, listBankAccounts, pullBankFeed, refreshReadings, listReadings, setReadingVerdict, months, feedBudget, categorySpend, listPlaces, setPlaceCategory, enrichPlaces, subscriptionUsage, questionsFor, answerQuestion, skipQuestion, listFacts, deleteFact, recordCallbackFailure, listChatTurns, saveChatTurn, learn, userLanguage, patternsFor } from '../services/money/store.js';
 import { parseDelimited, parseWorkbook, toSightings } from '../services/money/statements/importer.js';
 import { statementAccounts, createStatementAccount, ownedStatementAccount, checkStatementEvidence, StatementInputError } from '../services/money/statements/accounts.js';
 import { isConfigured, listBanks, startAuthorisation, createSession, getSession, applicationInfo } from '../services/money/feeds/enableBanking.js';
@@ -245,7 +245,7 @@ router.get('/plan', async (req, res) => {
 router.get('/banks', async (req, res) => {
   if (!moneyCapabilities(req.user.id).bank) return res.status(403).json({ success: false, error: 'Live bank connections are not available in this beta. Add a statement instead.' });
   if (!isConfigured()) return res.status(503).json({ success: false, error: 'Bank feed not configured' });
-  try { res.json({ success: true, data: await listBanks(typeof req.query.country === 'string' ? req.query.country : 'ES') }); }
+  try { res.json({ success: true, data: await listBanks(typeof req.query.country === 'string' ? req.query.country : (await personProfile(req.user.id)).country) }); }
   catch (error) { log.error('banks failed', { error: error.message }); res.status(502).json({ success: false, error: 'Bank feed unavailable' }); }
 });
 
@@ -253,7 +253,7 @@ router.post('/bank/connect', validate({ body: S.BANK_CONNECT }), async (req, res
   if (!moneyCapabilities(req.user.id).bank) return res.status(403).json({ success: false, error: 'Live bank connections are not available in this beta. Add a statement instead.' });
   if (!isConfigured()) return res.status(503).json({ success: false, error: 'Bank feed not configured' });
   try {
-    const { bank = 'Banco Santander', country = 'ES', back = '' } = req.body || {};
+    const { bank = 'Banco Santander', country = (await personProfile(req.user.id)).country, back = '' } = req.body || {};
     const { url, authorizationId } = await startAuthorisation({ bankName: String(bank).slice(0, 80), country: String(country).slice(0, 2).toUpperCase(), state: signState(req.user.id, typeof back === 'string' ? back : '') });
     res.json({ success: true, data: { url, authorizationId } });
   } catch (error) {
@@ -833,7 +833,8 @@ router.get('/home', async (req, res) => {
 router.get('/home/search', async (req, res) => {
   try {
     const q = String(req.query.q || '').slice(0, 80);
-    res.json({ success: true, data: { results: await searchAreas(q) } });
+    const profile = await personProfile(req.user.id);
+    res.json({ success: true, data: { results: await searchAreas(q, { country: profile.country, language: profile.placesLanguage }) } });
   } catch (error) {
     log.error('home search failed', { error: error.message });
     res.status(502).json({ success: false, error: 'The map could not be searched right now.' });
@@ -845,7 +846,8 @@ router.get('/home/search', async (req, res) => {
 router.get('/places/search', async (req, res) => {
   try {
     const q = String(req.query.q || '').slice(0, 80);
-    res.json({ success: true, data: { results: await searchPlaces(q) } });
+    const profile = await personProfile(req.user.id);
+    res.json({ success: true, data: { results: await searchPlaces(q, { country: profile.country, language: profile.placesLanguage }) } });
   } catch (error) {
     log.error('places search failed', { error: error.message });
     res.status(502).json({ success: false, error: 'Places could not be searched right now.' });

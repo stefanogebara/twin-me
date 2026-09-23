@@ -16,6 +16,8 @@
  * said). Never an address.
  */
 
+import { DEFAULT_COUNTRY, profileFrom } from './profile.js';
+const placesLanguageOf = (country) => profileFrom({ accounts: [{ iban_mask: country }] }).placesLanguage;
 import { supabaseAdmin } from '../database.js';
 import { listTransactions } from './transactionRepository.js';
 import { listFacts } from './factsRepository.js';
@@ -199,16 +201,16 @@ export function pickDistrict(data) {
  * Predictions carry no coordinates, so an area is resolved to its point when it is picked
  * (`placePoint`). `kinds` narrows to districts or to the places a person studies and works.
  */
-export async function suggest(q, { kinds = null, key = process.env.GOOGLE_PLACES_API_KEY, fetchImpl = fetch, session = null } = {}) {
+export async function suggest(q, { kinds = null, key = process.env.GOOGLE_PLACES_API_KEY, fetchImpl = fetch, session = null, country = DEFAULT_COUNTRY, language = null } = {}) {
   const query = String(q || '').trim();
   if (!key || query.length < 2) return [];
   const body = {
     input: query,
     /* Bias formats the answer; the restriction is what keeps a student in Madrid from being
        offered Recoleta in Buenos Aires. This product is for students in Spain. */
-    regionCode: 'ES',
-    includedRegionCodes: ['es'],
-    languageCode: 'es',
+    regionCode: country,
+    includedRegionCodes: [String(country).toLowerCase()],
+    languageCode: language || placesLanguageOf(country),
     ...(kinds ? { includedPrimaryTypes: kinds } : {}),
     ...(session ? { sessionToken: session } : {}),
   };
@@ -252,7 +254,7 @@ export async function placePoint(placeId, { key = process.env.GOOGLE_PLACES_API_
 }
 
 /** Areas in Spain matching what the person typed: districts, towns, neighbourhoods. */
-export async function searchAreas(q, { key = process.env.GOOGLE_PLACES_API_KEY, fetchImpl = fetch } = {}) {
+export async function searchAreas(q, { key = process.env.GOOGLE_PLACES_API_KEY, fetchImpl = fetch, country = DEFAULT_COUNTRY, language = null } = {}) {
   const query = String(q || '').trim();
   if (!key || query.length < 2) return [];
   /* What is being typed, first. Text search is kept behind it for a finished question and
@@ -266,7 +268,7 @@ export async function searchAreas(q, { key = process.env.GOOGLE_PLACES_API_KEY, 
       'X-Goog-Api-Key': key,
       'X-Goog-FieldMask': 'places.id,places.displayName,places.formattedAddress,places.location,places.types',
     },
-    body: JSON.stringify({ textQuery: query, regionCode: 'ES', languageCode: 'es', maxResultCount: 10 }),
+    body: JSON.stringify({ textQuery: query, regionCode: country, languageCode: language || placesLanguageOf(country), maxResultCount: 10 }),
   });
   return filterAreas(Array.isArray(data?.places) ? data.places : []);
 }
@@ -276,15 +278,15 @@ export async function searchAreas(q, { key = process.env.GOOGLE_PLACES_API_KEY, 
  * institutions and businesses rather than districts. Six at most, name and one line of
  * address; the location stays here.
  */
-export async function searchPlaces(q, { key = process.env.GOOGLE_PLACES_API_KEY, fetchImpl = fetch } = {}) {
+export async function searchPlaces(q, { key = process.env.GOOGLE_PLACES_API_KEY, fetchImpl = fetch, country = DEFAULT_COUNTRY, language = null } = {}) {
   const query = String(q || '').trim();
   if (!key || query.length < 2) return [];
-  const typed = await suggest(query, { key, fetchImpl });
+  const typed = await suggest(query, { key, fetchImpl, country, language });
   if (typed.length) return typed;
   const data = await fetchJson(fetchImpl, PLACES_SEARCH_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'X-Goog-Api-Key': key, 'X-Goog-FieldMask': 'places.id,places.displayName,places.formattedAddress,places.types,places.primaryType' },
-    body: JSON.stringify({ textQuery: query, regionCode: 'ES', languageCode: 'es', maxResultCount: 8 }),
+    body: JSON.stringify({ textQuery: query, regionCode: country, languageCode: language || placesLanguageOf(country), maxResultCount: 8 }),
   });
   return filterPlaces(Array.isArray(data?.places) ? data.places : []);
 }
