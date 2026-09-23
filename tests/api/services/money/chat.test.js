@@ -566,6 +566,20 @@ describe('basisOf', () => {
     const withFacts = { ...c, facts: [{ id: 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee', kind: 'income', subject: 'family', value: null, amount: 116.76, source: 'asked' }] };
     for (const l of basisOf('Clothing took 116,76 EUR.', withFacts)) expect(l).not.toMatch(/aaaaaaaa-bbbb/);
   });
+  it('covers every number in the words before it fills the eight: a seven-row table keeps the line that holds its total', () => {
+    const rows = [
+      t('s1', '2026-09-03T09:00:00Z', -103, 'openai', 'OpenAI'), t('s2', '2026-09-03T09:00:00Z', -18.63, 'fly.io', 'Fly.io'),
+      t('s3', '2026-09-04T09:00:00Z', -14, 'zadarma', 'Zadarma'), t('s4', '2026-09-05T09:00:00Z', -11.01, 'twilio', 'Twilio'),
+      t('s5', '2026-09-06T09:00:00Z', -10, 'zadarma', 'Zadarma'), t('s6', '2026-09-06T09:00:00Z', -6.04, 'render', 'Render'),
+      t('s7', '2026-09-07T09:00:00Z', -5.5, 'vercel', 'Vercel'), t('s8', '2026-09-07T10:00:00Z', -4.99, 'github', 'GitHub'),
+    ];
+    const soft = ['openai', 'fly.io', 'zadarma', 'twilio', 'render', 'vercel', 'github'].map((k) => ({ merchant_key: k, name: k, category: 'software' }));
+    const c = assemble({ transactions: [...transactions, ...rows], segments, forecast: cast, recurring, readings: [], facts: [], questions, places: [...places, ...soft], categories, now: NOW });
+    const said = 'OpenAI 103,00 EUR, Fly.io 18,63 EUR, Zadarma 14,00 EUR, Twilio 11,01 EUR, Zadarma 10,00 EUR, Render 6,04 EUR, Vercel 5,50 EUR, GitHub 4,99 EUR, Spotify 11,99 EUR; 185,16 EUR together.';
+    const lines = basisOf(said, c);
+    expect(lines.length).toBeLessThanOrEqual(8);
+    for (const n of amountsInText(said)) expect(lines.some((l) => amountsInText(l).some((b) => Math.abs(n - b) < 0.005))).toBe(true);
+  });
 });
 
 describe('act on the new offers', () => {
@@ -696,6 +710,19 @@ describe('the largest per kind', () => {
     const text = contextText(ctx());
     expect(text).toMatch(/Largest payment per kind this month: .*Spotify 11,99 EUR/);
     expect(text).toMatch(/Words people use for the kinds: eating out is a bar/);
+  });
+});
+
+describe('each kind, largest first, and each kind by month', () => {
+  it('are computed lines, so a table and a month-by-month answer are readings and not guesses', async () => {
+    const { contextText, RULES } = await import('../../../../api/services/money/chat.js');
+    const text = contextText(ctx());
+    expect(text).toMatch(/software this month, largest first \(1 payment\): Spotify 11,99 EUR \(4 Sep\)/);
+    expect(text).toMatch(/software by month: Sep 11,99 EUR; Aug 11,99 EUR; Jul 11,99 EUR\.$/m);
+    expect(text).toMatch(/clothing by month: Sep 116,76 EUR; Aug 0,00 EUR; Jul 0,00 EUR\.$/m);
+    expect(RULES).toMatch(/read the line "<kind> this month, largest first" and say every name and amount on it/);
+    expect(RULES).toMatch(/read the line "<kind> by month" and say each month with its figure/);
+    expect(RULES).toMatch(/never give an average/);
   });
 });
 
