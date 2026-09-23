@@ -27,6 +27,7 @@ import crypto from 'node:crypto';
 import { returnWindow } from './returns.js';
 import { supabaseAdmin } from '../database.js';
 import { createLogger } from '../logger.js';
+import { quietly } from './quietly.js';
 import { complete, TIER_EXTRACTION } from '../llmGateway.js';
 import { ingestSighting } from './ingestion.js';
 import { isPaidReceipt, saveReceiptNotice, receiptReference } from './notices.js';
@@ -418,6 +419,21 @@ export async function listHeldStatements(userId, { now = new Date() } = {}) {
     .eq('user_id', userId).eq('kind', HELD_STATEMENT_KIND).gte('created_at', since).order('created_at', { ascending: false }).limit(5);
   if (error) throw new Error(`Cannot read held statements: ${error.message}`);
   return (data || []).map((n) => ({ filename: n.evidence?.filename || null, rows: Number(n.evidence?.rows) || 0, accounts: Number(n.evidence?.accounts) || 0, at: n.created_at }));
+}
+
+/**
+ * The inbox as the page and the route both say it: the address, whether the domain receives,
+ * and what waits under it (Gmail's forwarding confirmations, statements held for an account).
+ * The page read composed its own copy without the two lists and the rows never showed
+ * (2026-09-23). A failed read of a list is an empty list, never a failed address.
+ */
+export async function inboxSummary(userId, { facts, now = new Date() } = {}) {
+  const address = await inboxAddress(userId, facts ? { facts } : {});
+  const [forwarding, statements] = await Promise.all([
+    listForwardingRequests(userId, { now }).catch(quietly('inbox/forwarding-read', [])),
+    listHeldStatements(userId, { now }).catch(quietly('inbox/held-statements-read', [])),
+  ]);
+  return { address, domain: inboxDomain(), receiving: isInboxConfigured(), forwarding, statements };
 }
 
 export async function ingestReceivedEmail(event, deps = null) {

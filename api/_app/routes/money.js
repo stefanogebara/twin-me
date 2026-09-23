@@ -47,7 +47,7 @@ import multer from 'multer';
 import { authenticateUser } from '../middleware/auth.js';
 import { validate } from '../middleware/validate.js';
 import * as S from './moneySchemas.js';
-import { inboxAddress, inboxDomain, isInboxConfigured, verifySvix, ingestReceivedEmail, listForwardingRequests, listHeldStatements } from '../services/money/inbox.js';
+import { inboxSummary, isInboxConfigured, verifySvix, ingestReceivedEmail } from '../services/money/inbox.js';
 import { MAIL_ATTACHMENT_DEPS } from '../services/money/mailAttachments.js';
 import { readAttachment, acceptsAttachment, MAX_ATTACHMENT_BYTES } from '../services/money/attachments.js';
 import { ATTACHMENT_DEPS } from '../services/money/attachmentDeps.js';
@@ -181,13 +181,7 @@ router.get('/accuracy', async (req, res) => {
 /** The person's own receipts address, minted on first ask. */
 router.get('/inbox', async (req, res) => {
   try {
-    const address = await inboxAddress(req.user.id);
-    /* Gmail's forwarding confirmations of the last two days ride along: a failed read of them is an empty list, never a failed address. */
-    const [forwarding, statements] = await Promise.all([
-      listForwardingRequests(req.user.id).catch(quietly('inbox/forwarding-read', [])),
-      listHeldStatements(req.user.id).catch(quietly('inbox/held-statements-read', [])),
-    ]);
-    res.json({ success: true, data: { address, domain: inboxDomain(), receiving: isInboxConfigured(), forwarding, statements } });
+    res.json({ success: true, data: await inboxSummary(req.user.id) });
   } catch (error) {
     log.error('inbox address failed', { error: error.message });
     res.status(500).json({ success: false, error: 'Internal server error' });
