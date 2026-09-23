@@ -18,7 +18,7 @@ import WhatsAppSource from './WhatsAppSource';
 import type { MoneyAccount } from '../../useMoneyAccount';
 
 export default function Sources({ m }: { m: MoneyAccount }) {
-  const { t, locale, accounts, capabilities, loaded, empty, busy, bankReady, connecting, bankLine, bookedLine, calendar, calendarFailed, inbox, copied, copyInbox, load, pull, connect, connectCalendar, addFeed, removeFeed, sources } = m;
+  const { t, locale, accounts, capabilities, loaded, empty, busy, bankReady, connecting, bankLine, bookedLine, calendar, calendarFailed, inbox, copied, copyInbox, load, pull, connect, connectCalendar, addFeed, removeFeed, removeAccount, sources } = m;
   /* What each source has given, and the half a status word hides (2026-09-21). */
   const gave = sources?.by || {};
   const month = sources?.month || null;
@@ -70,7 +70,7 @@ export default function Sources({ m }: { m: MoneyAccount }) {
                         )}
                       </span>
                     </div>
-                    {mine.length ? <BankAccounts accounts={mine} /> : null}
+                    {mine.length ? <BankAccounts accounts={mine} onRemove={removeAccount} busy={busy === 'account'} /> : null}
                   </li>
                 );
               })}

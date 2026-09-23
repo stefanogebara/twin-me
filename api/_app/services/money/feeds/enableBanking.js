@@ -147,6 +147,12 @@ export async function createSession(code) {
  * times on 2026-09-15 although the person had picked an account; a second read is the
  * cheapest thing to try before calling it refused.
  */
+/** Ends a consent at the aggregator, so the bank stops answering for it. Best effort: a session already gone is gone. */
+export async function deleteSession(sessionId) {
+  try { await api(`/sessions/${encodeURIComponent(sessionId)}`, { method: 'DELETE' }); return true; }
+  catch (error) { if (isSessionGone(error)) return true; throw error; }
+}
+
 export async function getSession(sessionId) {
   return sessionShape(await api(`/sessions/${encodeURIComponent(sessionId)}`, { method: 'GET' }));
 }

@@ -59,10 +59,10 @@ const bankClosed = (c) => ({ unconfigured: 'Live bank connections are not set up
 import { holdUndatedCapture } from '../services/money/legacyCapture.js';
 import { recordOptIn } from '../services/money/channelStore.js';
 import { isMoneyChannelUser } from '../services/money/channel.js';
-import { inPersonScope, personProfileCached, personProfile, ingestSighting, ingestSightings, listTransactions, transactionPage, sightingsFor, refreshRecurring, forecast, setVerdict, userForCaptureKey, saveBankAccounts, listBankAccounts, pullBankFeed, refreshReadings, listReadings, setReadingVerdict, months, feedBudget, categorySpend, listPlaces, setPlaceCategory, enrichPlaces, subscriptionUsage, questionsFor, answerQuestion, skipQuestion, listFacts, deleteFact, recordCallbackFailure, listChatTurns, saveChatTurn, learn, userLanguage, patternsFor } from '../services/money/store.js';
+import { removeBankAccount, inPersonScope, personProfileCached, personProfile, ingestSighting, ingestSightings, listTransactions, transactionPage, sightingsFor, refreshRecurring, forecast, setVerdict, userForCaptureKey, saveBankAccounts, listBankAccounts, pullBankFeed, refreshReadings, listReadings, setReadingVerdict, months, feedBudget, categorySpend, listPlaces, setPlaceCategory, enrichPlaces, subscriptionUsage, questionsFor, answerQuestion, skipQuestion, listFacts, deleteFact, recordCallbackFailure, listChatTurns, saveChatTurn, learn, userLanguage, patternsFor } from '../services/money/store.js';
 import { parseDelimited, parseWorkbook, toSightings } from '../services/money/statements/importer.js';
 import { statementAccounts, createStatementAccount, ownedStatementAccount, checkStatementEvidence, StatementInputError } from '../services/money/statements/accounts.js';
-import { isConfigured, listBanks, startAuthorisation, createSession, getSession, applicationInfo } from '../services/money/feeds/enableBanking.js';
+import { isConfigured, listBanks, startAuthorisation, createSession, getSession, applicationInfo, deleteSession } from '../services/money/feeds/enableBanking.js';
 import { answer as chatAnswer, answerStream as chatAnswerStream, act as chatAct } from '../services/money/chat.js';
 import { ahead as calendarAhead, learnEventSpend, addFeed as addCalendarFeed, removeFeed as removeCalendarFeed, termWeeks } from '../services/money/calendar.js';
 import { todayAllowance } from '../services/money/allowanceService.js';
@@ -269,6 +269,17 @@ router.post('/bank/connect', validate({ body: S.BANK_CONNECT }), async (req, res
     log.error('bank connect failed', { error: error.message });
     res.status(502).json({ success: false, error: 'Could not start the bank authorisation' });
   }
+});
+
+/** Remove an account and everything it read; the consent ends at the aggregator when no other account shares it. */
+router.delete('/bank/accounts/:id', validate({ params: S.UUID_PARAM }), async (req, res) => {
+  try {
+    const gone = await removeBankAccount(req.user.id, req.params.id, { endConsent: (sessionId) => deleteSession(sessionId) });
+    if (!gone) return res.status(404).json({ success: false, error: 'That account is not yours, or is already gone.' });
+    await refreshRecurring(req.user.id).catch(quietly('accounts/recurring-after-remove', undefined));
+    await refreshReadings(req.user.id).catch(quietly('accounts/readings-after-remove', undefined));
+    res.json({ success: true, data: gone });
+  } catch (error) { log.error('account remove failed', { error: error.message }); res.status(500).json({ success: false, error: 'Internal server error' }); }
 });
 
 router.get('/bank/accounts', async (req, res) => {

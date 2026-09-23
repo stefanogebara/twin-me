@@ -191,6 +191,35 @@ export function newestConsent(rows) {
   return [...byIban.values()];
 }
 
+/**
+ * Removes one account and everything it brought: its sightings, its transactions, its access
+ * rows and leases (the database cascades those), and the row itself. Sources promised "remove a
+ * source and what it read goes too" and until 2026-09-24 nothing could remove a bank. The
+ * aggregator's consent is ended too, unless another account of the person shares it (one
+ * consent can cover several accounts). Returns what went, or null when the account is not theirs.
+ */
+export async function removeBankAccount(userId, accountId, { endConsent = null } = {}) {
+  const { data: account, error: readError } = await supabaseAdmin.from('money_accounts').select('id, provider, session_id, name, iban_mask')
+    .eq('user_id', userId).eq('id', accountId).maybeSingle();
+  if (readError) throw new Error(`account read failed: ${readError.message}`);
+  if (!account) return null;
+  const gone = {};
+  for (const table of ['money_sightings', 'money_transactions']) {
+    const { count, error } = await supabaseAdmin.from(table).delete({ count: 'exact' }).eq('user_id', userId).eq('account_id', accountId);
+    if (error) throw new Error(`${table} not removed: ${error.message}`);
+    gone[table] = count || 0;
+  }
+  const { error } = await supabaseAdmin.from('money_accounts').delete().eq('user_id', userId).eq('id', accountId);
+  if (error) throw new Error(`account not removed: ${error.message}`);
+  let consentEnded = false;
+  if (account.session_id && endConsent) {
+    const { data: siblings } = await supabaseAdmin.from('money_accounts').select('id').eq('user_id', userId).eq('session_id', account.session_id).limit(1);
+    if (!(siblings || []).length) consentEnded = await Promise.resolve(endConsent(account.session_id)).then(() => true).catch(quietly('accounts/end-consent', false));
+  }
+  log.info('bank account removed', { userId, accountId, sightings: gone.money_sightings, transactions: gone.money_transactions, consentEnded });
+  return { id: account.id, name: account.name, iban_mask: account.iban_mask, provider: account.provider, sightings: gone.money_sightings, transactions: gone.money_transactions, consent_ended: consentEnded };
+}
+
 export async function listBankAccounts(userId) {
   const { data, error } = await supabaseAdmin.from('money_accounts').select('id, provider, provider_account_id, name, iban_mask, currency, consent_expires_at, last_pulled_at, bank_name, session_id, created_at, balance, balance_type, balance_at, balance_observed_at, sync_checkpoint, account_fingerprint').eq('user_id', userId).eq('provider', 'enablebanking');
   /* An empty list because the read failed would show every screen "no bank connected" and
