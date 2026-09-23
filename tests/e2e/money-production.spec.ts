@@ -46,11 +46,16 @@ test('Today paints a figure within budget, and the page is one read', async ({ p
   for (const step of ['.la[role="dialog"]']) for (let i = 0; i < 4 && (await page.locator(step).count()); i += 1) { await page.keyboard.press('Escape'); await page.waitForTimeout(250); }
 });
 
-test('Month and You render their sections', async ({ page }) => {
+test('Month, You and Account render their sections', async ({ page }) => {
   await page.goto('/money/month', { waitUntil: 'domcontentloaded' });
   await expect(page.locator('#month-title')).toBeVisible({ timeout: 30000 });
   await expect(page.locator('#ledger')).toBeVisible();
   await page.goto('/money/you', { waitUntil: 'domcontentloaded' });
   await expect(page.locator('#you-title')).toBeVisible({ timeout: 30000 });
-  await expect(page.locator('#sources')).toBeVisible();
+  /* What it knows arrives with the facts read; the sources moved to the Account page on
+     2026-09-21 (#481) and this spec kept looking for them here, red every night since. */
+  await expect(page.locator('#knows')).toBeVisible({ timeout: 30000 });
+  await page.goto('/money/account', { waitUntil: 'domcontentloaded' });
+  await expect(page.locator('#account-title')).toBeVisible({ timeout: 30000 });
+  await expect(page.locator('#sources')).toBeVisible({ timeout: 30000 });
 });
