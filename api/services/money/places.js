@@ -1,3 +1,4 @@
+import { DEFAULT_COUNTRY } from './profile.js';
 /**
  * Places: what kind of place a ledger line was, and where it is.
  * ==============================================================
@@ -495,7 +496,7 @@ async function nominatimSearch({ merchant, city, country, fetchImpl, now, sleepI
 export async function lookupPlace({
   name,
   city = null,
-  country = 'ES',
+  country = DEFAULT_COUNTRY,
   fetchImpl = fetch,
   now = Date.now,
   env = process.env,

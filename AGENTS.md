@@ -98,7 +98,11 @@ Rules that hold everywhere in money:
   days after it (settling); widening is conformal, in the person's euros; the band
   carries its last issued widening while no day is scored.
 - **One currency, one timezone, said once:** `currency.js` (`MONEY_CURRENCY`),
-  `zone.js` (`MONEY_TZ`). Per-person values belong on the person's row (todo).
+  `zone.js` (`MONEY_TZ`). **Where a person is comes from their own data** (`profile.js`,
+  since 2026-09-23): country from the IBANs of their accounts, currency from the accounts,
+  timezone and language from their row; the deployment values are the fallback and every
+  field says its source. Threaded into the place and home lookups, the merchant judge and
+  the bank routes; timezone and currency call sites still read the one deployment value (tracker).
 
 Key money files (`api/services/money/`): `ledger.js` (reconcile), `ingestion.js`
 (atomic plan/commit), `store.js` (persistence, being split), `projection.js`,

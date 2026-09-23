@@ -56,7 +56,7 @@ const r2 = (n) => Math.round(Number(n) * 100) / 100;
  * The name alone is often a truncated bank string ("Empresa Municip"); what it costs and how
  * often say more than the letters do.
  */
-export function placeQuestion({ name, city = null, amounts = [] } = {}) {
+export function placeQuestion({ name, city = null, amounts = [], country = 'ES', countryName = 'Spain' } = {}) {
   const said = String(name || '').trim();
   if (!said) return null;
   const mid = median(amounts.map((a) => Math.abs(Number(a) || 0)).filter((a) => a > 0));
@@ -65,8 +65,8 @@ export function placeQuestion({ name, city = null, amounts = [] } = {}) {
     state: {
       name_on_the_bank_line: said,
       city: city || null,
-      country: 'ES',
-      the_person: 'a university student in Spain',
+      country: String(country || 'ES').toUpperCase(),
+      the_person: `a university student in ${countryName || country}`,
       payments_seen: amounts.length || null,
       typical_amount_eur: mid === null ? null : r2(mid),
     },

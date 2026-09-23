@@ -21,6 +21,7 @@ import { fetchTransactions, toSighting, distinctPending, fetchBalances } from '.
 import { readLedger, monthSegments } from './analyst.js';
 import { spendingRule, markCounted, personRoles, roleOf } from './spending.js';
 import { judgePlace, shouldJudge } from './judge.js';
+import { profileFrom } from './profile.js';
 import { poolMerchantPriors } from './priors.js';
 import { nudgeFindings, retiredKinds, NUDGE_KINDS, expiredNudge } from './nudges.js';
 import { safeToSpend } from './allowance.js';
@@ -758,6 +759,7 @@ export async function enrichPlaces(userId, { limit = 12 } = {}) {
     .filter((k) => !done.has(k))
     .sort((a, b) => spend.get(b) - spend.get(a));
 
+  const profile = await personProfile(userId);
   let placed = 0;
   let unreached = 0;
   let judgedCount = 0;
@@ -769,7 +771,7 @@ export async function enrichPlaces(userId, { limit = 12 } = {}) {
        the provider, so a brand keeps its place on a map. */
     const brand = categoryFromBrand(name);
     let place = null;
-    try { place = await lookupPlace({ name, city: cities.get(key) || null, country: 'ES' }); }
+    try { place = await lookupPlace({ name, city: cities.get(key) || null, country: profile.country }); }
     catch (error) {
       /* The provider was not reached, so nothing is known either way. Written down as a miss
          it would never be asked again; left alone, the next run asks. */
@@ -811,7 +813,7 @@ export async function enrichPlaces(userId, { limit = 12 } = {}) {
        belongs in that ledger. `source` keeps it distinct from the person's own word, which
        overwrites it whenever they say otherwise. */
     if (shouldJudge({ category: row.category, hasOwnWord: theirs.has(key) })) {
-      const judged = await judgePlace({ name, city: cities.get(key) || null, amounts: amounts.get(key) || [] });
+      const judged = await judgePlace({ name, city: cities.get(key) || null, amounts: amounts.get(key) || [], country: profile.country, countryName: profile.countryName });
       if (judged) {
         const { error: judgedError } = await supabaseAdmin.from('money_place_overrides').insert(
           { user_id: userId, merchant_key: key, category: judged.category, source: 'jev', confidence: judged.confidence, created_at: new Date().toISOString() },
@@ -1153,6 +1155,19 @@ export async function listChatTurns(userId, { limit = 30 } = {}) {
     if (t.figures && !Array.isArray(t.figures) && Array.isArray(t.figures.figures)) return { ...t, figures: t.figures.figures, receipts: t.figures.receipts || [] };
     return { ...t, receipts: [] };
   });
+}
+
+/**
+ * Where this person is, from their row and their accounts (profile.js). A failed read of
+ * either falls back to the deployment's values, said in `source`; the lookups it feeds are
+ * enrichment, never the ledger itself.
+ */
+export async function personProfile(userId) {
+  const [{ data: user }, accounts] = await Promise.all([
+    supabaseAdmin.from('users').select('timezone, preferred_language').eq('id', userId).maybeSingle(),
+    listBankAccounts(userId).catch((error) => { log.warn(`profile: accounts not read: ${error.message}`); return []; }),
+  ]);
+  return profileFrom({ user: user || null, accounts });
 }
 
 /** The language the person chose for TwinMe (en, es, pt-BR), or null when never asked. */
