@@ -7,15 +7,26 @@ import { euro } from '../../services/api/moneyAPI';
 import { n, s, ordinal, weekdayName, monthName, dayAhead, dayBehind, dayAndMonth, listOf, categoryWord, categoryInline, CADENCE_AMOUNT, platformLabel, weekPhrase } from './readingHelpers';
 import type { T, Numbers, Sayable, Said } from './readingHelpers';
 
+/**
+ * The figures the page holds live, for a reading that compares the month so far: the stored
+ * numbers are from the last refresh, the hero is from this load, and the two disagreed by a
+ * morning's payments (the owner, 2026-09-23). A sayer that gets them says the hero's figures.
+ */
+export type LiveFigures = { month: string | null; spent: number | null; previousSpent: number | null; day: number | null };
 export type SayContext = {
   r: Sayable; t: T; locale: string; now: Date; num: Numbers; keep: Said;
-  receipts: NonNullable<Sayable['receipts']>; nameFromReceipt: () => string | null;
+  receipts: NonNullable<Sayable['receipts']>; nameFromReceipt: () => string | null; live?: LiveFigures | null;
 };
 export type Sayer = (c: SayContext) => Said;
 
 export const SAYERS: Record<string, Sayer> = {
-  month_pace: ({ r, t, locale, num, keep }) => {
-    const spent = n(num.spent); const previous = n(num.previous_spent); const gap = n(num.gap); const day = n(num.day);
+  month_pace: ({ r, t, locale, num, keep, live }) => {
+    /* The page's own figures for this month win over the stored ones, so the reading and the
+       hero above it say the same number. */
+    const fresh = live && r.month && live.month && live.month.slice(0, 7) === r.month.slice(0, 7)
+      && typeof live.spent === 'number' && typeof live.previousSpent === 'number' && typeof live.day === 'number' && live.day > 0 ? live : null;
+    const spent = fresh ? fresh.spent : n(num.spent); const previous = fresh ? fresh.previousSpent : n(num.previous_spent);
+    const gap = fresh ? Math.round(((fresh.spent as number) - (fresh.previousSpent as number)) * 100) / 100 : n(num.gap); const day = fresh ? fresh.day : n(num.day);
     if (spent === null || previous === null || gap === null || day === null || !r.month) return keep;
     const sentence = t('By the {day} you had spent {amount}. By the {day} of {month} it was {other}.', {
       day: ordinal(t, day), amount: euro(spent), month: monthName(r.month, locale, -1), other: euro(previous),
