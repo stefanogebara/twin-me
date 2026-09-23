@@ -3,7 +3,7 @@
  * hero and the reading under it disagreed by exactly one friend's transfer.
  */
 import { describe, it, expect } from 'vitest';
-import { spendingRule, markCounted, isOutflow, personRoles } from '../../../../api/services/money/spending.js';
+import { spendingRule, markCounted, isOutflow, personRoles, roleOf } from '../../../../api/services/money/spending.js';
 import { monthSegments, readLedger } from '../../../../api/services/money/analyst.js';
 
 const t = (id, occurred_at, amount, merchant_key, extra = {}) => ({ id, occurred_at, amount, merchant_key, merchant_raw: merchant_key, channel: 'card', ...extra });
@@ -65,5 +65,21 @@ describe('the person the rent goes to', () => {
     expect(personRoles(facts).get('ana lopez')).toBe('landlord');
     expect(spendingRule(facts)({ merchant_key: 'ana lopez', channel: 'bizum', amount: -150, currency: 'EUR' })).toBe(true);
     expect(spendingRule([facts[0]])({ merchant_key: 'ana lopez', channel: 'bizum', amount: -150, currency: 'EUR' })).toBe(false);
+  });
+});
+
+describe('roleOf: the bank\'s short form of a person is that person', () => {
+  const roles = new Map([['mauad gebara christian', 'family'], ['maria dolores tomas obon', 'other'], ['ana lopez', 'friend']]);
+  it('matches "Mauad G." to Mauad Gebara Christian, and a Bizum from a family member is not spending', () => {
+    expect(roleOf(roles, 'mauad g')).toBe('family');
+    expect(roleOf(roles, 'mauad gebara')).toBe('family');
+    expect(roleOf(roles, 'maria dolores t')).toBe('other');
+    expect(roleOf(roles, 'mauad gebara christian')).toBe('family');
+  });
+  it('never matches a stranger, a one-letter first word, or a longer name', () => {
+    expect(roleOf(roles, 'mauro g')).toBe(null);
+    expect(roleOf(roles, 'm gebara')).toBe(null);
+    expect(roleOf(roles, 'ana lopez garcia')).toBe(null);
+    expect(roleOf(roles, '')).toBe(null);
   });
 });

@@ -310,6 +310,24 @@ function normalize(text) {
     .toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
 }
 
+/** A name and an initial ("Mauad G.", "M. Dolores T."): a person the bank abbreviated, never a shop. */
+export function looksLikePerson(merchant) {
+  const words = String(merchant || '').trim().split(/\s+/);
+  if (words.length < 2 || words.length > 4) return false;
+  const initials = words.filter((w) => /^[a-z]\.?$/i.test(w));
+  return initials.length >= 1 && initials.length < words.length && words.every((w) => /^[a-z][a-z'.-]*$/i.test(w));
+}
+
+/* The countries the ledger reads, as boxes: a hit outside the person's country is refused.
+   Spain includes the Canaries. Any other country is not gated yet. */
+const COUNTRY_BOXES = { ES: { latMin: 27.5, latMax: 43.9, lonMin: -18.3, lonMax: 4.5 } };
+export function inCountry(country, lat, lon) {
+  const box = COUNTRY_BOXES[String(country || '').toUpperCase()];
+  if (!box) return true;
+  if (!Number.isFinite(lat) || !Number.isFinite(lon)) return true;
+  return lat >= box.latMin && lat <= box.latMax && lon >= box.lonMin && lon <= box.lonMax;
+}
+
 /** Generic Google types that name no kind of place a person would say out loud. */
 const GENERIC_TYPES = new Set(['point_of_interest', 'establishment', 'food', 'store', 'place_of_worship', 'premise', 'political']);
 
@@ -486,6 +504,9 @@ export async function lookupPlace({
 } = {}) {
   const merchant = cleanName(name);
   if (!merchant) return null;
+  /* "Mauad G." is how a bank writes a person: a name and an initial. Asked as a place, Google
+     answered Mauad Hotel Santo Domingo, and a family transfer became lodging (2026-09-23). */
+  if (looksLikePerson(merchant)) return null;
 
   if (looksOnline(merchant)) {
     /* Decided here, with no request: an online brand has no coordinates to fetch and
@@ -513,6 +534,8 @@ export async function lookupPlace({
     ? await googleSearch({ merchant, city: town, country, key: env.GOOGLE_PLACES_API_KEY, fetchImpl, bias })
     : await nominatimSearch({ merchant, city: town, country, fetchImpl, now, sleepImpl });
   if (!found) return null;
+  /* A place in another country is a guess from the words, never the shop on the statement. */
+  if (!inCountry(country, found.lat, found.lon)) return null;
 
   const confidence = looksTruncated(merchant)
     ? Math.min(found.confidence, TRUNCATED_CONFIDENCE)

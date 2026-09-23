@@ -148,11 +148,16 @@ export function freshBalance(accounts = [], now = new Date(), facts = [], transa
  * The next money in, and the days until it: the earliest income the forecast expects after
  * today, else the end of the month. Returns { day, days, source }, days counting today.
  */
+const SURE_ENOUGH = 0.75;
 export function nextInflow(cast, now = new Date()) {
   const today = dayIn(now);
   const monthEnd = Math.max(1, (Number(cast?.days_left) || 0) + 1);
+  /* An arrival nobody mentioned, seen a few times and on time half of them, is not a day to
+     spread the money to: "it depends a lot" (the owner, 2026-09-23). It stays on the page as
+     what may come; the day runs to the next money that is said, or sure. */
   const incomes = (cast?.income_items || [])
     .filter((i) => i && i.due_on && String(i.due_on).slice(0, 10) > today && Number(i.amount) > 0)
+    .filter((i) => i.said !== false || Number(i.confidence) >= SURE_ENOUGH)
     .sort((a, b) => (a.due_on < b.due_on ? -1 : 1));
   const first = incomes[0];
   if (!first) return { day: null, days: monthEnd, source: null };

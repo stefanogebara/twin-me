@@ -24,6 +24,7 @@
  */
 import { dayIn, startOfDayIn, monthIn } from './zone.js';
 import { money } from './currency.js';
+import { roleOf } from './spending.js';
 
 /** Days after a payment within which an incoming person movement can settle it. */
 export const SETTLE_DAYS = 30;
@@ -87,7 +88,7 @@ export function monthBetweenPeople(transactions = [], now = new Date(), roles = 
   for (const m of personMovements(transactions)) {
     if (monthIn(m.occurred_at) !== month || m.verdict === 'not_me') continue;
     const key = m.merchant_key || m.person;
-    if (!by.has(key)) by.set(key, { key, name: shortName(m.person), role: roles.get(String(key).toLowerCase()) || null, sent: 0, sentCount: 0, received: 0, receivedCount: 0 });
+    if (!by.has(key)) by.set(key, { key, name: shortName(m.person), role: roleOf(roles, key), sent: 0, sentCount: 0, received: 0, receivedCount: 0 });
     const b = by.get(key);
     if (m.direction === 'out') { b.sent = r2(b.sent + abs(m)); b.sentCount += 1; sent += abs(m); } else { b.received = r2(b.received + abs(m)); b.receivedCount += 1; received += abs(m); }
   }
@@ -289,7 +290,7 @@ export function balances(transactions = [], facts = [], opts = {}) {
   for (const m of personMovements(transactions)) {
     if (at(m) < since) continue;
     const key = m.merchant_key || m.person;
-    if (!by.has(key)) by.set(key, { key, name: shortName(m.person), role: roles.get(key) || null, sent: 0, received: 0, settlements: 0, count: 0, last: m.occurred_at });
+    if (!by.has(key)) by.set(key, { key, name: shortName(m.person), role: roleOf(roles, key), sent: 0, received: 0, settlements: 0, count: 0, last: m.occurred_at });
     const b = by.get(key);
     if (m.direction === 'out') b.sent += abs(m); else if (settlements.has(m.id)) b.settlements += abs(m); else b.received += abs(m);
     b.count += 1;
