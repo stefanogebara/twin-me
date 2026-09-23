@@ -4,7 +4,7 @@ import * as XLSX from 'xlsx';
 vi.mock('../../../../api/_app/services/database.js', () => ({ supabaseAdmin: {} }));
 vi.mock('../../../../api/_app/services/money/store.js', async (importOriginal) => {
   const { categoryOfPayment } = await importOriginal();
-  return { categoryOfPayment, listOwnTransactions: vi.fn(), listPlaces: vi.fn(), userLanguage: vi.fn(), personProfileCached: vi.fn() };
+  return { categoryOfPayment, listOwnTransactions: vi.fn(), listPlaces: vi.fn(), userLanguage: vi.fn(), personProfileCached: vi.fn(), listFacts: vi.fn(async () => []) };
 });
 
 const { sheetRows, sheetFile, monthOf, monthSheet } = await import('../../../../api/_app/services/money/sheet.js');
@@ -64,7 +64,7 @@ describe('monthSheet', () => {
   it('reads once and names the file after the month', async () => {
     const deps = {
       personProfileCached: async () => ({ timezone: 'Europe/Madrid' }),
-      listOwnTransactions: async () => tx, listPlaces: async () => places, userLanguage: async () => 'pt-BR', recurringFor: async () => recurring,
+      listOwnTransactions: async () => tx, listPlaces: async () => places, userLanguage: async () => 'pt-BR', recurringFor: async () => recurring, listFacts: async () => [],
     };
     const out = await monthSheet('u1', { month: '2026-09', deps });
     expect(out).toMatchObject({ month: '2026-09', rows: 5, filename: 'twinme-2026-09.xlsx' });

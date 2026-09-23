@@ -12,8 +12,9 @@ import * as XLSX from 'xlsx';
 import { dayIn } from './zone.js';
 import { ledgerCurrency } from './currency.js';
 import { kindWord } from './chat.js';
-import { listOwnTransactions, listPlaces, categoryOfPayment, userLanguage } from './store.js';
-import { personProfileCached } from './store.js';
+import { listOwnTransactions, listPlaces, categoryOfPayment, userLanguage, personProfileCached, listFacts } from './store.js';
+import { personRoles, roleOf } from './spending.js';
+import { quietly } from './quietly.js';
 
 const HEADERS = {
   en: ['Day', 'Place', 'Kind', 'Amount', 'Currency', 'Channel', 'Comes back'],
@@ -41,7 +42,8 @@ export function monthOf(query, now = new Date(), zone = null) {
  * person disowned is not here (the read leaves it out); one in another currency is, with its
  * own currency named, since a file is the place to see everything.
  */
-export function sheetRows(transactions, { month, places = [], recurring = [], language = 'en', zone = null } = {}) {
+export function sheetRows(transactions, { month, places = [], recurring = [], facts = [], language = 'en', zone = null } = {}) {
+  const roles = personRoles(facts || []);
   const lang = L(language);
   const byKey = new Map((places || []).map((p) => [p.merchant_key, p]));
   const back = new Set((recurring || []).map((r) => r.merchant_key));
@@ -50,7 +52,7 @@ export function sheetRows(transactions, { month, places = [], recurring = [], la
     .sort((a, b) => new Date(a.occurred_at) - new Date(b.occurred_at))
     .map((t) => {
       const place = byKey.get(t.merchant_key);
-      const kind = categoryOfPayment(place, t.channel);
+      const kind = categoryOfPayment(place, t.channel, roleOf(roles, t.merchant_key));
       return [
         dayIn(t.occurred_at, zone),
         place?.name || t.merchant_raw || t.merchant_key || '',
@@ -75,17 +77,18 @@ export function sheetFile({ header, rows }, month) {
 
 /** One read of the ledger, the places and what comes back; the file for the month asked. */
 export async function monthSheet(userId, { month = null, now = new Date(), deps = {} } = {}) {
-  const read = { listOwnTransactions, listPlaces, userLanguage, personProfileCached, recurringFor: async () => [], ...deps };
+  const read = { listOwnTransactions, listPlaces, userLanguage, personProfileCached, listFacts, recurringFor: async () => [], ...deps };
   const profile = await read.personProfileCached(userId).catch(quietly('sheet/profile', null));
   const zone = profile?.timezone || null;
   const key = monthOf(month, now, zone);
   const since = new Date(`${key}-01T00:00:00Z`); since.setUTCDate(since.getUTCDate() - 1);
-  const [transactions, places, language, recurring] = await Promise.all([
+  const [transactions, places, language, recurring, facts] = await Promise.all([
     read.listOwnTransactions(userId, { since: since.toISOString(), limit: 20000 }),
     read.listPlaces(userId).catch(quietly('sheet/places', [])),
     read.userLanguage(userId).catch(quietly('sheet/language', 'en')),
     read.recurringFor(userId).catch(quietly('sheet/recurring', [])),
+    read.listFacts(userId).catch(quietly('sheet/facts', [])),
   ]);
-  const table = sheetRows(transactions, { month: key, places, recurring, language: language || 'en', zone });
+  const table = sheetRows(transactions, { month: key, places, recurring, facts, language: language || 'en', zone });
   return { month: key, rows: table.rows.length, filename: `twinme-${key}.xlsx`, buffer: sheetFile(table, key) };
 }
