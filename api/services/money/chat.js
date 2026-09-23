@@ -905,6 +905,12 @@ const PHRASES = {
     'The ledger has no total for that; it can only name the parts it holds.': 'El libro no tiene un total para eso; solo puede nombrar las partes que guarda.',
     'In {month}: {parts}.': 'En {month}: {parts}.',
     'Keep {amount} at month end': 'Guardar {amount} a fin de mes',
+    'Ask what today can carry, where the month went, what a place or a kind cost, and what comes back. Tell me who somebody on the statement is, or what a payment was, and the ledger reads with that.': 'Pregunta qu\u00e9 aguanta hoy, ad\u00f3nde fue el mes, cu\u00e1nto cost\u00f3 un sitio o un tipo, y qu\u00e9 vuelve cada mes. Dime qui\u00e9n es alguien del extracto, o qu\u00e9 fue un pago, y el libro lee con eso.',
+    'The biggest payment this month: {name} {amount}, on {day}.': 'El mayor pago de este mes: {name} {amount}, el {day}.',
+    'This month: {spent} spent, {received} came in.': 'Este mes: {spent} gastados, {received} entraron.',
+    '{month} {amount} so far': '{month} {amount} hasta ahora',
+    '{month} {amount}': '{month} {amount}',
+    'The ledger keeps no total across months.': 'El libro no guarda un total entre meses.',
     'Forget: {what}': 'Olvidar: {what}',
     '{amount} kept for the end of the month. Today and the plan move with it.': '{amount} guardados para fin de mes. Hoy y el plan se mueven con ello.',
     'And {names}, which you said comes back, {total} a month.': 'Y {names}, que dijiste que vuelve, {total} al mes.',
@@ -1023,6 +1029,12 @@ const PHRASES = {
     'The ledger has no total for that; it can only name the parts it holds.': 'O livro n\u00e3o tem um total para isso; s\u00f3 pode nomear as partes que guarda.',
     'In {month}: {parts}.': 'Em {month}: {parts}.',
     'Keep {amount} at month end': 'Guardar {amount} no fim do m\u00eas',
+    'Ask what today can carry, where the month went, what a place or a kind cost, and what comes back. Tell me who somebody on the statement is, or what a payment was, and the ledger reads with that.': 'Pergunte quanto o dia aguenta, para onde foi o m\u00eas, quanto custou um lugar ou um tipo, e o que volta todo m\u00eas. Diga quem \u00e9 algu\u00e9m do extrato, ou o que foi um pagamento, e o livro l\u00ea com isso.',
+    'The biggest payment this month: {name} {amount}, on {day}.': 'O maior pagamento deste m\u00eas: {name} {amount}, em {day}.',
+    'This month: {spent} spent, {received} came in.': 'Este m\u00eas: {spent} gastos, {received} entraram.',
+    '{month} {amount} so far': '{month} {amount} at\u00e9 agora',
+    '{month} {amount}': '{month} {amount}',
+    'The ledger keeps no total across months.': 'O livro n\u00e3o guarda um total entre meses.',
     'Forget: {what}': 'Esquecer: {what}',
     '{amount} kept for the end of the month. Today and the plan move with it.': '{amount} guardados para o fim do m\u00eas. Hoje e o plano se movem com isso.',
     'And {names}, which you said comes back, {total} a month.': 'E {names}, que voc\u00ea disse que volta, {total} por m\u00eas.',
@@ -1100,6 +1112,7 @@ export function smalltalkReply(message, language) {
   if (/^(hi|hello|hey|hola|oi|ol[a\u00e1]|ola|bom dia|boa tarde|boa noite|buenos d[i\u00ed]as|buenas|good (morning|afternoon|evening))( there| again)?$/.test(m)) return say(language, 'Hi. Ask me about your money: what today can carry, where the month went, what comes back.');
   if (/^(thanks|thank you|thx|gracias|obrigad[oa]|valeu|muito obrigad[oa]|muchas gracias)( a lot| very much| mesmo)?$/.test(m)) return say(language, 'You are welcome.');
   if (/^(ok|okay|vale|t[a\u00e1] bom|ta bom|beleza|entendido|perfecto|perfeito|got it|sure|alright)$/.test(m)) return say(language, 'All right.');
+  if (/^(help|what can you do|what do you do|what can i ask( you)?|how does this work|ayuda|que puedes hacer|qu\u00e9 puedes hacer|que sabes hacer|ajuda|o que voc[e\u00ea] faz|o que posso perguntar|como funciona)\??$/.test(m)) return say(language, 'Ask what today can carry, where the month went, what a place or a kind cost, and what comes back. Tell me who somebody on the statement is, or what a payment was, and the ledger reads with that.');
   return null;
 }
 
@@ -1109,6 +1122,8 @@ export function shortCircuit(message, ctx) {
   if (small) return { text: small, figures: [], actions: [], receipts: [] };
   const byKind = kindAnswer(message, ctx);
   if (byKind) return byKind;
+  const plainSum = plainSums(message, ctx);
+  if (plainSum) return plainSum;
   if (!isShortAsk(message)) return null;
   if ((/\b(subscri|suscrip|assinatura|recurring|comes? back)/.test(m) || (/\b(every month|cada mes|todo mes|todos os meses)\b/.test(m) && !/\b(software|groceries|food|transport|eating|comida|supermercado|transporte|bares?|restaurantes?|em |en |on |at )\b/.test(m))) && !/\b(cancel|not mine|isn'?t mine|fix|wrong|change|worth|least|most|should|why|which|cheapest|dearest|useless|need)\b/.test(m)) {
     const built = buildFigure({ kind: 'recurring' }, ctx);
@@ -1141,6 +1156,41 @@ export function shortCircuit(message, ctx) {
       ? say(ctx.language, '{here} is at {spent} so far. {before} closed at {closed}.', { here: monthLabel(here.month), spent: amountText(here.spent), before: monthLabel(before.month), closed: amountText(before.spent) })
       : say(ctx.language, '{here} is at {spent} so far.', { here: monthLabel(here.month), spent: amountText(here.spent) });
     return { text: euroGlyphs(text), figures: [built.figure], actions: [], receipts: receiptsFor([built], ctx) };
+  }
+  return null;
+}
+
+/**
+ * Three sums the ledger already holds, said without the model: the biggest payment this
+ * month (a 45 s model turn for one line, 2026-09-23), spent against received this month
+ * (the model answered yes with no figures twice), and the last months side by side ("total
+ * over the last three months", answered as "no total").
+ */
+export function plainSums(message, ctx) {
+  const m = String(message || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  const L = ctx.language;
+  const segs = [...(ctx.segments || [])].sort((a, b) => new Date(b.month) - new Date(a.month));
+  const here = segs[0];
+  if (!here) return null;
+  if (/\b(biggest|largest|most expensive|highest|mayor|m[a]s (caro|grande|alto)|maior|mais car[oa])\b.*\b(payment|purchase|expense|charge|transaction|pago|compra|gasto|pagamento|movimiento)\b/.test(m) && !kindInMessage(message) && !/\b(kind|category|place|tipo|lugar|yesterday|ayer|ontem|week|semana|august|july|agosto|julho|julio|last month|mes pasado|m[e]s passado|subscri|suscri|assina)\b/.test(m) && !askedWindows(message, ctx.now).length) {
+    const rows = (ctx.transactions || []).filter((t) => out(t) && monthKeyOf(t.occurred_at) === monthKeyOf(here.month)).sort((a, b) => abs(b) - abs(a));
+    if (!rows.length) return null;
+    const top = rows[0];
+    const text = say(L, 'The biggest payment this month: {name} {amount}, on {day}.', { name: nameOf(top), amount: amountText(abs(top)), day: dayMonth(top.occurred_at, L) });
+    return { text: euroGlyphs(text), figures: [], actions: [], receipts: receiptsFor([{ rows: rows.slice(0, 3) }], ctx) };
+  }
+  if (/\b(spend(ing)?|gast(o|ando|ei)|llevo)\b.*\b(more|mas|mais)\b.*\b(than|que|do que)\b.*\b(receive|earn|get|make|recibo|gano|ingreso|recebo|ganho|entra)/.test(m) || /\b(receive|earn|recibo|gano|recebo|ganho)\b.*\b(more|less|mas|menos|mais)\b.*\b(than|que)\b.*\b(spend|gasto)/.test(m)) {
+    const text = say(L, 'This month: {spent} spent, {received} came in.', { spent: amountText(here.spent), received: amountText(here.received || 0) });
+    return { text: euroGlyphs(text), figures: [], actions: [], receipts: [] };
+  }
+  const span = m.match(/\b(last|past|ultimos?|ultimas?)\s+(two|three|four|2|3|4|dos|tres|cuatro|dois|tres|quatro)\s+(months?|meses)\b/) || m.match(/\b(two|three|four|2|3|4|dos|tres|cuatro|dois|quatro)\s+(months?|meses)\b.*\b(total|together|juntos|en total|no total|somados?)\b/);
+  if (span) {
+    const n = { two: 2, dos: 2, dois: 2, '2': 2, three: 3, tres: 3, '3': 3, four: 4, cuatro: 4, quatro: 4, '4': 4 }[span[2] || span[1]] || 3;
+    const shown = segs.slice(0, n);
+    if (shown.length < 2) return null;
+    const built = buildFigure({ kind: 'months' }, ctx);
+    const text = `${shown.map((s, i) => say(L, i === 0 ? '{month} {amount} so far' : '{month} {amount}', { month: monthLabel(s.month, L), amount: amountText(s.spent) })).join('; ')}. ${say(L, 'The ledger keeps no total across months.')}`;
+    return { text: euroGlyphs(text), figures: built ? [built.figure] : [], actions: [], receipts: built ? receiptsFor([built], ctx) : [] };
   }
   return null;
 }
@@ -1279,7 +1329,7 @@ export function isStatement(message) {
 export function asksWhereItWent(message) {
   const m = String(message || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
   return /\b(where|what)\b.*\b(money|it|spend|spending|month|euros?|january|february|march|april|may|june|july|august|september|october|november|december|enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|octubre|noviembre|diciembre|janeiro|fevereiro|marco|maio|junho|julho|setembro|outubro|novembro|dezembro)\b.*\b(go|went|gone|goes|on)\b/.test(m)
-    || /\b(categor|kind of place|kinds of place|by type|breakdown|split|en que|en qu\u00e9|donde)/.test(m)
+    || /\b(categor|kind of place|kinds of place|by type|breakdown|split|en que|en qu\u00e9|donde|onde|aonde|summary|resumen|resumo|overview|how am i doing|como estoy|como estou)/.test(m)
     || /\bspen[dt]\b.*\bon\b/.test(m);
 }
 
@@ -1534,8 +1584,8 @@ export async function answer(userId, message, history = [], { now = new Date() }
   const early = smalltalkReply(text, languageOf(text) === 'pt' ? 'pt-BR' : (languageOf(text) || 'en'));
   if (early) {
     const reply = { text: early, figures: [], actions: [], receipts: [] };
-    await saveChatTurn(userId, { role: 'user', text }).catch(quietly('chat/save-user-turn', null));
-    await saveChatTurn(userId, { role: 'twin', text: early, figures: null, actions: null, basis: null, receipts: null }).catch(quietly('chat/save-twin-turn', null));
+    await saveChatTurn(userId, { role: 'user', text }).catch(quietly('chat/smalltalk-user-turn', null));
+    await saveChatTurn(userId, { role: 'twin', text: early, figures: null, actions: null, basis: null, receipts: null }).catch(quietly('chat/smalltalk-twin-turn', null));
     return reply;
   }
   const ctx = await gather(userId, now);
@@ -1547,11 +1597,11 @@ export async function answer(userId, message, history = [], { now = new Date() }
   if (!ctx.transactions.length) return keep({ text: say(ctx.language, EMPTY_LEDGER), figures: [], actions: [setupOffer(text, ctx)].filter(Boolean), receipts: [] });
 
   const quick = shortCircuit(text, ctx);
-  if (quick) return keep(quick);
+  if (quick) return keep({ ...quick, basis: quick.basis || basisOf(quick.text, ctx) });
 
   ctx.asked = askedText(text, history);
   const plain = plainReplyFor(text, ctx, now);
-  if (plain) return keep(plain);
+  if (plain) return keep({ ...plain, basis: plain.basis || basisOf(plain.text, ctx) });
   const hint = LANGUAGE_HINT[languageOf(text)] || '';
   const system = `${RULES}\n\nWhat the ledger knows:\n${contextText(ctx)}${hint ? `\n\n${hint}` : ''}`;
   const turns = (Array.isArray(history) ? history : []).slice(-MAX_HISTORY_TURNS)
@@ -1776,14 +1826,14 @@ export async function answerStream(userId, message, history = [], { now = new Da
   const quick = shortCircuit(asked, ctx);
   if (quick) {
     whole(quick.text);
-    return closeWith(quick);
+    return closeWith({ ...quick, basis: quick.basis || basisOf(quick.text, ctx) });
   }
 
   ctx.asked = askedText(asked, history);
   const plain = plainReplyFor(asked, ctx, now);
   if (plain) {
     whole(plain.text);
-    return closeWith(plain);
+    return closeWith({ ...plain, basis: plain.basis || basisOf(plain.text, ctx) });
   }
   const hint = LANGUAGE_HINT[languageOf(asked)] || '';
   const system = `${RULES}\n\nWhat the ledger knows:\n${contextText(ctx)}${hint ? `\n\n${hint}` : ''}`;

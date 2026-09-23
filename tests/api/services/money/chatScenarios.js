@@ -29,7 +29,7 @@ export const SCENARIOS = [
   { id: 'where-ask', kind: 'ask', message: 'Where did the money go?', route: 'model', figures: { some: ['shares'] }, actions: { none: true }, maxSentences: 4 },
   { id: 'still-ask', kind: 'ask', message: 'What is still to come?', route: 'model', figures: { only: ['recurring', 'band'] }, actions: { none: true }, maxSentences: 4 },
   { id: 'taxis-august', kind: 'ask', message: 'How much did I spend on taxis in August?', route: 'short', figures: { only: ['shares', 'history'] }, actions: { none: true }, mention: [/\d+,\d{2}|nothing|no taxi|cannot tell/i], maxSentences: 4 },
-  { id: 'biggest', kind: 'ask', message: 'What was my biggest payment this month?', route: 'model', figures: { only: [] }, actions: { none: true }, mention: [/\d+,\d{2}/], maxSentences: 3 },
+  { id: 'biggest', kind: 'ask', message: 'What was my biggest payment this month?', route: 'short', figures: { only: [] }, actions: { none: true }, mention: [/\d+,\d{2}/], maxSentences: 3 },
   { id: 'more-than-usual', kind: 'ask', message: 'Am I spending more than usual?', route: 'model', figures: { only: ['months', 'weekdays', 'history', 'band'] }, actions: { none: true }, maxSentences: 4 },
   { id: 'spanish-food', kind: 'ask', message: 'cuanto gaste en comida este mes?', route: 'model', figures: { only: ['shares', 'history'] }, actions: { none: true }, mention: [/\d+,\d{2}|nada|cannot|no /i], maxSentences: 4 },
   { id: 'balance', kind: 'ask', message: 'How much is in my account?', route: 'model', figures: { only: [] }, actions: { none: true }, maxSentences: 3 },

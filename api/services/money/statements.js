@@ -69,17 +69,19 @@ const stripNoise = (s) => String(s || '').replace(/\b(the|my|a|an|o|a|os|as|el|l
  */
 export function incomeStatement(text) {
   const t = norm(text);
-  if (!/\b(coming|comes|come|arrives?|arriving|receive|receiving|get|getting|paid|pays?|send|sends|sending|transfer|income|salary|scholarship|recebo|recebi|vou receber|chega|chegam|entra|entram|me pagam?|me mandan|me manda|me mandam|salario|bolsa|ingreso|cobro|me llega|me llegan|me pagan|me envia|me envian|nomina|beca)\b/.test(t)) return null;
+  if (!/\b(refund(ed|s)?|reimburse[ds]?|devolvi[o\u00f3]|devolveu|reembols\w*|coming|comes|come|arrives?|arriving|receive|receiving|get|getting|paid|pays?|send|sends|sending|transfer|income|salary|scholarship|recebo|recebi|vou receber|chega|chegam|entra|entram|me pagam?|me mandan|me manda|me mandam|salario|bolsa|ingreso|cobro|me llega|me llegan|me pagan|me envia|me envian|nomina|beca)\b/.test(t)) return null;
   if (/\b(spent|spend|gastei|gaste|pay for|cancel|subscri|assin)\b/.test(t)) return null;
   const a = amountIn(t);
   if (!a || !a.amount) return null;
   const family = t.match(/\b(?:my|meus?|minha|mis?)\s+(parents?|father|mother|dad|mum|mom|pais|pai|mae|padres?|madre|papa|mama|boss|company|job|work|employer|empresa|trabalho|trabajo|chefe|jefe|estagio|beca|bolsa)\b/u);
-  const from = family || t.match(/\b(?:from|de|do|da|por parte de|of)\s+(?:the |my |o |a |os |as |el |la |mi |meu |minha |mis )?([\p{L}][\p{L}\p{N} .&'-]{1,40}?)(?=\s+(?:this|next|on|every|each|the|every|tomorrow|today|esse|este|neste|nesse|no|na|em|dia|todo|cada|el|al|mensal|amanha|manana|hoje|hoy|por)\b|[,.;]|$)/u);
+  /* "Zara refunded me 39,95": the source is the word before the verb (2026-09-23). */
+  const refunder = t.match(/^(?:the\s+)?([\p{L}][\p{L}\p{N} .&'-]{1,30}?)\s+(?:refunded|reimbursed|me devolvi[o\u00f3]|me devolveu|me reembols\w*)\b/u);
+  const from = family || refunder || t.match(/\b(?:from|de|do|da|por parte de|of)\s+(?:the |my |o |a |os |as |el |la |mi |meu |minha |mis )?([\p{L}][\p{L}\p{N} .&'-]{1,40}?)(?=\s+(?:this|next|on|every|each|the|every|tomorrow|today|esse|este|neste|nesse|no|na|em|dia|todo|cada|el|al|mensal|amanha|manana|hoje|hoy|por)\b|[,.;]|$)/u);
   let source = from ? stripNoise(from[1]) : null;
   if (source && /^(every|each|this|next|that|todo|toda|cada|este|esse|esta|essa|el|la)\b/.test(source)) source = null;
   if (!source) return null;
   const cadence = cadenceIn(t);
-  const once = !cadence && /\b(this month|this week|tomorrow|today|next week|este mes|esse mes|neste mes|este mes|esta semana|essa semana|amanha|manana|hoje|hoy|proxima semana|semana que vem|once|one-off|so uma vez|solo una vez)\b/.test(t);
+  const once = !cadence && /\b(refund|reimburs|devolv|reembols|this month|this week|tomorrow|today|next week|este mes|esse mes|neste mes|este mes|esta semana|essa semana|amanha|manana|hoje|hoy|proxima semana|semana que vem|once|one-off|so uma vez|solo una vez)\b/.test(t);
   /* "sometimes", "many times", "it depends": money with no rule to it. The ledger keeps the
      words, never a day (the owner, 2026-09-23: "it's not a rule that he will deposit 100 or
      that he will deposit the same day every month"). */

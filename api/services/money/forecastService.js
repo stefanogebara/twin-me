@@ -31,6 +31,9 @@ const log = createLogger('money-forecast');
  *   every fact with the internal ones, and the ledger with its rejected rows. The page and the
  *   chat read each once and hand them to every part (M2-A, 2026-09-22); alone, this reads.
  */
+/** How long a read waits for the scoring reconciliation before reading unscored. */
+const SCORING_DEADLINE_MS = Number(process.env.MONEY_SCORING_DEADLINE_MS || 2500);
+
 export async function forecast(userId, now = new Date(), given = {}) {
   const since = new Date(now.getTime() - 100 * 86400000).toISOString();
   const [rows, rec, facts] = await Promise.all([
@@ -75,7 +78,15 @@ export async function forecast(userId, now = new Date(), given = {}) {
 
   /* What the band has earned from its scored days: one widening in euros per person, from
      calibration.js. A missing table or an empty record is a widening of zero. */
-  const { figures } = await currentFigureScores(userId, { now });
+  /* The reconciliation is bookkeeping the nightly loop also does; a page or a chat turn must
+     not wait on it. It once held every read for 27 s while a database call timed out (the
+     benchmark of 2026-09-23). Past the deadline the band reads with no scored day, carried
+     widening included, and the next read tries again. */
+  const { figures } = await Promise.race([
+    currentFigureScores(userId, { now }),
+    new Promise((resolve) => setTimeout(() => resolve({ figures: [], deadline: true }), SCORING_DEADLINE_MS)),
+  ]).then((r) => { if (r.deadline) quietly('forecast/scoring-deadline', null)(new Error(`scoring did not answer in ${SCORING_DEADLINE_MS} ms`)); return r; })
+    .catch(quietly('forecast/scoring-read', { figures: [] }));
   const figureDays = figures.filter((r) => r.kind === 'day_total');
   const band = calibrate((figureDays || []).filter((r) => r.scored_at));
   /* No scored day means no widening, which after a correction to the ledger is the state for
