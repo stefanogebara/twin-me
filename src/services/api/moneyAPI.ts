@@ -248,6 +248,8 @@ export const moneyAPI = {
    * browser to write its own boundary.
    */
   capabilities: () => moneyFetch('/money/capabilities').then((r) => json<MoneyCapabilities>(r)),
+  /** Removes an account and everything it read; says how many rows went. */
+  removeAccount: (id: string) => moneyFetch(`/money/bank/accounts/${encodeURIComponent(id)}`, { method: 'DELETE' }).then((r) => json<{ id: string; name: string | null; transactions: number; sightings: number; consent_ended: boolean }>(r)),
   statementAccounts: () => moneyFetch('/money/statement/accounts').then((r) => json<MoneyStatementAccount[]>(r)),
   createStatementAccount: (name: string) => moneyFetch('/money/statement/accounts', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name }) }).then((r) => json<MoneyStatementAccount>(r)),
   importStatement: async (file: File, accountId: string) => {

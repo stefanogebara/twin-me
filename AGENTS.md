@@ -17,7 +17,8 @@ to this repository:
   name starts with an underscore. Zero-config had built all 674 files: 264,398 files and
   2.5 GB per build, 19 minutes, $0.18 each, $132 in September. With the server under
   `api/_app/` the same pipeline builds one function of 6,216 files and 59 MB in 23 seconds
-  (measured with `vercel build --prod` locally). Never put a second `.js` directly under
+  (measured with `vercel build --prod` locally; **63 s end to end on Vercel**, measured on the
+  merge of #552). Never put a second `.js` directly under
   `api/`; a new route is a mount in `api/_app/server.js`, reached through the rewrite of
   `/api/*` to `api/index.js`. The legacy `builds` block was tried first and stalled on
   Vercel (15 minutes with no output after Vite); it is not the answer.

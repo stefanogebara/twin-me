@@ -305,6 +305,16 @@ export function useMoneyActions({ t, load, loadCalendar, loadYou, setLedger, set
     } catch { setNote(t('That link could not be read.')); return false; }
     finally { setBusy(null); }
   }
+  /* Remove a bank account and everything it read; the page reloads, and the note says what went. */
+  async function removeAccount(id: string) {
+    setBusy('account'); setNote(null);
+    try {
+      const gone = await moneyAPI.removeAccount(id);
+      await load();
+      setNote(t('{name} removed: {n} payments went with it.', { name: gone.name || t('The account'), n: gone.transactions }));
+    } catch { setNote(t('That account could not be removed. Try again.')); }
+    finally { setBusy(null); }
+  }
   async function removeFeed(id: string) {
     setBusy('feed'); setNote(null);
     try { await moneyAPI.removeCalendarFeed(id); await loadCalendar(); }
@@ -353,7 +363,7 @@ export function useMoneyActions({ t, load, loadCalendar, loadYou, setLedger, set
     setBusy('key'); setNote(null);
     try { setCaptureKey(await moneyAPI.createCaptureKey()); } catch { setNote(t('That key could not be made. Try again.')); } finally { setBusy(null); }
   }
-  return { captureKey, busy, note, connecting, read, bankReady, forget, verdict, connect, connectCalendar, addFeed, removeFeed, pull, placeAs, lookupPlaces, makeKey };
+  return { captureKey, busy, note, connecting, read, bankReady, forget, verdict, connect, connectCalendar, addFeed, removeFeed, removeAccount, pull, placeAs, lookupPlaces, makeKey };
 }
 
 /** The whole page, as one object the views read from. */
