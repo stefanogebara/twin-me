@@ -73,3 +73,38 @@ describe('a stated income said once', async () => {
     expect(evs.map((e) => `${e.source} ${e.amount} ${e.due_on} ${e.basis}`)).toEqual(['Vercel 150 2026-09-21 said, once', 'Parents 1750 2026-10-01 said']);
   });
 });
+
+describe('one sender, two kinds of money (2026-09-23)', () => {
+  /* The father sends 1750 on the first and 100 now and then; the owner named him as family
+     and said "Family, on the 1st, 1750". */
+  const father = [
+    inflow('a1', '2026-06-25', 100, 'Mauad Gebara Christian'), inflow('a2', '2026-07-10', 100, 'Mauad Gebara Christian'),
+    inflow('a3', '2026-07-23', 100, 'Mauad Gebara Christian'), inflow('a4', '2026-07-29', 100, 'Mauad Gebara Christian'),
+    inflow('a5', '2026-08-17', 100, 'Mauad Gebara Christian'), inflow('a6', '2026-08-26', 1750, 'Mauad Gebara Christian'),
+    inflow('a7', '2026-07-01', 1750, 'Mauad Gebara Christian'),
+  ];
+  const facts = [
+    { kind: 'person', subject: 'mauad gebara christian', value: 'family' },
+    { kind: 'income', subject: 'family', subject_label: 'Family', amount: 1750, day: 1 },
+  ];
+  it('the stated income is dated from the arrivals of its own size, and the gifts make no event', () => {
+    const events = incomeEvents({ facts, transactions: father, now: NOW });
+    expect(events).toHaveLength(1);
+    expect(events[0]).toMatchObject({ source: 'Family', amount: 1750, said: true, times: 2 });
+    expect(events[0].basis).toMatch(/^seen 2 times/);
+  });
+  it('a named person who sends now and then never becomes an arrival to count on', () => {
+    const gifts = father.filter((t) => t.amount === 100);
+    const only = [{ kind: 'person', subject: 'mauad gebara christian', value: 'family' }];
+    expect(incomeEvents({ facts: only, transactions: gifts, now: NOW })).toEqual([]);
+    /* And by the bank's short form of the same name. */
+    const short = gifts.map((t) => ({ ...t, merchant_raw: 'Mauad G.', merchant_key: 'mauad g' }));
+    expect(incomeEvents({ facts: only, transactions: short, now: NOW })).toEqual([]);
+  });
+  it('a stranger who lands near the same day less than most of the time has no usual day', () => {
+    const loose = [inflow('l1', '2026-06-02', 300, 'Acme Pay'), inflow('l2', '2026-07-19', 300, 'Acme Pay'), inflow('l3', '2026-08-28', 300, 'Acme Pay')];
+    expect(incomeEvents({ facts: [], transactions: loose, now: NOW })).toEqual([]);
+    const tight = [inflow('t1', '2026-06-02', 300, 'Acme Pay'), inflow('t2', '2026-07-03', 300, 'Acme Pay'), inflow('t3', '2026-08-02', 300, 'Acme Pay')];
+    expect(incomeEvents({ facts: [], transactions: tight, now: NOW })).toHaveLength(1);
+  });
+});

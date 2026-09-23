@@ -14,6 +14,7 @@
  */
 
 import { shortName } from './bizum.js';
+import { personRoles, roleOf } from './spending.js';
 import { dayIn, dayOfMonthIn, partsIn, monthIn } from './zone.js';
 import { money } from './currency.js';
 
@@ -24,6 +25,10 @@ export const MATCH_DAYS = 3;
 export const MIN_ARRIVALS = 2;
 /** A sender nobody mentioned needs this many before it is said back. */
 export const MIN_UNSAID_ARRIVALS = 3;
+/** ...and has to land near its usual day at least this often, or it is not a rhythm. */
+export const MIN_UNSAID_ON_TIME = 0.6;
+/** An arrival counts as the stated income when it is within this share of the stated amount. */
+export const AMOUNT_TOLERANCE = 0.15;
 /** How far back the arrivals are read. */
 export const LOOKBACK_DAYS = 120;
 /** A stated income with no arrivals behind it is believed at this much. */
@@ -60,33 +65,56 @@ export function incomeSeries(transactions = [], { isIncome = null, now = new Dat
   const out = [];
   for (const g of groups.values()) {
     g.arrivals.sort((a, b) => (a.occurred_at < b.occurred_at ? -1 : 1));
-    const daysOfMonth = g.arrivals.map((t) => dayOfMonthIn(t.occurred_at));
-    const typicalDay = Math.round(median(daysOfMonth));
-    const onTime = g.arrivals.filter((t) => Math.abs(dayOfMonthIn(t.occurred_at) - typicalDay) <= MATCH_DAYS).length;
-    const months = new Set(g.arrivals.map((t) => monthIn(t.occurred_at)));
-    out.push({
-      key: g.key,
-      name: shortName(g.name),
-      times: g.arrivals.length,
-      typical_amount: r2(median(g.arrivals.map((t) => Number(t.amount)))),
-      typical_day: typicalDay,
-      on_time: g.arrivals.length ? r2(onTime / g.arrivals.length) : 0,
-      months: months.size,
-      last_seen: g.arrivals[g.arrivals.length - 1].occurred_at,
-      arrivals: g.arrivals,
-    });
+    out.push({ key: g.key, name: shortName(g.name), ...rhythmOf(g.arrivals) });
   }
   return out.sort((a, b) => b.times * b.typical_amount - a.times * a.typical_amount);
 }
 
-/** Whether a series is the thing a stated income describes: by name, or by amount. */
-function matches(fact, series) {
+/** The rhythm of a set of arrivals, sorted: usual day, usual amount, how often on time. */
+function rhythmOf(arrivals) {
+  const sorted = [...arrivals].sort((a, b) => (a.occurred_at < b.occurred_at ? -1 : 1));
+  const daysOfMonth = sorted.map((t) => dayOfMonthIn(t.occurred_at));
+  const typicalDay = Math.round(median(daysOfMonth));
+  const onTime = sorted.filter((t) => Math.abs(dayOfMonthIn(t.occurred_at) - typicalDay) <= MATCH_DAYS).length;
+  return {
+    times: sorted.length,
+    typical_amount: r2(median(sorted.map((t) => Number(t.amount)))),
+    typical_day: typicalDay,
+    on_time: sorted.length ? r2(onTime / sorted.length) : 0,
+    months: new Set(sorted.map((t) => monthIn(t.occurred_at))).size,
+    last_seen: sorted.length ? sorted[sorted.length - 1].occurred_at : null,
+    arrivals: sorted,
+  };
+}
+
+/**
+ * Whether a series is the thing a stated income describes: by name, by amount, or by who
+ * the sender is. "Family, on the 1st" names no sender, and the person who sends it was
+ * named as family (2026-09-23): the role is the match.
+ */
+function matches(fact, series, role = null) {
   const said = `${fact.subject || ''} ${fact.subject_label || ''} ${fact.value || ''}`;
   const saidWords = words(said);
   const nameWords = new Set(words(series.name).concat(words(series.key)));
   if (saidWords.some((w) => nameWords.has(w))) return true;
+  if (role && (KIND_WORDS[role] || []).some((w) => saidWords.includes(w))) return true;
   const amount = Math.abs(Number(fact.amount) || 0);
-  return amount > 0 && Math.abs(series.typical_amount - amount) <= Math.max(5, amount * 0.15);
+  return amount > 0 && Math.abs(series.typical_amount - amount) <= Math.max(5, amount * AMOUNT_TOLERANCE);
+}
+
+/**
+ * The part of a sender's arrivals that is the stated income: the ones near the stated
+ * amount. A father who sends 1750 on the 1st and 100 now and then is one sender and two
+ * kinds of money; the 100s are gifts, and they must not set the day or the amount of the
+ * allowance (the owner, 2026-09-23: "it depends a lot").
+ */
+function statedPart(fact, series) {
+  const amount = Math.abs(Number(fact.amount) || 0);
+  if (!amount) return series;
+  /* Near means the same kind of money, not the same figure: 420 for a stated 350 is the
+     allowance arriving a little larger; 100 for a stated 1750 is something else. */
+  const near = series.arrivals.filter((t) => Number(t.amount) >= amount / 2 && Number(t.amount) <= amount * 2);
+  return near.length ? { ...series, ...rhythmOf(near) } : { ...series, times: 0, arrivals: [] };
 }
 
 /** The next day-of-month occurrence on or after `now`, as an ISO day. */
@@ -110,12 +138,14 @@ function labelOf(fact) {
  */
 export function incomeEvents({ facts = [], transactions = [], isIncome = null, now = new Date(), horizonDays = HORIZON_DAYS } = {}) {
   const series = incomeSeries(transactions, { isIncome, now });
+  const roles = personRoles(facts);
   const claimed = new Set();
   const out = [];
   for (const f of (facts || []).filter((x) => x && x.kind === 'income')) {
-    const s = series.find((x) => !claimed.has(x.key) && matches(f, x)) || null;
+    const whole = series.find((x) => !claimed.has(x.key) && matches(f, x, roleOf(roles, x.key))) || null;
+    if (whole) claimed.add(whole.key);
+    const s = whole ? statedPart(f, whole) : null;
     if (s && s.times >= MIN_ARRIVALS) {
-      claimed.add(s.key);
       const support = Math.min(s.times / 3, 1);
       out.push({
         source: labelOf(f), amount: s.typical_amount, due_on: nextDue(s.typical_day, now), day: s.typical_day,
@@ -123,7 +153,6 @@ export function incomeEvents({ facts = [], transactions = [], isIncome = null, n
         basis: `seen ${s.times} times, usually the ${ordinal(s.typical_day)}`, times: s.times, last_arrived_on: dayOf(s.last_seen), said: true, key: s.key,
       });
     } else {
-      if (s) claimed.add(s.key);
       const amount = Math.abs(Number(f.amount) || 0);
       const day = Number(f.day) || 1;
       if (!amount) continue;
@@ -136,6 +165,11 @@ export function incomeEvents({ facts = [], transactions = [], isIncome = null, n
   }
   for (const s of series) {
     if (claimed.has(s.key) || s.times < MIN_UNSAID_ARRIVALS || s.months < MIN_UNSAID_ARRIVALS) continue;
+    /* Money from a person the owner named (family, a friend) that no stated income claims is
+       a gift or a settlement, not a rhythm to count on; and a sender that lands near its usual
+       day less than most of the time has no usual day (2026-09-23). */
+    if (roleOf(roles, s.key)) continue;
+    if (s.on_time < MIN_UNSAID_ON_TIME) continue;
     out.push({
       source: s.name, amount: s.typical_amount, due_on: nextDue(s.typical_day, now), day: s.typical_day,
       confidence: r2(s.on_time * Math.min(s.times / 3, 1)), basis: `seen ${s.times} times, not said`, times: s.times, last_arrived_on: dayOf(s.last_seen), said: false, key: s.key,
