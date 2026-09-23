@@ -46,11 +46,20 @@ export function cadenceIn(text) {
   if (YEARLY.test(t)) return 'yearly';
   return null;
 }
+/* "on the first of every month", "el primero", "no primeiro": the day said as a word (2026-09-23). */
+const DAY_WORDS = {
+  first: 1, second: 2, third: 3, fourth: 4, fifth: 5, sixth: 6, seventh: 7, eighth: 8, ninth: 9, tenth: 10, eleventh: 11, twelfth: 12, thirteenth: 13, fourteenth: 14, fifteenth: 15, twentieth: 20, 'twenty-first': 21, 'twenty first': 21, 'twenty-fifth': 25, 'twenty fifth': 25, thirtieth: 30,
+  primero: 1, primer: 1, segundo: 2, tercero: 3, tercer: 3, cuarto: 4, quinto: 5, sexto: 6, septimo: 7, octavo: 8, noveno: 9, decimo: 10, quince: 15, veinte: 20,
+  primeiro: 1, terceiro: 3, setimo: 7, oitavo: 8, nono: 9,
+};
+const DAY_WORD_RE = new RegExp(`\\b(?:on the|on|the|el|dia|no dia|el dia|every|cada|todo|todos os|no)\\s+(${Object.keys(DAY_WORDS).sort((a, b) => b.length - a.length).join('|')})\\b`);
 export function dayIn(text) {
   const t = norm(text);
   const m = t.match(DAY_RE);
   const d = m ? Number(m[1]) : null;
-  return d && d >= 1 && d <= 31 ? d : null;
+  if (d && d >= 1 && d <= 31) return d;
+  const w = t.match(DAY_WORD_RE);
+  return w ? DAY_WORDS[w[1]] : null;
 }
 const stripNoise = (s) => String(s || '').replace(/\b(the|my|a|an|o|a|os|as|el|la|los|las|do|da|de|del|meu|minha|mi|mis)\b/gi, ' ').replace(/[^\p{L}\p{N} .&'-]/gu, ' ').replace(/\s+/g, ' ').trim();
 
@@ -60,7 +69,7 @@ const stripNoise = (s) => String(s || '').replace(/\b(the|my|a|an|o|a|os|as|el|l
  */
 export function incomeStatement(text) {
   const t = norm(text);
-  if (!/\b(coming|comes|come|arrives?|arriving|receive|receiving|get|getting|paid|pays?|send|sends|sending|transfer|income|salary|scholarship|recebo|recebi|vou receber|chega|chegam|entra|entram|me pagam?|me manda|me mandam|salario|bolsa|ingreso|cobro|me llega|me llegan|me pagan|me envia|me envian|nomina|beca)\b/.test(t)) return null;
+  if (!/\b(coming|comes|come|arrives?|arriving|receive|receiving|get|getting|paid|pays?|send|sends|sending|transfer|income|salary|scholarship|recebo|recebi|vou receber|chega|chegam|entra|entram|me pagam?|me mandan|me manda|me mandam|salario|bolsa|ingreso|cobro|me llega|me llegan|me pagan|me envia|me envian|nomina|beca)\b/.test(t)) return null;
   if (/\b(spent|spend|gastei|gaste|pay for|cancel|subscri|assin)\b/.test(t)) return null;
   const a = amountIn(t);
   if (!a || !a.amount) return null;

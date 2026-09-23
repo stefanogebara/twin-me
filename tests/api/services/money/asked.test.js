@@ -1,6 +1,6 @@
 /** The stretch of time a question names, in the past: a weekday, a night, a weekend, a date, a range, since a date. */
 import { describe, expect, it } from 'vitest';
-import { askedWindows, askedLines, askedDays } from '../../../../api/services/money/asked.js';
+import { askedAhead, askedWindows, askedLines, askedDays } from '../../../../api/services/money/asked.js';
 
 /* Sunday 2026-09-20 at 12:00 in Madrid (10:00 UTC). */
 const sun = new Date('2026-09-20T10:00:00Z');
@@ -35,6 +35,9 @@ describe('askedWindows', () => {
     expect(askedWindows('o fim de semana anterior', sun)[0].label).toBe('The weekend before last (5 and 6 September)');
     /* midweek, this weekend has not happened: only last weekend is a stretch */
     expect(askedWindows('what did this weekend cost', wed)).toEqual([]);
+    expect(askedAhead('what did this weekend cost', wed)).toEqual(['Asked stretch, This weekend: has not come yet; it starts Saturday 19 September.']);
+    expect(askedAhead('what did this weekend cost', sun)).toEqual([]);
+    expect(askedLines([], 'This weekend versus last weekend?', wed)).toEqual(['Asked stretch, Last weekend (12 and 13 September): nothing spent, not one payment in that stretch.', 'Asked stretch, This weekend: has not come yet; it starts Saturday 19 September.']);
     expect(askedWindows('what did last weekend cost', wed)[0].label).toBe('Last weekend (12 and 13 September)');
   });
   it('reads a date of this month, or the last month when it has not come yet', () => {

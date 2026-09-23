@@ -373,12 +373,14 @@ describe('the streamed answer', () => {
     expect(reply.text).toBe(textOf(events));
   });
 
-  it('keeps an amount the person typed in the question, even when the ledger never computed it', async () => {
-    streamCall.mockImplementation(streamsIn(['{"text":"You subscribed to Netflix at 12,99 EUR a month. ', 'The month will count it.","figures":[],"actions":[]}']));
+  it('keeps an amount the person typed in the question: a statement with its offer is answered without the model, the amount in it', async () => {
+    streamCall.mockClear();
     const { events, onEvent } = recorder();
     const reply = await answerStream('u1', 'I subscribed to Netflix, 12,99 a month on the 15th', [], { now: NOW, onEvent });
-    expect(textOf(events)).toBe('You subscribed to Netflix at 12,99 \u20ac a month. The month will count it.');
+    expect(textOf(events)).toBe('Noted: Expect Netflix: 12,99 \u20ac monthly, the 15th. If that is right, mark it below.');
     expect(reply.text).toBe(textOf(events));
+    expect(reply.actions.map((a) => a.kind)).toEqual(['fact']);
+    expect(streamCall).not.toHaveBeenCalled();
   });
 
   it('a reply that stood only on invented sums says so once', async () => {
