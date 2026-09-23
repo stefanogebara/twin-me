@@ -315,6 +315,51 @@ export function receiptToSighting(receipt, { emailId, from, subject, receivedAt,
  * One received email, end to end. Returns what happened so the route can answer the
  * webhook honestly and quickly; every reason is a word the log can group on.
  */
+/**
+ * Gmail will not forward a single mail to an address until that address confirms: it sends a
+ * confirmation from forwarding-noreply@google.com with a code in the subject and a link in the
+ * body that confirms it in one click. The person set the forwarding to have their bank's alerts
+ * land here; the confirmation lands here too, where they cannot see it. Caught, the code and the
+ * link reach Sources (2026-09-23). Only Google's own sender counts; a spoofed subject does not.
+ * Pure.
+ */
+const FORWARDING_SENDER = /forwarding-noreply@google\.com(?:$|[>\s,;])/i;
+const FORWARDING_LINK = /https:\/\/mail-settings\.google\.com\/mail\/[^\s"'<>)]+/;
+export function forwardingConfirmation({ subject, from, text, html }) {
+  if (!FORWARDING_SENDER.test(String(from || ''))) return null;
+  const s = String(subject || '');
+  const code = (s.match(/\(#(\d{6,12})\)/) || [])[1] || null;
+  const requester = (s.match(/from\s+([^\s<>()]+@[^\s<>()]+)/i) || [])[1] || null;
+  /* The link is an href in the HTML body; stripping the tags would lose it, so both are read. */
+  const link = (String(html || '').match(FORWARDING_LINK) || messageText({ subject, text, html }).match(FORWARDING_LINK) || [])[0] || null;
+  if (!code && !link) return null;
+  return { code, requester, link };
+}
+
+export const FORWARDING_NOTICE_KIND = 'forwarding';
+const FORWARDING_WINDOW_MS = 48 * 60 * 60 * 1000;
+
+export async function saveForwardingRequest(userId, confirmation, { emailId, receivedAt = null } = {}) {
+  if (!userId || !emailId) throw new Error('Forwarding request owner and source id required');
+  const { data, error } = await supabaseAdmin.from('money_notices').upsert({
+    user_id: userId, source_ref: receiptReference(emailId), kind: FORWARDING_NOTICE_KIND,
+    merchant: confirmation.requester || null, amount: null, currency: ledgerCurrency(), due_at: null,
+    evidence: { ...confirmation, received_at: receivedAt },
+  }, { onConflict: 'user_id,source_ref' }).select('id').single();
+  if (error) throw new Error(`Cannot save forwarding request: ${error.message}`);
+  return data;
+}
+
+/** The confirmations of the last two days, newest first; older ones were confirmed or forgotten. */
+export async function listForwardingRequests(userId, { now = new Date() } = {}) {
+  if (!userId) return [];
+  const since = new Date(new Date(now).getTime() - FORWARDING_WINDOW_MS).toISOString();
+  const { data, error } = await supabaseAdmin.from('money_notices').select('merchant, evidence, created_at')
+    .eq('user_id', userId).eq('kind', FORWARDING_NOTICE_KIND).gte('created_at', since).order('created_at', { ascending: false }).limit(5);
+  if (error) throw new Error(`Cannot read forwarding requests: ${error.message}`);
+  return (data || []).map((n) => ({ requester: n.merchant || n.evidence?.requester || null, code: n.evidence?.code || null, link: n.evidence?.link || null, at: n.created_at }));
+}
+
 export async function ingestReceivedEmail(event) {
   const data = event?.data || {};
   const to = Array.isArray(data.to) ? data.to[0] : data.to;
@@ -323,6 +368,12 @@ export async function ingestReceivedEmail(event) {
   const id = data.email_id || data.id;
   if (!id) return { outcome: 'no_id' };
   const message = await fetchReceivedEmail(id);
+  const forwarding = forwardingConfirmation(message);
+  if (forwarding) {
+    await saveForwardingRequest(userId, forwarding, { emailId: id, receivedAt: message.created_at });
+    log.info('forwarding confirmation kept', { userId, requester: forwarding.requester || null });
+    return { outcome: 'forwarding_request', userId };
+  }
   const alert = bankAlertSighting(message, { emailId: id, receivedAt: message.created_at });
   if (alert) {
     const result = await ingestSighting(userId, alert);

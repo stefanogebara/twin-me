@@ -4,7 +4,7 @@
  */
 import { describe, it, expect } from 'vitest';
 import crypto from 'node:crypto';
-import { verifySvix, gateReceipt, amountsIn, messageText, receiptToSighting, bankAlertSighting } from '../../../../api/services/money/inbox.js';
+import { verifySvix, gateReceipt, amountsIn, messageText, receiptToSighting, bankAlertSighting, forwardingConfirmation } from '../../../../api/services/money/inbox.js';
 
 describe('verifySvix', () => {
   const secret = `whsec_${Buffer.from('a-test-secret-of-some-length-xx').toString('base64')}`;
@@ -153,5 +153,28 @@ describe('the return window rides on the receipt', () => {
     expect(row.raw_json).toMatchObject({ return_until: '2026-10-10', return_days: 30 });
     const bare = receiptToSighting(receipt, { emailId: 'e1', from: 'noreply@zara.com', subject: 'Your order', receivedAt: '2026-09-10T10:05:00.000Z' });
     expect(bare.raw_json.return_until).toBeUndefined();
+  });
+});
+
+describe('forwardingConfirmation', () => {
+  const gmail = {
+    from: 'Gmail Team <forwarding-noreply@google.com>',
+    subject: '(#382915604) Gmail Forwarding Confirmation - Receive Mail from stefano@gmail.com',
+    text: null,
+    html: '<p>stefano@gmail.com has requested to automatically forward mail to your email address u-abc@in.twinme.me.</p><p>Confirmation code: 382915604</p><p>To allow it, click <a href="https://mail-settings.google.com/mail/vf-%5BANGjdJ9x%5D-Q7w?x=1">this link</a>.</p>',
+  };
+  it('reads the code from the subject, the requester, and the link from the HTML the tags would have hidden', () => {
+    expect(forwardingConfirmation(gmail)).toEqual({ code: '382915604', requester: 'stefano@gmail.com', link: 'https://mail-settings.google.com/mail/vf-%5BANGjdJ9x%5D-Q7w?x=1' });
+  });
+  it('reads a plain-text body too', () => {
+    const plain = forwardingConfirmation({ ...gmail, html: null, text: 'Confirmation code: 382915604\nhttps://mail-settings.google.com/mail/vf-abc' });
+    expect(plain.link).toBe('https://mail-settings.google.com/mail/vf-abc');
+  });
+  it('trusts only Google\'s own sender', () => {
+    expect(forwardingConfirmation({ ...gmail, from: 'forwarding-noreply@google.com.evil.example' })).toBeNull();
+    expect(forwardingConfirmation({ ...gmail, from: 'alertas@santander.es' })).toBeNull();
+  });
+  it('is not a receipt and not a bank alert', () => {
+    expect(bankAlertSighting(gmail, { emailId: 'e1', receivedAt: '2026-09-23T10:00:00Z' })).toBeNull();
   });
 });
