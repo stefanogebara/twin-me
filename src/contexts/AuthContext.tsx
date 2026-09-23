@@ -55,14 +55,6 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 // cookie exists (e.g. user cleared cookies but auth_user lingered in localStorage).
 let refreshDisabledForSession = false;
 
-// audit-2026-07-03: new-user-check used to fire on EVERY hard page load and
-// swallow failures with catch(()=>{}). Once the server says "not new" we cache
-// that in sessionStorage (cleared by signOut's sessionStorage.clear()) and skip
-// the request for the rest of the tab session. isNew=true is deliberately NOT
-// cached: a stale true would re-gate users into onboarding after they complete
-// it, so new users re-check each load until the server flips to false.
-const NEW_USER_CHECK_DONE_KEY = 'twinme_new_user_check_done_v1';
-
 // In-flight de-duplication for /auth/refresh — see singleFlight() and Bug C1
 // notes in AuthProvider.refreshAccessToken below.
 
@@ -269,35 +261,8 @@ setUser(null);
         if (createdAt) {
           localStorage.setItem('twinme_account_created', createdAt);
         }
-        // Non-blocking: check if new user needs onboarding — once per tab
-        // session (see NEW_USER_CHECK_DONE_KEY above for cache semantics).
-        let newUserCheckDone = false;
-        try { newUserCheckDone = sessionStorage.getItem(NEW_USER_CHECK_DONE_KEY) === '1'; } catch { /* storage unavailable — just re-check */ }
-        if (!newUserCheckDone) {
-          fetch(`${API_URL}/onboarding/new-user-check`, {
-            headers: { 'Authorization': `Bearer ${tokenToVerify}` }
-          })
-            .then(r => r.ok ? r.json() : Promise.reject(new Error(`new-user-check ${r.status}`)))
-            .then(data => {
-              // Rehydrate the twin's name from the server so it survives a
-              // new device / cleared storage. Written at the hatching moment
-              // (2026-08-25); the chat empty state reads it locally.
-              if (typeof data?.twinName === 'string' && data.twinName.trim()) {
-                try { localStorage.setItem('twinme_twin_name', data.twinName.trim()); } catch { /* non-fatal */ }
-              }
-              if (data?.isNew) {
-                setNeedsOnboarding(true);
-              } else {
-                try { sessionStorage.setItem(NEW_USER_CHECK_DONE_KEY, '1'); } catch { /* non-fatal */ }
-              }
-            })
-            .catch((err) => {
-              // Safe default: needsOnboarding stays false so a transient
-              // failure never locks the app behind the onboarding gate.
-              // Not cached — re-checked on the next load.
-              console.warn('[auth] new-user-check failed; treating as existing user for this load', err);
-            });
-        }
+        /* The twin's new-user check is parked (410 since D20); the money product carries its
+           own onboarding (MoneyOnboarding), so nothing is asked here any more (2026-09-23). */
         // Non-blocking: sync browser timezone to backend — ONLY when it
         // changed. audit-2026-07-03: this used to PATCH unconditionally on
         // every hard page load (1 DB write/load/user). shouldSyncTimezone

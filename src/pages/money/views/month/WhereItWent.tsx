@@ -6,7 +6,7 @@
 
 import { euro, moneyAPI } from '../../../../services/api/moneyAPI';
 import { KindTile } from '../../Carved';
-import { cap } from '../../words';
+import { cap, merchantName } from '../../words';
 import type { MoneyAccount } from '../../useMoneyAccount';
 
 export default function WhereItWent({ m }: { m: MoneyAccount }) {
@@ -34,7 +34,7 @@ export default function WhereItWent({ m }: { m: MoneyAccount }) {
                       <KindTile kind={g.known ? g.category : null} label={g.category} />
                       <span className="mv-item-text">
                         <span className="mv-item-title">{cap(t(g.category))}</span>
-                        <span className="mv-item-sub">{g.share}%{g.merchants.length ? `, ${g.merchants.map((m) => m.name).slice(0, 3).join(', ')}` : ''}</span>
+                        <span className="mv-item-sub">{g.share}%{g.merchants.length ? `, ${g.merchants.map((m) => merchantName(m.name, t)).slice(0, 3).join(', ')}` : ''}</span>
                         {/* Two pixels of ink for the share: the number above it, drawn. */}
                         <span className="mv-share" aria-hidden="true"><i style={{ width: `${Math.max(0, Math.min(100, Number(g.share) || 0))}%` }} /></span>
                       </span>
@@ -47,7 +47,7 @@ export default function WhereItWent({ m }: { m: MoneyAccount }) {
                         {g.merchants.filter((m) => m.merchant_key && m.merchant_key !== 'unknown').map((m) => (
                           <li key={m.merchant_key || m.name} className="mv-item mv-item--sub">
                             <span className="mv-item-text">
-                              <span className="mv-item-title">{m.name}</span>
+                              <span className="mv-item-title">{merchantName(m.name, t)}</span>
                               <span className="mv-item-sub">{euro(m.spent)}</span>
                             </span>
                             <span className="mv-item-end">

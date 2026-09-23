@@ -588,8 +588,10 @@ function pairing(transactions) {
   const top = [...pairs.values()].sort((a, b) => b.dates.size - a.dates.size)[0];
   if (!top || top.dates.size < MIN_PAIRINGS) return null;
   const gapMinutes = Math.round(median(top.gaps));
-  const firstName = top.first.merchant_raw || top.first.merchant_key;
-  const secondName = top.second.merchant_raw || top.second.merchant_key;
+  /* 'unknown' is the ledger's key for a payment the bank did not name; the twin should not call a shop that. */
+  const nameOf = (x) => x.merchant_raw || (x.merchant_key !== 'unknown' ? x.merchant_key : 'a payment without a name');
+  const firstName = nameOf(top.first);
+  const secondName = nameOf(top.second);
   return {
     kind: 'pairing',
     month: null,

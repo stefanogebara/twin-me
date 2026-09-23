@@ -378,13 +378,13 @@ export function useMoneyAccount(view: MoneyView, userId: string | null) {
   /* What the pending alerts add up to, signed: the bank's booked figure minus these is about
      what is really left, and the bank does not say it. */
   /* "Booked to yesterday" on a working day is the bank's normal lag, not a stale read: today's
-     card payments are here from the alerts and book tomorrow. Said as that. */
+     card payments are here from the alerts and will book tomorrow. Said as that. */
   const bookedDay = bookedTo ? shortDay(bookedTo, locale) : null;
   const bookedIsYesterday = bookedTo ? new Date(bookedTo).toDateString() === new Date(Date.now() - 86400000).toDateString() : false;
   const bookedLine = bookedTo
     ? bookedIsYesterday
       ? since
-        ? t(since === 1 ? "Booked to yesterday; today's {n} payment is here from the alerts and book tomorrow." : "Booked to yesterday; today's {n} payments are here from the alerts and book tomorrow.", { n: since })
+        ? t(since === 1 ? "Booked to yesterday; today's {n} payment is here from the alerts and will book tomorrow." : "Booked to yesterday; today's {n} payments are here from the alerts and will book tomorrow.", { n: since })
         : t('Booked to yesterday; nothing yet today.')
       : since
         ? t(since === 1 ? 'Booked to {day}, {n} alert since. Cards post on working days.' : 'Booked to {day}, {n} alerts since. Cards post on working days.', { day: bookedDay as string, n: since })
