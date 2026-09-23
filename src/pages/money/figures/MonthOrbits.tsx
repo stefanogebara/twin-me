@@ -17,6 +17,7 @@ import { angleOf, keyFor, kindsByMerchant, kindsOf, markRadius, ringKeyOf, rings
 import { GROUND_BY_KIND } from '../carvedKinds';
 import { euro, type MoneyCategoryGroup, type MoneyRecurring, type MoneyTransaction } from '../../../services/api/moneyAPI';
 import { useLocale, useT } from '@/lib/i18n';
+import { dayPartsIn } from '../readingHelpers';
 
 type Mark = {
   ring: Ring; day: number; amount: number; ahead: boolean;
@@ -31,10 +32,10 @@ const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
 type Props = {
   groups: MoneyCategoryGroup[]; rows: MoneyTransaction[]; recurring: MoneyRecurring[];
-  today: number; daysInMonth: number; monthKey: string; label: string;
+  today: number; daysInMonth: number; monthKey: string; label: string; zone?: string | null;
 };
 
-export default function MonthOrbits({ groups, rows, recurring, today, daysInMonth, monthKey, label }: Props) {
+export default function MonthOrbits({ groups, rows, recurring, today, daysInMonth, monthKey, label, zone = null }: Props) {
   const t = useT();
   const locale = useLocale();
   const wrap = useRef<HTMLElement | null>(null);
@@ -81,8 +82,9 @@ export default function MonthOrbits({ groups, rows, recurring, today, daysInMont
     for (const r of out) {
       const ring = ringOf.get(ringKeyOf(r, kinds, byMerchant));
       if (!ring) continue;
-      const when = new Date(r.occurred_at);
-      marks.push({ ring, day: when.getUTCDate() + when.getUTCHours() / 24 - 0.5, amount: Math.abs(Number(r.amount)), ahead: false, row: r, due: null });
+      const when = dayPartsIn(r.occurred_at, zone);
+      if (!when) continue;
+      marks.push({ ring, day: when.day + when.hour / 24 - 0.5, amount: Math.abs(Number(r.amount)), ahead: false, row: r, due: null });
     }
     /* What has not been charged yet, hollow, where it will land. */
     const monthEnd = `${monthKey}-${String(daysInMonth).padStart(2, '0')}`;

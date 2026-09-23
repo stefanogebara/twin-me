@@ -10,7 +10,7 @@ vi.mock('../../../../api/services/money/allowanceService.js', () => ({ todayAllo
 vi.mock('../../../../api/services/money/transactionRepository.js', async (importOriginal) => ({ ...(await importOriginal()), listTransactions: f.ledger }));
 vi.mock('../../../../api/services/money/factsRepository.js', async (importOriginal) => ({ ...(await importOriginal()), listFacts: f.facts }));
 vi.mock('../../../../api/services/money/seen.js', () => ({ seenBy: f.seen, sourceCounts: f.sources }));
-vi.mock('../../../../api/services/money/store.js', () => ({ refreshRecurring: f.recurring, listBankAccounts: f.accounts, reconnectByAccount: f.reconnect, listReadings: f.readings, categorySpend: f.categories, subscriptionUsage: f.usage }));
+vi.mock('../../../../api/services/money/store.js', () => ({ inPersonZone: (id, fn) => fn(), personProfileCached: async () => ({ timezone: 'Europe/Madrid', country: 'ES', currency: 'EUR', language: null }),  refreshRecurring: f.recurring, listBankAccounts: f.accounts, reconnectByAccount: f.reconnect, listReadings: f.readings, categorySpend: f.categories, subscriptionUsage: f.usage }));
 vi.mock('../../../../api/services/money/instruments.js', () => ({ accountsWithCards: f.cards }));
 vi.mock('../../../../api/services/money/betaCapabilities.js', () => ({ moneyCapabilities: () => ({ bank: true, capture: false }) }));
 vi.mock('../../../../api/services/money/inbox.js', () => ({ inboxAddress: f.inbox, inboxDomain: () => 'in.twinme.me', isInboxConfigured: () => true }));
@@ -41,7 +41,7 @@ describe('readPage', () => {
     const now = new Date('2026-09-19T10:00:00Z');
     const { data, failed } = await readPage(owner, { view: 'today', now });
     expect(failed).toEqual([]);
-    expect(Object.keys(data).sort()).toEqual(['accounts', 'capabilities', 'categories', 'facts', 'forecast', 'inbox', 'ledger', 'months', 'readings', 'recurring', 'seen', 'sources', 'today', 'usage']);
+    expect(Object.keys(data).sort()).toEqual(['accounts', 'capabilities', 'categories', 'facts', 'forecast', 'inbox', 'ledger', 'months', 'profile', 'readings', 'recurring', 'seen', 'sources', 'today', 'usage']);
     /* One read of each table, with everything: the internal facts and the rejected rows. */
     expect(f.ledger).toHaveBeenCalledTimes(1);
     expect(f.ledger).toHaveBeenCalledWith(owner, { limit: 20000, includeRejected: true });

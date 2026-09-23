@@ -31,7 +31,7 @@ import { readUsage, unmeasurable, platformForMerchant } from './usage.js';
 import { learnMerchants, predictNext, learnPatterns, describeForTwin, TWIN_PREDICTION_CONFIDENCE } from './brain.js';
 import { openingQuestions, followUpQuestions, ledgerQuestions, checkCommitment, describeContext, FACT_KINDS, RENT_SPLIT_FLOOR } from './context.js';
 import { calendarForecast, calendarFromFacts } from './calendar.js';
-import { dayIn, dayOfMonthIn } from './zone.js';
+import { withZone, dayIn, dayOfMonthIn } from './zone.js';
 
 import { listEuroTransactions, selectTransactions } from './transactionRepository.js';
 export { listTransactions, transactionPage } from './transactionRepository.js';
@@ -1162,6 +1162,28 @@ export async function listChatTurns(userId, { limit = 30 } = {}) {
  * either falls back to the deployment's values, said in `source`; the lookups it feeds are
  * enrichment, never the ledger itself.
  */
+const PROFILE_TTL_MS = 5 * 60 * 1000;
+const profiles = new Map();
+/** The profile, kept five minutes: it is read on every request for the person's zone. */
+export async function personProfileCached(userId, now = Date.now()) {
+  const hit = profiles.get(userId);
+  if (hit && hit.until > now) return hit.profile;
+  const profile = await personProfile(userId);
+  profiles.set(userId, { profile, until: now + PROFILE_TTL_MS });
+  return profile;
+}
+/** Forget a cached profile: after an account is saved or the row changes. */
+export function forgetProfile(userId) { profiles.delete(userId); }
+/**
+ * Run one person's work in their own zone (zone.js withZone): the money router does this
+ * per request, the crons per person, the WhatsApp inbound per message. A profile that
+ * cannot be read leaves the deployment's zone standing.
+ */
+export async function inPersonZone(userId, fn) {
+  const profile = await personProfileCached(userId).catch((error) => { log.warn(`profile not read for zone: ${error.message}`); return null; });
+  return withZone(profile?.timezone, fn);
+}
+
 export async function personProfile(userId) {
   const [{ data: user }, accounts] = await Promise.all([
     supabaseAdmin.from('users').select('timezone, preferred_language').eq('id', userId).maybeSingle(),

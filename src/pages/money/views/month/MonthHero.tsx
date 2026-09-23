@@ -12,7 +12,7 @@ import { ordinalDay, monthName } from '../../words';
 import type { MoneyAccount } from '../../useMoneyAccount';
 
 export default function MonthHero({ m }: { m: MoneyAccount }) {
-  const { t, locale, forecast, today, ledger, months, categories, recurring, loaded, monthKey, monthRows, incomeEdge, todayDay, pairMax, last, monthLabel } = m;
+  const { t, locale, forecast, today, ledger, months, categories, recurring, loaded, monthKey, monthRows, incomeEdge, todayDay, pairMax, last, monthLabel, zone } = m;
   return (
           <section className="mv-hero mv-hero--orb" id="month-title">
             <p className="mv-eyebrow">{t('Month')}</p>
@@ -28,7 +28,8 @@ export default function MonthHero({ m }: { m: MoneyAccount }) {
                   groups={categories.groups}
                   rows={monthRows}
                   recurring={recurring}
-                  today={new Date().getDate()}
+                  today={todayDay}
+                  zone={zone}
                   daysInMonth={last}
                   monthKey={key}
                   label={t('{month} as orbits: a ring per kind of place, a mark per payment', { month: monthLabel })}

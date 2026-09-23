@@ -102,7 +102,11 @@ Rules that hold everywhere in money:
   since 2026-09-23): country from the IBANs of their accounts, currency from the accounts,
   timezone and language from their row; the deployment values are the fallback and every
   field says its source. Threaded into the place and home lookups, the merchant judge and
-  the bank routes; timezone and currency call sites still read the one deployment value (tracker).
+  the bank routes. **The timezone follows the person too** (2026-09-23): every `zone.js` helper
+  takes a zone and otherwise reads the request's, set by the money router's middleware, the
+  crons' per-person loop and the WhatsApp inbound (`inPersonZone`, `withZone`); the page reads
+  its days in the zone the payload carries (`profile.timezone`). Currency still reads the one
+  deployment value (tracker, M3-7 stage three).
 
 Key money files (`api/services/money/`): `ledger.js` (reconcile), `ingestion.js`
 (atomic plan/commit), `store.js` (persistence, being split), `projection.js`,

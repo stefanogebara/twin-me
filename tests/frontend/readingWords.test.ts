@@ -9,6 +9,7 @@
 import { describe, it, expect, beforeAll } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { readingWords, weekdayName, monthName, listOf, ordinal, allowanceWords } from '../../src/pages/money/readingWords';
+import { dayPartsIn, localDay } from '../../src/pages/money/readingHelpers';
 import { translate, ensureDict } from '../../src/lib/i18n';
 
 /* The dictionaries arrive on demand since 2026-09-19; the tests ask for both first. */
@@ -269,5 +270,17 @@ describe('the words under it', () => {
     expect(ordinal(en, 22)).toBe('22nd');
     expect(ordinal(en, 11)).toBe('11th');
     expect(ordinal(es, 3)).toBe('3');
+  });
+});
+
+describe("the page's own day", () => {
+  it('is read in the person\'s zone, and in the browser\'s when the page has not heard where they are', () => {
+    const at = '2026-09-23T23:30:00Z';
+    expect(dayPartsIn(at, 'America/Sao_Paulo')).toEqual({ day: 23, hour: 20 });
+    expect(dayPartsIn(at, 'Europe/Madrid')).toEqual({ day: 24, hour: 1 });
+    expect(dayPartsIn(at, 'Mars/Olympus')).not.toBeNull();
+    expect(dayPartsIn('nonsense', 'Europe/Madrid')).toBeNull();
+    expect(localDay(at, 'America/Sao_Paulo')).toBe('2026-09-23');
+    expect(localDay(at, 'Europe/Madrid')).toBe('2026-09-24');
   });
 });
