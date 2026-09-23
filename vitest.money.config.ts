@@ -13,9 +13,21 @@
  * arrays, so a narrowed `include` merged with the base one ran the whole suite (2026-09-19).
  */
 import { defineConfig } from 'vitest/config';
+import { readdirSync } from 'node:fs';
+import { join } from 'node:path';
 import base from './vitest.config';
 
 const baseTest = (base as { test?: Record<string, unknown> }).test || {};
+
+/** Every money service file and the money routes, as explicit paths. */
+function moneyApiFiles() {
+  const root = new URL('.', import.meta.url).pathname;
+  const services = readdirSync(join(root, 'api/_app/services/money'), { recursive: true, encoding: 'utf8' })
+    .filter((f) => f.endsWith('.js')).map((f) => `api/_app/services/money/${f}`);
+  const routes = readdirSync(join(root, 'api/_app/routes'), { encoding: 'utf8' })
+    .filter((f) => f === 'money.js' || /^cron-money-.*\.js$/.test(f)).map((f) => `api/_app/routes/${f}`);
+  return [...services, ...routes];
+}
 
 export default defineConfig({
   ...(base as object),
@@ -32,7 +44,9 @@ export default defineConfig({
     coverage: {
       provider: 'v8',
       reporter: ['text-summary', 'json-summary'],
-      include: ['api/services/money/**/*.js', 'api/routes/money.js', 'api/routes/cron-money-*.js', 'src/pages/money/**/*.{ts,tsx}'],
+      /* The API files by name, not by glob: on CI the glob under api/_app matched nothing (the
+         underscore folder read as hidden there, 2026-09-24) and the floor measured the pages alone. */
+      include: [...moneyApiFiles(), 'src/pages/money/**/*.{ts,tsx}'],
       exclude: ['**/node_modules/**', '**/*.d.ts'],
       reportsDirectory: 'coverage/money',
       /* The floor: measured 2026-09-19 over 67 files and 815 tests -- lines 65.19%, functions
