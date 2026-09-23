@@ -4,7 +4,7 @@
  * connection, never another user's, never another platform's.
  */
 import { describe, it, expect } from 'vitest';
-import { selectConnectionsToPrune } from '../../../api/services/nangoService.js';
+import { selectConnectionsToPrune } from '../../../api/_app/services/nangoService.js';
 
 const conns = [
   { connection_id: 'keep-1', provider_config_key: 'whoop', end_user: { id: 'userA' } },   // the new one → keep

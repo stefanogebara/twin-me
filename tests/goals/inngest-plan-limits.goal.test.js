@@ -18,7 +18,7 @@ import { readFileSync, readdirSync } from 'node:fs';
 import { resolve, join } from 'node:path';
 
 const PLAN_CONCURRENCY_CAP = 5;
-const FUNCTIONS_DIR = resolve(process.cwd(), 'api/inngest/functions');
+const FUNCTIONS_DIR = resolve(process.cwd(), 'api/_app/inngest/functions');
 
 describe('goal: Inngest functions within plan limits', () => {
   it(`no function declares a concurrency limit above ${PLAN_CONCURRENCY_CAP}`, () => {

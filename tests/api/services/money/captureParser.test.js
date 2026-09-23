@@ -2,7 +2,7 @@
  * captureParser: a Santander España or Bizum push notification becomes a sighting.
  */
 import { describe, it, expect } from 'vitest';
-import { parseCapture, parseEuroAmount, merchantKey, captureFromBody } from '../../../../api/services/money/captureParser.js';
+import { parseCapture, parseEuroAmount, merchantKey, captureFromBody } from '../../../../api/_app/services/money/captureParser.js';
 
 describe('parseEuroAmount reads Spanish and machine formats', () => {
   it.each([
@@ -67,12 +67,12 @@ describe('parseCapture: the floor and the ceiling', () => {
 
 describe('parseStructured: the iOS Shortcut Transaction automation', () => {
   it('reads merchant, amount with the euro sign, card and date', async () => {
-    const { parseStructured } = await import('../../../../api/services/money/captureParser.js');
+    const { parseStructured } = await import('../../../../api/_app/services/money/captureParser.js');
     const s = parseStructured({ merchant: 'MERCADONA', amount: '12,50 €', card: 'Santander Débito ···· 1234', date: '2026-09-07T19:41:00Z' });
     expect(s).toMatchObject({ source: 'phone', amount: 12.5, currency: 'EUR', direction: 'out', channel: 'card', merchant_key: 'mercadona', card_last4: '1234', occurred_at: '2026-09-07T19:41:00.000Z', parse_confidence: 0.9 });
   });
   it('accepts a bare number and rejects nothing', async () => {
-    const { parseStructured } = await import('../../../../api/services/money/captureParser.js');
+    const { parseStructured } = await import('../../../../api/_app/services/money/captureParser.js');
     expect(parseStructured({ amount: 3.2 })?.amount).toBe(3.2);
     expect(parseStructured({ amount: 'free' })).toBeNull();
     expect(parseStructured({})).toBeNull();

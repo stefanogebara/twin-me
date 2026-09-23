@@ -9,17 +9,17 @@ import request from 'supertest';
 
 const owner = '00000000-0000-4000-8000-000000000001';
 vi.mock('express-rate-limit', () => ({ default: () => (req, res, next) => next() }));
-vi.mock('../../../api/middleware/auth.js', () => ({ authenticateUser: (req, _res, next) => { req.user = { id: owner }; next(); }, authenticateToken: (req, _res, next) => { req.user = { id: owner }; next(); } }));
-vi.mock('../../../api/services/logger.js', () => ({ createLogger: () => ({ warn() {}, info() {}, error() {}, debug() {} }) }));
+vi.mock('../../../api/_app/middleware/auth.js', () => ({ authenticateUser: (req, _res, next) => { req.user = { id: owner }; next(); }, authenticateToken: (req, _res, next) => { req.user = { id: owner }; next(); } }));
+vi.mock('../../../api/_app/services/logger.js', () => ({ createLogger: () => ({ warn() {}, info() {}, error() {}, debug() {} }) }));
 const f = vi.hoisted(() => ({ setFeatureFlag: vi.fn(), getFeatureFlags: vi.fn(), validateInviteCode: vi.fn(), addToWaitlist: vi.fn() }));
-vi.mock('../../../api/services/featureFlagsService.js', () => ({ getFeatureFlags: f.getFeatureFlags, setFeatureFlag: f.setFeatureFlag }));
-vi.mock('../../../api/services/betaInviteService.js', () => ({ validateInviteCode: f.validateInviteCode, addToWaitlist: f.addToWaitlist }));
-vi.mock('../../../api/services/database.js', () => ({ supabaseAdmin: { from: () => ({ update: () => ({ eq: async () => ({ error: null }) }), select: () => ({ eq: () => ({ maybeSingle: async () => ({ data: null }) }) }) }) } }));
-vi.mock('../../../api/services/soulSignatureService.js', () => ({ getAllSoulSignatures: async () => [] }));
+vi.mock('../../../api/_app/services/featureFlagsService.js', () => ({ getFeatureFlags: f.getFeatureFlags, setFeatureFlag: f.setFeatureFlag }));
+vi.mock('../../../api/_app/services/betaInviteService.js', () => ({ validateInviteCode: f.validateInviteCode, addToWaitlist: f.addToWaitlist }));
+vi.mock('../../../api/_app/services/database.js', () => ({ supabaseAdmin: { from: () => ({ update: () => ({ eq: async () => ({ error: null }) }), select: () => ({ eq: () => ({ maybeSingle: async () => ({ data: null }) }) }) }) } }));
+vi.mock('../../../api/_app/services/soulSignatureService.js', () => ({ getAllSoulSignatures: async () => [] }));
 
-const { default: flags } = await import('../../../api/routes/feature-flags.js');
-const { default: betaPublic } = await import('../../../api/routes/beta-public.js');
-const { default: account } = await import('../../../api/routes/account.js');
+const { default: flags } = await import('../../../api/_app/routes/feature-flags.js');
+const { default: betaPublic } = await import('../../../api/_app/routes/beta-public.js');
+const { default: account } = await import('../../../api/_app/routes/account.js');
 const app = express(); app.use(express.json()); app.use('/flags', flags); app.use('/beta', betaPublic); app.use('/account', account);
 
 describe('a bad body is a 400 that names the field', () => {

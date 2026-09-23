@@ -9,8 +9,8 @@
  * Does NOT send WhatsApp. Just proves context + LLM round-trip work.
  */
 import 'dotenv/config';
-import { buildPurchaseContext } from '../api/services/purchaseContextBuilder.js';
-import { generatePurchaseReflection } from '../api/services/purchaseReflection.js';
+import { buildPurchaseContext } from '../api/_app/services/purchaseContextBuilder.js';
+import { generatePurchaseReflection } from '../api/_app/services/purchaseReflection.js';
 
 const STEFANO = '167c27b5-a40b-49fb-8d00-deb1b1c57f4d';
 const DEFAULT_MSG = 'vou comprar um iFood de R$60';

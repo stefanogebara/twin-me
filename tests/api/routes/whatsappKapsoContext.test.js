@@ -12,12 +12,12 @@ process.env.NODE_ENV = 'test';
 process.env.KAPSO_WEBHOOK_SECRET = 'test-webhook-secret';
 
 const processInboundWhatsApp = vi.fn().mockResolvedValue({ handled: true });
-vi.mock('../../../api/services/whatsappInboundPipeline.js', () => ({ processInboundWhatsApp: (...a) => processInboundWhatsApp(...a) }));
-vi.mock('../../../api/services/whatsappService.js', () => ({ sendWhatsAppMessage: vi.fn().mockResolvedValue({ success: true }) }));
-vi.mock('../../../api/services/connectLinkService.js', () => ({ connectAliasFromReplyId: () => null }));
-vi.mock('../../../api/services/logger.js', () => ({ createLogger: () => ({ info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() }) }));
+vi.mock('../../../api/_app/services/whatsappInboundPipeline.js', () => ({ processInboundWhatsApp: (...a) => processInboundWhatsApp(...a) }));
+vi.mock('../../../api/_app/services/whatsappService.js', () => ({ sendWhatsAppMessage: vi.fn().mockResolvedValue({ success: true }) }));
+vi.mock('../../../api/_app/services/connectLinkService.js', () => ({ connectAliasFromReplyId: () => null }));
+vi.mock('../../../api/_app/services/logger.js', () => ({ createLogger: () => ({ info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() }) }));
 
-const webhookRoutes = (await import('../../../api/routes/whatsapp-kapso-webhook.js')).default;
+const webhookRoutes = (await import('../../../api/_app/routes/whatsapp-kapso-webhook.js')).default;
 
 function createApp() {
   const app = express();

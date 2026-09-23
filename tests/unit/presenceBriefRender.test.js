@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { renderCallBrief } from '../../api/services/presenceBriefRender.js';
+import { renderCallBrief } from '../../api/_app/services/presenceBriefRender.js';
 
 const presence = { id: 'p1', cared_for_name: 'Sofia', caller_name: 'Ana', tone: 'Gentle teasing' };
 

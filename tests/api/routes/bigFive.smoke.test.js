@@ -1,5 +1,5 @@
 /**
- * Smoke tests for api/routes/big-five.js
+ * Smoke tests for api/_app/routes/big-five.js
  * Covers: optionalAuth demo mode on /questions (no 401), authenticateToken gate
  * on /responses, response value 1-5 validation, invalid domain 400, missing
  * scores 404, downstream 500.
@@ -24,7 +24,7 @@ const getUserScoresMock = vi.fn();
 const getUserFacetScoresMock = vi.fn().mockResolvedValue([]);
 const saveResponsesMock = vi.fn().mockResolvedValue(undefined);
 
-vi.mock('../../../api/services/bigFiveAssessmentService.js', () => ({
+vi.mock('../../../api/_app/services/bigFiveAssessmentService.js', () => ({
   getQuestions: (...a) => getQuestionsMock(...a),
   getQuestionMetadata: () => ({ scale: {}, domains: {}, facets: {} }),
   calculateAllScores: vi.fn(() => ({})),
@@ -37,7 +37,7 @@ vi.mock('../../../api/services/bigFiveAssessmentService.js', () => ({
   getDomainInterpretation: vi.fn(() => 'interpretation'),
 }));
 
-vi.mock('../../../api/services/database.js', () => ({
+vi.mock('../../../api/_app/services/database.js', () => ({
   supabaseAdmin: {
     from: vi.fn(() => ({
       select: vi.fn().mockReturnThis(),
@@ -51,7 +51,7 @@ vi.mock('../../../api/services/database.js', () => ({
 const TEST_USER = '167c27b5-a40b-49fb-8d00-deb1b1c57f4d';
 const signToken = () => jwt.sign({ id: TEST_USER }, 'test-secret', { expiresIn: '1h' });
 
-const bigFiveRoutes = (await import('../../../api/routes/big-five.js')).default;
+const bigFiveRoutes = (await import('../../../api/_app/routes/big-five.js')).default;
 
 function createApp() {
   const app = express();

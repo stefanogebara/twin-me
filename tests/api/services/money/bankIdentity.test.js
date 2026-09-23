@@ -11,8 +11,8 @@
  * recognise an earlier one if it carries the earlier names with it.
  */
 import { describe, expect, it } from 'vitest';
-import { toSighting, distinctPending } from '../../../../api/services/money/feeds/enableBanking.js';
-import { planIngestion } from '../../../../api/services/money/ingestion.js';
+import { toSighting, distinctPending } from '../../../../api/_app/services/money/feeds/enableBanking.js';
+import { planIngestion } from '../../../../api/_app/services/money/ingestion.js';
 
 /** What prepare_money_ingestion hands the planner (migration 20260917000200). */
 function snapshotFor(inputs, store) {

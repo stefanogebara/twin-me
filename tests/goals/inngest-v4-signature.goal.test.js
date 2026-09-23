@@ -41,7 +41,7 @@ process.env.VITE_SUPABASE_URL ||= 'https://inngest-goal-stub.supabase.co';
 process.env.VITE_SUPABASE_ANON_KEY ||= 'stub-anon';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const FUNCTIONS_DIR = path.resolve(__dirname, '../../api/inngest/functions');
+const FUNCTIONS_DIR = path.resolve(__dirname, '../../api/_app/inngest/functions');
 
 const files = readdirSync(FUNCTIONS_DIR).filter(f => f.endsWith('.js'));
 

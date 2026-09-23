@@ -8,11 +8,11 @@
  */
 import { describe, it, expect, vi } from 'vitest';
 
-vi.mock('../../../api/services/logger.js', () => ({
+vi.mock('../../../api/_app/services/logger.js', () => ({
   createLogger: () => ({ info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() }),
 }));
 
-const { generateVoiceReply } = await import('../../../api/services/voiceReplyService.js');
+const { generateVoiceReply } = await import('../../../api/_app/services/voiceReplyService.js');
 
 const input = () => ({
   userId: 'user-1',

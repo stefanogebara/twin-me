@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { formatEmailBehavior } from '../../../../api/services/gmail/formatAnalytics.js';
+import { formatEmailBehavior } from '../../../../api/_app/services/gmail/formatAnalytics.js';
 
 describe('formatEmailBehavior', () => {
   const base = {

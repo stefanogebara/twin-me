@@ -7,7 +7,7 @@ briefing infrastructure is complete and cacheable.
 ## 1. Brief card + native notification
 
 Source endpoint EXISTS: GET /api/morning-briefing/generate
-(api/routes/morning-briefing.js:45; JWT auth; Redis-cached 4h TTL via
+(api/_app/routes/morning-briefing.js:45; JWT auth; Redis-cached 4h TTL via
 morning_briefing_cache row). Response shape:
 { success, briefing: { greeting, schedule[], schedule_summary, insights[],
   patterns[], rest, music, suggestion, generatedAt }, cached }
@@ -45,7 +45,7 @@ the toast, full JSON via app state; test Windows too.
   /widget?panel=1. ~15 lines.
 - src/pages/Widget.tsx: read sessionStorage hook; include
   context.hummingbird_clips in POST /api/chat/message body. ~25 lines.
-- api/services/twinContextBuilder.js (optional ~10 lines): render
+- api/_app/services/twinContextBuilder.js (optional ~10 lines): render
   "=== RECENT ACTIVITY (from your desktop) ===" section from
   context.hummingbird_clips.
 - Panel auth: webview shares cookies but restarts clear them — use existing

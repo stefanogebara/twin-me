@@ -69,7 +69,7 @@ function messagesChain() {
   return chain;
 }
 
-vi.mock('../../../api/services/database.js', () => ({
+vi.mock('../../../api/_app/services/database.js', () => ({
   supabaseAdmin: {
     from: vi.fn((table) =>
       table === 'twin_conversations' ? conversationChain() : messagesChain(),
@@ -77,30 +77,30 @@ vi.mock('../../../api/services/database.js', () => ({
   },
   serverDb: {},
 }));
-vi.mock('../../../api/services/llmGateway.js', () => ({
+vi.mock('../../../api/_app/services/llmGateway.js', () => ({
   complete: vi.fn(),
   TIER_CHAT: 'chat',
 }));
-vi.mock('../../../api/services/memoryStreamService.js', () => ({
+vi.mock('../../../api/_app/services/memoryStreamService.js', () => ({
   getMemoryStats: vi.fn(),
 }));
-vi.mock('../../../api/services/twinSummaryService.js', () => ({
+vi.mock('../../../api/_app/services/twinSummaryService.js', () => ({
   getTwinSummary: vi.fn(),
 }));
-vi.mock('../../../api/services/twinSystemPromptBuilder.js', () => ({
+vi.mock('../../../api/_app/services/twinSystemPromptBuilder.js', () => ({
   deduplicateByTheme: vi.fn((x) => x),
 }));
-vi.mock('../../../api/services/twinPromptAssembly.js', () => ({
+vi.mock('../../../api/_app/services/twinPromptAssembly.js', () => ({
   ANTI_EMOJI_RULE: '',
 }));
-vi.mock('../../../api/services/soulSignatureService.js', () => ({
+vi.mock('../../../api/_app/services/soulSignatureService.js', () => ({
   getSoulSignature: vi.fn(),
 }));
-vi.mock('../../../api/services/logger.js', () => ({
+vi.mock('../../../api/_app/services/logger.js', () => ({
   createLogger: () => ({ info: vi.fn(), warn: vi.fn(), error: vi.fn() }),
 }));
 
-const { default: routes } = await import('../../../api/routes/twin-conversations.js');
+const { default: routes } = await import('../../../api/_app/routes/twin-conversations.js');
 
 const app = express();
 app.use('/api/chat', routes);

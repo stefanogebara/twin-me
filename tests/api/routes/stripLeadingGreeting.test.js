@@ -1,5 +1,5 @@
 /**
- * Tests for stripLeadingGreeting (api/routes/cron-morning-briefing.js).
+ * Tests for stripLeadingGreeting (api/_app/routes/cron-morning-briefing.js).
  *
  * audit-2026-06-10: briefing sections sometimes open with their own greeting,
  * doubling up with the prepended one ("Good morning, Stefano. Morning
@@ -9,16 +9,16 @@
  */
 import { describe, it, expect, vi } from 'vitest';
 
-// The route's import graph reaches api/config/supabase.js (via messageRouter →
+// The route's import graph reaches api/_app/config/supabase.js (via messageRouter →
 // whatsappService), which throws at import time without Supabase env (CI stubs
 // it in ci.yml; a bare checkout has no .env). Stub the module so this
 // pure-function test stays hermetic.
-vi.mock('../../../api/config/supabase.js', () => {
+vi.mock('../../../api/_app/config/supabase.js', () => {
   const stub = { from: () => ({ insert: () => Promise.resolve({ error: null }) }) };
   return { supabase: stub, supabaseAdmin: stub, default: stub };
 });
 
-const { stripLeadingGreeting } = await import('../../../api/routes/cron-morning-briefing.js');
+const { stripLeadingGreeting } = await import('../../../api/_app/routes/cron-morning-briefing.js');
 
 describe('stripLeadingGreeting', () => {
   describe('strips real greetings', () => {

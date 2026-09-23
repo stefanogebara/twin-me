@@ -10,7 +10,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 // ---- supabase: channel lookup + conversation history ----
 let channelRows;
-vi.mock('../../../api/services/database.js', () => {
+vi.mock('../../../api/_app/services/database.js', () => {
   function builder(table) {
     const b = { _table: table };
     for (const m of ['select', 'eq', 'in', 'order', 'update']) b[m] = () => b;
@@ -27,36 +27,36 @@ vi.mock('../../../api/services/database.js', () => {
   return { supabaseAdmin: { from: (t) => builder(t) } };
 });
 
-// whatsappService imports supabaseAdmin from api/config/supabase.js (outbound
+// whatsappService imports supabaseAdmin from api/_app/config/supabase.js (outbound
 // audit log), which throws at import time without Supabase env (CI stubs it in
 // ci.yml; a bare checkout has no .env). Stub it so the pipeline loads hermetically.
-vi.mock('../../../api/config/supabase.js', () => {
+vi.mock('../../../api/_app/config/supabase.js', () => {
   const stub = { from: () => ({ insert: () => Promise.resolve({ error: null }) }) };
   return { supabase: stub, supabaseAdmin: stub, default: stub };
 });
 
 const completeMock = vi.fn();
-vi.mock('../../../api/services/llmGateway.js', () => ({
+vi.mock('../../../api/_app/services/llmGateway.js', () => ({
   complete: (...a) => completeMock(...a),
   TIER_CHAT: 'chat',
 }));
-vi.mock('../../../api/services/chatRouter.js', () => ({
+vi.mock('../../../api/_app/services/chatRouter.js', () => ({
   classifyMessageTier: () => ({ tier: 'standard' }),
   CHAT_TIER_MODELS: {},
 }));
-vi.mock('../../../api/services/twinContextBuilder.js', () => ({ fetchTwinContext: async () => ({}) }));
-vi.mock('../../../api/services/chatRateLimiter.js', () => ({ checkChatRateLimit: async () => ({ allowed: true }) }));
-vi.mock('../../../api/services/coreMemoryService.js', () => ({ getBlocks: async () => ({}), formatBlocksForPrompt: () => '' }));
-vi.mock('../../../api/services/personalityPromptBuilder.js', () => ({ buildPersonalityPrompt: () => '' }));
-vi.mock('../../../api/services/personalityProfileService.js', () => ({ getProfile: async () => null, getSoulSignatureLayers: async () => null }));
-vi.mock('../../../api/services/memoryStreamService.js', () => ({ addConversationMemory: async () => {} }));
-vi.mock('../../../api/services/purchaseContextBuilder.js', () => ({ buildPurchaseContext: async () => ({}) }));
-vi.mock('../../../api/services/purchaseReflection.js', () => ({ generatePurchaseReflection: async () => ({ text: 'reflect' }) }));
+vi.mock('../../../api/_app/services/twinContextBuilder.js', () => ({ fetchTwinContext: async () => ({}) }));
+vi.mock('../../../api/_app/services/chatRateLimiter.js', () => ({ checkChatRateLimit: async () => ({ allowed: true }) }));
+vi.mock('../../../api/_app/services/coreMemoryService.js', () => ({ getBlocks: async () => ({}), formatBlocksForPrompt: () => '' }));
+vi.mock('../../../api/_app/services/personalityPromptBuilder.js', () => ({ buildPersonalityPrompt: () => '' }));
+vi.mock('../../../api/_app/services/personalityProfileService.js', () => ({ getProfile: async () => null, getSoulSignatureLayers: async () => null }));
+vi.mock('../../../api/_app/services/memoryStreamService.js', () => ({ addConversationMemory: async () => {} }));
+vi.mock('../../../api/_app/services/purchaseContextBuilder.js', () => ({ buildPurchaseContext: async () => ({}) }));
+vi.mock('../../../api/_app/services/purchaseReflection.js', () => ({ generatePurchaseReflection: async () => ({ text: 'reflect' }) }));
 
 const classifyProtocolReply = vi.fn();
 const resolveProtocolReply = vi.fn();
 const offerNextProposal = vi.fn();
-vi.mock('../../../api/services/threadApprovals.js', () => ({
+vi.mock('../../../api/_app/services/threadApprovals.js', () => ({
   classifyProtocolReply: (...a) => classifyProtocolReply(...a),
   resolveProtocolReply: (...a) => resolveProtocolReply(...a),
   offerNextProposal: (...a) => offerNextProposal(...a),
@@ -64,52 +64,52 @@ vi.mock('../../../api/services/threadApprovals.js', () => ({
 
 const tryCaptureTransaction = vi.fn();
 const checkAndBumpCaptureQuota = vi.fn();
-vi.mock('../../../api/services/transactions/whatsappTransactionCapture.js', () => ({
+vi.mock('../../../api/_app/services/transactions/whatsappTransactionCapture.js', () => ({
   tryCaptureTransaction: (...a) => tryCaptureTransaction(...a),
   checkAndBumpCaptureQuota: (...a) => checkAndBumpCaptureQuota(...a),
 }));
 
 const isStatementDocument = vi.fn();
 const handleStatementDocument = vi.fn();
-vi.mock('../../../api/services/transactions/whatsappStatementIngest.js', () => ({
+vi.mock('../../../api/_app/services/transactions/whatsappStatementIngest.js', () => ({
   isStatementDocument: (...a) => isStatementDocument(...a),
   handleStatementDocument: (...a) => handleStatementDocument(...a),
 }));
 
 const handleReceiptImage = vi.fn();
-vi.mock('../../../api/services/transactions/pixReceiptIngest.js', () => ({
+vi.mock('../../../api/_app/services/transactions/pixReceiptIngest.js', () => ({
   handleReceiptImage: (...a) => handleReceiptImage(...a),
 }));
 
 const handleFileUploadToDrive = vi.fn();
-vi.mock('../../../api/services/transactions/whatsappFileIngest.js', () => ({
+vi.mock('../../../api/_app/services/transactions/whatsappFileIngest.js', () => ({
   handleFileUploadToDrive: (...a) => handleFileUploadToDrive(...a),
 }));
 
 // Workspace actions: prompt builder + chain. Default = pass-through (no actions
 // in the reply, chain returns the message unchanged), matching real behavior on
 // a plain chat turn. Overridden in the action test to assert the wiring.
-vi.mock('../../../api/services/tools/workspaceActionParser.js', () => ({
+vi.mock('../../../api/_app/services/tools/workspaceActionParser.js', () => ({
   buildWorkspaceActionsPrompt: async () => '[AVAILABLE ACTIONS] gmail_send, calendar_create',
 }));
 const runWorkspaceActionChain = vi.fn(async ({ initialMessage }) => ({ assistantMessage: initialMessage }));
-vi.mock('../../../api/services/workspaceActionChain.js', () => ({
+vi.mock('../../../api/_app/services/workspaceActionChain.js', () => ({
   runWorkspaceActionChain: (...a) => runWorkspaceActionChain(...a),
 }));
 
 // Presence: a family member's reply to her call digest becomes a note for her
 // next call, before anything else in the pipeline sees the message.
 const handleFamilyReply = vi.fn();
-vi.mock('../../../api/services/presenceRelay.js', () => ({
+vi.mock('../../../api/_app/services/presenceRelay.js', () => ({
   handleFamilyReply: (...a) => handleFamilyReply(...a),
 }));
 
 // Money twin beta channel: a person on MONEY_WHATSAPP_USER_IDS is answered by
 // the ledger, and by nothing below it.
 const handleMoneyInbound = vi.fn();
-vi.mock('../../../api/services/money/channelInbound.js', () => ({ handleMoneyInbound: (...a) => handleMoneyInbound(...a) }));
+vi.mock('../../../api/_app/services/money/channelInbound.js', () => ({ handleMoneyInbound: (...a) => handleMoneyInbound(...a) }));
 
-const { processInboundWhatsApp, toWhatsAppMarkdown } = await import('../../../api/services/whatsappInboundPipeline.js');
+const { processInboundWhatsApp, toWhatsAppMarkdown } = await import('../../../api/_app/services/whatsappInboundPipeline.js');
 
 function makeSend() {
   const calls = [];

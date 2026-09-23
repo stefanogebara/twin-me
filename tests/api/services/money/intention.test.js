@@ -3,8 +3,8 @@
  * without a fact; every line carries the rows that say so.
  */
 import { describe, it, expect } from 'vitest';
-import { keepAmount, caps, capFindings, keepFinding, intentionFindings } from '../../../../api/services/money/intention.js';
-import { safeToSpend } from '../../../../api/services/money/allowance.js';
+import { keepAmount, caps, capFindings, keepFinding, intentionFindings } from '../../../../api/_app/services/money/intention.js';
+import { safeToSpend } from '../../../../api/_app/services/money/allowance.js';
 
 const NOW = new Date('2026-09-14T12:00:00Z');
 const cast = { month: '2026-09-01', days_left: 16, projected_p50: 1150, spent: 500, committed: 0, calendar_ahead: 0, calendar_items: [] };

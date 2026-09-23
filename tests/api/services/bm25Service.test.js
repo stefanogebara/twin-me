@@ -13,7 +13,7 @@ import {
   extractKeywords,
   bm25ScoreBatch,
   bm25ScoreSingle,
-} from '../../../api/services/bm25Service.js';
+} from '../../../api/_app/services/bm25Service.js';
 
 describe('extractKeywords', () => {
   it('lowercases, strips punctuation, drops stopwords, and dedupes', () => {

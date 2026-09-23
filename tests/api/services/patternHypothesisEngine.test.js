@@ -8,13 +8,13 @@
  */
 import { describe, it, expect, vi } from 'vitest';
 
-vi.mock('../../../api/services/database.js', () => ({
+vi.mock('../../../api/_app/services/database.js', () => ({
   supabaseAdmin: { from: vi.fn() },
 }));
-vi.mock('../../../api/services/anthropicService.js', () => ({
+vi.mock('../../../api/_app/services/anthropicService.js', () => ({
   generateChatResponse: vi.fn(),
 }));
-vi.mock('../../../api/services/correlationDiscoveryEngine.js', () => ({
+vi.mock('../../../api/_app/services/correlationDiscoveryEngine.js', () => ({
   default: { getActiveCorrelations: vi.fn() },
 }));
 
@@ -22,7 +22,7 @@ vi.mock('../../../api/services/correlationDiscoveryEngine.js', () => ({
 // on the default export object.
 import patternHypothesisEngine, {
   calculateConfidence,
-} from '../../../api/services/patternHypothesisEngine.js';
+} from '../../../api/_app/services/patternHypothesisEngine.js';
 
 const { HYPOTHESIS_CATEGORIES } = patternHypothesisEngine;
 

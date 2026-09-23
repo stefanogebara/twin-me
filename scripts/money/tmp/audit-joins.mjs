@@ -1,0 +1,33 @@
+import 'dotenv/config';
+import { eventsFor, learnShapes, joinEventsToPayments, shapeKey, shapeLabel, JOIN_MARGIN_MS, calendarFromFacts } from '../../../api/services/money/calendar.js';
+import { listFacts } from '../../../api/services/money/store.js';
+import { hasRealTime } from '../../../api/services/money/clock.js';
+const U = process.env.VITE_SUPABASE_URL, K = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const USER = '167c27b5-a40b-49fb-8d00-deb1b1c57f4d';
+const h = { apikey: K, Authorization: `Bearer ${K}` };
+const from = new Date(Date.now() - 90 * 86400000).toISOString();
+const tx = await (await fetch(`${U}/rest/v1/money_transactions?select=id,occurred_at,amount,merchant_raw,merchant_key,channel&user_id=eq.${USER}&occurred_at=gte.${from}&limit=5000`, { headers: h })).json();
+const events = await eventsFor(USER, from, new Date(Date.now() + 31 * 86400000).toISOString());
+const facts = await listFacts(USER, { includeInternal: true });
+const stored = calendarFromFacts(facts, { now: new Date() });
+console.log(`join margin: ${JOIN_MARGIN_MS / 60000} minutes\n`);
+console.log('WHAT THE PRODUCT LEARNED (stored shapes):');
+for (const s of stored.learned.slice(0, 10)) console.log(`  "${s.label}" seen ${s.occurrences}x, paid ${s.paid}x, usually ${s.median} EUR, ${(s.categories || []).join('/') || 'no category'}`);
+const relearned = learnShapes(events, tx, { now: new Date() });
+console.log(`\nWHAT IT WOULD LEARN NOW: ${relearned.length ? '' : 'nothing at all.'}`);
+for (const s2 of relearned) console.log(`  "${s2.label}" seen ${s2.occurrences}x, paid ${s2.paid}x, mostly ${s2.mostly}, usually ${s2.median} EUR`);
+const joins = joinEventsToPayments(events, tx);
+console.log(`\n${joins.length} payments joined to an event. Every join, with the gap:`);
+const fmt = (n) => `${Number(n).toFixed(2)} EUR`;
+const rows = joins.map((j) => ({ j, ev: j.event, t: j.transaction }));
+rows.sort((a, b) => String(a.ev?.title || '').localeCompare(String(b.ev?.title || '')));
+for (const { j, ev, t } of rows) {
+  const title = ev?.title || j.title || '?';
+  const when = ev?.start || j.start;
+  const gap = t && when ? Math.round((Date.parse(t.occurred_at) - Date.parse(when)) / 60000) : null;
+  const at = t ? Date.parse(t.occurred_at) : null;
+  const side = !at ? '?' : at < Date.parse(ev.start) ? 'before' : at > Date.parse(ev.end || ev.start) ? 'after' : 'during';
+  console.log(`  ${String(title).slice(0, 30).padEnd(30)} ${String(when).slice(0, 16)}-${String(ev.end || '').slice(11, 16)} ${ev.all_day ? 'ALLDAY' : '      '} ${String(t?.merchant_raw || t?.merchant_key || '?').slice(0, 22).padEnd(22)} ${fmt(Math.abs(t?.amount || 0)).padStart(10)}  ${gap === null ? '' : `${gap > 0 ? '+' : ''}${gap}m`.padStart(7)} ${side.padEnd(7)} ${hasRealTime(t) ? 'real time' : 'BANK HOUR ONLY'}`);
+}
+console.log(`\nKeys of the joins: ${JSON.stringify(Object.keys(joins[0] || {}))}`);
+process.exit(0);

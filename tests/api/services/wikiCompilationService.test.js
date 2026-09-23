@@ -1,5 +1,5 @@
 /**
- * Unit tests for api/services/wikiCompilationService.js
+ * Unit tests for api/_app/services/wikiCompilationService.js
  *
  * Coverage:
  *   a) compileWikiPages compiles 5 domain pages when memories are sufficient
@@ -36,40 +36,40 @@ function makeChain(data, error = null) {
 
 let fromImpl = () => makeChain([]);
 
-vi.mock('../../../api/services/database.js', () => ({
+vi.mock('../../../api/_app/services/database.js', () => ({
   supabaseAdmin: {
     from: (...args) => fromImpl(...args),
   },
 }));
 
 const completeMock = vi.fn();
-vi.mock('../../../api/services/llmGateway.js', () => ({
+vi.mock('../../../api/_app/services/llmGateway.js', () => ({
   complete: (...a) => completeMock(...a),
   TIER_ANALYSIS: 'analysis',
   TIER_EXTRACTION: 'extraction',
 }));
 
-vi.mock('../../../api/services/embeddingService.js', () => ({
+vi.mock('../../../api/_app/services/embeddingService.js', () => ({
   generateEmbedding: vi.fn().mockResolvedValue(new Array(1536).fill(0)),
 }));
 
 const getFeatureFlagsMock = vi.fn();
-vi.mock('../../../api/services/featureFlagsService.js', () => ({
+vi.mock('../../../api/_app/services/featureFlagsService.js', () => ({
   getFeatureFlags: (...a) => getFeatureFlagsMock(...a),
 }));
 
-vi.mock('../../../api/services/neuropilRouter.js', () => ({
+vi.mock('../../../api/_app/services/neuropilRouter.js', () => ({
   classifyNeuropil: vi.fn().mockReturnValue({ neuropilId: 'personality' }),
 }));
 
-vi.mock('../../../api/services/logger.js', () => ({
+vi.mock('../../../api/_app/services/logger.js', () => ({
   createLogger: () => ({
     info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn(),
   }),
 }));
 
 const { compileWikiPages, compileWikiDomain } = await import(
-  '../../../api/services/wikiCompilationService.js'
+  '../../../api/_app/services/wikiCompilationService.js'
 );
 
 const USER_ID = '167c27b5-a40b-49fb-8d00-deb1b1c57f4d';

@@ -8,12 +8,12 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 const { axios } = vi.hoisted(() => ({ axios: { delete: vi.fn(), get: vi.fn(), post: vi.fn() } }));
 
 vi.mock('axios', () => ({ default: axios }));
-vi.mock('../../../api/services/logger.js', () => ({
+vi.mock('../../../api/_app/services/logger.js', () => ({
   createLogger: () => ({ info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() }),
 }));
 
 process.env.ELEVENLABS_API_KEY = 'test-key';
-const { VoiceService } = await import('../../../api/services/voiceService.js');
+const { VoiceService } = await import('../../../api/_app/services/voiceService.js');
 
 const httpError = (status, detail) =>
   Object.assign(new Error(`Request failed with status code ${status}`), { response: { status, data: { detail } } });

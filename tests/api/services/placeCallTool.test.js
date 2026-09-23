@@ -6,13 +6,13 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 const placeCallMock = vi.fn();
-vi.mock('../../../api/services/callService.js', () => ({ placeCall: (...a) => placeCallMock(...a) }));
+vi.mock('../../../api/_app/services/callService.js', () => ({ placeCall: (...a) => placeCallMock(...a) }));
 // Avoid Redis in the executeTool idempotency path.
-vi.mock('../../../api/services/redisClient.js', () => ({ get: async () => null, set: async () => {} }));
+vi.mock('../../../api/_app/services/redisClient.js', () => ({ get: async () => null, set: async () => {} }));
 
-const { executeTool } = await import('../../../api/services/toolRegistry.js');
-const { registerExtendedTools, EXTENDED_TOOL_NAMES } = await import('../../../api/services/tools/extendedTools.js');
-const { isWriteTool } = await import('../../../api/services/tools/workspaceActionParser.js');
+const { executeTool } = await import('../../../api/_app/services/toolRegistry.js');
+const { registerExtendedTools, EXTENDED_TOOL_NAMES } = await import('../../../api/_app/services/tools/extendedTools.js');
+const { isWriteTool } = await import('../../../api/_app/services/tools/workspaceActionParser.js');
 registerExtendedTools();
 
 beforeEach(() => {

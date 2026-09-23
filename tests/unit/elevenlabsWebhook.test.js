@@ -4,7 +4,7 @@
  */
 import { describe, it, expect } from 'vitest';
 import { createHmac } from 'node:crypto';
-import { verifyElevenLabsSignature, ELEVENLABS_SIGNATURE_MAX_AGE_MS } from '../../api/services/elevenlabsWebhook.js';
+import { verifyElevenLabsSignature, ELEVENLABS_SIGNATURE_MAX_AGE_MS } from '../../api/_app/services/elevenlabsWebhook.js';
 
 const SECRET = 'whsec_test';
 const body = JSON.stringify({ type: 'post_call_transcription', data: { conversation_id: 'conv-1' } });

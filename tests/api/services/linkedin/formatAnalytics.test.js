@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { formatLinkedInSnapshot } from '../../../../api/services/linkedin/formatAnalytics.js';
+import { formatLinkedInSnapshot } from '../../../../api/_app/services/linkedin/formatAnalytics.js';
 
 describe('formatLinkedInSnapshot', () => {
   const baseExtension = {

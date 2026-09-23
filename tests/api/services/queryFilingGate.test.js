@@ -22,28 +22,28 @@ const rpcMock = vi.fn();
 const insertMock = vi.fn();
 const getFeatureFlagsMock = vi.fn();
 
-vi.mock('../../../api/services/llmGateway.js', () => ({
+vi.mock('../../../api/_app/services/llmGateway.js', () => ({
   complete: (...a) => completeMock(...a),
   TIER_EXTRACTION: 'extraction',
   TIER_ANALYSIS: 'analysis',
 }));
-vi.mock('../../../api/services/embeddingService.js', () => ({
+vi.mock('../../../api/_app/services/embeddingService.js', () => ({
   generateEmbedding: (...a) => generateEmbeddingMock(...a),
 }));
-vi.mock('../../../api/services/featureFlagsService.js', () => ({
+vi.mock('../../../api/_app/services/featureFlagsService.js', () => ({
   getFeatureFlags: (...a) => getFeatureFlagsMock(...a),
 }));
-vi.mock('../../../api/services/neuropilRouter.js', () => ({
+vi.mock('../../../api/_app/services/neuropilRouter.js', () => ({
   classifyNeuropil: () => ({ neuropilId: 'personality' }),
 }));
-vi.mock('../../../api/services/database.js', () => ({
+vi.mock('../../../api/_app/services/database.js', () => ({
   supabaseAdmin: {
     rpc: (...a) => rpcMock(...a),
     from: () => ({ insert: (...a) => insertMock(...a) }),
   },
 }));
 
-const { fileQueryInsightIfValuable } = await import('../../../api/services/wikiCompilationService.js');
+const { fileQueryInsightIfValuable } = await import('../../../api/_app/services/wikiCompilationService.js');
 
 const USER = '167c27b5-a40b-49fb-8d00-deb1b1c57f4d';
 

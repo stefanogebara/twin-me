@@ -6,7 +6,7 @@ import {
   OPENROUTER_MODELS,
   MODEL_PRICING,
   CACHE_TTL_BY_TIER,
-} from '../../../api/config/aiModels.js';
+} from '../../../api/_app/config/aiModels.js';
 
 describe('Tier constants', () => {
   it('are unique strings', () => {

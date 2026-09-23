@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { formatRedditActivity } from '../../../../api/services/reddit/formatAnalytics.js';
+import { formatRedditActivity } from '../../../../api/_app/services/reddit/formatAnalytics.js';
 
 describe('formatRedditActivity', () => {
   const base = {

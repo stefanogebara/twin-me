@@ -20,7 +20,7 @@ import {
   settlePersistenceWithinBudget,
   PERSISTENCE_PENDING,
   PERSIST_RESPONSE_BUDGET_MS,
-} from '../../../api/services/twinChatPersistence.js';
+} from '../../../api/_app/services/twinChatPersistence.js';
 
 afterEach(() => {
   vi.useRealTimers();

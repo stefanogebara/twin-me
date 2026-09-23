@@ -9,7 +9,7 @@
 import { describe, expect, it, vi } from 'vitest';
 
 const counts = vi.hoisted(() => ({ tables: {}, rpcs: {} }));
-vi.mock('../../api/services/database.js', () => {
+vi.mock('../../api/_app/services/database.js', () => {
   const answer = { data: [], error: null, count: 0 };
   /* A person with an address already minted; without one the page mints it, which is one read
      and one write more, once in a life. */
@@ -33,9 +33,9 @@ vi.mock('../../api/services/database.js', () => {
     },
   };
 });
-vi.mock('../../api/services/money/betaCapabilities.js', () => ({ capabilitiesFor: async () => ({ bank: true, capture: true }) }));
+vi.mock('../../api/_app/services/money/betaCapabilities.js', () => ({ capabilitiesFor: async () => ({ bank: true, capture: true }) }));
 
-import { readPage } from '../../api/services/money/pageRead.js';
+import { readPage } from '../../api/_app/services/money/pageRead.js';
 
 describe('the money page reads each table once', () => {
   it('walks the ledger once and reads the facts once for Today', async () => {

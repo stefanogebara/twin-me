@@ -4,9 +4,9 @@ import express from 'express';
 import request from 'supertest';
 const owner = '00000000-0000-4000-8000-000000000001';
 const f = vi.hoisted(() => ({ readPage: vi.fn() }));
-vi.mock('../../../api/services/money/pageRead.js', () => ({ readPage: f.readPage, accountsView: vi.fn(), PAGE_VIEWS: new Set(['today', 'month', 'you']) }));
-vi.mock('../../../api/middleware/auth.js', () => ({ authenticateUser: (req, _res, next) => { req.user = { id: owner }; next(); } }));
-import router from '../../../api/routes/money.js';
+vi.mock('../../../api/_app/services/money/pageRead.js', () => ({ readPage: f.readPage, accountsView: vi.fn(), PAGE_VIEWS: new Set(['today', 'month', 'you']) }));
+vi.mock('../../../api/_app/middleware/auth.js', () => ({ authenticateUser: (req, _res, next) => { req.user = { id: owner }; next(); } }));
+import router from '../../../api/_app/routes/money.js';
 const app = express(); app.use(express.json()); app.use('/money', router);
 
 it('returns every part and the names of the failed ones', async () => {

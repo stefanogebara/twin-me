@@ -8,7 +8,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 const upsert = vi.fn();
 const del = vi.fn();
 const inFn = vi.fn();
-vi.mock('../../../../api/services/database.js', () => ({
+vi.mock('../../../../api/_app/services/database.js', () => ({
   supabaseAdmin: {
     from: (table) => ({
       upsert: (rows, opts) => { upsert(table, rows, opts); return Promise.resolve({ error: null }); },
@@ -17,24 +17,24 @@ vi.mock('../../../../api/services/database.js', () => ({
     }),
   },
 }));
-vi.mock('../../../../api/services/logger.js', () => ({ createLogger: () => ({ warn() {}, info() {}, error() {}, debug() {} }) }));
+vi.mock('../../../../api/_app/services/logger.js', () => ({ createLogger: () => ({ warn() {}, info() {}, error() {}, debug() {} }) }));
 /* The platform's key is not in a test: a reversible stand-in with the same shape (three parts). */
-vi.mock('../../../../api/services/encryption.js', () => ({
+vi.mock('../../../../api/_app/services/encryption.js', () => ({
   encryptToken: (t) => `iv:tag:${Buffer.from(String(t)).toString('base64')}`,
   decryptToken: (v) => { const p = String(v).split(':'); if (p.length !== 3) throw new Error('bad'); return Buffer.from(p[2], 'base64').toString(); },
 }));
 /* A test never asks the real resolver: every name is public unless a test says otherwise. */
 vi.mock('node:dns/promises', () => ({ default: { lookup: async () => [{ address: '93.184.216.34', family: 4 }] } }));
 const token = vi.fn();
-vi.mock('../../../../api/services/tokenRefreshService.js', () => ({ getValidAccessToken: (...a) => token(...a) }));
+vi.mock('../../../../api/_app/services/tokenRefreshService.js', () => ({ getValidAccessToken: (...a) => token(...a) }));
 const get = vi.fn();
-vi.mock('../../../../api/services/calendar/client.js', () => ({ createCalendarClient: () => ({ get: (...a) => get(...a) }) }));
+vi.mock('../../../../api/_app/services/calendar/client.js', () => ({ createCalendarClient: () => ({ get: (...a) => get(...a) }) }));
 const store = { listTransactions: vi.fn(), listFacts: vi.fn(), categoriesFor: vi.fn(async () => new Map([['la tasca', 'restaurant']])) };
-vi.mock('../../../../api/services/money/store.js', () => store);
-vi.mock('../../../../api/services/money/transactionRepository.js', () => store);
-vi.mock('../../../../api/services/money/factsRepository.js', () => store);
+vi.mock('../../../../api/_app/services/money/store.js', () => store);
+vi.mock('../../../../api/_app/services/money/transactionRepository.js', () => store);
+vi.mock('../../../../api/_app/services/money/factsRepository.js', () => store);
 
-const cal = await import('../../../../api/services/money/calendar.js');
+const cal = await import('../../../../api/_app/services/money/calendar.js');
 const {
   normaliseEvent, shapeKey, joinEventsToPayments, learnShapes, expectFor, aheadFrom, routineSummary,
   calendarFromFacts, calendarForecast, calendarLines, learnEventSpend, ahead, MIN_OCCURRENCES, MIN_PAID, FACT_KIND, META_KIND,
@@ -413,7 +413,7 @@ describe('the link rests sealed', () => {
 
 describe('the week ahead without a calendar', () => {
   it('still lists the days the person wrote on, as away when their words say so', async () => {
-    const { ahead } = await import('../../../../api/services/money/calendar.js');
+    const { ahead } = await import('../../../../api/_app/services/money/calendar.js');
     /* The status reads the facts once for the feeds and the week reads them again: the same rows both times. */
     token.mockResolvedValue({ accessToken: null, needsReconnect: false });
     store.listFacts.mockResolvedValue([
@@ -431,7 +431,7 @@ describe('the week ahead without a calendar', () => {
 
 describe('the week ahead with a calendar', () => {
   it('lists the days the person wrote on beside the calendar\'s own events', async () => {
-    const { ahead } = await import('../../../../api/services/money/calendar.js');
+    const { ahead } = await import('../../../../api/_app/services/money/calendar.js');
     token.mockResolvedValue({ success: true, accessToken: 'tok' });
     get.mockResolvedValue({ items: [{ id: 'g1', summary: 'Class', start: { dateTime: '2026-09-22T09:00:00Z' }, end: { dateTime: '2026-09-22T11:00:00Z' } }] });
     store.listFacts.mockResolvedValue([

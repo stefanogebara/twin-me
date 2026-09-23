@@ -4,7 +4,7 @@
  * OAuth Setup Diagnostic Script
  *
  * Run this script to diagnose OAuth configuration issues:
- * node api/scripts/test-oauth-setup.js
+ * node api/_app/scripts/test-oauth-setup.js
  */
 
 import dotenv from 'dotenv';
@@ -337,7 +337,7 @@ ${colors.reset}`);
 ║   ⚠️  SETUP INCOMPLETE - Review errors above                     ║
 ║                                                                   ║
 ║   Fix the issues and run this script again:                       ║
-║   node api/scripts/test-oauth-setup.js                           ║
+║   node api/_app/scripts/test-oauth-setup.js                           ║
 ║                                                                   ║
 ╚═══════════════════════════════════════════════════════════════════╝
 ${colors.reset}`);

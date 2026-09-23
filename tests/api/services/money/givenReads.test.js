@@ -6,24 +6,24 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const f = vi.hoisted(() => ({ listTransactions: vi.fn(), listFacts: vi.fn(), from: vi.fn(), figures: vi.fn(), accounts: vi.fn(), returns: vi.fn() }));
-vi.mock('../../../../api/services/database.js', () => ({ supabaseAdmin: { from: f.from } }));
-vi.mock('../../../../api/services/money/figureScoreStore.js', () => ({ currentFigureScores: f.figures }));
-vi.mock('../../../../api/services/money/returns.js', () => ({ listReturnsClosing: f.returns }));
-vi.mock('../../../../api/services/money/transactionRepository.js', async (importOriginal) => {
+vi.mock('../../../../api/_app/services/database.js', () => ({ supabaseAdmin: { from: f.from } }));
+vi.mock('../../../../api/_app/services/money/figureScoreStore.js', () => ({ currentFigureScores: f.figures }));
+vi.mock('../../../../api/_app/services/money/returns.js', () => ({ listReturnsClosing: f.returns }));
+vi.mock('../../../../api/_app/services/money/transactionRepository.js', async (importOriginal) => {
   const actual = await importOriginal();
   return { ...actual, listTransactions: f.listTransactions, listOwnTransactions: (u, o = {}) => f.listTransactions(u, { ...o, currency: 'EUR' }) };
 });
-vi.mock('../../../../api/services/money/factsRepository.js', async (importOriginal) => {
+vi.mock('../../../../api/_app/services/money/factsRepository.js', async (importOriginal) => {
   const actual = await importOriginal();
   return { ...actual, listFacts: f.listFacts };
 });
 
-import { selectTransactions } from '../../../../api/services/money/transactionRepository.js';
-import { forecast, months } from '../../../../api/services/money/forecastService.js';
-import { todayAllowance } from '../../../../api/services/money/allowanceService.js';
-import { refreshRecurring, categorySpend, subscriptionUsage } from '../../../../api/services/money/store.js';
-import { accountsWithCards } from '../../../../api/services/money/instruments.js';
-import { inboxAddress } from '../../../../api/services/money/inbox.js';
+import { selectTransactions } from '../../../../api/_app/services/money/transactionRepository.js';
+import { forecast, months } from '../../../../api/_app/services/money/forecastService.js';
+import { todayAllowance } from '../../../../api/_app/services/money/allowanceService.js';
+import { refreshRecurring, categorySpend, subscriptionUsage } from '../../../../api/_app/services/money/store.js';
+import { accountsWithCards } from '../../../../api/_app/services/money/instruments.js';
+import { inboxAddress } from '../../../../api/_app/services/money/inbox.js';
 
 const owner = '00000000-0000-4000-8000-000000000001';
 const now = new Date('2026-09-22T10:00:00Z');

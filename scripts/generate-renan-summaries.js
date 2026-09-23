@@ -19,8 +19,8 @@
 import fs from 'node:fs';
 import dotenv from 'dotenv';
 import { createClient } from '@supabase/supabase-js';
-import { generateEmbedding } from '../api/services/embeddingService.js';
-import { complete, TIER_ANALYSIS } from '../api/services/llmGateway.js';
+import { generateEmbedding } from '../api/_app/services/embeddingService.js';
+import { complete, TIER_ANALYSIS } from '../api/_app/services/llmGateway.js';
 
 dotenv.config();
 

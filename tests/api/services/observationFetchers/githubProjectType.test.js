@@ -23,7 +23,7 @@
  * repositories" — rather than guess when the evidence is thin or split.
  */
 import { describe, it, expect } from 'vitest';
-import { detectGitHubProjectType } from '../../../../api/services/observationFetchers/githubProjectType.js';
+import { detectGitHubProjectType } from '../../../../api/_app/services/observationFetchers/githubProjectType.js';
 
 const r = (name, language, description) => ({ name, language, description });
 

@@ -1,0 +1,11 @@
+import { chromium } from 'playwright';
+const browser = await chromium.connectOverCDP('http://127.0.0.1:9333');
+const context = browser.contexts()[0];
+const page = context.pages().find((p) => p.url().includes('twinme.me')) || await context.newPage();
+const bad = new Set(); page.on('response', (r) => { if (r.status() >= 400) bad.add(`${r.status()} ${r.url().replace('https://www.twinme.me', '')}`); });
+await page.goto('https://www.twinme.me/money', { waitUntil: 'domcontentloaded' }); await page.waitForTimeout(6000);
+const text = (await page.locator('main').innerText()).trim();
+console.log('sheets:', await page.locator('main [role="dialog"]').count(), '| words:', text.split(/\s+/).length);
+console.log(text.split('\n').filter((l) => /Comes in|payments:|short/.test(l)).join('\n'));
+console.log('failed requests:', [...bad].join(', ') || 'none');
+await browser.close();

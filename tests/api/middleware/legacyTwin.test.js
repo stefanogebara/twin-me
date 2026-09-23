@@ -1,7 +1,7 @@
 /** The legacy twin's crons behind one switch: nothing changes until LEGACY_TWIN_ENABLED=false; then they answer 200 and do no work. */
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { readFileSync } from 'node:fs';
-import { legacyTwinGate, legacyTwinParked, LEGACY_TWIN_CRONS, legacyTwinRouteGate, parkedPath, LEGACY_TWIN_ROUTES, PARKED_MESSAGE } from '../../../api/middleware/legacyTwin.js';
+import { legacyTwinGate, legacyTwinParked, LEGACY_TWIN_CRONS, legacyTwinRouteGate, parkedPath, LEGACY_TWIN_ROUTES, PARKED_MESSAGE } from '../../../api/_app/middleware/legacyTwin.js';
 
 const res = () => { const r = { statusCode: 200, body: null }; r.status = (c) => { r.statusCode = c; return r; }; r.json = (b) => { r.body = b; return r; }; return r; };
 afterEach(() => vi.unstubAllEnvs());
@@ -24,7 +24,7 @@ describe('the legacy twin gate', () => {
     expect(r.body).toMatchObject({ success: true, skipped: expect.stringContaining('parked') });
   });
   it('stands in front of every twin cron the schedule runs, and no money cron', () => {
-    const server = readFileSync(new URL('../../../api/server.js', import.meta.url), 'utf8');
+    const server = readFileSync(new URL('../../../api/_app/server.js', import.meta.url), 'utf8');
     const crons = JSON.parse(readFileSync(new URL('../../../vercel.json', import.meta.url), 'utf8')).crons.map((c) => c.path);
     /* Since 2026-09-22 a parked cron is not scheduled at all: ten wake-ups a day for a
        200 { skipped } were ten lines to delete. The gate stays in front of the route. */

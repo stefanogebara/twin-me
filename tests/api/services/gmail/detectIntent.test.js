@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { detectGmailIntent } from '../../../../api/services/gmail/detectIntent.js';
+import { detectGmailIntent } from '../../../../api/_app/services/gmail/detectIntent.js';
 
 describe('detectGmailIntent', () => {
   it('returns null for empty', () => expect(detectGmailIntent('').kind).toBeNull());

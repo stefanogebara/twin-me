@@ -31,7 +31,7 @@ let freshCache = false;                          // hasFreshReflection() return 
 let getReflectionsImpl = () => Promise.resolve({ success: true, reflection: { text: 'x' } });
 let refreshImpl = () => Promise.resolve({ success: true });
 
-vi.mock('../../../api/services/database.js', () => {
+vi.mock('../../../api/_app/services/database.js', () => {
   const makeChain = () => {
     const chain = {};
     for (const m of ['select', 'eq', 'gte', 'order', 'limit', 'is', 'update', 'insert']) {
@@ -51,7 +51,7 @@ vi.mock('../../../api/services/database.js', () => {
   };
 });
 
-vi.mock('../../../api/services/platformReflectionService.js', () => ({
+vi.mock('../../../api/_app/services/platformReflectionService.js', () => ({
   default: {
     hasFreshReflection: vi.fn(async () => freshCache),
     getReflections: vi.fn((...args) => getReflectionsImpl(...args)),
@@ -59,12 +59,12 @@ vi.mock('../../../api/services/platformReflectionService.js', () => ({
   },
 }));
 
-vi.mock('../../../api/services/twinPatternService.js', () => ({
+vi.mock('../../../api/_app/services/twinPatternService.js', () => ({
   seedPatternFromInsight: vi.fn().mockResolvedValue(undefined),
 }));
 
-const platformReflectionService = (await import('../../../api/services/platformReflectionService.js')).default;
-const routes = (await import('../../../api/routes/platform-insights.js')).default;
+const platformReflectionService = (await import('../../../api/_app/services/platformReflectionService.js')).default;
+const routes = (await import('../../../api/_app/routes/platform-insights.js')).default;
 
 function makeApp() {
   const app = express();

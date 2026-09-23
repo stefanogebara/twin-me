@@ -15,16 +15,16 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 // Keep the import graph light + deterministic: the module top-level-imports
 // llmGateway (which pulls the DB/Express graph) and logger. Neither is used by
 // the code under test here.
-vi.mock('../../../api/services/llmGateway.js', () => ({
+vi.mock('../../../api/_app/services/llmGateway.js', () => ({
   complete: vi.fn(),
   TIER_ANALYSIS: 'analysis',
 }));
-vi.mock('../../../api/services/logger.js', () => ({
+vi.mock('../../../api/_app/services/logger.js', () => ({
   createLogger: () => ({ info: vi.fn(), warn: vi.fn(), error: vi.fn() }),
 }));
 
 const { isPublicHttpUrl, fetchPageText } = await import(
-  '../../../api/services/enrichment/braveSearchProvider.js'
+  '../../../api/_app/services/enrichment/braveSearchProvider.js'
 );
 
 describe('isPublicHttpUrl — SSRF destination allow/deny', () => {

@@ -11,7 +11,7 @@
  * module graph load without a live connection (no DB call is made here).
  */
 import { describe, it, expect } from 'vitest';
-import { getEffectiveEventTime } from '../../../api/services/transactions/transactionEmotionTagger.js';
+import { getEffectiveEventTime } from '../../../api/_app/services/transactions/transactionEmotionTagger.js';
 
 describe('getEffectiveEventTime — candidate priority', () => {
   it('prefers Spotify played_at over the row extracted_at', () => {

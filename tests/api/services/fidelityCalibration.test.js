@@ -23,8 +23,8 @@ const {
   calibrationFromPairs,
   batteryCalibrationPairs,
   CONFIDENCE_BUCKETS,
-} = await import('../../../api/services/fidelityCalibration.js');
-const { parseTwinAnswers } = await import('../../../api/services/fidelityBatteryService.js');
+} = await import('../../../api/_app/services/fidelityCalibration.js');
+const { parseTwinAnswers } = await import('../../../api/_app/services/fidelityBatteryService.js');
 
 const BATTERY = [
   { id: 'l1', type: 'likert', text: 'x', scale: { min: 1, max: 5 } },

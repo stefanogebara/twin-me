@@ -1,5 +1,5 @@
 /**
- * Unit tests for the admin-access source of truth (api/services/adminAccess.js).
+ * Unit tests for the admin-access source of truth (api/_app/services/adminAccess.js).
  *
  * This helper decides the `isAdmin` boolean the SPA mirrors to gate admin
  * route shells. It is the UNION of the two backend gates (DB role +
@@ -7,7 +7,7 @@
  * backend. These tests pin that contract, including the fail-closed defaults.
  */
 import { describe, it, expect } from 'vitest';
-import { computeIsAdmin, getAdminEmailAllowlist } from '../../api/services/adminAccess.js';
+import { computeIsAdmin, getAdminEmailAllowlist } from '../../api/_app/services/adminAccess.js';
 
 const env = (adminEmails) => ({ ADMIN_EMAILS: adminEmails });
 

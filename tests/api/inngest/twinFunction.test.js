@@ -1,7 +1,7 @@
 /**
- * Tests for createTwinFunction (api/inngest/twinFunction.js).
+ * Tests for createTwinFunction (api/_app/inngest/twinFunction.js).
  *
- * Every function under api/inngest/functions belongs to the legacy twin, which is
+ * Every function under api/_app/inngest/functions belongs to the legacy twin, which is
  * parked (decision D1, LEGACY_TWIN_ENABLED=false). The crons that emit these events
  * are already gated, but nothing stops a manual Inngest dashboard invoke, a restored
  * cron, or a new caller from firing one directly. createTwinFunction is the gate that
@@ -16,12 +16,12 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 const mockCreateFunction = vi.fn((config, fn) => ({ config, fn }));
 
-vi.mock('../../../api/services/inngestClient.js', () => ({
+vi.mock('../../../api/_app/services/inngestClient.js', () => ({
   inngest: { createFunction: (...args) => mockCreateFunction(...args) },
   EVENTS: {},
 }));
 
-vi.mock('../../../api/services/logger.js', () => ({
+vi.mock('../../../api/_app/services/logger.js', () => ({
   createLogger: () => ({ info: vi.fn(), warn: vi.fn(), error: vi.fn() }),
 }));
 
@@ -33,7 +33,7 @@ describe('createTwinFunction', () => {
 
   it('does not call the inner handler while the twin is parked (LEGACY_TWIN_ENABLED=false)', async () => {
     process.env.LEGACY_TWIN_ENABLED = 'false';
-    const { createTwinFunction } = await import('../../../api/inngest/twinFunction.js');
+    const { createTwinFunction } = await import('../../../api/_app/inngest/twinFunction.js');
 
     const innerHandler = vi.fn(async () => ({ should: 'not run' }));
     const wrapped = createTwinFunction({ id: 'some-fn' }, innerHandler);
@@ -49,7 +49,7 @@ describe('createTwinFunction', () => {
   });
 
   it('calls the inner handler with the same context and passes its return value through when LEGACY_TWIN_ENABLED is unset', async () => {
-    const { createTwinFunction } = await import('../../../api/inngest/twinFunction.js');
+    const { createTwinFunction } = await import('../../../api/_app/inngest/twinFunction.js');
 
     const innerReturn = { success: true, ran: true };
     const innerHandler = vi.fn(async () => innerReturn);
@@ -65,7 +65,7 @@ describe('createTwinFunction', () => {
 
   it('calls the inner handler when LEGACY_TWIN_ENABLED=true (only the exact string "false" parks it)', async () => {
     process.env.LEGACY_TWIN_ENABLED = 'true';
-    const { createTwinFunction } = await import('../../../api/inngest/twinFunction.js');
+    const { createTwinFunction } = await import('../../../api/_app/inngest/twinFunction.js');
 
     const innerHandler = vi.fn(async () => ({ success: true }));
     const wrapped = createTwinFunction({ id: 'some-fn' }, innerHandler);

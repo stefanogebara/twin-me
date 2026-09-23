@@ -7,11 +7,11 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 const postMock = vi.fn();
 vi.mock('axios', () => ({ default: { post: (...a) => postMock(...a), get: vi.fn() } }));
-vi.mock('../../../api/services/tokenRefreshService.js', () => ({
+vi.mock('../../../api/_app/services/tokenRefreshService.js', () => ({
   getValidAccessToken: async () => ({ success: true, accessToken: 'tok123' }),
 }));
 
-const { createEvent } = await import('../../../api/services/googleWorkspaceActions.js');
+const { createEvent } = await import('../../../api/_app/services/googleWorkspaceActions.js');
 
 describe('createEvent — attendee invites', () => {
   beforeEach(() => postMock.mockReset());

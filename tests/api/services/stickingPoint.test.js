@@ -7,7 +7,7 @@ import {
   topRecurringSearch,
   buildStickingPrompt,
   MIN_REPEATS,
-} from '../../../api/services/stickingPoint.js';
+} from '../../../api/_app/services/stickingPoint.js';
 
 const repeat = (q, n) => Array.from({ length: n }, () => q);
 

@@ -16,10 +16,10 @@
  * The same honest limitation as evaluate-day-forecast.mjs: the ledger is read as it stands
  * now, so a payment the bank booked late is in its own day's history here.
  */
-import { dayForecast, dayActual } from '../../api/services/money/calibration.js';
-import { spendingRule } from '../../api/services/money/spending.js';
-import { dayIn } from '../../api/services/money/zone.js';
-import { eventsFor, dayCounts, coveredDays } from '../../api/services/money/calendar.js';
+import { dayForecast, dayActual } from '../../api/_app/services/money/calibration.js';
+import { spendingRule } from '../../api/_app/services/money/spending.js';
+import { dayIn } from '../../api/_app/services/money/zone.js';
+import { eventsFor, dayCounts, coveredDays } from '../../api/_app/services/money/calendar.js';
 
 const arg = (name, fallback = null) => {
   const at = process.argv.indexOf(`--${name}`);

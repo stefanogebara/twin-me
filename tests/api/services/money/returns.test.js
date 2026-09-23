@@ -1,6 +1,6 @@
 /** The return window a receipt states, as a date; the ones closing this week as a line. */
 import { describe, expect, it } from 'vitest';
-import { returnWindow, returnsClosing } from '../../../../api/services/money/returns.js';
+import { returnWindow, returnsClosing } from '../../../../api/_app/services/money/returns.js';
 
 const bought = '2026-09-10T10:00:00Z';
 

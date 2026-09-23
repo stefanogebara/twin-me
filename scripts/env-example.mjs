@@ -58,7 +58,7 @@ export function keysInCode(root = ROOT) {
 
 /** The four the server exits without, read from server.js itself. */
 export function requiredKeys(root = ROOT) {
-  const s = fs.readFileSync(path.join(root, 'api/server.js'), 'utf8');
+  const s = fs.readFileSync(path.join(root, 'api/_app/server.js'), 'utf8');
   const m = s.match(/const REQUIRED_ENV_VARS = \[([\s\S]*?)\]/);
   return new Set(m ? [...m[1].matchAll(/'([A-Z0-9_]+)'/g)].map((x) => x[1]) : []);
 }
@@ -101,7 +101,7 @@ export function render({ keys, required, notes }) {
     for (const { key, files } of entries) {
       const note = notes.get(key);
       if (note?.comment.length) lines.push(...note.comment);
-      else lines.push(`# read by ${files.slice(0, 2).map((f) => f.replace(/^api\//, '')).join(', ')}${files.length > 2 ? ` and ${files.length - 2} more` : ''}`);
+      else lines.push(`# read by ${files.slice(0, 2).map((f) => f.replace(/^api\/(?:_app\/)?/, '')).join(', ')}${files.length > 2 ? ` and ${files.length - 2} more` : ''}`);
       const value = note?.value ?? '';
       const commented = required.has(key) ? false : (note ? note.commented : true);
       lines.push(`${commented ? '# ' : ''}${key}=${value}`);

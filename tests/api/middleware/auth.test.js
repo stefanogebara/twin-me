@@ -4,7 +4,7 @@ import jwt from 'jsonwebtoken';
 // Set JWT_SECRET before importing auth (module-level check)
 process.env.JWT_SECRET = 'test-secret-key-for-unit-tests-only';
 
-const { authenticateUser } = await import('../../../api/middleware/auth.js');
+const { authenticateUser } = await import('../../../api/_app/middleware/auth.js');
 
 function makeReq(authHeader) {
   return {

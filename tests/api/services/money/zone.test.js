@@ -7,9 +7,9 @@
  * These tests hold the boundary at local midnight, in summer and in winter.
  */
 import { describe, it, expect } from 'vitest';
-import { withZone, currentZone, knownZone, dayIn, monthIn, partsIn, weekdayIn, dayOfMonthIn, startOfDayIn, offsetAt, daysBetweenIn, LEDGER_TZ } from '../../../../api/services/money/zone.js';
-import { monthPlan } from '../../../../api/services/money/plan.js';
-import { safeToSpend } from '../../../../api/services/money/allowance.js';
+import { withZone, currentZone, knownZone, dayIn, monthIn, partsIn, weekdayIn, dayOfMonthIn, startOfDayIn, offsetAt, daysBetweenIn, LEDGER_TZ } from '../../../../api/_app/services/money/zone.js';
+import { monthPlan } from '../../../../api/_app/services/money/plan.js';
+import { safeToSpend } from '../../../../api/_app/services/money/allowance.js';
 
 describe('the ledger zone', () => {
   it('is Spain unless the environment says otherwise', () => {

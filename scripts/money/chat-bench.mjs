@@ -20,7 +20,7 @@ import crypto from 'node:crypto';
 import { createClient } from '@supabase/supabase-js';
 import dotenv from 'dotenv';
 import { BENCH, DIMENSIONS } from '../../tests/api/services/money/chatBench.js';
-import { amountsInText } from '../../api/services/money/chat.js';
+import { amountsInText } from '../../api/_app/services/money/chat.js';
 
 dotenv.config({ path: path.resolve(process.cwd(), '.env'), quiet: true });
 const arg = (k, d) => { const i = process.argv.indexOf(k); return i >= 0 && process.argv[i + 1] ? process.argv[i + 1] : d; };

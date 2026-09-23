@@ -13,19 +13,19 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 vi.mock('axios', () => ({ default: { get: vi.fn() } }));
 
 import axios from 'axios';
-import { detectWhoopIntent } from '../../../../api/services/whoop/detectIntent.js';
-import { createWhoopClient } from '../../../../api/services/whoop/client.js';
-import { resolveDateExpression } from '../../../../api/services/whoop/dateUtils.js';
+import { detectWhoopIntent } from '../../../../api/_app/services/whoop/detectIntent.js';
+import { createWhoopClient } from '../../../../api/_app/services/whoop/client.js';
+import { resolveDateExpression } from '../../../../api/_app/services/whoop/dateUtils.js';
 import {
   getTrend,
   comparePeriods,
   getWeeklySummary,
-} from '../../../../api/services/whoop/analytics/index.js';
+} from '../../../../api/_app/services/whoop/analytics/index.js';
 import {
   formatTrend,
   formatCompare,
   formatWeekly,
-} from '../../../../api/services/whoop/formatAnalytics.js';
+} from '../../../../api/_app/services/whoop/formatAnalytics.js';
 
 // Same minimal record builders the upstream-port tests use.
 function recovery(score) {

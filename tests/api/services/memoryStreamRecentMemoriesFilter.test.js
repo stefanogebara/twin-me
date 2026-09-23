@@ -11,29 +11,29 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 process.env.NODE_ENV = 'test';
 
-vi.mock('../../../api/services/database.js', () => ({
+vi.mock('../../../api/_app/services/database.js', () => ({
   supabaseAdmin: { from: vi.fn() },
 }));
-vi.mock('../../../api/services/redisClient.js', () => ({
+vi.mock('../../../api/_app/services/redisClient.js', () => ({
   get: vi.fn().mockResolvedValue(null),
   set: vi.fn().mockResolvedValue(undefined),
   del: vi.fn().mockResolvedValue(undefined),
 }));
-vi.mock('../../../api/services/embeddingService.js', () => ({
+vi.mock('../../../api/_app/services/embeddingService.js', () => ({
   generateEmbedding: vi.fn(),
 }));
-vi.mock('../../../api/services/llmGateway.js', () => ({
+vi.mock('../../../api/_app/services/llmGateway.js', () => ({
   complete: vi.fn(),
   TIER_EXTRACTION: 'extraction',
   TIER_ANALYSIS: 'analysis',
 }));
-vi.mock('../../../api/services/logger.js', () => ({
+vi.mock('../../../api/_app/services/logger.js', () => ({
   createLogger: () => ({ info: vi.fn(), warn: vi.fn(), error: vi.fn() }),
 }));
 
-const { supabaseAdmin } = await import('../../../api/services/database.js');
+const { supabaseAdmin } = await import('../../../api/_app/services/database.js');
 const { getRecentMemories } = await import(
-  '../../../api/services/memoryStreamService.js'
+  '../../../api/_app/services/memoryStreamService.js'
 );
 
 function mockQueryChain(rows = []) {

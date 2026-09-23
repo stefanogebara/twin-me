@@ -19,13 +19,13 @@ process.env.ELEVENLABS_WEBHOOK_SECRET = 'test-webhook-secret';
 process.env.SUPABASE_URL = 'http://localhost';
 process.env.SUPABASE_SERVICE_ROLE_KEY = 'test-key';
 
-vi.mock('../../../api/services/lifeStoryService.js', () => ({
+vi.mock('../../../api/_app/services/lifeStoryService.js', () => ({
   processTurn: vi.fn(),
   startSession: vi.fn(),
 }));
 
-const { processTurn } = await import('../../../api/services/lifeStoryService.js');
-const voiceRoutes = (await import('../../../api/routes/life-story-voice.js')).default;
+const { processTurn } = await import('../../../api/_app/services/lifeStoryService.js');
+const voiceRoutes = (await import('../../../api/_app/routes/life-story-voice.js')).default;
 
 const USER = '167c27b5-a40b-49fb-8d00-deb1b1c57f4d';
 const SESSION = '49c10ccc-f485-4475-bdfb-858d76590e79';

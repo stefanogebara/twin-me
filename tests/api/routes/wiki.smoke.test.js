@@ -1,5 +1,5 @@
 /**
- * Smoke tests for api/routes/wiki.js
+ * Smoke tests for api/_app/routes/wiki.js
  * Covers: auth guard, invalid domain, happy-path shape, downstream error.
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
@@ -21,7 +21,7 @@ const compileWikiPagesMock = vi.fn();
 const buildWikiGraphDataMock = vi.fn();
 const detectWikiLintsMock = vi.fn();
 
-vi.mock('../../../api/services/wikiCompilationService.js', () => ({
+vi.mock('../../../api/_app/services/wikiCompilationService.js', () => ({
   getWikiPages: (...a) => getWikiPagesMock(...a),
   getWikiPage: (...a) => getWikiPageMock(...a),
   getWikiLogs: (...a) => getWikiLogsMock(...a),
@@ -30,7 +30,7 @@ vi.mock('../../../api/services/wikiCompilationService.js', () => ({
   detectWikiLints: (...a) => detectWikiLintsMock(...a),
 }));
 
-vi.mock('../../../api/services/database.js', () => ({
+vi.mock('../../../api/_app/services/database.js', () => ({
   supabaseAdmin: {
     from: vi.fn(() => ({
       select: vi.fn().mockReturnThis(),
@@ -44,7 +44,7 @@ vi.mock('../../../api/services/database.js', () => ({
 const TEST_USER = '167c27b5-a40b-49fb-8d00-deb1b1c57f4d';
 const signToken = (payload = { id: TEST_USER }) => jwt.sign(payload, 'test-secret', { expiresIn: '1h' });
 
-const wikiRoutes = (await import('../../../api/routes/wiki.js')).default;
+const wikiRoutes = (await import('../../../api/_app/routes/wiki.js')).default;
 
 function createApp() {
   const app = express();

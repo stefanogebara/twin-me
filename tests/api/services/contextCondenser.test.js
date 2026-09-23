@@ -1,11 +1,11 @@
 import { describe, it, expect, vi } from 'vitest';
 
-vi.mock('../../../api/services/llmGateway.js', () => ({
+vi.mock('../../../api/_app/services/llmGateway.js', () => ({
   complete: vi.fn().mockResolvedValue({ content: 'SUMMARY_OF_OLD_CONTEXT' }),
   TIER_ANALYSIS: 'analysis',
 }));
 
-vi.mock('../../../api/services/logger.js', () => ({
+vi.mock('../../../api/_app/services/logger.js', () => ({
   createLogger: () => ({
     info: vi.fn(),
     warn: vi.fn(),
@@ -18,7 +18,7 @@ import {
   condenseIfNeeded,
   estimateTokens,
   estimateMessagesTokens,
-} from '../../../api/services/contextCondenser.js';
+} from '../../../api/_app/services/contextCondenser.js';
 
 describe('estimateTokens', () => {
   it('estimates ~1 token per 4 chars (ceil)', () => {

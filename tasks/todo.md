@@ -21,7 +21,7 @@
 
 ### FOLLOW-UP — concept retrieval drowning under github noise (CLOSED 2026-05-23)
 
-**Resolution:** Fix 1 (cap importance) applied. The forward fix shipped 2026-05-16 added `NOISE_OBSERVATION_PATTERNS` to `api/services/memoryStreamService.js:502` with `skipImportance: true` clamps for 5 patterns (branch creation → 3, lang distribution → 3, annual summary → 4, commit days → 4, streak → 4). The 2026-05-23 backfill migration `database/migrations/20260523_noise_observation_importance_backfill.sql` cleaned up 117 legacy rows still above the cap.
+**Resolution:** Fix 1 (cap importance) applied. The forward fix shipped 2026-05-16 added `NOISE_OBSERVATION_PATTERNS` to `api/_app/services/memoryStreamService.js:502` with `skipImportance: true` clamps for 5 patterns (branch creation → 3, lang distribution → 3, annual summary → 4, commit days → 4, streak → 4). The 2026-05-23 backfill migration `database/migrations/20260523_noise_observation_importance_backfill.sql` cleaned up 117 legacy rows still above the cap.
 
 **Verification (`scripts/probe-concept-retrieval.js`):**
 - "features I should kill in TwinMe" — Renan rank **4** (default + reflection), 0 github noise in top 5
@@ -38,7 +38,7 @@
 
 **Tried, rejected:** HyDE alone (non-deterministic — same query flipped between rank 2 and rank -1 across runs). BM25_BLEND_WEIGHT raised 0.10 → 0.30 (no effect on Vibe Anything — the cosine pull was too strong for any lexical blend to flip).
 
-**Fix:** Extended identity-mode's parallel fact-only search to ALL retrieval modes (`api/services/memoryStreamService.js:849`). Facts now compete in their own type-pool (normalized inside the RPC's `WHERE memory_type = ANY(p_memory_types)` candidate set), so an importance-10 Renan fact wins its pool even when its raw cosine similarity is lower than competing reflections. Opt-out via `options.skipFactPool` for perf-sensitive callers.
+**Fix:** Extended identity-mode's parallel fact-only search to ALL retrieval modes (`api/_app/services/memoryStreamService.js:849`). Facts now compete in their own type-pool (normalized inside the RPC's `WHERE memory_type = ANY(p_memory_types)` candidate set), so an importance-10 Renan fact wins its pool even when its raw cosine similarity is lower than competing reflections. Opt-out via `options.skipFactPool` for perf-sensitive callers.
 
 **Verification (`scripts/probe-concept-retrieval.js`), 9 queries, HyDE OFF (deterministic baseline):**
 - "features I should kill in TwinMe" — rank **2** (improved from 4)
@@ -69,7 +69,7 @@ Skipping for V1: birthdays (lower value, can add later), WhatsApp unanswered (di
 ### Plan
 
 #### Phase 1 — Detection service
-- [ ] 1.1 `api/services/relationshipsService.js` — `findUnansweredThreads(userId, { olderThanDays = 3, limit = 5 })`
+- [ ] 1.1 `api/_app/services/relationshipsService.js` — `findUnansweredThreads(userId, { olderThanDays = 3, limit = 5 })`
   - Gmail query: `older_than:3d in:inbox -in:sent -in:promotions -in:social`
   - For each thread, get last message; reject if `from:me` (already answered)
   - Apply NOISE_PATTERNS filter from inboxIntelligenceService (export it as a shared util)
@@ -77,7 +77,7 @@ Skipping for V1: birthdays (lower value, can add later), WhatsApp unanswered (di
   - Return top N by `(thread_count * 1.0) + (days_unanswered * 0.5)` so frequency + age both push up
 
 #### Phase 2 — Cron + persistence
-- [ ] 2.1 `api/routes/cron-relationships.js` — daily at 10:10 UTC (5 min after inbox cron)
+- [ ] 2.1 `api/_app/routes/cron-relationships.js` — daily at 10:10 UTC (5 min after inbox cron)
   - `wasRecentlyRun('relationships')` 20h gate
   - For each Gmail-connected user, run `findUnansweredThreads`
   - Insert one `proactive_insights` row per result with `category='relationship_followup'`, `urgency='medium'`
@@ -101,11 +101,11 @@ Skipping for V1: birthdays (lower value, can add later), WhatsApp unanswered (di
 - New dedicated card on dashboard (existing InsightsFeed is good enough)
 
 ### Files expected
-- `api/services/relationshipsService.js` (new, ~120 lines)
-- `api/services/inboxIntelligenceService.js` — extract `NOISE_PATTERNS` + `isNoise` to a util
-- `api/services/noiseSenders.js` (new, ~20 lines)
-- `api/routes/cron-relationships.js` (new, ~80 lines)
-- `api/server.js` — mount cron route
+- `api/_app/services/relationshipsService.js` (new, ~120 lines)
+- `api/_app/services/inboxIntelligenceService.js` — extract `NOISE_PATTERNS` + `isNoise` to a util
+- `api/_app/services/noiseSenders.js` (new, ~20 lines)
+- `api/_app/routes/cron-relationships.js` (new, ~80 lines)
+- `api/_app/server.js` — mount cron route
 - `vercel.json` — schedule entry
 - `database/migrations/<date>_relationship_followup_cooldown.sql` (new, ~5 lines)
 
@@ -158,7 +158,7 @@ Order chosen so each phase is independently verifiable and the UI is testable be
 - [ ] 6.3 Commit awaiting review (single commit recommended — small, cohesive feature)
 
 ### Out-of-scope fix during sprint
-- `api/config/aiModels.js` — `TIER_EXTRACTION` was pointing at `mistralai/mistral-small-creative` which 404s on OpenRouter. Swapped to `deepseek/deepseek-v3.2` (already in use by other tiers). Affects all extraction-tier callers.
+- `api/_app/config/aiModels.js` — `TIER_EXTRACTION` was pointing at `mistralai/mistral-small-creative` which 404s on OpenRouter. Swapped to `deepseek/deepseek-v3.2` (already in use by other tiers). Affects all extraction-tier callers.
 
 ### Skipping this sprint
 - Relationships agent (Renan's parked unanswered/birthday idea) — deserves its own session
@@ -167,9 +167,9 @@ Order chosen so each phase is independently verifiable and the UI is testable be
 - Mobile card review
 
 ### Files expected
-- `api/services/inboxIntelligenceService.js` — sender context fix, dismissed/sent helpers
-- `api/routes/inbox-intelligence.js` (new) — refresh + dismiss + send endpoints
-- `api/server.js` — mount route
+- `api/_app/services/inboxIntelligenceService.js` — sender context fix, dismissed/sent helpers
+- `api/_app/routes/inbox-intelligence.js` (new) — refresh + dismiss + send endpoints
+- `api/_app/server.js` — mount route
 - `src/components/EmailTriageCard.tsx` — states, Refresh/Dismiss/Send + confirm modal
 - `scripts/ingest-renan-transcript.js` (new)
 - `tests/inbox-card-e2e.spec.ts` (new)
@@ -227,7 +227,7 @@ token may have rotted.
 - [ ] 1-2: `buildPurchaseContext(userId)` — parallel fetch Whoop HRV + Spotify 2h valence + Calendar density. Query DB tables directly, don't re-hit Whoop/Spotify APIs each call.
   - Tables: `user_memories` (whoop platform_data), `spotify_listening_data`, `calendar_events`
 - [ ] 1-3: Curl-test the context builder locally, see real numbers
-- [ ] 2-1: Add `purchase_check` intent to `classifyIntent()` in `api/routes/whatsapp-twinme-webhook.js:47`. Regex: `/vou compra|pensando em|about to buy|R\$\s*\d+/i`
+- [ ] 2-1: Add `purchase_check` intent to `classifyIntent()` in `api/_app/routes/whatsapp-twinme-webhook.js:47`. Regex: `/vou compra|pensando em|about to buy|R\$\s*\d+/i`
 - [ ] 2-2: `generateReflection(ctx, userMsg)` — DeepSeek call (TIER_ANALYSIS). Prompt: mirror 1 sentence, ask 1 question, PT-BR default. Max 3 sentences total. No advice. No judgment.
 - [ ] 2-3: Handler wiring — intent match → buildPurchaseContext → generateReflection → sendWhatsAppMessage
 - [ ] 3-1: Text the bot 20 times over the day with real pre-purchase moments
@@ -267,19 +267,19 @@ token may have rotted.
 
 | File | Change | Lines |
 |---|---|---|
-| `api/services/purchaseContextBuilder.js` (new) | Parallel DB fetch of Whoop+Spotify+Calendar state | ~80 |
-| `api/services/purchaseReflection.js` (new) | DeepSeek prompt + generator | ~60 |
-| `api/routes/whatsapp-twinme-webhook.js` | Add `purchase_check` case in classifyIntent, handler | ~40 |
+| `api/_app/services/purchaseContextBuilder.js` (new) | Parallel DB fetch of Whoop+Spotify+Calendar state | ~80 |
+| `api/_app/services/purchaseReflection.js` (new) | DeepSeek prompt + generator | ~60 |
+| `api/_app/routes/whatsapp-twinme-webhook.js` | Add `purchase_check` case in classifyIntent, handler | ~40 |
 | `tasks/purchase-reflections-prompt.md` (new) | Living prompt doc, iterated daily | ~30 |
 
 Total: ~210 lines of real code + ~30 lines of prompt.
 
 ### Existing infra to reuse (do not rebuild)
 
-- `api/routes/whatsapp-twinme-webhook.js` — inbound webhook with intent classifier
-- `api/services/whatsappService.js` — `sendWhatsAppMessage(phone, text)`
-- `api/services/observationFetchers/{whoop,spotify,calendar}.js` — fresh API pulls (probably not needed for V1 — DB is fresh enough)
-- `api/services/llmGateway.js` — DeepSeek call via TIER_ANALYSIS
+- `api/_app/routes/whatsapp-twinme-webhook.js` — inbound webhook with intent classifier
+- `api/_app/services/whatsappService.js` — `sendWhatsAppMessage(phone, text)`
+- `api/_app/services/observationFetchers/{whoop,spotify,calendar}.js` — fresh API pulls (probably not needed for V1 — DB is fresh enough)
+- `api/_app/services/llmGateway.js` — DeepSeek call via TIER_ANALYSIS
 - `messaging_channels` table — phone-to-user_id mapping (already has Stefano + Antonio)
 
 ### Open questions Day 1 must answer
@@ -479,14 +479,14 @@ Archived — all items complete.
 **Started:** 2026-03-11
 
 ## Phase 1: Training Data Export
-- [x] 1A. `api/services/finetuning/trainingDataExporter.js` — enhanced with `buildPersonalitySystemPrompt()` + per-user JSONL export
+- [x] 1A. `api/_app/services/finetuning/trainingDataExporter.js` — enhanced with `buildPersonalitySystemPrompt()` + per-user JSONL export
 
 ## Phase 2: Finetuning Service
-- [x] 2A. `api/services/finetuning/finetuneManager.js` — together.ai API (upload + create job + status polling)
+- [x] 2A. `api/_app/services/finetuning/finetuneManager.js` — together.ai API (upload + create job + status polling)
 - [x] 2B. DB migration: `user_finetuned_models` table — applied to Supabase
 
 ## Phase 3: Personality Oracle
-- [x] 3A. `api/services/finetuning/personalityOracle.js` — 800ms budget, Redis cache, graceful fallback
+- [x] 3A. `api/_app/services/finetuning/personalityOracle.js` — 800ms budget, Redis cache, graceful fallback
 - [x] 3B. Inject oracle into `twin-chat.js` — parallel fetch + `[PERSONALITY ORACLE]` block in system prompt
 
 ## Phase 4: API Endpoints
@@ -495,7 +495,7 @@ Archived — all items complete.
 - [x] 4C. Route registered in `server.js`
 
 ## Phase 5: Auto-Retrain
-- [x] 5A. `api/services/finetuning/autoRetrain.js` — 200 memories trigger, 7-day cooldown, hooked into observation ingestion cron
+- [x] 5A. `api/_app/services/finetuning/autoRetrain.js` — 200 memories trigger, 7-day cooldown, hooked into observation ingestion cron
 
 ## Phase 6: Evaluation
 - [x] 6A. Feature-flagged oracle (`personality_oracle`, opt-in) + conditional Promise.all in twin-chat.js
@@ -532,7 +532,7 @@ Archived — all items complete.
 
 ## CRITICAL
 
-- [x] **C1. Twin chat 504 / rate limiter** — Fixed: `api/server.js` now scopes aiLimiter to POST /chat/message + GET /chat/intro only (not all /api/chat/*). 25s timeout pending profiling.
+- [x] **C1. Twin chat 504 / rate limiter** — Fixed: `api/_app/server.js` now scopes aiLimiter to POST /chat/message + GET /chat/intro only (not all /api/chat/*). 25s timeout pending profiling.
 - [x] **C2. Memory routing 500** — FALSE POSITIVE: `/api/memories` and `/api/memory-health` work; audit tested wrong paths.
 - [x] **C3. cron maxDuration missing** — FALSE POSITIVE: Express app uses `vercel.json` global `maxDuration: 60`, not per-route exports.
 
@@ -568,8 +568,8 @@ Archived — all items complete.
 Scope: verify additional (non-core) platform OAuth + check 2026 API/MCP updates. Triggered by user request re: Strava / Fitbit / Duolingo / Garmin / Oura.
 
 ### Findings
-- Active OAuth wiring lives in `api/routes/connectors.js` + `api/config/platformConfigs.js` + `api/services/nangoService.js`. Nango holds provider client IDs/secrets in its dashboard, NOT TwinMe `.env` (so a local `STRAVA_CLIENT_ID` is irrelevant legacy).
-- `api/services/allPlatformConfigs.js` was an orphaned 980-line catalog — its only importer (`all-platform-connectors.js`) was already deleted. DELETED this session, plus 3 stale phase docs (`IMPLEMENTATION_COMPLETE.md`, `PHASE_2_DEPLOYMENT_GUIDE.md`, `PHASE_2_OAUTH_COMPLETE.md`) that referenced the dead catalog, the old `twin-ai-learn.vercel.app` domain, and a superseded pre-Nango per-platform OAuth architecture.
+- Active OAuth wiring lives in `api/_app/routes/connectors.js` + `api/_app/config/platformConfigs.js` + `api/_app/services/nangoService.js`. Nango holds provider client IDs/secrets in its dashboard, NOT TwinMe `.env` (so a local `STRAVA_CLIENT_ID` is irrelevant legacy).
+- `api/_app/services/allPlatformConfigs.js` was an orphaned 980-line catalog — its only importer (`all-platform-connectors.js`) was already deleted. DELETED this session, plus 3 stale phase docs (`IMPLEMENTATION_COMPLETE.md`, `PHASE_2_DEPLOYMENT_GUIDE.md`, `PHASE_2_OAUTH_COMPLETE.md`) that referenced the dead catalog, the old `twin-ai-learn.vercel.app` domain, and a superseded pre-Nango per-platform OAuth architecture.
 - Empirical prod check (both connection tables): only **Whoop** has live connections (2, actively syncing). Strava/Fitbit/Garmin/Oura/Peloton/Duolingo = **0 connections ever**.
 - The `@modelcontextprotocol/server-{strava,duolingo,apple-health,kindle}` package names in the dead catalog were all fake (404 on npm). Dead code, harmless.
 
@@ -604,8 +604,8 @@ Legacy `api.fitbit.com` Web API stops syncing **September 2026**; Google not acc
 (No `floors` in Google Health — TwinMe's fitbit extractor doesn't use it, no loss.)
 
 **Code (Phase 2 — after Phase 0/1; keep platform key `fitbit` everywhere):**
-- `api/services/nangoService.js`: repoint `fitbit` provider -> `providerConfigKey: 'google-health'`, `baseUrl: 'https://health.googleapis.com/v4'`; replace proxy helpers with the calls above (chunk rollup ranges to <=14 days).
-- `api/services/observationFetchers/fitbit.js`: rewrite fetch+parse to the new shapes but **keep emitted observation strings identical** ("N steps", "Slept H hours", "Sleep score: S", "resting heart rate R", "active minutes: M") so `METRIC_EXTRACTORS.fitbit` in observationIngestion.js needs NO change. Parse defensively (string numerics via parseInt/Float; null-guard nested paths — API is still iterating).
+- `api/_app/services/nangoService.js`: repoint `fitbit` provider -> `providerConfigKey: 'google-health'`, `baseUrl: 'https://health.googleapis.com/v4'`; replace proxy helpers with the calls above (chunk rollup ranges to <=14 days).
+- `api/_app/services/observationFetchers/fitbit.js`: rewrite fetch+parse to the new shapes but **keep emitted observation strings identical** ("N steps", "Slept H hours", "Sleep score: S", "resting heart rate R", "active minutes: M") so `METRIC_EXTRACTORS.fitbit` in observationIngestion.js needs NO change. Parse defensively (string numerics via parseInt/Float; null-guard nested paths — API is still iterating).
 - No change to `oauth-callback.js` (Nango handles callback).
 - TDD: `tests/api/observationFetchers/fitbit-google-health.test.js` — feed sample Google Health JSON, assert emitted strings + extractor output. Write tests first.
 

@@ -4,7 +4,7 @@ import {
   SPOTIFY_ENTERTAINMENT_SCOPES,
   SPOTIFY_RITUAL_SCOPES,
   SPOTIFY_SOUL_SCOPES,
-} from '../../api/config/oauthScopes.js';
+} from '../../api/_app/config/oauthScopes.js';
 
 // OAuth consolidation (M2 #10): one Spotify connect surface, scope set chosen by
 // a `scopeSet` param. Canonical soul-sig connect = the ENTERTAINMENT set (what

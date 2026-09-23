@@ -5,7 +5,7 @@
  * callService.test.js.)
  */
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { verifyVapiSecret } from '../../../api/routes/webhook-vapi.js';
+import { verifyVapiSecret } from '../../../api/_app/routes/webhook-vapi.js';
 
 const orig = process.env.VAPI_WEBHOOK_SECRET;
 afterEach(() => { if (orig === undefined) delete process.env.VAPI_WEBHOOK_SECRET; else process.env.VAPI_WEBHOOK_SECRET = orig; });

@@ -13,7 +13,7 @@
  * Run: node scripts/probe-concept-retrieval.js
  */
 import 'dotenv/config';
-import { retrieveMemories } from '../api/services/memoryStreamService.js';
+import { retrieveMemories } from '../api/_app/services/memoryStreamService.js';
 
 const STEFANO = '167c27b5-a40b-49fb-8d00-deb1b1c57f4d';
 

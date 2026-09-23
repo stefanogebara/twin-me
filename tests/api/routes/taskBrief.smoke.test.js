@@ -1,5 +1,5 @@
 /**
- * Smoke tests for POST /api/task-brief (api/routes/task-brief.js)
+ * Smoke tests for POST /api/task-brief (api/_app/routes/task-brief.js)
  * Auth guard, body validation, service delegation, error mapping.
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
@@ -13,7 +13,7 @@ process.env.SUPABASE_SERVICE_ROLE_KEY = 'test-service-role';
 process.env.ENCRYPTION_KEY = '0'.repeat(64);
 process.env.NODE_ENV = 'test';
 
-vi.mock('../../../api/services/database.js', () => ({
+vi.mock('../../../api/_app/services/database.js', () => ({
   supabaseAdmin: {
     // auth middleware email-verification lookup on `users`
     from: vi.fn(() => ({
@@ -29,14 +29,14 @@ vi.mock('../../../api/services/database.js', () => ({
 }));
 
 const compileTaskBriefMock = vi.fn();
-vi.mock('../../../api/services/taskBriefService.js', () => ({
+vi.mock('../../../api/_app/services/taskBriefService.js', () => ({
   compileTaskBrief: (...a) => compileTaskBriefMock(...a),
 }));
 
 const TEST_USER = '167c27b5-a40b-49fb-8d00-deb1b1c57f4d';
 const signToken = () => jwt.sign({ id: TEST_USER }, 'test-secret', { expiresIn: '1h' });
 
-const taskBriefRoutes = (await import('../../../api/routes/task-brief.js')).default;
+const taskBriefRoutes = (await import('../../../api/_app/routes/task-brief.js')).default;
 
 function createApp() {
   const app = express();

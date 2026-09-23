@@ -24,7 +24,7 @@ vi.mock('axios', () => ({ default: { get: (...a) => axiosGetMock(...a) } }));
 
 // ---- tokenRefreshService.getValidAccessToken ----
 const getValidAccessTokenMock = vi.fn();
-vi.mock('../../../api/services/tokenRefreshService.js', () => ({
+vi.mock('../../../api/_app/services/tokenRefreshService.js', () => ({
   getValidAccessToken: (...a) => getValidAccessTokenMock(...a),
   requiresTokenRefresh: () => false,
   batchRefreshTokens: vi.fn(),
@@ -33,7 +33,7 @@ vi.mock('../../../api/services/tokenRefreshService.js', () => ({
 // ---- nangoService (dynamically imported in the whoop NANGO_MANAGED path) ----
 const nangoGetRecoveryMock = vi.fn();
 const nangoGetSleepMock = vi.fn();
-vi.mock('../../../api/services/nangoService.js', () => ({
+vi.mock('../../../api/_app/services/nangoService.js', () => ({
   whoop: {
     getRecovery: (...a) => nangoGetRecoveryMock(...a),
     getSleep: (...a) => nangoGetSleepMock(...a),
@@ -44,7 +44,7 @@ vi.mock('../../../api/services/nangoService.js', () => ({
 // Terminal resolvers (.single / .limit) read from per-table configurable state.
 let whoopConnResult = { data: null, error: null };       // platform_connections.single()
 let webEventsResult = { data: null, error: null };        // user_platform_data.limit()
-vi.mock('../../../api/services/database.js', () => {
+vi.mock('../../../api/_app/services/database.js', () => {
   function from(table) {
     const b = { _table: table };
     b.select = () => b;
@@ -64,7 +64,7 @@ vi.mock('../../../api/services/database.js', () => {
   return { supabaseAdmin: { from }, serverDb: {} };
 });
 
-const { _fetchSinglePlatform } = await import('../../../api/services/twinContextBuilder.js');
+const { _fetchSinglePlatform } = await import('../../../api/_app/services/twinContextBuilder.js');
 
 beforeEach(() => {
   axiosGetMock.mockReset();

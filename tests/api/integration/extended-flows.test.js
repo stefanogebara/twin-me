@@ -59,7 +59,7 @@ function buildChain() {
 
 const chain = buildChain();
 
-vi.mock('../../../api/services/database.js', () => {
+vi.mock('../../../api/_app/services/database.js', () => {
   return {
     supabaseAdmin: {
       from: vi.fn().mockReturnValue(chain),
@@ -73,7 +73,7 @@ vi.mock('../../../api/services/database.js', () => {
 });
 
 // Mock LLM gateway — no real AI calls in tests
-vi.mock('../../../api/services/llmGateway.js', () => ({
+vi.mock('../../../api/_app/services/llmGateway.js', () => ({
   complete: vi.fn().mockResolvedValue({ content: '5' }),
   stream: vi.fn(),
   TIER_CHAT: 'chat',
@@ -82,13 +82,13 @@ vi.mock('../../../api/services/llmGateway.js', () => ({
 }));
 
 // Mock embedding service — no real OpenAI calls
-vi.mock('../../../api/services/embeddingService.js', () => ({
+vi.mock('../../../api/_app/services/embeddingService.js', () => ({
   generateEmbedding: vi.fn().mockResolvedValue(new Array(1536).fill(0)),
   vectorToString: vi.fn().mockReturnValue('[0,0,0]'),
 }));
 
 // Mock Redis client — no real Redis needed
-vi.mock('../../../api/services/redisClient.js', () => ({
+vi.mock('../../../api/_app/services/redisClient.js', () => ({
   get: vi.fn().mockResolvedValue(null),
   set: vi.fn().mockResolvedValue(true),
   del: vi.fn().mockResolvedValue(true),
@@ -107,7 +107,7 @@ vi.mock('../../../api/services/redisClient.js', () => ({
 }));
 
 // Mock profile enrichment service (for discovery scan)
-vi.mock('../../../api/services/profileEnrichmentService.js', () => ({
+vi.mock('../../../api/_app/services/profileEnrichmentService.js', () => ({
   default: {
     quickEnrich: vi.fn().mockResolvedValue({
       success: true,
@@ -118,7 +118,7 @@ vi.mock('../../../api/services/profileEnrichmentService.js', () => ({
 }));
 
 // Mock platform reflection service (for insights routes)
-vi.mock('../../../api/services/platformReflectionService.js', () => ({
+vi.mock('../../../api/_app/services/platformReflectionService.js', () => ({
   default: {
     getReflections: vi.fn().mockResolvedValue({ success: true, reflection: { text: 'Test reflection' } }),
     refreshReflection: vi.fn().mockResolvedValue({ success: true }),
@@ -126,13 +126,13 @@ vi.mock('../../../api/services/platformReflectionService.js', () => ({
 }));
 
 // Mock twin pattern service (for insight engagement)
-vi.mock('../../../api/services/twinPatternService.js', () => ({
+vi.mock('../../../api/_app/services/twinPatternService.js', () => ({
   seedPatternFromInsight: vi.fn().mockResolvedValue(true),
 }));
 
 // Mock email service (for unsubscribe)
 // Uses the crypto import from the top of the file
-vi.mock('../../../api/services/emailService.js', async () => {
+vi.mock('../../../api/_app/services/emailService.js', async () => {
   const cryptoMod = await import('node:crypto');
   function generateUnsubscribeToken(userId) {
     const secret = process.env.CRON_SECRET || process.env.JWT_SECRET || 'fallback';
@@ -146,7 +146,7 @@ vi.mock('../../../api/services/emailService.js', async () => {
 });
 
 // Mock twin summary service
-vi.mock('../../../api/services/twinSummaryService.js', () => ({
+vi.mock('../../../api/_app/services/twinSummaryService.js', () => ({
   getTwinSummary: vi.fn().mockResolvedValue('Test twin summary about the user.'),
   getTwinSummaryWithDomains: vi.fn().mockResolvedValue({
     summary: 'Test twin summary.',
@@ -159,7 +159,7 @@ vi.mock('../../../api/services/twinSummaryService.js', () => ({
 }));
 
 // Mock goal tracking service
-vi.mock('../../../api/services/goalTrackingService.js', () => ({
+vi.mock('../../../api/_app/services/goalTrackingService.js', () => ({
   getUserGoals: vi.fn().mockResolvedValue([]),
   getGoalWithProgress: vi.fn().mockResolvedValue(null),
   acceptGoal: vi.fn().mockResolvedValue({ success: true, data: {} }),
@@ -170,16 +170,16 @@ vi.mock('../../../api/services/goalTrackingService.js', () => ({
 }));
 
 // Mock push notification service (proactive insights depends on it)
-vi.mock('../../../api/services/pushNotificationService.js', () => ({
+vi.mock('../../../api/_app/services/pushNotificationService.js', () => ({
   sendPushToUser: vi.fn().mockResolvedValue(true),
 }));
 
 // ── Imports (after mocks) ────────────────────────────────────────────────────
-const { supabaseAdmin } = await import('../../../api/services/database.js');
-const { authenticateUser } = await import('../../../api/middleware/auth.js');
-const { getMemoryStats, getTwinReadinessScore } = await import('../../../api/services/memoryStreamService.js');
-const { verifyUnsubscribeToken, generateUnsubscribeToken } = await import('../../../api/services/emailService.js');
-const { getUserGoals, getGoalSummary } = await import('../../../api/services/goalTrackingService.js');
+const { supabaseAdmin } = await import('../../../api/_app/services/database.js');
+const { authenticateUser } = await import('../../../api/_app/middleware/auth.js');
+const { getMemoryStats, getTwinReadinessScore } = await import('../../../api/_app/services/memoryStreamService.js');
+const { verifyUnsubscribeToken, generateUnsubscribeToken } = await import('../../../api/_app/services/emailService.js');
+const { getUserGoals, getGoalSummary } = await import('../../../api/_app/services/goalTrackingService.js');
 
 // ── Test helpers ─────────────────────────────────────────────────────────────
 
@@ -500,7 +500,7 @@ describe('Flow 4: Twin Portrait / Summary', () => {
   beforeEach(resetChain);
 
   it('getTwinSummaryWithDomains returns expected shape', async () => {
-    const { getTwinSummaryWithDomains } = await import('../../../api/services/twinSummaryService.js');
+    const { getTwinSummaryWithDomains } = await import('../../../api/_app/services/twinSummaryService.js');
 
     const result = await getTwinSummaryWithDomains(TEST_USER_ID, 'Stefano');
 
@@ -515,7 +515,7 @@ describe('Flow 4: Twin Portrait / Summary', () => {
   });
 
   it('getTwinSummary returns non-empty string', async () => {
-    const { getTwinSummary } = await import('../../../api/services/twinSummaryService.js');
+    const { getTwinSummary } = await import('../../../api/_app/services/twinSummaryService.js');
 
     const summary = await getTwinSummary(TEST_USER_ID);
 
@@ -1097,7 +1097,7 @@ describe('Auth Middleware Edge Cases', () => {
 
 describe('Platform Insights Validation', () => {
   it('validates platform names', () => {
-    // Mirrors VALID_PLATFORMS in api/routes/platform-insights.js.
+    // Mirrors VALID_PLATFORMS in api/_app/routes/platform-insights.js.
     // linkedin removed (replan-2026-06-10 Track C portfolio cut).
     const VALID_PLATFORMS = ['spotify', 'calendar', 'youtube', 'web', 'discord'];
 

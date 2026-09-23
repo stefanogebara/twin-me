@@ -4,7 +4,7 @@
  * Creates test causal edges between existing nodes to demonstrate
  * the Phase 4 causal reasoning visualization features.
  *
- * Usage: node api/scripts/seedCausalEdges.js
+ * Usage: node api/_app/scripts/seedCausalEdges.js
  */
 
 import { createClient } from '@supabase/supabase-js';

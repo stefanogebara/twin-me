@@ -10,7 +10,7 @@ const gatewayMocks = vi.hoisted(() => ({
   stream: vi.fn(),
   TIER_CHAT: 'chat',
 }));
-vi.mock('../../../api/services/llmGateway.js', () => gatewayMocks);
+vi.mock('../../../api/_app/services/llmGateway.js', () => gatewayMocks);
 
 // Phase 1 (product-truth-review 2026-08-09): neurotransmitter modifier and
 // personality reranker were deleted from runFirstLlmCall — their mocks and
@@ -19,9 +19,9 @@ const actionMocks = vi.hoisted(() => ({
   parseActions: vi.fn(() => []),
   stripActionTags: vi.fn((t) => t),
 }));
-vi.mock('../../../api/services/tools/workspaceActionParser.js', () => actionMocks);
+vi.mock('../../../api/_app/services/tools/workspaceActionParser.js', () => actionMocks);
 
-import { runFirstLlmCall, classifyGatewayError } from '../../../api/services/twinFirstLlmCall.js';
+import { runFirstLlmCall, classifyGatewayError } from '../../../api/_app/services/twinFirstLlmCall.js';
 
 const FALLBACK = 'I apologize, I could not generate a response.';
 const USER = '167c27b5-a40b-49fb-8d00-deb1b1c57f4d';

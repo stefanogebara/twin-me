@@ -1,7 +1,7 @@
 /**
  * Availability gate for Spotify /v1/audio-features.
  *
- * IMPORTERS/CALLERS: api/services/spotify/audioFeatures.js is imported by
+ * IMPORTERS/CALLERS: api/_app/services/spotify/audioFeatures.js is imported by
  * realTimeExtractor.js, spotifyEnhancedExtractor.js, routes/spotify-oauth.js
  * and observationFetchers/spotify.js.
  * AFFECTED API: Spotify GET /v1/audio-features — HTTP 403 for this app since
@@ -18,7 +18,7 @@ import { describe, it, expect, afterEach } from 'vitest';
 import {
   audioFeaturesAvailable,
   AUDIO_FEATURES_RESTRICTED_REASON,
-} from '../../../../api/services/spotify/audioFeatures.js';
+} from '../../../../api/_app/services/spotify/audioFeatures.js';
 
 const ORIGINAL = process.env.SPOTIFY_AUDIO_FEATURES_ENABLED;
 

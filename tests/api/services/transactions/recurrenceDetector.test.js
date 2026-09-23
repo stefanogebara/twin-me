@@ -22,7 +22,7 @@
  *   4. Category-based filter catches investment_*, transfer, payroll
  */
 import { describe, it, expect } from 'vitest';
-import { isNonSubscriptionRow } from '../../../../api/services/transactions/recurrenceDetector.js';
+import { isNonSubscriptionRow } from '../../../../api/_app/services/transactions/recurrenceDetector.js';
 
 describe('isNonSubscriptionRow — defensive read-time filter', () => {
   describe('Plaid sandbox merchants (audit-listed culprits)', () => {

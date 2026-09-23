@@ -7,7 +7,7 @@
  * person has actually picked one.
  */
 import { describe, it, expect, vi } from 'vitest';
-import { suggest, predictionsToHits, placePoint, searchAreas, searchPlaces, PLACES_SUGGEST_URL, PLACES_SEARCH_URL } from '../../../../api/services/money/home.js';
+import { suggest, predictionsToHits, placePoint, searchAreas, searchPlaces, PLACES_SUGGEST_URL, PLACES_SEARCH_URL } from '../../../../api/_app/services/money/home.js';
 
 const ok = (json) => ({ ok: true, json: async () => json });
 

@@ -9,7 +9,7 @@ const generateInboxBriefMock = vi.fn();
 const proposeTopEmailReplyMock = vi.fn();
 
 // platform_connections lookup (isConnected) → connected.
-vi.mock('../../../api/services/database.js', () => ({
+vi.mock('../../../api/_app/services/database.js', () => ({
   supabaseAdmin: {
     from: () => ({
       select: () => ({ eq: () => ({ eq: () => ({ limit: () => ({ single: () => Promise.resolve({ data: { id: 'c1' } }) }) }) }) }),
@@ -17,13 +17,13 @@ vi.mock('../../../api/services/database.js', () => ({
   },
 }));
 
-vi.mock('../../../api/services/inboxIntelligenceService.js', () => ({
+vi.mock('../../../api/_app/services/inboxIntelligenceService.js', () => ({
   generateInboxBrief: (...a) => generateInboxBriefMock(...a),
   proposeTopEmailReply: (...a) => proposeTopEmailReplyMock(...a),
 }));
 
-const { executeTool } = await import('../../../api/services/toolRegistry.js');
-const { registerGoogleWorkspaceTools } = await import('../../../api/services/tools/googleWorkspaceTools.js');
+const { executeTool } = await import('../../../api/_app/services/toolRegistry.js');
+const { registerGoogleWorkspaceTools } = await import('../../../api/_app/services/tools/googleWorkspaceTools.js');
 registerGoogleWorkspaceTools();
 
 const run = () => executeTool('u1', 'inbox_triage', {}, { bypassAutonomy: true });

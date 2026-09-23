@@ -4,8 +4,8 @@
  * IMPORTERS/CALLERS: exercises spotifyEnhancedExtractor.getDefaultAudioPersonality
  * (returned by analyzeAudioPersonality at lines 326/333) and
  * spotifyInsightGenerator.determineMood (called by getCurrentMoodInsights:163,
- * whose result is consumed by api/routes/intelligent-twin.js:936 and
- * api/routes/soul-insights.js:306).
+ * whose result is consumed by api/_app/routes/intelligent-twin.js:936 and
+ * api/_app/routes/soul-insights.js:306).
  * AFFECTED API: none directly — both read STORED patterns rather than calling
  * Spotify. They are downstream of the restricted /v1/audio-features.
  * DATA SCHEMAS: reads soul_data.extracted_patterns (JSONB). No writes.
@@ -27,18 +27,18 @@
  */
 import { describe, it, expect, vi } from 'vitest';
 
-vi.mock('../../../api/config/supabase.js', () => ({
+vi.mock('../../../api/_app/config/supabase.js', () => ({
   supabaseAdmin: { from: vi.fn() },
 }));
-vi.mock('../../../api/services/database.js', () => ({
+vi.mock('../../../api/_app/services/database.js', () => ({
   supabaseAdmin: { from: vi.fn() },
 }));
 
 const { default: enhancedExtractor } = await import(
-  '../../../api/services/spotifyEnhancedExtractor.js'
+  '../../../api/_app/services/spotifyEnhancedExtractor.js'
 );
 const { default: insightGenerator } = await import(
-  '../../../api/services/spotifyInsightGenerator.js'
+  '../../../api/_app/services/spotifyInsightGenerator.js'
 );
 
 describe('getDefaultAudioPersonality', () => {

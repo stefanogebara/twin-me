@@ -19,7 +19,7 @@ import {
   MIRROR_PLATFORMS,
   FEATURE_YIELD_THRESHOLD,
   YIELD_WINDOW_DAYS,
-} from '../../api/services/platformYield.js';
+} from '../../api/_app/services/platformYield.js';
 
 describe('shouldFeaturePlatform', () => {
   it('keeps mirrors even with zero yield (the moat is never demoted)', () => {

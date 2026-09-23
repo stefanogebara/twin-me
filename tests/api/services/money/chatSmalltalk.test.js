@@ -1,6 +1,6 @@
 /** A greeting, a thanks or an ok never reaches the model: one line of the ledger's own, in the person's language. */
 import { describe, expect, it } from 'vitest';
-import { smalltalkReply, shortCircuit, assemble } from '../../../../api/services/money/chat.js';
+import { smalltalkReply, shortCircuit, assemble } from '../../../../api/_app/services/money/chat.js';
 
 describe('smalltalk', () => {
   it('answers greetings, thanks and ok in three languages, with no numbers', () => {

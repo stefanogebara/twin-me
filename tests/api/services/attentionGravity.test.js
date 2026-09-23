@@ -8,7 +8,7 @@ import {
   friendlyDomain,
   computeAttentionGravity,
   buildAttentionGravityCandidate,
-} from '../../../api/services/attentionGravity.js';
+} from '../../../api/_app/services/attentionGravity.js';
 
 /** Helper: n visits to a domain, each with the given dwell seconds. */
 function visits(domain, n, dwellEach) {

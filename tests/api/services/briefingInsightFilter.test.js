@@ -1,5 +1,5 @@
 /**
- * Tests for filterBriefingInsights (api/services/briefingInsightFilter.js).
+ * Tests for filterBriefingInsights (api/_app/services/briefingInsightFilter.js).
  *
  * replan-2026-06-10 Track B: the morning briefing re-dumped raw
  * proactive_insights rows of ANY category (meeting_prep headlines, reauth
@@ -12,7 +12,7 @@ import {
   filterBriefingInsights,
   BRIEFING_CATEGORY_WHITELIST,
   BRIEFING_MAX_INSIGHTS,
-} from '../../../api/services/briefingInsightFilter.js';
+} from '../../../api/_app/services/briefingInsightFilter.js';
 
 const row = (overrides = {}) => ({
   id: 'id-' + Math.random().toString(36).slice(2, 8),

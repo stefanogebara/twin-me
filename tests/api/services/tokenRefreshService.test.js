@@ -5,7 +5,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 globalThis.__tokenRefreshTestResult = { data: null, error: null };
 const setSingleResult = (r) => { globalThis.__tokenRefreshTestResult = r; };
 
-vi.mock('../../../api/services/database.js', () => {
+vi.mock('../../../api/_app/services/database.js', () => {
   const chain = {};
   Object.assign(chain, {
     from: () => chain,
@@ -27,12 +27,12 @@ vi.mock('../../../api/services/database.js', () => {
   return { supabaseAdmin: chain, serverDb: {} };
 });
 
-vi.mock('../../../api/services/encryption.js', () => ({
+vi.mock('../../../api/_app/services/encryption.js', () => ({
   encryptToken: (t) => `enc:${t}`,
   decryptToken: (t) => (t.startsWith('enc:') ? t.slice(4) : t),
 }));
 
-vi.mock('../../../api/services/logger.js', () => ({
+vi.mock('../../../api/_app/services/logger.js', () => ({
   createLogger: () => ({
     info: vi.fn(),
     warn: vi.fn(),
@@ -41,11 +41,11 @@ vi.mock('../../../api/services/logger.js', () => ({
   }),
 }));
 
-vi.mock('../../../api/services/nangoService.js', () => ({
+vi.mock('../../../api/_app/services/nangoService.js', () => ({
   getAccessToken: vi.fn().mockResolvedValue({ success: false, error: 'no nango' }),
 }));
 
-import { requiresTokenRefresh, getValidAccessToken } from '../../../api/services/tokenRefreshService.js';
+import { requiresTokenRefresh, getValidAccessToken } from '../../../api/_app/services/tokenRefreshService.js';
 
 describe('requiresTokenRefresh', () => {
   it('returns true for known OAuth providers', () => {

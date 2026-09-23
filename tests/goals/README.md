@@ -17,7 +17,7 @@ Plan and rationale: `.claude/plans/2026-07-12-agentic-os/README.md`.
 | `no-emoji-twin-output.goal.test.js` | NO EMOJIS rule (QW2 + audit H7) | stripEmoji backstop keeps removing pictographic/ZWJ emoji, leaves accents alone |
 | `money-first.goal.test.js` | Money is the product (Stefano, 2026-09-19) | `/`, `/home`, `/dashboard`, sign-in and the onboarding gate all land on `/money`; the twin is one link away, never the door |
 | `agents-in-sync.goal.test.js` | One instruction file for two agents (2026-09-19) | `AGENTS.md` is byte-identical to `CLAUDE.md` |
-| `money-imports.goal.test.js` | The money core loads a module at a time (audit A1, 2026-09-19) | every `api/services/money/*.js` imports within two seconds; the modules still in a cycle are named and shrink with M2-1 |
+| `money-imports.goal.test.js` | The money core loads a module at a time (audit A1, 2026-09-19) | every `api/_app/services/money/*.js` imports within two seconds; the modules still in a cycle are named and shrink with M2-1 |
 | `money-page-shape.goal.test.js` | No function on the money pages is longer than 250 lines (M2-2, 2026-09-19) | every top-level function under `src/pages/money` measured; the three that were already long may only shrink |
 | `money-one-request.goal.test.js` | Today is one request and waits on no third party (M2-3, 2026-09-19) | `useMoneyAccount` reads `moneyAPI.page()` and never the parts one by one; `index.html` loads no stylesheet or font from another origin |
 | `money-one-read.goal.test.js` | One page, one read of the ledger and one of the facts (M2-A, 2026-09-22) | `readPage` against a counting database walks `money_ledger_page` once and reads `money_facts` once |
@@ -26,7 +26,7 @@ Plan and rationale: `.claude/plans/2026-07-12-agentic-os/README.md`.
 | `script-csp.goal.test.js` | No script runs unless the CSP names its file (M1-C, 2026-09-22) | no inline script or handler in `index.html` or under `public/`; `script-src` is `'self'` and PostHog; `worker-src 'self' blob:` |
 | `quiet-failures.goal.test.js` | No error in code the product reaches is swallowed without a name (M1-3, 2026-09-19; the whole reach set since M1-D, 2026-09-22) | no anonymous `.catch(() => [])` in the money services or routes; every `quietly('name')` is unique |
 | `env-example-in-sync.goal.test.js` | `.env.example` is what the code reads (M3-4, 2026-09-19) | the committed file equals `scripts/env-example.mjs`'s output; the server's required keys are first and uncommented |
-| `money-routes-validated.goal.test.js` | Every money write route runs `validate()` before its handler (M1-2, 2026-09-19) | a post, delete or patch on `api/routes/money.js` without `validate({` fails, except the raw and multipart two |
+| `money-routes-validated.goal.test.js` | Every money write route runs `validate()` before its handler (M1-2, 2026-09-19) | a post, delete or patch on `api/_app/routes/money.js` without `validate({` fails, except the raw and multipart two |
 | (persistence test) `persistence.integration.test.js` › the backup rehearsal | The ledger restores from its own dump, row for row (M0-4, 2026-09-20) | `scripts/money/backup-rehearsal.sh rehearse` against the CI database: dump, restore into a fresh database, every `money_*` count and an md5 of every ledger row identical |
 | `workflows-parse.goal.test.js` | Every workflow parses as YAML with jobs (2026-09-20) | the nightly was invalid for two days over an unquoted colon in a step name, and ran with no jobs |
 

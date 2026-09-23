@@ -1,6 +1,6 @@
 /** A recurring charge's next date is never in the past: the beat rolls forward past today. */
 import { describe, it, expect } from 'vitest';
-import { nextAfter, detectRecurring } from '../../../../api/services/money/recurring.js';
+import { nextAfter, detectRecurring } from '../../../../api/_app/services/money/recurring.js';
 
 const DAY = 86400000;
 describe('nextAfter', () => {

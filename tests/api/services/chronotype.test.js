@@ -10,7 +10,7 @@ import {
   computeChronotype,
   buildChronotypeCandidate,
   GAP_FLOOR,
-} from '../../../api/services/chronotype.js';
+} from '../../../api/_app/services/chronotype.js';
 
 const repeat = (hour, n) => Array.from({ length: n }, () => hour);
 

@@ -17,13 +17,13 @@ delete process.env.TWINME_DISABLE_OUTBOUND_SEND;
 
 const axiosPostMock = vi.fn();
 vi.mock('axios', () => ({ default: { post: (...a) => axiosPostMock(...a) } }));
-vi.mock('../../../api/config/supabase.js', () => ({
+vi.mock('../../../api/_app/config/supabase.js', () => ({
   supabaseAdmin: { from: () => ({ insert: () => Promise.resolve({ error: null }) }) },
 }));
 
-const { sendWhatsAppList } = await import('../../../api/services/whatsappService.js');
+const { sendWhatsAppList } = await import('../../../api/_app/services/whatsappService.js');
 const { buildConnectMenuRows, connectAliasFromReplyId, resolveIntegrationId } =
-  await import('../../../api/services/connectLinkService.js');
+  await import('../../../api/_app/services/connectLinkService.js');
 
 beforeEach(() => {
   axiosPostMock.mockReset();

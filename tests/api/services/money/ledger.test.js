@@ -2,7 +2,7 @@
  * ledger: sightings reconcile into transactions; the phone keeps the minute, the bank keeps the amount.
  */
 import { describe, it, expect } from 'vitest';
-import { reconcile, findMatch, clusterEpisodes, signedAmount } from '../../../../api/services/money/ledger.js';
+import { reconcile, findMatch, clusterEpisodes, signedAmount } from '../../../../api/_app/services/money/ledger.js';
 
 const phone = { id: 's1', source: 'phone', amount: 12.5, direction: 'out', merchant_key: 'mercadona', merchant_raw: 'MERCADONA', occurred_at: '2026-09-07T19:41:00Z', channel: 'card', card_last4: '1234' };
 const feed = { id: 's2', source: 'bankfeed', amount: 12.5, direction: 'out', merchant_key: 'mercadona madrid', merchant_raw: 'MERCADONA MADRID', occurred_at: '2026-09-08T12:00:00Z' };

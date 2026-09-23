@@ -1,5 +1,5 @@
 /**
- * Smoke tests for POST /api/onboarding/complete (api/routes/onboarding-calibration.js)
+ * Smoke tests for POST /api/onboarding/complete (api/_app/routes/onboarding-calibration.js)
  *
  * audit-2026-06-10: finishing the onboarding flow — even with the interview
  * skipped and zero platforms connected — must persist completed_at so
@@ -21,7 +21,7 @@ process.env.NODE_ENV = 'test';
 const calibrationMaybeSingleMock = vi.fn();
 const calibrationUpsertMock = vi.fn();
 
-vi.mock('../../../api/services/database.js', () => ({
+vi.mock('../../../api/_app/services/database.js', () => ({
   supabaseAdmin: {
     from: vi.fn((table) => {
       if (table === 'onboarding_calibration') {
@@ -48,28 +48,28 @@ vi.mock('../../../api/services/database.js', () => ({
 
 // The calibration route module pulls in heavy services at import time —
 // stub them so the test stays network/DB-free.
-vi.mock('../../../api/services/llmGateway.js', () => ({
+vi.mock('../../../api/_app/services/llmGateway.js', () => ({
   complete: vi.fn(),
   TIER_CHAT: 'chat',
   TIER_ANALYSIS: 'analysis',
   TIER_EXTRACTION: 'extraction',
 }));
-vi.mock('../../../api/services/memoryStreamService.js', () => ({
+vi.mock('../../../api/_app/services/memoryStreamService.js', () => ({
   addMemory: vi.fn(),
   addConversationMemory: vi.fn(),
 }));
-vi.mock('../../../api/services/reflectionEngine.js', () => ({
+vi.mock('../../../api/_app/services/reflectionEngine.js', () => ({
   shouldTriggerReflection: vi.fn(),
   generateReflections: vi.fn(),
 }));
-vi.mock('../../../api/services/goalTrackingService.js', () => ({
+vi.mock('../../../api/_app/services/goalTrackingService.js', () => ({
   generateGoalSuggestions: vi.fn(),
 }));
 
 const TEST_USER = '167c27b5-a40b-49fb-8d00-deb1b1c57f4d';
 const signToken = () => jwt.sign({ id: TEST_USER }, 'test-secret', { expiresIn: '1h' });
 
-const calibrationRoutes = (await import('../../../api/routes/onboarding-calibration.js')).default;
+const calibrationRoutes = (await import('../../../api/_app/routes/onboarding-calibration.js')).default;
 
 function createApp() {
   const app = express();

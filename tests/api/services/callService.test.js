@@ -16,7 +16,7 @@ const updates = [];
 const axiosPostMock = vi.fn();
 vi.mock('axios', () => ({ default: { post: (...a) => axiosPostMock(...a) } }));
 
-vi.mock('../../../api/services/database.js', () => {
+vi.mock('../../../api/_app/services/database.js', () => {
   function from(table) {
     const b = { _table: table };
     b.select = () => b;
@@ -33,17 +33,17 @@ vi.mock('../../../api/services/database.js', () => {
 });
 
 let flagsReturn = { phone_calls: true };
-vi.mock('../../../api/services/featureFlagsService.js', () => ({
+vi.mock('../../../api/_app/services/featureFlagsService.js', () => ({
   getFeatureFlags: () => Promise.resolve(flagsReturn),
 }));
 
 const deliverInsightMock = vi.fn();
-vi.mock('../../../api/services/messageRouter.js', () => ({
+vi.mock('../../../api/_app/services/messageRouter.js', () => ({
   deliverInsight: (...a) => deliverInsightMock(...a),
 }));
 
 const { isCallingEnabled, buildCallPrompt, placeCall, handleCallWebhook, mapEndedReasonToStatus } =
-  await import('../../../api/services/callService.js');
+  await import('../../../api/_app/services/callService.js');
 
 const enableEnv = () => { process.env.VAPI_API_KEY = 'vk'; process.env.VAPI_PHONE_NUMBER_ID = 'pn'; };
 const disableEnv = () => { delete process.env.VAPI_API_KEY; delete process.env.VAPI_PHONE_NUMBER_ID; };

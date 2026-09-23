@@ -4,7 +4,7 @@
  * paid (PDL) fallback. Pins the exact point weights and the isMinimal threshold.
  */
 import { describe, it, expect } from 'vitest';
-import { scoreEnrichmentQuality } from '../../../api/services/enrichment/enrichmentQualityScorer.js';
+import { scoreEnrichmentQuality } from '../../../api/_app/services/enrichment/enrichmentQualityScorer.js';
 
 describe('scoreEnrichmentQuality', () => {
   it('returns zero + everything-missing for null/undefined input', () => {

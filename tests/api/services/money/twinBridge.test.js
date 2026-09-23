@@ -6,10 +6,10 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 const addMemory = vi.fn();
-vi.mock('../../../../api/services/memoryStreamService.js', () => ({ addMemory: (...a) => addMemory(...a) }));
-vi.mock('../../../../api/services/logger.js', () => ({ createLogger: () => ({ warn() {}, info() {}, error() {} }) }));
+vi.mock('../../../../api/_app/services/memoryStreamService.js', () => ({ addMemory: (...a) => addMemory(...a) }));
+vi.mock('../../../../api/_app/services/logger.js', () => ({ createLogger: () => ({ warn() {}, info() {}, error() {} }) }));
 
-const { memoryFor, memoryForFact, memoryForTurn, tellTwin, tellTwinFacts, tellTwinTurn, IMPORTANCE, FACT_IMPORTANCE } = await import('../../../../api/services/money/twinBridge.js');
+const { memoryFor, memoryForFact, memoryForTurn, tellTwin, tellTwinFacts, tellTwinTurn, IMPORTANCE, FACT_IMPORTANCE } = await import('../../../../api/_app/services/money/twinBridge.js');
 
 const finding = {
   kind: 'subscriptions',

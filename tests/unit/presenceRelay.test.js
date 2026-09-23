@@ -23,11 +23,11 @@ const { store, log, wa } = vi.hoisted(() => ({
   wa: { sendWhatsAppMessage: vi.fn(), sendWhatsAppTemplate: vi.fn() },
 }));
 
-vi.mock('../../api/services/presenceStore.js', () => store);
-vi.mock('../../api/services/logger.js', () => ({ createLogger: () => log }));
-vi.mock('../../api/services/whatsappService.js', () => wa);
+vi.mock('../../api/_app/services/presenceStore.js', () => store);
+vi.mock('../../api/_app/services/logger.js', () => ({ createLogger: () => log }));
+vi.mock('../../api/_app/services/whatsappService.js', () => wa);
 
-const { composeDigest, relayCall, relayNoAnswer, handleFamilyReply, DIGEST_TEMPLATE, URGENT_TEMPLATE } = await import('../../api/services/presenceRelay.js');
+const { composeDigest, relayCall, relayNoAnswer, handleFamilyReply, DIGEST_TEMPLATE, URGENT_TEMPLATE } = await import('../../api/_app/services/presenceRelay.js');
 
 beforeEach(() => {
   vi.clearAllMocks();

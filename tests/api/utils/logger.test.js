@@ -1,5 +1,5 @@
 /**
- * Tests for api/utils/logger.js
+ * Tests for api/_app/utils/logger.js
  * Pure utility — no DB or LLM dependencies.
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
@@ -16,7 +16,7 @@ describe('createLogger', () => {
     // Default to development for tests
     process.env.NODE_ENV = 'development';
     process.env.LOG_LEVEL = 'debug';
-    const mod = await import('../../../api/utils/logger.js');
+    const mod = await import('../../../api/_app/utils/logger.js');
     createLogger = mod.createLogger;
   });
 
@@ -98,7 +98,7 @@ describe('createLogger — production mode', () => {
     vi.resetModules();
     process.env.NODE_ENV = 'production';
     process.env.LOG_LEVEL = 'debug';
-    const mod = await import('../../../api/utils/logger.js');
+    const mod = await import('../../../api/_app/utils/logger.js');
     createLogger = mod.createLogger;
   });
 
@@ -143,7 +143,7 @@ describe('createLogger — log level filtering', () => {
     vi.resetModules();
     process.env.NODE_ENV = 'development';
     process.env.LOG_LEVEL = 'info';
-    const { createLogger } = await import('../../../api/utils/logger.js');
+    const { createLogger } = await import('../../../api/_app/utils/logger.js');
     const spy = vi.spyOn(console, 'log').mockImplementation(() => {});
     const log = createLogger('FilterTest');
     log.debug('should not appear');
@@ -154,7 +154,7 @@ describe('createLogger — log level filtering', () => {
     vi.resetModules();
     process.env.NODE_ENV = 'development';
     process.env.LOG_LEVEL = 'error';
-    const { createLogger } = await import('../../../api/utils/logger.js');
+    const { createLogger } = await import('../../../api/_app/utils/logger.js');
     const logSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
     const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
     const errSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
@@ -176,7 +176,7 @@ describe('requestLogger middleware', () => {
     vi.resetModules();
     process.env.NODE_ENV = 'development';
     process.env.LOG_LEVEL = 'debug';
-    const mod = await import('../../../api/utils/logger.js');
+    const mod = await import('../../../api/_app/utils/logger.js');
     requestLogger = mod.requestLogger;
   });
 

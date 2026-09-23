@@ -972,7 +972,7 @@ However:
 **Action:** Add skip-to-content link in SidebarLayout. Wrap main content in `<main>` landmark. Add `aria-live="polite"` region for toast notifications and dynamic content. Add `@media (prefers-reduced-motion: reduce)` rules to disable animations.
 
 ### 7. Implement Server-Side Chat Persistence (Impact: HIGH)
-**Files:** `src/pages/TalkToTwin.tsx`, `api/routes/twin-chat.js`
+**Files:** `src/pages/TalkToTwin.tsx`, `api/_app/routes/twin-chat.js`
 **Action:** Store chat messages server-side (new table or extension of `user_memories`). Increase limit from 20 to at least 100 messages per conversation. Support multiple conversation threads. This directly affects the core value proposition.
 
 ### 8. Add Admin Role Checks (Impact: HIGH)

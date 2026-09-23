@@ -17,7 +17,7 @@ import {
   buildRecentActivitySection,
   MAX_HUMMINGBIRD_CLIPS,
   MAX_CLIP_FIELD_CHARS,
-} from '../../../api/services/desktopActivityContext.js';
+} from '../../../api/_app/services/desktopActivityContext.js';
 
 const clip = (app, title) => ({ app, title });
 

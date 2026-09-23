@@ -19,16 +19,16 @@ import {
   getSelfBaseUrl,
   RESYNC_TIMEOUT_MS,
   __resetResyncStateForTests,
-} from '../../api/services/inngestSelfHeal.js';
+} from '../../api/_app/services/inngestSelfHeal.js';
 
 const MIN = 30 * 60 * 1000;
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const CRON_SRC = readFileSync(
-  resolve(__dirname, '../../api/routes/cron-observation-ingestion.js'),
+  resolve(__dirname, '../../api/_app/routes/cron-observation-ingestion.js'),
   'utf8'
 );
 const INNGEST_ROUTE_SRC = readFileSync(
-  resolve(__dirname, '../../api/routes/inngest.js'),
+  resolve(__dirname, '../../api/_app/routes/inngest.js'),
   'utf8'
 );
 

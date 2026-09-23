@@ -4,7 +4,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { getWeeklySummary } from '../../../../api/services/whoop/analytics/getWeeklySummary.js';
+import { getWeeklySummary } from '../../../../api/_app/services/whoop/analytics/getWeeklySummary.js';
 
 function createMockClient() {
   const getMock = vi.fn();

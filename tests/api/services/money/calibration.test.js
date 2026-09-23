@@ -3,7 +3,7 @@
  * and the record of hits and misses turns into one widening in euros.
  */
 import { describe, it, expect } from 'vitest';
-import { dayForecast, dayActual, calibrate, carriedWiden, intervalScore, widenOver, dayStrip, ALPHA, STRIP_DAYS } from '../../../../api/services/money/calibration.js';
+import { dayForecast, dayActual, calibrate, carriedWiden, intervalScore, widenOver, dayStrip, ALPHA, STRIP_DAYS } from '../../../../api/_app/services/money/calibration.js';
 
 const DAY = 86400000;
 /* Twelve weeks ending Saturday 12 Sept 2026: weekdays cost 10, Fridays 40, Sundays 0. */

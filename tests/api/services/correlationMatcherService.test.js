@@ -9,7 +9,7 @@ import { describe, it, expect, beforeAll } from 'vitest';
 import {
   getCorrelationMatcherService,
   BIG_FIVE_TRAITS,
-} from '../../../api/services/correlationMatcherService.js';
+} from '../../../api/_app/services/correlationMatcherService.js';
 
 let svc;
 beforeAll(() => {

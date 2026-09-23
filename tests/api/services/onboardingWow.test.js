@@ -5,12 +5,12 @@
  */
 import { describe, it, expect, vi } from 'vitest';
 
-vi.mock('../../../api/services/logger.js', () => ({
+vi.mock('../../../api/_app/services/logger.js', () => ({
   createLogger: () => ({ info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() }),
 }));
 
 const { selectReplyableThreads, buildVoiceRead, generateWowDrafts } =
-  await import('../../../api/services/onboardingWow.js');
+  await import('../../../api/_app/services/onboardingWow.js');
 
 describe('selectReplyableThreads', () => {
   const fromMaria = { id: 't-maria', subject: 'Lunch?', messages: [{ from: 'Maria <maria@x.com>', fromName: 'Maria', text: 'Free for lunch next week?', date: '2026-07-03' }] };

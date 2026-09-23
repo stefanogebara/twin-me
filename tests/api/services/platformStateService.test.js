@@ -6,7 +6,7 @@ import {
   summarizeBreakdown,
   RETIRED_PLATFORMS,
   STALE_DAYS,
-} from '../../../api/services/platformStateService.js';
+} from '../../../api/_app/services/platformStateService.js';
 
 const NOW = Date.parse('2026-06-10T12:00:00Z');
 const daysAgo = (days) => new Date(NOW - days * 24 * 60 * 60 * 1000).toISOString();

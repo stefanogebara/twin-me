@@ -1,5 +1,5 @@
 /**
- * Error paths of api/routes/presence.js, with presenceStore mocked at its
+ * Error paths of api/_app/routes/presence.js, with presenceStore mocked at its
  * boundary. Each test names a write or read whose failure used to be ignored
  * (or to destroy data) and pins what the route does with it now: fail the
  * request before anything irreversible happens, or log it when the request's
@@ -49,12 +49,12 @@ const { store, log, voiceService, llm } = vi.hoisted(() => {
   };
 });
 
-vi.mock('../../../api/services/presenceStore.js', () => store);
-vi.mock('../../../api/services/logger.js', () => ({ createLogger: () => log }));
-vi.mock('../../../api/services/voiceService.js', () => ({ voiceService }));
-vi.mock('../../../api/services/llmGateway.js', () => ({ complete: llm.complete, TIER_ANALYSIS: 'analysis' }));
+vi.mock('../../../api/_app/services/presenceStore.js', () => store);
+vi.mock('../../../api/_app/services/logger.js', () => ({ createLogger: () => log }));
+vi.mock('../../../api/_app/services/voiceService.js', () => ({ voiceService }));
+vi.mock('../../../api/_app/services/llmGateway.js', () => ({ complete: llm.complete, TIER_ANALYSIS: 'analysis' }));
 // authenticateUser reads email_verified from users; the store is the only other DB client.
-vi.mock('../../../api/services/database.js', () => ({
+vi.mock('../../../api/_app/services/database.js', () => ({
   supabaseAdmin: {
     from: vi.fn(() => ({
       select: vi.fn().mockReturnThis(),
@@ -65,7 +65,7 @@ vi.mock('../../../api/services/database.js', () => ({
   serverDb: {},
 }));
 
-const presenceRoutes = (await import('../../../api/routes/presence.js')).default;
+const presenceRoutes = (await import('../../../api/_app/routes/presence.js')).default;
 
 function createApp() {
   const app = express();

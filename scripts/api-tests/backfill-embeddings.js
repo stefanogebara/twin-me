@@ -5,7 +5,7 @@
  * Processes in batches to avoid rate limits and memory issues.
  *
  * Usage:
- *   cd twin-ai-learn && node api/scripts/backfill-embeddings.js
+ *   cd twin-ai-learn && node api/_app/scripts/backfill-embeddings.js
  *
  * Environment: Requires OPENROUTER_API_KEY or OPENAI_API_KEY in .env
  */

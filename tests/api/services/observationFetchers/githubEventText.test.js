@@ -20,7 +20,7 @@
  * keep the PR number so two different PRs never collapse into one memory.
  */
 import { describe, it, expect } from 'vitest';
-import { describePullRequestEvent } from '../../../../api/services/observationFetchers/githubEventText.js';
+import { describePullRequestEvent } from '../../../../api/_app/services/observationFetchers/githubEventText.js';
 
 /** Shape as the live events API actually returns it — no title, no merged. */
 const livePayload = (number, action, ref) => ({

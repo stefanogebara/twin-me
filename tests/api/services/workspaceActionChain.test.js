@@ -1,5 +1,5 @@
 /**
- * Tests for api/services/workspaceActionChain.js
+ * Tests for api/_app/services/workspaceActionChain.js
  *
  * Focus: the audit-2026-05-29 turn-budget guard. A chained workspace action
  * must NOT start a tool it cannot finish within the 58s SSE turn budget —
@@ -14,20 +14,20 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 // Mock all external deps before importing the module under test.
-vi.mock('../../../api/services/llmGateway.js', () => ({
+vi.mock('../../../api/_app/services/llmGateway.js', () => ({
   complete: vi.fn(),
   stream: vi.fn(),
   TIER_CHAT: 'chat',
 }));
 
-vi.mock('../../../api/services/tools/workspaceActionParser.js', () => ({
+vi.mock('../../../api/_app/services/tools/workspaceActionParser.js', () => ({
   parseActions: vi.fn(),
   executeAction: vi.fn(),
   formatActionResult: vi.fn(),
   stripActionTags: vi.fn((m) => m),
 }));
 
-vi.mock('../../../api/services/logger.js', () => ({
+vi.mock('../../../api/_app/services/logger.js', () => ({
   createLogger: () => ({
     debug: vi.fn(),
     info: vi.fn(),
@@ -37,11 +37,11 @@ vi.mock('../../../api/services/logger.js', () => ({
 }));
 
 const { runWorkspaceActionChain } = await import(
-  '../../../api/services/workspaceActionChain.js'
+  '../../../api/_app/services/workspaceActionChain.js'
 );
-const { complete } = await import('../../../api/services/llmGateway.js');
+const { complete } = await import('../../../api/_app/services/llmGateway.js');
 const { parseActions, executeAction, formatActionResult } = await import(
-  '../../../api/services/tools/workspaceActionParser.js'
+  '../../../api/_app/services/tools/workspaceActionParser.js'
 );
 
 const ACTION = { toolName: 'gmail_search', params: { query: 'invoices' } };

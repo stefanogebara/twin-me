@@ -2,7 +2,7 @@
  * correlationEngine.fetchSpotifyData — enrichment must not destroy primary data.
  *
  * IMPORTERS/CALLERS: fetchSpotifyData is called by the exported
- * analyzeCorrelations (api/services/correlationEngine.js:591); this test
+ * analyzeCorrelations (api/_app/services/correlationEngine.js:591); this test
  * imports it directly via a named export added for testability.
  * AFFECTED API: Spotify GET /v1/me/player/recently-played?limit=50 (primary)
  * and GET /v1/audio-features (enrichment, currently HTTP 403 for this app).
@@ -26,12 +26,12 @@ const { mockAxiosGet, mockGetValidAccessToken } = vi.hoisted(() => ({
 }));
 
 vi.mock('axios', () => ({ default: { get: mockAxiosGet } }));
-vi.mock('../../../api/services/tokenRefreshService.js', () => ({
+vi.mock('../../../api/_app/services/tokenRefreshService.js', () => ({
   getValidAccessToken: mockGetValidAccessToken,
 }));
 
 const { fetchSpotifyData } = await import(
-  '../../../api/services/correlationEngine.js'
+  '../../../api/_app/services/correlationEngine.js'
 );
 
 const USER_ID = '167c27b5-a40b-49fb-8d00-deb1b1c57f4d';

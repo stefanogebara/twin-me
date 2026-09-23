@@ -1,9 +1,9 @@
 /**
- * Tests for api/utils/pagination.js
+ * Tests for api/_app/utils/pagination.js
  * Pure utility — no DB or LLM dependencies.
  */
 import { describe, it, expect } from 'vitest';
-import { parsePagination, buildPaginationMeta, applySupabaseRange } from '../../../api/utils/pagination.js';
+import { parsePagination, buildPaginationMeta, applySupabaseRange } from '../../../api/_app/utils/pagination.js';
 
 describe('parsePagination', () => {
   function makeReq(query = {}) {

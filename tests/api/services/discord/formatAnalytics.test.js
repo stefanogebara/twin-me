@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { formatDiscordSnapshot } from '../../../../api/services/discord/formatAnalytics.js';
+import { formatDiscordSnapshot } from '../../../../api/_app/services/discord/formatAnalytics.js';
 
 describe('formatDiscordSnapshot', () => {
   const baseExtension = {

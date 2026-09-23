@@ -5,23 +5,32 @@
 - **NO EMOJIS** — The user dislikes emojis. Never use them in UI text, twin responses, insight text, or any user-facing content. Use plain text only.
 - **Design**: the register (since 2026-09-12, every page) — Instinct's signed-in app with the Cosmos headings. Warm page #fbfaf9, one warm ink #251f21 at AA-safe strengths (#585254, #6c6867), #eae9ea hairlines, the warm field #f4efec, 13px Geist with weight for hierarchy, Cosmos headings (Geist 300 / 400, never a serif), rows under a 1px ink rule instead of cards, 32px/4px buttons with one ink primary, no uppercase tracked labels, very little text. Contract: /system + src/styles/register.css. Full section below.
 
-## Vercel Cost Rules (CRITICAL — $375 bill incident March 2026)
+## Vercel Cost Rules (CRITICAL: $375 in March 2026, $309 in September 2026)
 
-- **Crons**: NEVER more than */15. Removed token-refresh cron (on-demand only). deliver-insights and prospective-check at */15.
-- **maxDuration**: 60s (was 120s — halves GB-hour cost)
-- **Deploys**: ONE per push (disabled GitHub Action duplicate). Batch commits before pushing.
-- **New crons**: Must justify frequency. Default to hourly or daily, not every-N-minutes.
-- **Builds** (measured 2026-09-22): 600 deployments and **10,596 build minutes** in thirty
-  days. 386 of them were previews of branches nobody opens (preview URLs are SSO-gated),
-  6,770 minutes. `vercel.json`'s `ignoreCommand` now builds **only `main`**, and only when
-  the commit touches something the site serves. Since D21 (2026-09-22) no branch builds a
-  preview at all, not even one touching the money pages; `bisect/*` is the one exception. A Vercel check that reads "skipped" on a
-  pull request is this working; CI is what gates a merge, not the preview.
-- **What a build actually spends** (same measurement): `vite build` finishes in **14.5 s**.
-  The other **17.5 minutes** are Vercel tracing and bundling `api/index.js` into one
-  serverless function, and `googleapis` alone is 186 MB of it. Cutting that is the next
-  lever; see the tracker.
-- **LLM in crons**: Always check cooldowns/conditions BEFORE calling LLM. Early return = free.
+The team-wide rules live in `~/.claude/CLAUDE.md` ("Vercel spend rules") and
+`scripts/ci/vercel-spend-audit.mjs` checks them against the live team. What is specific
+to this repository:
+
+- **One function: `api/index.js`, and everything else under `api/_app/` (D26, 2026-09-23).**
+  Vercel compiles every `.js` directly reachable under `api/` as its own serverless
+  function, each with its own copy of node_modules, and skips anything under a folder whose
+  name starts with an underscore. Zero-config had built all 674 files: 264,398 files and
+  2.5 GB per build, 19 minutes, $0.18 each, $132 in September. With the server under
+  `api/_app/` the same pipeline builds one function of 6,216 files and 59 MB in 23 seconds
+  (measured with `vercel build --prod` locally). Never put a second `.js` directly under
+  `api/`; a new route is a mount in `api/_app/server.js`, reached through the rewrite of
+  `/api/*` to `api/index.js`. The legacy `builds` block was tried first and stalled on
+  Vercel (15 minutes with no output after Vite); it is not the answer.
+- **Only `main` builds** (`scripts/ci/vercel-ignore.sh`, D21), and only when the commit
+  touches something the site serves; `bisect/*` is the one preview exception, for build
+  experiments, and a bisect branch is deleted after. A Vercel check reading "skipped" on a
+  pull request is this working.
+- **Build machine basic, fixed.** `vite build` takes 4 s; nothing here needs more.
+- **maxDuration 60 s** (`functions` in `vercel.json`, and the project default), crons never
+  more often than `*/15` (deliver-insights and prospective-check are at `*/15`; the
+  token-refresh cron was removed), and an LLM call in a cron checks its cooldown first.
+  Runtime cost $4 in September; builds were the bill.
+- **One deploy per push;** batch commits. The GitHub Action duplicate deploy is disabled.
 
 ## Workflow & Task Management
 
@@ -112,7 +121,7 @@ Rules that hold everywhere in money:
   and filters follow `profile.currency` (`setLedgerCurrency`). Conversion is still deliberately
   absent: a row in another currency is refused, never added.
 
-Key money files (`api/services/money/`): `ledger.js` (reconcile), `ingestion.js`
+Key money files (`api/_app/services/money/`): `ledger.js` (reconcile), `ingestion.js`
 (atomic plan/commit), `store.js` (persistence, being split), `projection.js`,
 `calibration.js`, `allowance.js`, `predictions.js` + `figureScoring.js` +
 `figureScoreStore.js` (the loop), `recurring.js`, `spending.js`, `narrative.js` (a bank
@@ -127,7 +136,7 @@ POST /chat/attach). Routes: `routes/money.js`, `routes/cron-money-pull.js` (hour
 bank read yields to the loop at 30 s).
 Repair and evaluation scripts: `scripts/money/` (`merge-duplicate-payments.mjs`,
 `merge-duplicate-accounts.mjs`, `rescore-figures.mjs`, `evaluate-day-forecast.mjs`),
-`scripts/eval/page-eval.mjs`. The Ask benchmark (since 2026-09-23): `tests/api/services/money/chatBench.js`
+`scripts/eval/page-eval.mjs`. The Ask benchmark (since 2026-09-23): `tests/api/_app/services/money/chatBench.js`
 (the questions, statements and sequences in ten dimensions), `scripts/money/chat-bench.mjs` (runs them
 against a local API, checks figures, actions, grounding, speed, asks a grader, undoes what it taught;
 run it under `caffeinate -i`), `scripts/money/chat-bench-report.mjs` (the HTML).
@@ -155,7 +164,7 @@ Measured 2026-09-19: 34 twin-chat memories by 2 users in 30 days, against 3,214
 reflections and 160 proactive insights generated by crons in the same window. The
 machinery runs for nobody; parking it is decision D1 in the tracker. **Since 2026-09-22
 (D20) it is unmounted:** with `LEGACY_TWIN_ENABLED=false` every twin route answers 410
-(`api/middleware/legacyTwin.js`, `LEGACY_TWIN_ROUTES`), and the app parks the twin's
+(`api/_app/middleware/legacyTwin.js`, `LEGACY_TWIN_ROUTES`), and the app parks the twin's
 pages unless `VITE_LEGACY_TWIN_ENABLED=true` (`src/lib/legacyTwin.ts`). What stays is
 what `scripts/ci/staying-roots.txt` reaches; the goal test keeps both lists complete.
 The files are deleted thirty days on (M2-B).
@@ -181,14 +190,14 @@ Gone (delete any reference you find): `neurotransmitterService.js`, `neuropilRou
 - **Backend**: Node.js, Express 5, JWT Auth
 - **Database**: Supabase (PostgreSQL + pgvector) - ONLY active database
 - **AI**: OpenRouter (DeepSeek V3.2 for analysis, Mistral Small for extraction, Claude Sonnet for twin chat)
-- **LLM Gateway**: `api/services/llmGateway.js` - ALL LLM calls route through here
+- **LLM Gateway**: `api/_app/services/llmGateway.js` - ALL LLM calls route through here
 - **Cache**: Redis (ioredis) with in-memory fallback
 - **Auth**: JWT + OAuth 2.0 for platform connections
 - **Analytics**: PostHog
 
 ## Active Platform Integrations (9 OAuth-connectable)
 
-Source of truth: `VALID_PROVIDERS` in `api/routes/oauth-callback.js`. Do not add a
+Source of truth: `VALID_PROVIDERS` in `api/_app/routes/oauth-callback.js`. Do not add a
 platform here without a matching entry there.
 
 1. **Spotify** - Music taste, listening patterns, mood
@@ -206,10 +215,10 @@ Reddit, Twitch, LinkedIn, Slack, TikTok, Strava, Notion, Pinterest, SoundCloud,
 Fitbit, Steam, Apple Music. Their OAuth/live-fetch stacks are gone — existing
 `platform_connections` rows keep their data but are no longer connectable or
 extractable. LinkedIn and Reddit remain available via the GDPR export upload path
-(`api/services/gdpr/parsers/`).
+(`api/_app/services/gdpr/parsers/`).
 
 ## LLM Model Strategy
-All LLM calls route through `llmGateway.js` using the tiers in `api/config/aiModels.js` (single source of truth). Twin chat additionally smart-routes per message via `chatRouter.js`.
+All LLM calls route through `llmGateway.js` using the tiers in `api/_app/config/aiModels.js` (single source of truth). Twin chat additionally smart-routes per message via `chatRouter.js`.
 
 | Tier | Use Case | OpenRouter Model ID | Why |
 |------|----------|---------------------|-----|
@@ -236,11 +245,12 @@ twin-ai-learn/
 │   ├── contexts/           # React Context providers
 │   ├── services/           # API client layer
 │   └── hooks/              # Custom hooks
-├── api/                    # Backend (Express)
-│   ├── routes/             # API endpoints
-│   ├── services/           # Business logic + memory architecture
-│   ├── middleware/          # Auth, rate limiting, validation
-│   └── config/             # AI models, constants
+├── api/                    # index.js is the one serverless function (D26)
+│   └── _app/               # the Express server; the underscore keeps Vercel from compiling it
+│       ├── routes/         # API endpoints
+│       ├── services/       # Business logic
+│       ├── middleware/     # Auth, rate limiting, validation
+│       └── config/         # AI models, constants
 ├── database/               # Supabase migrations
 └── browser-extension/      # Chrome extension
 ```

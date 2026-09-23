@@ -12,7 +12,7 @@ import {
   parseBrlAmount,
   detectNubankVariant,
   parseNubankCsv,
-} from '../../../api/services/transactions/nubankCsvParser.js';
+} from '../../../api/_app/services/transactions/nubankCsvParser.js';
 
 describe('parseBrlAmount', () => {
   it('parses comma-decimal (BR locale): "50,00" -> 50', () => {

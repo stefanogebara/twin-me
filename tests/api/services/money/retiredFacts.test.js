@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 const calls = [];
 let factRow;
-vi.mock('../../../../api/services/database.js', () => {
+vi.mock('../../../../api/_app/services/database.js', () => {
   function builder(table) {
     const b = { _table: table, _op: 'select' };
     for (const m of ['select', 'eq', 'order', 'limit', 'is', 'in', 'gte']) b[m] = () => b;
@@ -14,8 +14,8 @@ vi.mock('../../../../api/services/database.js', () => {
   }
   return { supabaseAdmin: { from: (t) => builder(t) }, serverDb: {} };
 });
-vi.mock('../../../../api/services/logger.js', () => ({ createLogger: () => ({ warn() {}, error() {}, info() {}, debug() {} }) }));
-import { deleteFact } from '../../../../api/services/money/store.js';
+vi.mock('../../../../api/_app/services/logger.js', () => ({ createLogger: () => ({ warn() {}, error() {}, info() {}, debug() {} }) }));
+import { deleteFact } from '../../../../api/_app/services/money/store.js';
 
 beforeEach(() => { calls.length = 0; });
 

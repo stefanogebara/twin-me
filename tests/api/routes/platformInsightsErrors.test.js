@@ -1,5 +1,5 @@
 /**
- * Unit tests for api/routes/platform-insights.js — isTransientInsightsError.
+ * Unit tests for api/_app/routes/platform-insights.js — isTransientInsightsError.
  *
  * audit-2026-06-10 (insights-truth): the GET /:platform catch-all used to
  * report EVERY failure as `generating: true`, forcing the client to poll for
@@ -10,16 +10,16 @@
  */
 import { describe, it, expect, vi } from 'vitest';
 
-// The route's import graph reaches api/config/supabase.js (via
+// The route's import graph reaches api/_app/config/supabase.js (via
 // platformReflectionService), which throws at import time without Supabase env
 // (CI stubs it in ci.yml; a bare checkout has no .env). Stub the module so this
 // pure-function test stays hermetic.
-vi.mock('../../../api/config/supabase.js', () => {
+vi.mock('../../../api/_app/config/supabase.js', () => {
   const stub = { from: () => ({ insert: () => Promise.resolve({ error: null }) }) };
   return { supabase: stub, supabaseAdmin: stub, default: stub };
 });
 
-const { isTransientInsightsError } = await import('../../../api/routes/platform-insights.js');
+const { isTransientInsightsError } = await import('../../../api/_app/routes/platform-insights.js');
 
 describe('isTransientInsightsError', () => {
   it('classifies withTimeout deadline errors as transient', () => {

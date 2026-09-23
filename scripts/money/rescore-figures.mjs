@@ -13,11 +13,11 @@
  *   node --env-file=.env scripts/money/rescore-figures.mjs --user <uuid>
  *   node --env-file=.env scripts/money/rescore-figures.mjs --user <uuid> --apply
  */
-import { scoreOne } from '../../api/services/money/predictions.js';
-import { spendingRule } from '../../api/services/money/spending.js';
-import { listTransactions, listFacts } from '../../api/services/money/store.js';
-import { calibrate } from '../../api/services/money/calibration.js';
-import { supabaseAdmin } from '../../api/services/database.js';
+import { scoreOne } from '../../api/_app/services/money/predictions.js';
+import { spendingRule } from '../../api/_app/services/money/spending.js';
+import { listTransactions, listFacts } from '../../api/_app/services/money/store.js';
+import { calibrate } from '../../api/_app/services/money/calibration.js';
+import { supabaseAdmin } from '../../api/_app/services/database.js';
 
 const arg = (name) => {
   const at = process.argv.indexOf(`--${name}`);
@@ -29,7 +29,7 @@ if (!USER) { console.error('Need --user <uuid>.'); process.exit(1); }
 
 const now = new Date();
 if (APPLY) {
-  const { currentFigureScores } = await import('../../api/services/money/figureScoreStore.js');
+  const { currentFigureScores } = await import('../../api/_app/services/money/figureScoreStore.js');
   const result = await currentFigureScores(USER);
   console.log(`${result.changed} outcomes reconciled at evidence revision ${result.revision}.`);
   process.exit(0);

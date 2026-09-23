@@ -20,21 +20,21 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 const mockGetAvailableTools = vi.fn();
 
-vi.mock('../../../api/services/toolRegistry.js', () => ({
+vi.mock('../../../api/_app/services/toolRegistry.js', () => ({
   getAvailableTools: (...args) => mockGetAvailableTools(...args),
   executeTool: vi.fn(),
 }));
 
 // logAgentAction is imported at module top but only used by executeAction,
 // not buildWorkspaceActionsPrompt. Stub it so the import is side-effect-free.
-vi.mock('../../../api/services/autonomyService.js', () => ({
+vi.mock('../../../api/_app/services/autonomyService.js', () => ({
   logAgentAction: vi.fn(),
 }));
 
 // buildWorkspaceActionsPrompt does a dynamic import of database.js for the
 // user's timezone, wrapped in try/catch. Mock it so the lookup is
 // deterministic instead of relying on the catch fallback.
-vi.mock('../../../api/services/database.js', () => ({
+vi.mock('../../../api/_app/services/database.js', () => ({
   supabaseAdmin: {
     from: vi.fn(() => ({
       select: vi.fn().mockReturnThis(),
@@ -45,7 +45,7 @@ vi.mock('../../../api/services/database.js', () => ({
 }));
 
 const { buildWorkspaceActionsPrompt } = await import(
-  '../../../api/services/tools/workspaceActionParser.js'
+  '../../../api/_app/services/tools/workspaceActionParser.js'
 );
 
 // Realistic tool shapes — names MUST be in ALL_ACTION_TOOL_NAMES
@@ -180,8 +180,8 @@ describe('buildWorkspaceActionsPrompt — get_meeting_prep wiring (audit-2026-05
  * future tool is added without a paired example, these tests fail and
  * surface the drift before it ships.
  */
-import { EXTENDED_TOOL_NAMES } from '../../../api/services/tools/extendedTools.js';
-import { GOOGLE_WORKSPACE_TOOL_NAMES } from '../../../api/services/tools/googleWorkspaceTools.js';
+import { EXTENDED_TOOL_NAMES } from '../../../api/_app/services/tools/extendedTools.js';
+import { GOOGLE_WORKSPACE_TOOL_NAMES } from '../../../api/_app/services/tools/googleWorkspaceTools.js';
 
 const ALL_TOOLS = [
   ...MEETING_TOOLS,

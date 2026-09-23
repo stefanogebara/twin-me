@@ -25,7 +25,7 @@ const state = vi.hoisted(() => ({
   upserts: [], // captured .upsert() payloads
 }));
 
-vi.mock('../../../api/services/database.js', () => {
+vi.mock('../../../api/_app/services/database.js', () => {
   function makeBuilder() {
     const builder = {
       _isBoostQuery: false,
@@ -53,14 +53,14 @@ vi.mock('../../../twin-research/twin-config.js', () => ({
   STDP_CORETRIEVAL_BOOST: 0.05,
 }));
 
-vi.mock('../../../api/services/logger.js', () => ({
+vi.mock('../../../api/_app/services/logger.js', () => ({
   createLogger: () => ({ info() {}, warn() {}, error() {} }),
 }));
 
 import {
   strengthenCoCitedLinks,
   getCoCitationBoosts,
-} from '../../../api/services/memoryLinksService.js';
+} from '../../../api/_app/services/memoryLinksService.js';
 
 beforeEach(() => {
   state.existingLink = null;

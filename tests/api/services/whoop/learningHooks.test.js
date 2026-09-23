@@ -14,20 +14,20 @@ const supabaseChain = {
 };
 const addReflectionMock = vi.fn();
 
-vi.mock('../../../../api/services/database.js', () => ({
+vi.mock('../../../../api/_app/services/database.js', () => ({
   supabaseAdmin: supabaseChain,
 }));
-vi.mock('../../../../api/services/memoryStreamService.js', () => ({
+vi.mock('../../../../api/_app/services/memoryStreamService.js', () => ({
   addReflection: addReflectionMock,
 }));
-vi.mock('../../../../api/services/logger.js', () => ({
+vi.mock('../../../../api/_app/services/logger.js', () => ({
   createLogger: () => ({ debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn() }),
 }));
 
 const {
   persistTrendAnomalyInsight,
   persistWeeklyReflection,
-} = await import('../../../../api/services/whoop/learningHooks.js');
+} = await import('../../../../api/_app/services/whoop/learningHooks.js');
 
 const USER = '167c27b5-a40b-49fb-8d00-deb1b1c57f4d';
 

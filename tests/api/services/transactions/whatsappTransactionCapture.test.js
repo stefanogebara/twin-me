@@ -1,5 +1,5 @@
 /**
- * Unit tests for api/services/transactions/whatsappTransactionCapture.js
+ * Unit tests for api/_app/services/transactions/whatsappTransactionCapture.js
  * =======================================================================
  * The Magie-lite WhatsApp capture pipeline (replan-2026-06-12). Contract under
  * test:
@@ -26,19 +26,19 @@ process.env.NODE_ENV = 'test';
 
 // ── Mocks ────────────────────────────────────────────────────────────────────
 const completeMock = vi.fn();
-vi.mock('../../../../api/services/llmGateway.js', () => ({
+vi.mock('../../../../api/_app/services/llmGateway.js', () => ({
   complete: (...a) => completeMock(...a),
   TIER_EXTRACTION: 'extraction',
   TIER_VISION: 'vision',
 }));
 
 const detectRecurringMock = vi.fn().mockResolvedValue(undefined);
-vi.mock('../../../../api/services/transactions/recurrenceDetector.js', () => ({
+vi.mock('../../../../api/_app/services/transactions/recurrenceDetector.js', () => ({
   detectAndMarkRecurring: (...a) => detectRecurringMock(...a),
 }));
 
 const tagBatchMock = vi.fn().mockResolvedValue({ tagged: 1, errors: 0 });
-vi.mock('../../../../api/services/transactions/transactionEmotionTagger.js', () => ({
+vi.mock('../../../../api/_app/services/transactions/transactionEmotionTagger.js', () => ({
   tagTransactionsBatch: (...a) => tagBatchMock(...a),
 }));
 
@@ -60,7 +60,7 @@ function makeBuilder(table) {
   };
   return builder;
 }
-vi.mock('../../../../api/services/database.js', () => ({
+vi.mock('../../../../api/_app/services/database.js', () => ({
   supabaseAdmin: { from: vi.fn((table) => makeBuilder(table)) },
 }));
 
@@ -73,7 +73,7 @@ const {
   buildConfirmationMessage,
   TEXT_DAILY_CAP,
   IMAGE_DAILY_CAP,
-} = await import('../../../../api/services/transactions/whatsappTransactionCapture.js');
+} = await import('../../../../api/_app/services/transactions/whatsappTransactionCapture.js');
 
 beforeEach(() => {
   vi.clearAllMocks();

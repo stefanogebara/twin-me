@@ -18,7 +18,7 @@ import dotenv from 'dotenv';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { createClient } from '@supabase/supabase-js';
-import { normalizeMerchant } from '../api/services/transactions/merchantNormalizer.js';
+import { normalizeMerchant } from '../api/_app/services/transactions/merchantNormalizer.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 dotenv.config({ path: path.resolve(__dirname, '../.env.production') });

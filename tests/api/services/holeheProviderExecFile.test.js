@@ -21,12 +21,12 @@ vi.mock('node:child_process', () => ({
   execFile: (...args) => execFileMock(...args),
 }));
 
-vi.mock('../../../api/services/logger.js', () => ({
+vi.mock('../../../api/_app/services/logger.js', () => ({
   createLogger: () => ({ info: vi.fn(), warn: vi.fn(), error: vi.fn() }),
 }));
 
 const { discoverPlatforms } = await import(
-  '../../../api/services/enrichment/holeheProvider.js'
+  '../../../api/_app/services/enrichment/holeheProvider.js'
 );
 
 /** Make execFileMock succeed on the FIRST (CLI) call with the given stdout. */

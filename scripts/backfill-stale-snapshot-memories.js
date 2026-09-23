@@ -52,7 +52,7 @@ import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
 import { createClient } from '@supabase/supabase-js';
-import { isSnapshotMetric, stripDigitsForDedup, SNAPSHOT_METRIC_SCORE } from '../api/services/snapshotMetrics.js';
+import { isSnapshotMetric, stripDigitsForDedup, SNAPSHOT_METRIC_SCORE } from '../api/_app/services/snapshotMetrics.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 // .env.production is the convention for backfills here, but plain .env is what

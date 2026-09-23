@@ -5,16 +5,16 @@
 import { describe, expect, it, vi } from 'vitest';
 
 const f = vi.hoisted(() => ({ sources: vi.fn(), forecast: vi.fn(), months: vi.fn(), today: vi.fn(), ledger: vi.fn(), recurring: vi.fn(), readings: vi.fn(), categories: vi.fn(), usage: vi.fn(), accounts: vi.fn(), reconnect: vi.fn(), cards: vi.fn(), inbox: vi.fn(), facts: vi.fn(), seen: vi.fn() }));
-vi.mock('../../../../api/services/money/forecastService.js', () => ({ forecast: f.forecast, months: f.months }));
-vi.mock('../../../../api/services/money/allowanceService.js', () => ({ todayAllowance: f.today }));
-vi.mock('../../../../api/services/money/transactionRepository.js', async (importOriginal) => ({ ...(await importOriginal()), listTransactions: f.ledger }));
-vi.mock('../../../../api/services/money/factsRepository.js', async (importOriginal) => ({ ...(await importOriginal()), listFacts: f.facts }));
-vi.mock('../../../../api/services/money/seen.js', () => ({ seenBy: f.seen, sourceCounts: f.sources }));
-vi.mock('../../../../api/services/money/store.js', () => ({ inPersonScope: (id, fn) => fn(), personProfileCached: async () => ({ timezone: 'Europe/Madrid', country: 'ES', currency: 'EUR', language: null }),  refreshRecurring: f.recurring, listBankAccounts: f.accounts, reconnectByAccount: f.reconnect, listReadings: f.readings, categorySpend: f.categories, subscriptionUsage: f.usage }));
-vi.mock('../../../../api/services/money/instruments.js', () => ({ accountsWithCards: f.cards }));
-vi.mock('../../../../api/services/money/betaCapabilities.js', () => ({ capabilitiesFor: async () => ({ bank: true, capture: false }) }));
-vi.mock('../../../../api/services/money/inbox.js', () => ({ inboxAddress: f.inbox, inboxDomain: () => 'in.twinme.me', isInboxConfigured: () => true }));
-import { readPage, accountsView } from '../../../../api/services/money/pageRead.js';
+vi.mock('../../../../api/_app/services/money/forecastService.js', () => ({ forecast: f.forecast, months: f.months }));
+vi.mock('../../../../api/_app/services/money/allowanceService.js', () => ({ todayAllowance: f.today }));
+vi.mock('../../../../api/_app/services/money/transactionRepository.js', async (importOriginal) => ({ ...(await importOriginal()), listTransactions: f.ledger }));
+vi.mock('../../../../api/_app/services/money/factsRepository.js', async (importOriginal) => ({ ...(await importOriginal()), listFacts: f.facts }));
+vi.mock('../../../../api/_app/services/money/seen.js', () => ({ seenBy: f.seen, sourceCounts: f.sources }));
+vi.mock('../../../../api/_app/services/money/store.js', () => ({ inPersonScope: (id, fn) => fn(), personProfileCached: async () => ({ timezone: 'Europe/Madrid', country: 'ES', currency: 'EUR', language: null }),  refreshRecurring: f.recurring, listBankAccounts: f.accounts, reconnectByAccount: f.reconnect, listReadings: f.readings, categorySpend: f.categories, subscriptionUsage: f.usage }));
+vi.mock('../../../../api/_app/services/money/instruments.js', () => ({ accountsWithCards: f.cards }));
+vi.mock('../../../../api/_app/services/money/betaCapabilities.js', () => ({ capabilitiesFor: async () => ({ bank: true, capture: false }) }));
+vi.mock('../../../../api/_app/services/money/inbox.js', () => ({ inboxAddress: f.inbox, inboxDomain: () => 'in.twinme.me', isInboxConfigured: () => true }));
+import { readPage, accountsView } from '../../../../api/_app/services/money/pageRead.js';
 
 const owner = '00000000-0000-4000-8000-000000000001';
 function happy() {

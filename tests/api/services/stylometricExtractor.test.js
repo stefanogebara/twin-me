@@ -12,7 +12,7 @@ import { describe, it, expect } from 'vitest';
 import {
   computeFeatures,
   generateFacts,
-} from '../../../api/services/chatHistory/stylometricExtractor.js';
+} from '../../../api/_app/services/chatHistory/stylometricExtractor.js';
 
 /** Build the { msg, ts } shape computeFeatures expects. */
 const M = (arr) => arr.map((msg) => ({ msg, ts: new Date() }));

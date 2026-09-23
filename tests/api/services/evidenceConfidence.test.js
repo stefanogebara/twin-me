@@ -22,9 +22,9 @@ const {
   computeEvidenceConfidence,
   buildEvidenceHedgeBlock,
   EVIDENCE_LEVELS,
-} = await import('../../../api/services/evidenceConfidenceService.js');
+} = await import('../../../api/_app/services/evidenceConfidenceService.js');
 const { buildAdditionalContext } = await import(
-  '../../../api/services/twinAdditionalContext.js'
+  '../../../api/_app/services/twinAdditionalContext.js'
 );
 
 const NOW = new Date('2026-08-02T12:00:00Z');

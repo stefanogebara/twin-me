@@ -6,9 +6,9 @@
  * 16 of 17 and answers at 100% agreed 6 of 6. The floor is what makes this safe.
  */
 import { describe, it, expect, vi } from 'vitest';
-vi.mock('../../../../api/services/logger.js', () => ({ createLogger: () => ({ warn() {}, info() {}, error() {}, debug() {} }) }));
+vi.mock('../../../../api/_app/services/logger.js', () => ({ createLogger: () => ({ warn() {}, info() {}, error() {}, debug() {} }) }));
 
-const { placeQuestion, acceptedCategory, judgePlace, shouldJudge, ACCEPT_AT, JUDGE_CATEGORIES, JUDGE_URL } = await import('../../../../api/services/money/judge.js');
+const { placeQuestion, acceptedCategory, judgePlace, shouldJudge, ACCEPT_AT, JUDGE_CATEGORIES, JUDGE_URL } = await import('../../../../api/_app/services/money/judge.js');
 
 const answer = (choice, p) => ({ kind: { type: 'choice', choice, probabilities: { [choice]: p } } });
 const ok = (body) => vi.fn(async () => ({ ok: true, status: 200, json: async () => body }));

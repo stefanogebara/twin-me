@@ -19,7 +19,7 @@
  * Fake timers make the timeout paths deterministic.
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { raceContextFanout } from '../../../api/services/contextFanout.js';
+import { raceContextFanout } from '../../../api/_app/services/contextFanout.js';
 
 const never = () => new Promise(() => {}); // a leg that never settles
 const legTimeout = (label) => Promise.reject(new Error(`${label}_leg_timeout`));

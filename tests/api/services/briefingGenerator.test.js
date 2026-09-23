@@ -1,5 +1,5 @@
 /**
- * Tests for api/services/enrichment/briefingGenerator.js
+ * Tests for api/_app/services/enrichment/briefingGenerator.js
  *
  * Tests the pure helper functions directly and the main
  * generateOnboardingBriefing function with mocked LLM.
@@ -7,12 +7,12 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 // We need to mock llmGateway before importing the module
-vi.mock('../../../api/services/llmGateway.js', () => ({
+vi.mock('../../../api/_app/services/llmGateway.js', () => ({
   complete: vi.fn(),
   TIER_ANALYSIS: 'analysis',
 }));
 
-vi.mock('../../../api/services/logger.js', () => ({
+vi.mock('../../../api/_app/services/logger.js', () => ({
   createLogger: () => ({
     info: vi.fn(),
     warn: vi.fn(),
@@ -22,9 +22,9 @@ vi.mock('../../../api/services/logger.js', () => ({
 
 // Now import after mocks are set up
 const { generateOnboardingBriefing } = await import(
-  '../../../api/services/enrichment/briefingGenerator.js'
+  '../../../api/_app/services/enrichment/briefingGenerator.js'
 );
-const { complete } = await import('../../../api/services/llmGateway.js');
+const { complete } = await import('../../../api/_app/services/llmGateway.js');
 
 // ============================================================================
 // Rich test data (developer profile — like stefanogebara@gmail.com)

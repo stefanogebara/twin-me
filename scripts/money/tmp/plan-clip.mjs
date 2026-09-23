@@ -1,0 +1,32 @@
+import { chromium } from 'playwright';
+import { createClient } from '@supabase/supabase-js';
+import crypto from 'node:crypto';
+import dotenv from 'dotenv'; dotenv.config({ path: '.env', quiet: true });
+const API = 'https://twin-ai-learn.vercel.app'; const OUT = process.env.OUT;
+const sb = createClient(process.env.VITE_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
+const raw = crypto.randomBytes(32).toString('hex');
+await sb.from('magic_link_tokens').insert({ token_hash: crypto.createHash('sha256').update(raw).digest('hex'), email: 'stefanogebara@gmail.com', expires_at: new Date(Date.now() + 600000).toISOString() });
+const r = await fetch(`${API}/api/auth/magic-link/verify?token=${raw}`, { redirect: 'manual' });
+const cookie = (r.headers.get('set-cookie') || '').split(';')[0];
+const { accessToken } = await (await fetch(`${API}/api/auth/refresh`, { method: 'POST', headers: { cookie } })).json();
+const browser = await chromium.launch({ channel: 'chrome' });
+const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 } });
+await ctx.addInitScript((t) => { try { sessionStorage.setItem('oauth_bootstrap_token', t); for (const k of ['money.skip.phone','money.skip.banks','money.skip.places']) localStorage.setItem(k, '1'); } catch {} }, accessToken);
+const page = await ctx.newPage();
+await page.goto(`${API}/money/plan`, { waitUntil: 'domcontentloaded' });
+await page.waitForTimeout(11000);
+const grid = page.locator('.mv-plan');
+await grid.screenshot({ path: `${OUT}/prod-plan-grid.png` });
+console.log(JSON.stringify(await page.evaluate(() => {
+  const g = document.querySelector('.mv-plan');
+  const gb = g.getBoundingClientRect();
+  const cells = [...g.querySelectorAll('.mv-plan-day')];
+  const last = cells.slice(-3).map((c) => {
+    const b = c.getBoundingClientRect();
+    const bar = c.querySelector('.mv-plan-bar');
+    const br = bar ? bar.getBoundingClientRect() : null;
+    return { day: c.querySelector('.mv-plan-dom')?.textContent || c.innerText.split('\n')[0], cellBottom: Math.round(b.bottom - gb.top), barBottom: br ? Math.round(br.bottom - gb.top) : null, barH: br ? Math.round(br.height) : null, overflow: br ? Math.round(br.bottom - gb.bottom) : null };
+  });
+  return { gridH: Math.round(gb.height), overflowStyle: getComputedStyle(g).overflow, last };
+}), null, 1));
+await browser.close(); process.exit(0);

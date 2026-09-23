@@ -14,15 +14,15 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 const mockLogConversationToDatabase = vi.fn();
 const mockAddConversationMemoryStream = vi.fn().mockResolvedValue(undefined);
 
-vi.mock('../../../api/services/conversationLearning.js', () => ({
+vi.mock('../../../api/_app/services/conversationLearning.js', () => ({
   logConversationToDatabase: (...args) => mockLogConversationToDatabase(...args),
 }));
 
-vi.mock('../../../api/services/memoryStreamService.js', () => ({
+vi.mock('../../../api/_app/services/memoryStreamService.js', () => ({
   addConversationMemory: (...args) => mockAddConversationMemoryStream(...args),
 }));
 
-vi.mock('../../../api/services/database.js', () => {
+vi.mock('../../../api/_app/services/database.js', () => {
   // Minimal chainable mock so attachLzScoreToLastMessage / twin_messages
   // inserts don't blow up. They are fire-and-forget so we return real
   // resolved Promises whenever the production code calls .then(...).catch(...).
@@ -41,12 +41,12 @@ vi.mock('../../../api/services/database.js', () => {
   };
 });
 
-vi.mock('../../../api/utils/lzComplexity.js', () => ({
+vi.mock('../../../api/_app/utils/lzComplexity.js', () => ({
   lzComplexity: () => 0.5,
 }));
 
 const { persistChatTurn } = await import(
-  '../../../api/services/twinChatPersistence.js'
+  '../../../api/_app/services/twinChatPersistence.js'
 );
 
 const TEST_USER = '167c27b5-a40b-49fb-8d00-deb1b1c57f4d';

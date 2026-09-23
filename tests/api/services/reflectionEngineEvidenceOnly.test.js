@@ -15,16 +15,16 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 process.env.NODE_ENV = 'test';
 
-vi.mock('../../../api/services/llmGateway.js', () => ({
+vi.mock('../../../api/_app/services/llmGateway.js', () => ({
   complete: vi.fn(),
   TIER_ANALYSIS: 'analysis',
 }));
-vi.mock('../../../api/services/redisClient.js', () => ({
+vi.mock('../../../api/_app/services/redisClient.js', () => ({
   get: vi.fn().mockResolvedValue(null),
   set: vi.fn().mockResolvedValue(undefined),
   del: vi.fn().mockResolvedValue(undefined),
 }));
-vi.mock('../../../api/services/memoryStreamService.js', () => ({
+vi.mock('../../../api/_app/services/memoryStreamService.js', () => ({
   getRecentMemories: vi.fn().mockResolvedValue([]),
   retrieveMemories: vi.fn().mockResolvedValue([]),
   addReflection: vi.fn().mockResolvedValue(null),
@@ -32,27 +32,27 @@ vi.mock('../../../api/services/memoryStreamService.js', () => ({
   decaySourceMemories: vi.fn().mockResolvedValue(undefined),
   getMemoryStats: vi.fn().mockResolvedValue(null),
 }));
-vi.mock('../../../api/services/identityContextService.js', () => ({
+vi.mock('../../../api/_app/services/identityContextService.js', () => ({
   inferIdentityContext: vi.fn().mockResolvedValue({ promptFragment: null }),
 }));
-vi.mock('../../../api/services/database.js', () => ({
+vi.mock('../../../api/_app/services/database.js', () => ({
   supabaseAdmin: { from: vi.fn() },
 }));
-vi.mock('../../../api/services/embeddingService.js', () => ({
+vi.mock('../../../api/_app/services/embeddingService.js', () => ({
   generateEmbedding: vi.fn(),
 }));
-vi.mock('../../../api/services/memoryLinksService.js', () => ({
+vi.mock('../../../api/_app/services/memoryLinksService.js', () => ({
   autoLinkMemory: vi.fn().mockResolvedValue(undefined),
 }));
-vi.mock('../../../api/services/logger.js', () => ({
+vi.mock('../../../api/_app/services/logger.js', () => ({
   createLogger: () => ({ info: vi.fn(), warn: vi.fn(), error: vi.fn() }),
 }));
 
 const { getRecentMemories } = await import(
-  '../../../api/services/memoryStreamService.js'
+  '../../../api/_app/services/memoryStreamService.js'
 );
 const { generateReflections } = await import(
-  '../../../api/services/reflectionEngine.js'
+  '../../../api/_app/services/reflectionEngine.js'
 );
 
 beforeEach(() => {

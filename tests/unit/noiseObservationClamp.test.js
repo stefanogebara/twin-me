@@ -20,14 +20,14 @@
  */
 import { describe, it, expect, vi } from 'vitest';
 
-vi.mock('../../api/services/database.js', () => ({
+vi.mock('../../api/_app/services/database.js', () => ({
   supabaseAdmin: { from: vi.fn(), rpc: vi.fn() },
 }));
-vi.mock('../../api/services/embeddingService.js', () => ({
+vi.mock('../../api/_app/services/embeddingService.js', () => ({
   generateEmbedding: vi.fn().mockResolvedValue(new Array(1536).fill(0)),
   vectorToString: vi.fn().mockReturnValue('[0,0,0]'),
 }));
-vi.mock('../../api/services/llmGateway.js', () => ({
+vi.mock('../../api/_app/services/llmGateway.js', () => ({
   complete: vi.fn().mockResolvedValue({ content: '5' }),
   stream: vi.fn(),
   TIER_CHAT: 'chat',
@@ -39,7 +39,7 @@ process.env.SUPABASE_URL = 'http://localhost';
 process.env.SUPABASE_SERVICE_ROLE_KEY = 'test-key';
 
 const { clampNoiseObservation, applyImportanceFloor } =
-  await import('../../api/services/memoryStreamService.js');
+  await import('../../api/_app/services/memoryStreamService.js');
 
 describe('clampNoiseObservation', () => {
   describe('branch creation (cap 3)', () => {

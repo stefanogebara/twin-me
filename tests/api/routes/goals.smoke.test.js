@@ -1,5 +1,5 @@
 /**
- * Smoke tests for api/routes/goals.js
+ * Smoke tests for api/_app/routes/goals.js
  * Covers: auth guard, invalid filter, valid list response, 500 on downstream failure.
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
@@ -22,7 +22,7 @@ const createManualGoalMock = vi.fn();
 const completeGoalMock = vi.fn();
 const getGoalSummaryMock = vi.fn();
 
-vi.mock('../../../api/services/goalTrackingService.js', () => ({
+vi.mock('../../../api/_app/services/goalTrackingService.js', () => ({
   getUserGoals: (...a) => getUserGoalsMock(...a),
   getGoalWithProgress: (...a) => getGoalWithProgressMock(...a),
   acceptGoal: (...a) => acceptGoalMock(...a),
@@ -33,7 +33,7 @@ vi.mock('../../../api/services/goalTrackingService.js', () => ({
   getGoalSummary: (...a) => getGoalSummaryMock(...a),
 }));
 
-vi.mock('../../../api/services/database.js', () => ({
+vi.mock('../../../api/_app/services/database.js', () => ({
   supabaseAdmin: {
     from: vi.fn(() => ({
       select: vi.fn().mockReturnThis(),
@@ -47,7 +47,7 @@ vi.mock('../../../api/services/database.js', () => ({
 const TEST_USER = '167c27b5-a40b-49fb-8d00-deb1b1c57f4d';
 const signToken = () => jwt.sign({ id: TEST_USER }, 'test-secret', { expiresIn: '1h' });
 
-const goalsRoutes = (await import('../../../api/routes/goals.js')).default;
+const goalsRoutes = (await import('../../../api/_app/routes/goals.js')).default;
 
 function createApp() {
   const app = express();

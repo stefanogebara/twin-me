@@ -3,7 +3,7 @@
  * 2016.
  *
  * IMPORTERS/CALLERS: exercises fetchYouTubeObservations in
- * api/services/observationFetchers/youtube.js, registered in PLATFORM_FETCHERS
+ * api/_app/services/observationFetchers/youtube.js, registered in PLATFORM_FETCHERS
  * and driven by /api/cron/ingest-observations.
  * AFFECTED API: YouTube Data API v3 `activities` (dead for watch history),
  * plus `subscriptions` and `videos?myRating=like` which both still work.
@@ -31,10 +31,10 @@ const { mockAxiosGet, mockGetValidAccessToken, mockGetSupabase } = vi.hoisted(()
 }));
 
 vi.mock('axios', () => ({ default: { get: mockAxiosGet } }));
-vi.mock('../../../../api/services/tokenRefreshService.js', () => ({
+vi.mock('../../../../api/_app/services/tokenRefreshService.js', () => ({
   getValidAccessToken: mockGetValidAccessToken,
 }));
-vi.mock('../../../../api/services/observationUtils.js', () => ({
+vi.mock('../../../../api/_app/services/observationUtils.js', () => ({
   getSupabase: mockGetSupabase,
   _hasNangoMapping: vi.fn(async () => false),
   sanitizeExternal: (value, max) =>
@@ -42,7 +42,7 @@ vi.mock('../../../../api/services/observationUtils.js', () => ({
 }));
 
 const { default: fetchYouTubeObservations } = await import(
-  '../../../../api/services/observationFetchers/youtube.js'
+  '../../../../api/_app/services/observationFetchers/youtube.js'
 );
 
 const USER_ID = '167c27b5-a40b-49fb-8d00-deb1b1c57f4d';

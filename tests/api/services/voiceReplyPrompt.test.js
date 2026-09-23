@@ -6,7 +6,7 @@
  * pinned directly. voiceReplyService wires the real collaborators around it.
  */
 import { describe, it, expect } from 'vitest';
-import { buildVoiceReplyPrompt, parseDraftResponse } from '../../../api/services/voiceReplyPrompt.js';
+import { buildVoiceReplyPrompt, parseDraftResponse } from '../../../api/_app/services/voiceReplyPrompt.js';
 
 const baseCtx = () => ({
   counterpart: { name: 'Maria' },

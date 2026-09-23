@@ -7,8 +7,8 @@
  * Processes in batches of 50 to respect API rate limits.
  *
  * Usage:
- *   node api/scripts/backfillMemoryEmbeddings.js
- *   node api/scripts/backfillMemoryEmbeddings.js --seed-reflections
+ *   node api/_app/scripts/backfillMemoryEmbeddings.js
+ *   node api/_app/scripts/backfillMemoryEmbeddings.js --seed-reflections
  */
 
 import dotenv from 'dotenv';

@@ -6,7 +6,7 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { parseZapiMessage } from '../../../api/services/zapiParse.js';
+import { parseZapiMessage } from '../../../api/_app/services/zapiParse.js';
 
 describe('parseZapiMessage', () => {
   it('parses a received text message', () => {

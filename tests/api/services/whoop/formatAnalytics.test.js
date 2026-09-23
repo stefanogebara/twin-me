@@ -10,7 +10,7 @@ import {
   formatCompare,
   formatWeekly,
   formatWorkouts,
-} from '../../../../api/services/whoop/formatAnalytics.js';
+} from '../../../../api/_app/services/whoop/formatAnalytics.js';
 
 describe('formatTrend', () => {
   const baseTrend = {

@@ -14,7 +14,7 @@
 import 'dotenv/config';
 import fs from 'node:fs';
 import path from 'node:path';
-import { ingestChatHistory } from '../api/services/chatHistory/chatHistoryIngestion.js';
+import { ingestChatHistory } from '../api/_app/services/chatHistory/chatHistoryIngestion.js';
 
 const USER_ID = process.env.IMPORT_USER_ID || '167c27b5-a40b-49fb-8d00-deb1b1c57f4d';
 const OWNER_NAME = process.env.IMPORT_OWNER_NAME || 'Stefano Gebara';

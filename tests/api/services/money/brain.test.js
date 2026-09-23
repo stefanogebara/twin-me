@@ -12,7 +12,7 @@ import { describe, it, expect } from 'vitest';
 import {
   merchantProfile, learnMerchants, predictNext, learnPatterns, describeForTwin, gapDistribution, gapCdf, chanceAround,
   MAX_PATTERNS, MAX_PREDICTIONS, MAX_TWIN_LINES,
-} from '../../../../api/services/money/brain.js';
+} from '../../../../api/_app/services/money/brain.js';
 
 /* es-ES currency puts a non-breaking space before the euro sign; read sentences plainly. */
 const plain = (s) => String(s).replace(/\u00a0/g, ' ');

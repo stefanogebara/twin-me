@@ -7,12 +7,12 @@
  */
 import { describe, it, expect, vi } from 'vitest';
 
-vi.mock('../../../api/services/logger.js', () => ({
+vi.mock('../../../api/_app/services/logger.js', () => ({
   createLogger: () => ({ info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() }),
 }));
 
 const { buildLearningSignal, learnFromResolution } =
-  await import('../../../api/services/voiceReplyLearning.js');
+  await import('../../../api/_app/services/voiceReplyLearning.js');
 
 describe('buildLearningSignal', () => {
   it('turns a reject-with-reason into (draft, reason)', () => {

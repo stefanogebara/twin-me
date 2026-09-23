@@ -19,7 +19,7 @@ process.env.ENCRYPTION_KEY = TEST_KEY;
 let encryptToken, decryptToken, testEncryption, encryptState, decryptState;
 
 beforeAll(async () => {
-  const mod = await import('../../../api/services/encryption.js');
+  const mod = await import('../../../api/_app/services/encryption.js');
   ({ encryptToken, decryptToken, testEncryption, encryptState, decryptState } = mod);
 });
 

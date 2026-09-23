@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { detectLinkedInIntent } from '../../../../api/services/linkedin/detectIntent.js';
+import { detectLinkedInIntent } from '../../../../api/_app/services/linkedin/detectIntent.js';
 
 describe('detectLinkedInIntent', () => {
   it('returns null for empty / unrelated', () => {

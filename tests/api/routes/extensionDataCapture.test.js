@@ -1,5 +1,5 @@
 /**
- * Pin tests for POST /api/extension/capture/:platform (api/routes/extension-data.js).
+ * Pin tests for POST /api/extension/capture/:platform (api/_app/routes/extension-data.js).
  *
  * Context (lint audit 2026-07-02): the route file carried two duplicate-key
  * lint errors — 'capture' appeared twice in the mapEventType mapping object,
@@ -28,7 +28,7 @@ const { insertMock, singleMock, ingestWebObservationsMock } = vi.hoisted(() => (
   ingestWebObservationsMock: vi.fn(),
 }));
 
-vi.mock('../../../api/config/supabase.js', () => {
+vi.mock('../../../api/_app/config/supabase.js', () => {
   const builder = {
     insert: (...args) => {
       insertMock(...args);
@@ -44,16 +44,16 @@ vi.mock('../../../api/config/supabase.js', () => {
   };
 });
 
-vi.mock('../../../api/services/observationIngestion.js', () => ({
+vi.mock('../../../api/_app/services/observationIngestion.js', () => ({
   ingestWebObservations: (...a) => ingestWebObservationsMock(...a),
 }));
 
 // auth middleware's email-verification check dynamically imports services/database.js
-/* The captures are written through api/services/extension/extensionStore.js, which reads the
+/* The captures are written through api/_app/services/extension/extensionStore.js, which reads the
    client from services/database.js (M2-D, 2026-09-22); the auth middleware reads the same
    module for its users lookup. One builder answers both: a users read says the person is
    verified, and anything else records the insert and answers through singleMock. */
-vi.mock('../../../api/services/database.js', () => {
+vi.mock('../../../api/_app/services/database.js', () => {
   const builderFor = (table) => {
     const b = {
       insert: (...args) => { insertMock(...args); return b; },
@@ -72,7 +72,7 @@ vi.mock('../../../api/services/database.js', () => {
 const TEST_USER = '167c27b5-a40b-49fb-8d00-deb1b1c57f4d';
 const signToken = () => jwt.sign({ id: TEST_USER }, 'test-secret', { expiresIn: '1h' });
 
-const extensionRoutes = (await import('../../../api/routes/extension-data.js')).default;
+const extensionRoutes = (await import('../../../api/_app/routes/extension-data.js')).default;
 
 function createApp() {
   const app = express();

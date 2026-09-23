@@ -1,6 +1,6 @@
 /** What a sentence tells the ledger: money coming in, a subscription taken on, a charge ended; en/es/pt. */
 import { describe, expect, it } from 'vitest';
-import { personStatement, incomeStatement, subscriptionStatement, cancelStatement, amountIn, cadenceIn, dayIn } from '../../../../api/services/money/statements.js';
+import { personStatement, incomeStatement, subscriptionStatement, cancelStatement, amountIn, cadenceIn, dayIn } from '../../../../api/_app/services/money/statements.js';
 
 describe('the parts', () => {
   it('reads an amount with its currency, a cadence and a day of the month', () => {

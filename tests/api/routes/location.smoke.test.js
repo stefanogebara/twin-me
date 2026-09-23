@@ -1,5 +1,5 @@
 /**
- * Smoke tests for api/routes/location.js
+ * Smoke tests for api/_app/routes/location.js
  * Covers: auth guard, POST /clusters non-empty-array validation, POST /current
  * lat/lng-number validation, happy paths, GET /status shape.
  */
@@ -20,11 +20,11 @@ const ingestLocationClustersMock = vi.fn().mockResolvedValue(undefined);
 let updateResult = { error: null };
 let statusCountResult = { count: 3, error: null };
 
-vi.mock('../../../api/services/observationIngestion.js', () => ({
+vi.mock('../../../api/_app/services/observationIngestion.js', () => ({
   ingestLocationClusters: (...a) => ingestLocationClustersMock(...a),
 }));
 
-vi.mock('../../../api/services/database.js', () => ({
+vi.mock('../../../api/_app/services/database.js', () => ({
   supabaseAdmin: {
     from: vi.fn((table) => {
       if (table === 'users') {
@@ -59,7 +59,7 @@ vi.mock('../../../api/services/database.js', () => ({
 const TEST_USER = '167c27b5-a40b-49fb-8d00-deb1b1c57f4d';
 const signToken = () => jwt.sign({ id: TEST_USER }, 'test-secret', { expiresIn: '1h' });
 
-const locationRoutes = (await import('../../../api/routes/location.js')).default;
+const locationRoutes = (await import('../../../api/_app/routes/location.js')).default;
 
 function createApp() {
   const app = express();

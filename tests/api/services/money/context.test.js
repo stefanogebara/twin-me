@@ -8,7 +8,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   OPENING_QUESTIONS, PERSON_ROLES, openingQuestions, ledgerQuestions, checkCommitment, describeContext,
-} from '../../../../api/services/money/context.js';
+} from '../../../../api/_app/services/money/context.js';
 
 const plain = (s) => String(s).replace(/ /g, ' ');
 const NOW = new Date('2026-09-08T10:00:00Z');

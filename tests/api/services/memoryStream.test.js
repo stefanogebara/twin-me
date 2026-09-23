@@ -7,7 +7,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 // --- Module mocks (hoisted before imports) ---
 
 // Mock the database module
-vi.mock('../../../api/services/database.js', () => {
+vi.mock('../../../api/_app/services/database.js', () => {
   const mockChain = {
     select: vi.fn(),
     eq: vi.fn(),
@@ -34,13 +34,13 @@ vi.mock('../../../api/services/database.js', () => {
 });
 
 // Mock embeddingService so no real OpenAI calls
-vi.mock('../../../api/services/embeddingService.js', () => ({
+vi.mock('../../../api/_app/services/embeddingService.js', () => ({
   generateEmbedding: vi.fn().mockResolvedValue(new Array(1536).fill(0)),
   vectorToString: vi.fn().mockReturnValue('[0,0,0]'),
 }));
 
 // Mock llmGateway so no real LLM calls
-vi.mock('../../../api/services/llmGateway.js', () => ({
+vi.mock('../../../api/_app/services/llmGateway.js', () => ({
   complete: vi.fn().mockResolvedValue({ content: '5' }),
   stream: vi.fn(),
   TIER_CHAT: 'chat',
@@ -54,8 +54,8 @@ process.env.SUPABASE_URL = 'http://localhost';
 process.env.SUPABASE_SERVICE_ROLE_KEY = 'test-key';
 
 // Now import after mocks are set up
-const { supabaseAdmin } = await import('../../../api/services/database.js');
-const { retrieveDiverseMemories } = await import('../../../api/services/memoryStreamService.js');
+const { supabaseAdmin } = await import('../../../api/_app/services/database.js');
+const { retrieveDiverseMemories } = await import('../../../api/_app/services/memoryStreamService.js');
 
 // Helper to make a memory fixture
 function makeMemory(type, id, overrides = {}) {

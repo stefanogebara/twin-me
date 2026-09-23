@@ -8,10 +8,10 @@ const { voiceService, verify } = vi.hoisted(() => ({
   voiceService: { isEnabled: vi.fn(() => true), getConversationToken: vi.fn(), startOutboundCall: vi.fn(), getConversation: vi.fn() },
   verify: vi.fn(() => true),
 }));
-vi.mock('../../api/services/voiceService.js', () => ({ voiceService }));
-vi.mock('../../api/services/elevenlabsWebhook.js', () => ({ verifyElevenLabsSignature: verify }));
+vi.mock('../../api/_app/services/voiceService.js', () => ({ voiceService }));
+vi.mock('../../api/_app/services/elevenlabsWebhook.js', () => ({ verifyElevenLabsSignature: verify }));
 
-const { voiceProvider } = await import('../../api/services/voiceProvider.js');
+const { voiceProvider } = await import('../../api/_app/services/voiceProvider.js');
 
 afterEach(() => { delete process.env.PRESENCE_VOICE_PROVIDER; });
 

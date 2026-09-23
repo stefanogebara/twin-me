@@ -1,6 +1,6 @@
 /**
  * Tests for the notification-listener purchase persistence in
- * api/routes/purchase-notification.js (replan-2026-06-12).
+ * api/_app/routes/purchase-notification.js (replan-2026-06-12).
  *
  * Contract: every authed /trigger call with a parseable amount inserts a
  * user_transactions row (source='notification', negative amount) BEFORE any
@@ -21,31 +21,31 @@ process.env.PURCHASE_BOT_ENABLED = 'false'; // messaging path quiet — storage 
 
 // ── Mocks ────────────────────────────────────────────────────────────────────
 const dupMock = vi.fn().mockResolvedValue(null);
-vi.mock('../../../api/services/transactions/whatsappTransactionCapture.js', () => ({
+vi.mock('../../../api/_app/services/transactions/whatsappTransactionCapture.js', () => ({
   findLikelyDuplicate: (...a) => dupMock(...a),
 }));
 
 const tagBatchMock = vi.fn().mockResolvedValue({ tagged: 1, errors: 0 });
-vi.mock('../../../api/services/transactions/transactionEmotionTagger.js', () => ({
+vi.mock('../../../api/_app/services/transactions/transactionEmotionTagger.js', () => ({
   tagTransactionsBatch: (...a) => tagBatchMock(...a),
 }));
 
-vi.mock('../../../api/services/purchaseContextBuilder.js', () => ({
+vi.mock('../../../api/_app/services/purchaseContextBuilder.js', () => ({
   buildPurchaseContext: vi.fn().mockResolvedValue({ schedule: { available: false } }),
 }));
-vi.mock('../../../api/services/purchaseReflection.js', () => ({
+vi.mock('../../../api/_app/services/purchaseReflection.js', () => ({
   generatePurchaseReflection: vi.fn().mockResolvedValue({ text: 'r', lang: 'pt-BR' }),
 }));
-vi.mock('../../../api/services/whatsappService.js', () => ({
+vi.mock('../../../api/_app/services/whatsappService.js', () => ({
   sendWhatsAppMessage: vi.fn().mockResolvedValue({ success: true }),
 }));
-vi.mock('../../../api/services/purchaseCooldown.js', () => ({
+vi.mock('../../../api/_app/services/purchaseCooldown.js', () => ({
   loadPurchaseCooldown: vi.fn().mockResolvedValue({ last_sent_at: null, day_date: null, daily_count: 0 }),
   savePurchaseCooldown: vi.fn().mockResolvedValue(undefined),
   COOLDOWN_MS: 300000,
   MAX_DAILY: 2,
 }));
-vi.mock('../../../api/middleware/auth.js', () => ({
+vi.mock('../../../api/_app/middleware/auth.js', () => ({
   authenticateUser: (req, res, next) => {
     try {
       const payload = jwt.verify((req.headers.authorization || '').replace(/^Bearer\s+/i, ''), 'test-secret');
@@ -59,7 +59,7 @@ vi.mock('../../../api/middleware/auth.js', () => ({
 
 const resultQueue = [];
 const upsertCalls = [];
-vi.mock('../../../api/services/database.js', () => {
+vi.mock('../../../api/_app/services/database.js', () => {
   function makeBuilder(table) {
     const builder = {};
     const chain = ['select', 'eq', 'neq', 'in', 'gte', 'lte', 'lt', 'order', 'limit', 'maybeSingle', 'single', 'insert'];
@@ -77,7 +77,7 @@ vi.mock('../../../api/services/database.js', () => {
   return { supabaseAdmin: { from: vi.fn((table) => makeBuilder(table)) } };
 });
 
-const routes = (await import('../../../api/routes/purchase-notification.js')).default;
+const routes = (await import('../../../api/_app/routes/purchase-notification.js')).default;
 
 const TEST_USER = '167c27b5-a40b-49fb-8d00-deb1b1c57f4d';
 const token = () => jwt.sign({ id: TEST_USER }, 'test-secret', { expiresIn: '1h' });

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { detectRedditIntent } from '../../../../api/services/reddit/detectIntent.js';
+import { detectRedditIntent } from '../../../../api/_app/services/reddit/detectIntent.js';
 
 describe('detectRedditIntent', () => {
   it('returns null for empty', () => expect(detectRedditIntent('').kind).toBeNull());

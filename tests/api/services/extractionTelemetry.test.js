@@ -1,5 +1,5 @@
 /**
- * Tests for api/services/extractionTelemetry.js
+ * Tests for api/_app/services/extractionTelemetry.js
  * Pure builder + frozen enum, plus durable-persistence wiring (DB mocked).
  */
 import { vi, describe, it, expect, beforeEach } from 'vitest';
@@ -10,7 +10,7 @@ const { insertMock, fromMock } = vi.hoisted(() => {
   const fromMock = vi.fn(() => ({ insert: insertMock }));
   return { insertMock, fromMock };
 });
-vi.mock('../../../api/services/database.js', () => ({
+vi.mock('../../../api/_app/services/database.js', () => ({
   supabaseAdmin: { from: fromMock },
 }));
 
@@ -22,7 +22,7 @@ import {
   shouldPersist,
   persistExtractionRun,
   logExtractionRun,
-} from '../../../api/services/extractionTelemetry.js';
+} from '../../../api/_app/services/extractionTelemetry.js';
 
 describe('INGESTION_SOURCE', () => {
   it('exposes the four canonical path identifiers', () => {

@@ -12,7 +12,7 @@ import {
   firstName,
   buildCandidate,
   MIN_MEETING_DAYS,
-} from '../../../api/services/biometricSocialCorrelation.js';
+} from '../../../api/_app/services/biometricSocialCorrelation.js';
 
 const PERSON = { alex: 'alex@co', sam: 'sam@co', zoe: 'zoe@co' };
 

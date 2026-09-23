@@ -31,13 +31,13 @@ const { store, log, brief, summarizer, relay } = vi.hoisted(() => ({
   relay: { relayCall: vi.fn(), relayNoAnswer: vi.fn() },
 }));
 
-vi.mock('../../../api/services/presenceStore.js', () => store);
-vi.mock('../../../api/services/logger.js', () => ({ createLogger: () => log }));
-vi.mock('../../../api/services/presenceCallBrief.js', () => brief);
-vi.mock('../../../api/services/presenceSummarizer.js', () => summarizer);
-vi.mock('../../../api/services/presenceRelay.js', () => relay);
+vi.mock('../../../api/_app/services/presenceStore.js', () => store);
+vi.mock('../../../api/_app/services/logger.js', () => ({ createLogger: () => log }));
+vi.mock('../../../api/_app/services/presenceCallBrief.js', () => brief);
+vi.mock('../../../api/_app/services/presenceSummarizer.js', () => summarizer);
+vi.mock('../../../api/_app/services/presenceRelay.js', () => relay);
 
-const routes = (await import('../../../api/routes/webhooks-elevenlabs.js')).default;
+const routes = (await import('../../../api/_app/routes/webhooks-elevenlabs.js')).default;
 
 function createApp() {
   const app = express();

@@ -1,5 +1,5 @@
 /**
- * Smoke tests for api/routes/user-rules.js
+ * Smoke tests for api/_app/routes/user-rules.js
  * Covers: auth guard, list shape, add validation (min length, max rules,
  * duplicate 409), delete index validation, downstream 500.
  */
@@ -17,12 +17,12 @@ process.env.NODE_ENV = 'test';
 const getBlocksMock = vi.fn();
 const updateBlockMock = vi.fn();
 
-vi.mock('../../../api/services/coreMemoryService.js', () => ({
+vi.mock('../../../api/_app/services/coreMemoryService.js', () => ({
   getBlocks: (...a) => getBlocksMock(...a),
   updateBlock: (...a) => updateBlockMock(...a),
 }));
 
-vi.mock('../../../api/services/database.js', () => ({
+vi.mock('../../../api/_app/services/database.js', () => ({
   supabaseAdmin: {
     from: vi.fn(() => ({
       select: vi.fn().mockReturnThis(),
@@ -36,7 +36,7 @@ vi.mock('../../../api/services/database.js', () => ({
 const TEST_USER = '167c27b5-a40b-49fb-8d00-deb1b1c57f4d';
 const signToken = () => jwt.sign({ id: TEST_USER }, 'test-secret', { expiresIn: '1h' });
 
-const userRulesRoutes = (await import('../../../api/routes/user-rules.js')).default;
+const userRulesRoutes = (await import('../../../api/_app/routes/user-rules.js')).default;
 
 function createApp() {
   const app = express();

@@ -10,11 +10,11 @@
 
 import { describe, it, expect, vi } from 'vitest';
 
-vi.mock('../../../api/config/supabase.js', () => ({
+vi.mock('../../../api/_app/config/supabase.js', () => ({
   supabaseAdmin: { from: vi.fn() },
 }));
 
-const { formatResponse, toConfidenceLabel } = await import('../../../api/services/reflections/reflectionStore.js');
+const { formatResponse, toConfidenceLabel } = await import('../../../api/_app/services/reflections/reflectionStore.js');
 
 describe('toConfidenceLabel', () => {
   it('maps numeric confidence back to a label', () => {

@@ -17,7 +17,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import dotenv from 'dotenv';
 import { createClient } from '@supabase/supabase-js';
-import { generateEmbedding } from '../api/services/embeddingService.js';
+import { generateEmbedding } from '../api/_app/services/embeddingService.js';
 
 dotenv.config();
 

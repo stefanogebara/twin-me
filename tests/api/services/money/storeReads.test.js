@@ -3,9 +3,9 @@
  * stop the other bank: the two planners the store uses, tested pure.
  */
 import { describe, it, expect, vi } from 'vitest';
-vi.mock('../../../../api/services/database.js', () => ({ supabaseAdmin: { from: () => ({}) }, serverDb: {} }));
-vi.mock('../../../../api/services/logger.js', () => ({ createLogger: () => ({ warn() {}, info() {}, error() {}, debug() {} }) }));
-const { planReads, newestConsent, categoryOfPayment, answerQuestion, ANSWERABLE_KINDS, FEED_BUDGET } = await import('../../../../api/services/money/store.js');
+vi.mock('../../../../api/_app/services/database.js', () => ({ supabaseAdmin: { from: () => ({}) }, serverDb: {} }));
+vi.mock('../../../../api/_app/services/logger.js', () => ({ createLogger: () => ({ warn() {}, info() {}, error() {}, debug() {} }) }));
+const { planReads, newestConsent, categoryOfPayment, answerQuestion, ANSWERABLE_KINDS, FEED_BUDGET } = await import('../../../../api/_app/services/money/store.js');
 
 const at = (h) => `2026-09-14T${String(h).padStart(2, '0')}:00:00Z`;
 const acc = (id, session, last) => ({ id, session_id: session, last_pulled_at: last, iban_mask: `ES** ${id}` });

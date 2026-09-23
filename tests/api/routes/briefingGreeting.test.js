@@ -8,7 +8,7 @@
  * rule on the server.
  */
 import { describe, expect, it } from 'vitest';
-import { greetingFor, localHourIn } from '../../../api/routes/morning-briefing.js';
+import { greetingFor, localHourIn } from '../../../api/_app/routes/morning-briefing.js';
 
 describe('the greeting', () => {
   it('names the part of the day the way a person would', () => {

@@ -34,7 +34,7 @@ let insightRow = {
 };
 const recorded = { updates: [] }; // { table, payload } per .update() call
 
-vi.mock('../../../api/services/database.js', () => {
+vi.mock('../../../api/_app/services/database.js', () => {
   const makeChain = (table) => {
     const chain = {};
     chain.update = vi.fn((payload) => {
@@ -59,14 +59,14 @@ vi.mock('../../../api/services/database.js', () => {
   };
 });
 
-vi.mock('../../../api/services/autonomyService.js', () => ({
+vi.mock('../../../api/_app/services/autonomyService.js', () => ({
   logAgentAction: vi.fn().mockResolvedValue({ id: 'action-1' }),
 }));
 
 // preferenceCollector mock removed — the DPO-pair branch was deleted from the
 // route along with the fine-tuning stack (replan-2026-06-10 cycle 4).
 
-const routes = (await import('../../../api/routes/insight-feedback.js')).default;
+const routes = (await import('../../../api/_app/routes/insight-feedback.js')).default;
 
 function makeApp() {
   const app = express();

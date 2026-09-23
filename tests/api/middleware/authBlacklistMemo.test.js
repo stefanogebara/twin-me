@@ -7,8 +7,8 @@ import { describe, expect, it, vi } from 'vitest';
 import jwt from 'jsonwebtoken';
 process.env.JWT_SECRET = 'test-secret-key-for-unit-tests-only';
 const redis = vi.hoisted(() => ({ exists: vi.fn(async () => 0), set: vi.fn(async () => 'OK') }));
-vi.mock('../../../api/services/redisClient.js', () => ({ getRedisClient: () => redis, isRedisAvailable: () => true }));
-const { authenticateUser, blacklistToken } = await import('../../../api/middleware/auth.js');
+vi.mock('../../../api/_app/services/redisClient.js', () => ({ getRedisClient: () => redis, isRedisAvailable: () => true }));
+const { authenticateUser, blacklistToken } = await import('../../../api/_app/middleware/auth.js');
 
 const res = () => { const r = { statusCode: 200, body: null }; r.status = (c) => { r.statusCode = c; return r; }; r.json = (b) => { r.body = b; return r; }; return r; };
 const run = async (token) => { const req = { headers: { authorization: `Bearer ${token}` }, path: '/auth/x' }; const next = vi.fn(); const r = res(); await authenticateUser(req, r, next); return { next, r }; };

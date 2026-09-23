@@ -1,5 +1,5 @@
 /**
- * Tests for api/services/extractionDispatch.js
+ * Tests for api/_app/services/extractionDispatch.js
  *
  * The dispatch table is where Phase 3's regression risk lives: a dropped
  * platform, a wrong store-as alias, or a mis-wired feature extractor. These
@@ -15,7 +15,7 @@ import {
   PLATFORM_EXTRACTION,
   getDescriptor,
   normalizeRawExtractorResult,
-} from '../../../api/services/extractionDispatch.js';
+} from '../../../api/_app/services/extractionDispatch.js';
 
 // The post-cut platform set (replan-2026-06-10 Track C).
 const OBSERVATION_WITH_FEATURE = ['discord', 'github', 'youtube', 'gmail', 'whoop'];

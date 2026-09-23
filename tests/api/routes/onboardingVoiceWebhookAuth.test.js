@@ -25,25 +25,25 @@ process.env.JWT_SECRET = 'test-secret';
 // mismatch/unset tests assert it is NOT, proving the gate short-circuits before
 // any LLM work happens.
 const completeMock = vi.fn().mockResolvedValue({ content: 'What drives you?' });
-vi.mock('../../../api/services/llmGateway.js', () => ({
+vi.mock('../../../api/_app/services/llmGateway.js', () => ({
   complete: (...a) => completeMock(...a),
   TIER_ANALYSIS: 'analysis',
   TIER_EXTRACTION: 'extraction',
   TIER_CHAT: 'chat',
 }));
 
-vi.mock('../../../api/services/memoryStreamService.js', () => ({
+vi.mock('../../../api/_app/services/memoryStreamService.js', () => ({
   addMemory: vi.fn().mockResolvedValue(undefined),
   addConversationMemory: vi.fn().mockResolvedValue(undefined),
 }));
-vi.mock('../../../api/services/reflectionEngine.js', () => ({
+vi.mock('../../../api/_app/services/reflectionEngine.js', () => ({
   shouldTriggerReflection: vi.fn().mockResolvedValue(false),
   generateReflections: vi.fn().mockResolvedValue(undefined),
 }));
-vi.mock('../../../api/services/goalTrackingService.js', () => ({
+vi.mock('../../../api/_app/services/goalTrackingService.js', () => ({
   generateGoalSuggestions: vi.fn().mockResolvedValue(undefined),
 }));
-vi.mock('../../../api/services/database.js', () => ({
+vi.mock('../../../api/_app/services/database.js', () => ({
   supabaseAdmin: {
     from: vi.fn(() => ({
       select: vi.fn().mockReturnThis(),
@@ -53,7 +53,7 @@ vi.mock('../../../api/services/database.js', () => ({
   },
 }));
 
-const router = (await import('../../../api/routes/onboarding-voice.js')).default;
+const router = (await import('../../../api/_app/routes/onboarding-voice.js')).default;
 
 const SECRET = 'elevenlabs-test-secret';
 

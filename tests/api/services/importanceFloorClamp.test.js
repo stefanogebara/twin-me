@@ -34,7 +34,7 @@ vi.mock('../../../twin-research/twin-config.js', () => ({
   LLM_RERANKER_ENABLED: false,
 }));
 
-vi.mock('../../../api/services/database.js', () => {
+vi.mock('../../../api/_app/services/database.js', () => {
   const empty = { data: null, error: null };
   const chain = {};
   Object.assign(chain, {
@@ -64,35 +64,35 @@ vi.mock('../../../api/services/database.js', () => {
   return { supabaseAdmin: chain, serverDb: {} };
 });
 
-vi.mock('../../../api/services/embeddingService.js', () => ({
+vi.mock('../../../api/_app/services/embeddingService.js', () => ({
   generateEmbedding: vi.fn().mockResolvedValue(new Array(1536).fill(0.01)),
   vectorToString: (v) => `[${v.join(',')}]`,
 }));
 
 // The LLM rater would return 7 — proving the stored 4 came from the clamp.
-vi.mock('../../../api/services/llmGateway.js', () => ({
+vi.mock('../../../api/_app/services/llmGateway.js', () => ({
   complete: vi.fn().mockResolvedValue({ content: '7' }),
   TIER_EXTRACTION: 'extraction',
   TIER_ANALYSIS: 'analysis',
   TIER_CHAT: 'chat',
 }));
 
-vi.mock('../../../api/services/memoryLinksService.js', () => ({
+vi.mock('../../../api/_app/services/memoryLinksService.js', () => ({
   traverseLinksForRetrieval: vi.fn().mockResolvedValue([]),
   getCoCitationBoosts: vi.fn().mockResolvedValue({}),
   autoLinkMemory: vi.fn().mockResolvedValue(undefined),
 }));
 
-vi.mock('../../../api/services/featureFlagsService.js', () => ({
+vi.mock('../../../api/_app/services/featureFlagsService.js', () => ({
   getFeatureFlags: vi.fn().mockResolvedValue({}),
 }));
 
-vi.mock('../../../api/services/bm25Service.js', () => ({
+vi.mock('../../../api/_app/services/bm25Service.js', () => ({
   bm25ScoreBatch: vi.fn().mockReturnValue([]),
   extractKeywords: vi.fn().mockReturnValue([]),
 }));
 
-import { addPlatformObservation, addMemory } from '../../../api/services/memoryStreamService.js';
+import { addPlatformObservation, addMemory } from '../../../api/_app/services/memoryStreamService.js';
 
 const USER = '167c27b5-a40b-49fb-8d00-deb1b1c57f4d';
 const storedImportance = () => inserted.at(-1)?.importance_score;

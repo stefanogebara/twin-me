@@ -5,8 +5,8 @@
  */
 export const FORBIDDEN = [
   /^database\//,
-  /^api\/services\/money\/(ledger|ingestion|store|transactionRepository|figureScoreStore|feeds\/)/,
-  /^api\/routes\/cron-money-/,
+  /^api\/_app\/services\/money\/(ledger|ingestion|store|transactionRepository|figureScoreStore|feeds\/)/,
+  /^api\/_app\/routes\/cron-money-/,
   /^\.github\/workflows\//,
   /^\.env/,
   /^scripts\/money\/(merge-|rescore-)/,

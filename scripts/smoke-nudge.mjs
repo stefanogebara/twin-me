@@ -21,8 +21,8 @@ import path from 'path';
 import dotenv from 'dotenv';
 dotenv.config({ path: path.resolve(process.cwd(), '.env') });
 
-import { supabaseAdmin } from '../api/services/database.js';
-import { maybeNudgeForTransactions } from '../api/services/transactions/transactionNudgeService.js';
+import { supabaseAdmin } from '../api/_app/services/database.js';
+import { maybeNudgeForTransactions } from '../api/_app/services/transactions/transactionNudgeService.js';
 
 const userId = process.argv[2];
 if (!userId) {

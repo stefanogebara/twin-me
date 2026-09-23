@@ -3,7 +3,7 @@
  * =====================================
  * Exercises the same steps as the Inngest workflow without the durable wrapper.
  *
- * Run: node api/scripts/test-music-mood-match.js
+ * Run: node api/_app/scripts/test-music-mood-match.js
  */
 
 import dotenv from 'dotenv';

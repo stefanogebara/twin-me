@@ -32,7 +32,7 @@ Compounding factors:
    - "Connect 2+ platforms" only counts when BOTH platforms appear in `{observations}` — no pulling Whoop in when it's not there.
    - If evidence is insufficient, return `[]` (empty array is a SUCCESS, not a failure).
    - Examples of correct vs incorrect citation patterns (e.g. cite `13` not `10` when the observation says `(13)`).
-2. **Code-level (`api/services/proactiveInsights.js`)** — new `_findUngroundedNumbers(insight, evidence)` helper:
+2. **Code-level (`api/_app/services/proactiveInsights.js`)** — new `_findUngroundedNumbers(insight, evidence)` helper:
    - Extracts stat-numbers (percentages, multi-digit integers) from the insight text.
    - Strips action-context numbers first (clock times, durations) so they aren't false-flagged.
    - Returns the array of numbers that do NOT appear in the evidence corpus (the same observations+reflections text passed to the LLM).
@@ -81,7 +81,7 @@ Compounding factors:
 
 ## 2026-05-13 — PostgREST silently drops writes to non-existent columns
 
-**Incident**: Yesterday's H11 fix added `oauth_platform: 'magic_link'` to two user INSERT/UPDATE sites in `api/routes/auth-simple.js`. The deploy went green, the user row was created, `/settings` continued displaying "Managed via Google OAuth" anyway. The actual column name on `public.users` is `oauth_provider`. PostgREST/supabase-js sent the unknown key, the DB silently dropped it, no error returned, no log written. Discovered only when end-to-end verifying via a real browser /settings nav — curl-level testing wouldn't have caught it (no UI to inspect, and the INSERT returned success).
+**Incident**: Yesterday's H11 fix added `oauth_platform: 'magic_link'` to two user INSERT/UPDATE sites in `api/_app/routes/auth-simple.js`. The deploy went green, the user row was created, `/settings` continued displaying "Managed via Google OAuth" anyway. The actual column name on `public.users` is `oauth_provider`. PostgREST/supabase-js sent the unknown key, the DB silently dropped it, no error returned, no log written. Discovered only when end-to-end verifying via a real browser /settings nav — curl-level testing wouldn't have caught it (no UI to inspect, and the INSERT returned success).
 
 **Why it slipped**: An LLM-generated fix (Agent A inherited the typo from pre-existing code on line 863). Three call sites all wrote `oauth_platform`, all silently NULL-ed the column. The fix passed code review because the code *looked* right. PostgREST + supabase-js do not warn on unknown columns — keys that don't exist on the table are dropped server-side without complaint.
 
@@ -151,12 +151,12 @@ That object was missing `oauthProvider`. When the page rendered, it showed the f
 
 ## 2026-05-11 — Untracked-but-imported files cause silent 17h prod outages
 
-**Incident**: Every `/api/*` endpoint returned `FUNCTION_INVOCATION_FAILED` for 17 hours. Root cause: `api/services/beta-feedback.js` existed on disk locally and was imported by `api/server.js`, but was never `git add`-ed. The Vercel webhook accepted the push, Vite build passed (Vite only validates the frontend module graph), and lambda boot crashed with `ERR_MODULE_NOT_FOUND` on cold start. No dashboard signal — the import path is only checked at lambda boot, which happens AFTER deploy success is reported.
+**Incident**: Every `/api/*` endpoint returned `FUNCTION_INVOCATION_FAILED` for 17 hours. Root cause: `api/_app/services/beta-feedback.js` existed on disk locally and was imported by `api/_app/server.js`, but was never `git add`-ed. The Vercel webhook accepted the push, Vite build passed (Vite only validates the frontend module graph), and lambda boot crashed with `ERR_MODULE_NOT_FOUND` on cold start. No dashboard signal — the import path is only checked at lambda boot, which happens AFTER deploy success is reported.
 
 **Why it slipped**: The file appeared via a linter side-effect that created it without staging. Local dev kept working because the file was on disk. CI didn't catch it because there's no boot-time sanity test on the api lambda.
 
 **Rule**:
-- Before any push that touches `api/server.js` route registration or service imports: cross-reference `git ls-tree -r HEAD --name-only` against the list of relative imports under `api/`. Any `from './x.js'` whose resolved target is NOT in `ls-tree` output → unstaged dependency, do not push.
+- Before any push that touches `api/_app/server.js` route registration or service imports: cross-reference `git ls-tree -r HEAD --name-only` against the list of relative imports under `api/`. Any `from './x.js'` whose resolved target is NOT in `ls-tree` output → unstaged dependency, do not push.
 - Implementation note: the scanner belongs in `scripts/` (path: `scripts/check-untracked-imports.cjs`) and should walk every tracked `.js` under `api/`, regex-match relative imports, and assert the target appears in tracked files. Exit 1 with a fix-list on miss. Wire as a git pre-push hook so it fires automatically.
 - "Vite build green" never implies "lambda boots green". Treat the two as independent gates.
 
@@ -219,13 +219,13 @@ That object was missing `oauthProvider`. When the page rendered, it showed the f
 
 ## 2026-04-30 — `mistralai/mistral-small-creative` is dead on OpenRouter
 
-**Incident**: First `/api/insights/inbox/refresh` call failed with `404 No endpoints found for mistralai/mistral-small-creative`. The model ID in `api/config/aiModels.js` for `TIER_EXTRACTION` is no longer routable.
+**Incident**: First `/api/insights/inbox/refresh` call failed with `404 No endpoints found for mistralai/mistral-small-creative`. The model ID in `api/_app/config/aiModels.js` for `TIER_EXTRACTION` is no longer routable.
 
 **Why it slipped**: `aiModels.js` had a TODO comment "replaces deprecated gemini-2.0-flash" — the replacement also got deprecated and nobody noticed because the Inngest path was silently failing in prod (signing key missing) and the cron path was hitting `wasRecentlyRun` cooldowns most days. Net effect: every extraction-tier call had been silently failing-over via fallback paths for an unknown duration.
 
 **Fix (shipped)**: swapped `TIER_EXTRACTION` to `deepseek/deepseek-v3.2` (same model used by `TIER_CHAT` and `TIER_ANALYSIS` — proven to work, slight cost bump from $0.10/$0.30 → $0.25/$0.38 per M).
 
-**Rule**: when an OpenRouter model 404s, fix `OPENROUTER_MODELS` in `api/config/aiModels.js` immediately — don't paper over it. Pick a known-working ID (deepseek-v3.2 is the safe default in this codebase) rather than guessing at Mistral version strings that turn over fast.
+**Rule**: when an OpenRouter model 404s, fix `OPENROUTER_MODELS` in `api/_app/config/aiModels.js` immediately — don't paper over it. Pick a known-working ID (deepseek-v3.2 is the safe default in this codebase) rather than guessing at Mistral version strings that turn over fast.
 
 ---
 
@@ -246,12 +246,12 @@ That object was missing `oauthProvider`. When the page rendered, it showed the f
 
 ---
 
-## 2026-04-21 — Every `api/routes/cron-*.js` MUST call `verifyCronSecret(req)`
+## 2026-04-21 — Every `api/_app/routes/cron-*.js` MUST call `verifyCronSecret(req)`
 
 **Incident**: `cron-bank-consent.js` shipped with `router.get('/', async (_req, res) => { ... })` and no auth gate. `curl` with no Authorization returned 200. Any visitor could trigger Supabase queries + push-notification fanout. `cron-nudge-retrospective.js` had the same gap.
 
 **Rule**:
-- Every file matching `api/routes/cron-*.js` must import `verifyCronSecret` from `../middleware/verifyCronSecret.js`, call `verifyCronSecret(req)` at the top of the handler, and return early on `!authResult.authorized`
+- Every file matching `api/_app/routes/cron-*.js` must import `verifyCronSecret` from `../middleware/verifyCronSecret.js`, call `verifyCronSecret(req)` at the top of the handler, and return early on `!authResult.authorized`
 - Enforced by `tests/unit/cronSecurityGate.test.js` — 73 assertions across 24 cron files. Breaks CI if a new cron ships without the gate.
 
 **Pattern**:
@@ -272,7 +272,7 @@ Use `router.all` (not `.get` or `.post`) — Vercel's cron runner may use either
 
 ## 2026-04-21 — Vercel preview deploys are the ONLY way to validate bundle-trace changes
 
-**Context**: Local `node api/server.js` boots fine regardless of `.vercelignore` config. That made the outages confusing: "works on my machine" said nothing about whether nft would resolve.
+**Context**: Local `node api/_app/server.js` boots fine regardless of `.vercelignore` config. That made the outages confusing: "works on my machine" said nothing about whether nft would resolve.
 
 **Rule**: For any `.vercelignore`, `vercel.json`, `package.json` (esp. `exports`), or dynamic-import change: push as a branch, wait for preview deploy, probe `/api/health` on the preview URL. Do NOT merge-then-verify. Bundle trace failures only surface on Vercel's build infra.
 
@@ -351,7 +351,7 @@ The anime model is trained to clean up noisy anime scans — it aggressively rem
 **Fix shipped**:
 1. Deleted the 3 fake `transaction_emotional_context` rows immediately.
 2. Deleted all 24 seeded `user_transactions` rows (`source='demo_seed'`).
-3. Replaced API synthesis `"— worth a look"` with neutral `"N of those signups landed on days with elevated stress or low recovery."` (api/routes/transactions.js).
+3. Replaced API synthesis `"— worth a look"` with neutral `"N of those signups landed on days with elevated stress or low recovery."` (api/_app/routes/transactions.js).
 4. Removed the styled FE coaching callout `"Worth flagging the next time you feel the urge to subscribe to something at midnight"` (src/pages/MoneyInsightsPage.tsx). The synthesis sentence above already carries the count.
 
 **Rules**:
@@ -367,8 +367,8 @@ The anime model is trained to clean up noisy anime scans — it aggressively rem
 **Incident**: stefano's Spotify connection silently drifted from `status='success'` (last sync 2026-04-29) to `status='expired'` and stayed dead for 23 days despite a valid refresh_token sitting in `platform_connections` the entire time. The auto-refresh primitive (`ensureFreshToken`) exists and works correctly — it just wasn't being called from the extraction path the orchestrator uses.
 
 **Root cause**: There are TWO Spotify extractors in the codebase:
-1. `api/services/spotifyExtraction.js` — function-style `extractSpotifyData(userId)`, wired into `extractionOrchestrator.js:9`. Decrypted the stored access_token directly and used it. No expiry check. First 401 = `Promise.all` rejects = whole extraction throws = connection drifts to `status='expired'`.
-2. `api/services/extractors/spotifyExtractor.js` — class-style `SpotifyExtractor`, used by `dataExtractionService.js`. Correctly calls `ensureFreshToken` before each request and even retries on 401. Works perfectly.
+1. `api/_app/services/spotifyExtraction.js` — function-style `extractSpotifyData(userId)`, wired into `extractionOrchestrator.js:9`. Decrypted the stored access_token directly and used it. No expiry check. First 401 = `Promise.all` rejects = whole extraction throws = connection drifts to `status='expired'`.
+2. `api/_app/services/extractors/spotifyExtractor.js` — class-style `SpotifyExtractor`, used by `dataExtractionService.js`. Correctly calls `ensureFreshToken` before each request and even retries on 401. Works perfectly.
 
 The orchestrator uses path #1 (the broken one). Path #2 is correct but not what runs in production crons. So the "token refresh is on-demand only" rule was being satisfied by the connectors-status endpoint (when the user opened the app) but NOT by the extraction cron, even though both should have called `ensureFreshToken`.
 
@@ -378,13 +378,13 @@ The orchestrator uses path #1 (the broken one). Path #2 is correct but not what 
 - Changed `spotifyExtraction.js` to import `ensureFreshToken` and call it instead of decrypting the stored token directly. `ensureFreshToken` already handles `status='expired'` rows (line 462-467 of tokenRefreshService.js) and resets to `status='connected'` on successful refresh, so stefano's existing row should self-heal on the next extraction without him needing to manually reconnect.
 
 **Broader pattern**: 11 OTHER extractor files use the same `decryptToken(connection.access_token)` direct-use pattern:
-- `api/services/githubExtraction.js` (probably fine — GitHub PATs don't expire)
-- `api/services/discordExtraction.js` (suspect — Discord access tokens expire in 1 week)
-- `api/services/extractors/soundcloudExtractor.js` (suspect)
-- `api/services/extractors/pinterestExtractor.js` (suspect)
-- `api/services/extractors/notionExtractor.js` (probably fine — Notion tokens don't expire)
-- `api/services/garminDirectService.js` (suspect — Garmin OAuth1 has different semantics, separate audit needed)
-- `api/services/transactions/plaidIngestion.js` (likely fine — Plaid access_tokens don't expire by default, but worth confirming)
+- `api/_app/services/githubExtraction.js` (probably fine — GitHub PATs don't expire)
+- `api/_app/services/discordExtraction.js` (suspect — Discord access tokens expire in 1 week)
+- `api/_app/services/extractors/soundcloudExtractor.js` (suspect)
+- `api/_app/services/extractors/pinterestExtractor.js` (suspect)
+- `api/_app/services/extractors/notionExtractor.js` (probably fine — Notion tokens don't expire)
+- `api/_app/services/garminDirectService.js` (suspect — Garmin OAuth1 has different semantics, separate audit needed)
+- `api/_app/services/transactions/plaidIngestion.js` (likely fine — Plaid access_tokens don't expire by default, but worth confirming)
 - ...
 
 **Rules**:

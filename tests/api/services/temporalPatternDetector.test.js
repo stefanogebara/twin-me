@@ -8,11 +8,11 @@
  */
 import { describe, it, expect, vi } from 'vitest';
 
-vi.mock('../../../api/services/database.js', () => ({
+vi.mock('../../../api/_app/services/database.js', () => ({
   supabaseAdmin: { from: vi.fn() },
 }));
 
-import detector from '../../../api/services/temporalPatternDetector.js';
+import detector from '../../../api/_app/services/temporalPatternDetector.js';
 
 describe('calculateStdDev', () => {
   it('returns 0 for an empty array', () => {

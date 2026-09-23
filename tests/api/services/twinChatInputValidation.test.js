@@ -17,7 +17,7 @@ const mockInsert = vi.fn();
 const mockSelect = vi.fn();
 const mockSingle = vi.fn();
 
-vi.mock('../../../api/services/database.js', () => ({
+vi.mock('../../../api/_app/services/database.js', () => ({
   supabaseAdmin: {
     from: vi.fn(() => ({
       insert: (...args) => {
@@ -34,7 +34,7 @@ vi.mock('../../../api/services/database.js', () => ({
 }));
 
 const { validateChatInput, autoCreateConversation } = await import(
-  '../../../api/services/twinChatInputValidation.js'
+  '../../../api/_app/services/twinChatInputValidation.js'
 );
 
 const TEST_USER = '167c27b5-a40b-49fb-8d00-deb1b1c57f4d';

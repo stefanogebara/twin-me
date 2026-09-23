@@ -1,5 +1,5 @@
 /**
- * Members and roles on api/routes/presence.js (Phase 2, T4), the store mocked
+ * Members and roles on api/_app/routes/presence.js (Phase 2, T4), the store mocked
  * at its boundary. Owner: everything. Family: the page without the settings
  * actions. Companion (acompanhante, cuidadora): notes and the "needs a person"
  * list, never a transcript or a summary.
@@ -33,15 +33,15 @@ const { store, log } = vi.hoisted(() => {
   return { store: Object.fromEntries(names.map((n) => [n, vi.fn()])), log: { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() } };
 });
 
-vi.mock('../../../api/services/presenceStore.js', () => store);
-vi.mock('../../../api/services/logger.js', () => ({ createLogger: () => log }));
-vi.mock('../../../api/services/voiceService.js', () => ({ voiceService: { isEnabled: vi.fn(() => false), speechToTextEnabled: false } }));
-vi.mock('../../../api/services/llmGateway.js', () => ({ complete: vi.fn(), TIER_ANALYSIS: 'analysis' }));
-vi.mock('../../../api/services/database.js', () => ({
+vi.mock('../../../api/_app/services/presenceStore.js', () => store);
+vi.mock('../../../api/_app/services/logger.js', () => ({ createLogger: () => log }));
+vi.mock('../../../api/_app/services/voiceService.js', () => ({ voiceService: { isEnabled: vi.fn(() => false), speechToTextEnabled: false } }));
+vi.mock('../../../api/_app/services/llmGateway.js', () => ({ complete: vi.fn(), TIER_ANALYSIS: 'analysis' }));
+vi.mock('../../../api/_app/services/database.js', () => ({
   supabaseAdmin: { from: vi.fn(() => ({ select: vi.fn().mockReturnThis(), eq: vi.fn().mockReturnThis(), single: vi.fn(async () => ({ data: { email_verified: true }, error: null })), maybeSingle: vi.fn(async () => ({ data: { email_verified: true }, error: null })) })) },
 }));
 
-const presenceRoutes = (await import('../../../api/routes/presence.js')).default;
+const presenceRoutes = (await import('../../../api/_app/routes/presence.js')).default;
 
 function app() { const a = express(); a.use(express.json()); a.use('/api/presence', presenceRoutes); return a; }
 const as = (userId) => `Bearer ${jwt.sign({ id: userId, email: `${userId}@x.test` }, 'test-secret')}`;

@@ -7,7 +7,7 @@
  * without a secret, and compared in constant time (2026-09-19, audit S1).
  */
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { signState, readState, BACK_PATHS } from '../../../../api/services/money/bankState.js';
+import { signState, readState, BACK_PATHS } from '../../../../api/_app/services/money/bankState.js';
 
 const USER = '167c27b5-a40b-49fb-8d00-deb1b1c57f4d';
 let saved;

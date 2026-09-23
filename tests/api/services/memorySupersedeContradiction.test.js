@@ -33,7 +33,7 @@ vi.mock('../../../twin-research/twin-config.js', () => ({
   LLM_RERANKER_ENABLED: false,
 }));
 
-vi.mock('../../../api/services/database.js', () => {
+vi.mock('../../../api/_app/services/database.js', () => {
   const chain = {};
   let pending = null;
   Object.assign(chain, {
@@ -58,22 +58,22 @@ vi.mock('../../../api/services/database.js', () => {
   return { supabaseAdmin: chain, serverDb: {} };
 });
 
-vi.mock('../../../api/services/embeddingService.js', () => ({
+vi.mock('../../../api/_app/services/embeddingService.js', () => ({
   generateEmbedding: vi.fn().mockResolvedValue(new Array(1536).fill(0.01)),
   vectorToString: (v) => `[${v.join(',')}]`,
 }));
-vi.mock('../../../api/services/llmGateway.js', () => ({
+vi.mock('../../../api/_app/services/llmGateway.js', () => ({
   complete: vi.fn().mockResolvedValue({ content: '7' }),
   TIER_EXTRACTION: 'extraction', TIER_ANALYSIS: 'analysis', TIER_CHAT: 'chat',
 }));
-vi.mock('../../../api/services/memoryLinksService.js', () => ({
+vi.mock('../../../api/_app/services/memoryLinksService.js', () => ({
   traverseLinksForRetrieval: vi.fn().mockResolvedValue([]),
   getCoCitationBoosts: vi.fn().mockResolvedValue({}),
 }));
-vi.mock('../../../api/services/featureFlagsService.js', () => ({
+vi.mock('../../../api/_app/services/featureFlagsService.js', () => ({
   getFeatureFlags: vi.fn().mockResolvedValue({}),
 }));
-vi.mock('../../../api/services/bm25Service.js', () => ({
+vi.mock('../../../api/_app/services/bm25Service.js', () => ({
   bm25ScoreBatch: vi.fn().mockReturnValue([]),
   extractKeywords: vi.fn().mockReturnValue([]),
 }));
@@ -82,7 +82,7 @@ import {
   supersedeMemory,
   shouldSupersedeOnContradiction,
   SUPERSEDE_CONFIDENCE_FLOOR,
-} from '../../../api/services/memoryStreamService.js';
+} from '../../../api/_app/services/memoryStreamService.js';
 
 beforeEach(() => { updates.length = 0; });
 

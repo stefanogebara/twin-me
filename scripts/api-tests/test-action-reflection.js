@@ -7,7 +7,7 @@
  * 3. Verifies procedure memories are created
  * 4. Checks autonomy suggestions
  *
- * Run: node api/scripts/test-action-reflection.js
+ * Run: node api/_app/scripts/test-action-reflection.js
  */
 
 import dotenv from 'dotenv';

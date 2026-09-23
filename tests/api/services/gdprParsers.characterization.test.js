@@ -3,7 +3,7 @@
  *
  * These tests were written and turned GREEN against the 4084-line
  * gdprImportService.js monolith BEFORE decomposing it into
- * api/services/gdpr/{shared.js,registry.js,parsers/*}. They pin the exact
+ * api/_app/services/gdpr/{shared.js,registry.js,parsers/*}. They pin the exact
  * observation strings emitted through the PUBLIC seam (processGdprImport)
  * for three representative parsers (whatsapp, netflix, reddit) plus the
  * unsupported-platform error path. The decomposition must keep every
@@ -31,19 +31,19 @@ process.env.SUPABASE_SERVICE_ROLE_KEY = 'test-service-role';
 
 // Capture every observation the pipeline writes to the memory stream.
 const observationCalls = [];
-vi.mock('../../../api/services/memoryStreamService.js', () => ({
+vi.mock('../../../api/_app/services/memoryStreamService.js', () => ({
   addPlatformObservation: vi.fn(async (userId, content, platform, metadata) => {
     observationCalls.push({ userId, content, platform, metadata });
     return { id: `mem-${observationCalls.length}` };
   }),
 }));
 
-vi.mock('../../../api/services/reflectionEngine.js', () => ({
+vi.mock('../../../api/_app/services/reflectionEngine.js', () => ({
   shouldTriggerReflection: vi.fn(async () => false),
   generateReflections: vi.fn(async () => {}),
 }));
 
-vi.mock('../../../api/services/logger.js', () => ({
+vi.mock('../../../api/_app/services/logger.js', () => ({
   createLogger: () => ({
     info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn(),
   }),
@@ -55,7 +55,7 @@ vi.mock('../../../api/services/logger.js', () => ({
 //   getUserTimezone    : from('users').select('timezone').eq().maybeSingle()
 //   loadExistingHashes : from('user_memories').select().eq().eq().filter().order().limit()
 const finalizeCalls = [];
-vi.mock('../../../api/services/database.js', () => ({
+vi.mock('../../../api/_app/services/database.js', () => ({
   supabaseAdmin: {
     from: (table) => {
       if (table === 'user_data_imports') {
@@ -98,7 +98,7 @@ vi.mock('../../../api/services/database.js', () => ({
   },
 }));
 
-import { processGdprImport } from '../../../api/services/gdprImportService.js';
+import { processGdprImport } from '../../../api/_app/services/gdprImportService.js';
 
 const USER_ID = 'user-characterization-test';
 
@@ -176,9 +176,9 @@ describe('processGdprImport characterization: whatsapp', () => {
     observationCalls.length = 0;
 
     // Re-import with the first run's rows visible as existing memories.
-    const { processGdprImport: run } = await import('../../../api/services/gdprImportService.js');
+    const { processGdprImport: run } = await import('../../../api/_app/services/gdprImportService.js');
     // Patch the user_memories mock response for this call only.
-    const dbModule = await import('../../../api/services/database.js');
+    const dbModule = await import('../../../api/_app/services/database.js');
     const originalFrom = dbModule.supabaseAdmin.from;
     dbModule.supabaseAdmin.from = (table) => {
       if (table === 'user_memories') {
@@ -310,7 +310,7 @@ describe('processGdprImport characterization: error handling', () => {
 
 describe('PLATFORM_PARSERS registry', () => {
   it('covers exactly the 21 platforms the old switch handled, in order', async () => {
-    const { PLATFORM_PARSERS } = await import('../../../api/services/gdpr/registry.js');
+    const { PLATFORM_PARSERS } = await import('../../../api/_app/services/gdpr/registry.js');
     expect(Object.keys(PLATFORM_PARSERS)).toEqual([
       'spotify', 'youtube', 'discord', 'reddit', 'android_usage',
       'google_search', 'whatsapp', 'whoop', 'apple_health', 'health_connect',
@@ -321,7 +321,7 @@ describe('PLATFORM_PARSERS registry', () => {
   });
 
   it('every entry has a callable parse function and a boolean needsTimezone', async () => {
-    const { PLATFORM_PARSERS } = await import('../../../api/services/gdpr/registry.js');
+    const { PLATFORM_PARSERS } = await import('../../../api/_app/services/gdpr/registry.js');
     for (const [platform, entry] of Object.entries(PLATFORM_PARSERS)) {
       expect(typeof entry.parse, `${platform}.parse`).toBe('function');
       expect(typeof entry.needsTimezone, `${platform}.needsTimezone`).toBe('boolean');
@@ -329,7 +329,7 @@ describe('PLATFORM_PARSERS registry', () => {
   });
 
   it('needsTimezone mirrors exactly the switch cases that passed userTimezone', async () => {
-    const { PLATFORM_PARSERS } = await import('../../../api/services/gdpr/registry.js');
+    const { PLATFORM_PARSERS } = await import('../../../api/_app/services/gdpr/registry.js');
     const withTimezone = Object.entries(PLATFORM_PARSERS)
       .filter(([, e]) => e.needsTimezone)
       .map(([k]) => k)

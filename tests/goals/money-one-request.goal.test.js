@@ -11,7 +11,7 @@ import { readFileSync } from 'node:fs';
 const ROOT = new URL('../../', import.meta.url).pathname;
 const hook = readFileSync(`${ROOT}src/pages/money/useMoneyAccount.ts`, 'utf8');
 const html = readFileSync(`${ROOT}index.html`, 'utf8');
-const route = readFileSync(`${ROOT}api/routes/money.js`, 'utf8');
+const route = readFileSync(`${ROOT}api/_app/routes/money.js`, 'utf8');
 
 describe('the money page is one read', () => {
   it('reads the page once and never the nine parts one by one', () => {

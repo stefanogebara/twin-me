@@ -4,7 +4,7 @@
  * gate, and the synthesis prompt. The DB gather + LLM are glue (verified live).
  */
 import { describe, it, expect } from 'vitest';
-import { buildTitleCorpus, buildThreadsPrompt } from '../../../api/services/workThreads.js';
+import { buildTitleCorpus, buildThreadsPrompt } from '../../../api/_app/services/workThreads.js';
 
 // build n distinct titles so the gate is satisfied by default
 const filler = (n) => Array.from({ length: n }, (_, i) => ({ title: `Project thread number ${i}`, dwellSec: 1 }));

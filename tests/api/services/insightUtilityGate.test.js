@@ -24,7 +24,7 @@ const {
   applyDailyCap,
   DAILY_DELIVERY_CAP,
   URGENCY_PRIOR,
-} = await import('../../../api/services/insightUtilityGate.js');
+} = await import('../../../api/_app/services/insightUtilityGate.js');
 
 const withUtility = (utility, over = {}) => ({
   id: Math.random().toString(36).slice(2),

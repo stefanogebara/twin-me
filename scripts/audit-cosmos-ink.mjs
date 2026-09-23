@@ -40,7 +40,7 @@
  * .claude/plans/2026-09-03-nocturne-state-verification/README.md —
  *
  *   RESEND_API_KEY= NODE_ENV=development PORT=3097 APP_URL=http://127.0.0.1:8092 \
- *     node api/server.js > /tmp/api.log 2>&1 &
+ *     node api/_app/server.js > /tmp/api.log 2>&1 &
  *   VITE_API_URL=http://127.0.0.1:3097/api VITE_APP_URL=http://127.0.0.1:8092 \
  *     npx vite --port 8092 --strictPort &
  *   curl -s -X POST http://127.0.0.1:3097/api/auth/magic-link/request \

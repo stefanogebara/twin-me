@@ -21,7 +21,7 @@ process.env.SUPABASE_SERVICE_ROLE_KEY ||= 'goals-stub-service-role-key';
 import { describe, it, expect } from 'vitest';
 
 const { deriveWaProvider, isServiceWindowError } = await import(
-  '../../api/services/whatsappService.js'
+  '../../api/_app/services/whatsappService.js'
 );
 
 describe('goal: WA provider affinity', () => {

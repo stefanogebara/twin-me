@@ -1,6 +1,6 @@
 /** The chat's week figure: one bar per day for the last seven, from the same windows the context quotes. */
 import { describe, expect, it } from 'vitest';
-import { assemble, buildFigure, FIGURE_KINDS } from '../../../../api/services/money/chat.js';
+import { assemble, buildFigure, FIGURE_KINDS } from '../../../../api/_app/services/money/chat.js';
 
 const now = new Date('2026-09-19T08:00:00Z');
 const tx = (id, iso, amount) => ({ id, occurred_at: iso, amount, currency: 'EUR', merchant_raw: id, merchant_key: id });
@@ -23,7 +23,7 @@ describe('the week figure', () => {
 
 describe('a per-day ask', () => {
   it('draws the week figure whatever the model named', async () => {
-    const { assembleReply, asksPerDay } = await import('../../../../api/services/money/chat.js');
+    const { assembleReply, asksPerDay } = await import('../../../../api/_app/services/money/chat.js');
     expect(asksPerDay('Show me what I spent each day this week')).toBe(true);
     expect(asksPerDay('Give me a graph of this week')).toBe(true);
     expect(asksPerDay('quanto gastei por dia?')).toBe(true);
@@ -47,7 +47,7 @@ describe('the week figure over an asked stretch', () => {
     expect(built.figure.days.some((d) => d.today)).toBe(false);
   });
   it('asks for the week figure itself when a graph of a named stretch is wanted', async () => {
-    const { assembleReply } = await import('../../../../api/services/money/chat.js');
+    const { assembleReply } = await import('../../../../api/_app/services/money/chat.js');
     const ctx = assemble({ transactions: [tx('a', '2026-09-08T10:00:00Z', -10), tx('b', '2026-09-12T10:00:00Z', -20)], now, language: 'en' });
     const message = 'a chart of what I spent between the 8th and the 12th';
     ctx.asked = message;
@@ -58,7 +58,7 @@ describe('the week figure over an asked stretch', () => {
 
 describe('a question is answered, not remembered', () => {
   it('drops a remember offer on a plain ask and a closing chart question when the chart is drawn', async () => {
-    const { assembleReply, withoutChartQuestion } = await import('../../../../api/services/money/chat.js');
+    const { assembleReply, withoutChartQuestion } = await import('../../../../api/_app/services/money/chat.js');
     const ctx = assemble({ transactions: [tx('a', '2026-09-08T10:00:00Z', -10), tx('b', '2026-09-12T10:00:00Z', -20)], now, language: 'en' });
     const message = 'Give me a graph of what I spent between the 8th and the 12th';
     ctx.asked = message;

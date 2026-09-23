@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
 
 // sanitizeInput uses isomorphic-dompurify and xss — these are real deps, no mock needed
-import { sanitizeInput, endpointRateLimit, validateContentType } from '../../../api/middleware/sanitization.js';
+import { sanitizeInput, endpointRateLimit, validateContentType } from '../../../api/_app/middleware/sanitization.js';
 
 // Helper to create a minimal express req/res/next mock
 function makeReq({ body = {}, query = {}, params = {} } = {}) {

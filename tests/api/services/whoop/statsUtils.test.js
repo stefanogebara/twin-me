@@ -12,7 +12,7 @@ import {
   linearRegression,
   detectAnomalies,
   trendDirection,
-} from '../../../../api/services/whoop/statsUtils.js';
+} from '../../../../api/_app/services/whoop/statsUtils.js';
 
 describe('mean', () => {
   it('computes the arithmetic mean', () => {

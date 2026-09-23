@@ -19,7 +19,7 @@ import {
   isLikelyBuildOutput,
   PRESENTATION_LANGUAGES,
   CODE_LANGUAGES,
-} from '../../../../api/services/observationFetchers/githubLanguageAggregator.js';
+} from '../../../../api/_app/services/observationFetchers/githubLanguageAggregator.js';
 
 describe('isLikelyBuildOutput', () => {
   describe('Code-language repos with markup bytes (the audit case)', () => {

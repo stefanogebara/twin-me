@@ -3,7 +3,7 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { formatRecentListening } from '../../../../api/services/spotify/formatAnalytics.js';
+import { formatRecentListening } from '../../../../api/_app/services/spotify/formatAnalytics.js';
 
 describe('formatRecentListening', () => {
   const base = {

@@ -32,16 +32,16 @@ const chain = {
 };
 const fromMock = vi.fn(() => chain);
 
-vi.mock('../../../api/services/database.js', () => ({
+vi.mock('../../../api/_app/services/database.js', () => ({
   supabaseAdmin: { from: (...args) => fromMock(...args) },
   serverDb: {},
 }));
 
-vi.mock('../../../api/services/logger.js', () => ({
+vi.mock('../../../api/_app/services/logger.js', () => ({
   createLogger: () => ({ info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() }),
 }));
 
-const { loadExistingHashes } = await import('../../../api/services/gdprImportService.js');
+const { loadExistingHashes } = await import('../../../api/_app/services/gdprImportService.js');
 
 // Mirrors the private contentHash() in gdprImportService.js.
 function expectedHash(platform, content) {

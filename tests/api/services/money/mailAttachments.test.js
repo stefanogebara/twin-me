@@ -1,10 +1,10 @@
 import { describe, it, expect, vi } from 'vitest';
 
-vi.mock('../../../../api/services/database.js', () => ({ supabaseAdmin: {} }));
-vi.mock('../../../../api/services/money/store.js', () => ({ ingestSightings: vi.fn(), refreshRecurring: vi.fn(), refreshReadings: vi.fn(), listFacts: vi.fn(), answerQuestion: vi.fn(), ingestSighting: vi.fn() }));
-vi.mock('../../../../api/services/money/statements/accounts.js', () => ({ statementAccounts: vi.fn(), checkStatementEvidence: vi.fn() }));
+vi.mock('../../../../api/_app/services/database.js', () => ({ supabaseAdmin: {} }));
+vi.mock('../../../../api/_app/services/money/store.js', () => ({ ingestSightings: vi.fn(), refreshRecurring: vi.fn(), refreshReadings: vi.fn(), listFacts: vi.fn(), answerQuestion: vi.fn(), ingestSighting: vi.fn() }));
+vi.mock('../../../../api/_app/services/money/statements/accounts.js', () => ({ statementAccounts: vi.fn(), checkStatementEvidence: vi.fn() }));
 
-const { statementFromMail } = await import('../../../../api/services/money/mailAttachments.js');
+const { statementFromMail } = await import('../../../../api/_app/services/money/mailAttachments.js');
 
 const CSV = Buffer.from('Fecha,Concepto,Importe\n17/09/2026,METRO DE MADRID,"-12,20"\n17/09/2026,CINES YELMO,"-9,50"\n18/09/2026,MARIA GARCIA,"25,00"\n');
 const one = { id: '11111111-1111-4111-8111-111111111111', name: 'Santander', currency: 'EUR' };

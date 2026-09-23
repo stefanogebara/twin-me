@@ -14,11 +14,11 @@ const { store, log, llm } = vi.hoisted(() => ({
   llm: { complete: vi.fn() },
 }));
 
-vi.mock('../../api/services/presenceStore.js', () => store);
-vi.mock('../../api/services/logger.js', () => ({ createLogger: () => log }));
-vi.mock('../../api/services/llmGateway.js', () => ({ complete: llm.complete, TIER_ANALYSIS: 'analysis' }));
+vi.mock('../../api/_app/services/presenceStore.js', () => store);
+vi.mock('../../api/_app/services/logger.js', () => ({ createLogger: () => log }));
+vi.mock('../../api/_app/services/llmGateway.js', () => ({ complete: llm.complete, TIER_ANALYSIS: 'analysis' }));
 
-const { summarizeConversation, ELDER_ASSENT_CALL_VERSION, PREFERRED_NAME_QUESTION } = await import('../../api/services/presenceSummarizer.js');
+const { summarizeConversation, ELDER_ASSENT_CALL_VERSION, PREFERRED_NAME_QUESTION } = await import('../../api/_app/services/presenceSummarizer.js');
 
 const transcript = [{ role: 'assistant', content: 'Oi' }, { role: 'user', content: 'Oi, tudo bem.' }];
 const reply = (fields) => llm.complete.mockResolvedValue({ content: JSON.stringify({ summary: 'Ela estava bem.', her_recap: 'Falamos do seu dia.', needs_family: [], learned_facts: [], unknown_people: [], ...fields }) });

@@ -1,5 +1,5 @@
 /**
- * Tests for api/routes/og-image.js — GET /api/og/soul-card cost hardening.
+ * Tests for api/_app/routes/og-image.js — GET /api/og/soul-card cost hardening.
  *
  * Contract under test (2026-07-03 backend-cost audit):
  *  - Invalid/garbage userId never triggers the per-user renderer, and the
@@ -30,13 +30,13 @@ const renderFallbackCardMock = vi.fn(async () => {
   fallbackRenderCount++;
   return Buffer.from('fallback-png');
 });
-vi.mock('../../../api/services/soulCardRenderer.js', () => ({
+vi.mock('../../../api/_app/services/soulCardRenderer.js', () => ({
   renderSoulCard: (...a) => renderSoulCardMock(...a),
   renderFallbackCard: (...a) => renderFallbackCardMock(...a),
 }));
 
 const cacheStore = new Map();
-vi.mock('../../../api/services/redisClient.js', () => ({
+vi.mock('../../../api/_app/services/redisClient.js', () => ({
   get: vi.fn(async (key) => (cacheStore.has(key) ? cacheStore.get(key) : null)),
   set: vi.fn(async (key, value) => { cacheStore.set(key, value); }),
   del: vi.fn(async (key) => { cacheStore.delete(key); }),
@@ -44,14 +44,14 @@ vi.mock('../../../api/services/redisClient.js', () => ({
   isRedisAvailable: vi.fn(() => false),
 }));
 
-vi.mock('../../../api/services/logger.js', () => ({
+vi.mock('../../../api/_app/services/logger.js', () => ({
   createLogger: () => ({ info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() }),
 }));
 
 // Per-table Supabase stub: soul_signatures + users
 let signatureRow = null;
 let userRow = null;
-vi.mock('../../../api/services/database.js', () => ({
+vi.mock('../../../api/_app/services/database.js', () => ({
   supabaseAdmin: {
     from: (table) => {
       const single = async () => {
@@ -76,7 +76,7 @@ vi.mock('../../../api/services/database.js', () => ({
   serverDb: {},
 }));
 
-const ogRoutes = (await import('../../../api/routes/og-image.js')).default;
+const ogRoutes = (await import('../../../api/_app/routes/og-image.js')).default;
 
 function createApp() {
   const app = express();

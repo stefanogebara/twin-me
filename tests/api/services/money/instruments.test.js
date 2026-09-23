@@ -1,6 +1,6 @@
 import { expect, it, vi } from 'vitest';
-vi.mock('../../../../api/services/database.js', () => ({ supabaseAdmin: {} }));
-import { groupCards } from '../../../../api/services/money/instruments.js';
+vi.mock('../../../../api/_app/services/database.js', () => ({ supabaseAdmin: {} }));
+import { groupCards } from '../../../../api/_app/services/money/instruments.js';
 
 it('keeps identical suffixes separate across accounts and never guesses credit from an inflow', () => {
   const accounts = [{ id: 'A' }, { id: 'B' }];

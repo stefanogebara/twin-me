@@ -1,6 +1,6 @@
 /** Every Supabase request has a deadline: a call that gets no answer fails in seconds. */
 import { describe, expect, it } from 'vitest';
-import { timedFetch, supabaseTimeoutMs, DEFAULT_SUPABASE_TIMEOUT_MS } from '../../api/config/timedFetch.js';
+import { timedFetch, supabaseTimeoutMs, DEFAULT_SUPABASE_TIMEOUT_MS } from '../../api/_app/config/timedFetch.js';
 
 const hangs = (input, init) => new Promise((_, reject) => { init.signal.addEventListener('abort', () => reject(init.signal.reason)); });
 const answers = async () => new Response('ok');

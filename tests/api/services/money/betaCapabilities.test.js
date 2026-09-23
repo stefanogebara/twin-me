@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { bankCapability, unrestricted } from '../../../../api/services/money/betaCapabilities.js';
+import { bankCapability, unrestricted } from '../../../../api/_app/services/money/betaCapabilities.js';
 
 const me = '00000000-4000-4000-8000-000000000001';
 describe('the bank, per person, from facts', () => {

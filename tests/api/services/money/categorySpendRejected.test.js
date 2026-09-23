@@ -11,7 +11,7 @@ const rows = vi.hoisted(() => ({
     { id: 't2', amount: -22.47, merchant_key: 'la fruteria', merchant_raw: 'La Fruteria', occurred_at: '2026-09-21T10:00:00Z', channel: 'card', verdict: null },
   ],
 }));
-vi.mock('../../../../api/services/database.js', () => {
+vi.mock('../../../../api/_app/services/database.js', () => {
   const chain = (table) => new Proxy({}, {
     get: (_t, key) => {
       if (key === 'then') return (resolve) => Promise.resolve({ data: rows[table] || [], error: null }).then(resolve);
@@ -20,8 +20,8 @@ vi.mock('../../../../api/services/database.js', () => {
   });
   return { supabaseAdmin: { from: (table) => chain(table) } };
 });
-vi.mock('../../../../api/services/money/factsRepository.js', async (importOriginal) => ({ ...(await importOriginal()), listFacts: async () => [], categoriesFor: async () => new Map() }));
-import { categorySpend } from '../../../../api/services/money/store.js';
+vi.mock('../../../../api/_app/services/money/factsRepository.js', async (importOriginal) => ({ ...(await importOriginal()), listFacts: async () => [], categoriesFor: async () => new Map() }));
+import { categorySpend } from '../../../../api/_app/services/money/store.js';
 
 describe('categorySpend', () => {
   it('leaves a rejected payment out of the month and its groups', async () => {

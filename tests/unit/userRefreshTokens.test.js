@@ -18,7 +18,7 @@ import { fileURLToPath } from 'url';
 import { dirname, resolve } from 'path';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const AUTH_FILE = resolve(__dirname, '../../api/routes/auth-simple.js');
+const AUTH_FILE = resolve(__dirname, '../../api/_app/routes/auth-simple.js');
 const MIGRATION_FILE = resolve(
   __dirname,
   '../../database/supabase/migrations/20260422_user_refresh_tokens.sql'
@@ -28,11 +28,11 @@ const authSource = readFileSync(AUTH_FILE, 'utf8');
 const migrationSource = readFileSync(MIGRATION_FILE, 'utf8');
 
 describe('user_refresh_tokens — multi-device session refactor', () => {
-  describe('auth-simple.js, through api/services/auth/authStore.js (M2-D, 2026-09-22)', () => {
+  describe('auth-simple.js, through api/_app/services/auth/authStore.js (M2-D, 2026-09-22)', () => {
     /* The table calls live in the store now; the route calls the store by name. Both are read,
        so a regression on either side (the route stops persisting, or the store stops filtering
        by hash) fails here. */
-    const storeSource = readFileSync(resolve(__dirname, '../../api/services/auth/authStore.js'), 'utf8');
+    const storeSource = readFileSync(resolve(__dirname, '../../api/_app/services/auth/authStore.js'), 'utf8');
 
     it('the store owns the user_refresh_tokens table', () => {
       expect(storeSource).toMatch(/from\('user_refresh_tokens'\)/);

@@ -3,7 +3,7 @@
  * named expense on its way; and the rule that retires a kind people mute.
  */
 import { describe, it, expect } from 'vitest';
-import { upcoming, chargeAhead, namedExpense, nudgeFindings, retiredKinds, CHARGE_AHEAD, NAMED_EXPENSE } from '../../../../api/services/money/nudges.js';
+import { upcoming, chargeAhead, namedExpense, nudgeFindings, retiredKinds, CHARGE_AHEAD, NAMED_EXPENSE } from '../../../../api/_app/services/money/nudges.js';
 
 const NOW = new Date('2026-09-14T12:00:00Z'); // a Monday
 const cast = {
@@ -87,7 +87,7 @@ describe('retiredKinds', () => {
 
 describe('what a nudge may not say', () => {
   it('stays silent about the month on a balance basis, and a dated nudge expires once its day has passed', async () => {
-    const { chargeAhead, expiredNudge, CHARGE_AHEAD, NAMED_EXPENSE } = await import('../../../../api/services/money/nudges.js');
+    const { chargeAhead, expiredNudge, CHARGE_AHEAD, NAMED_EXPENSE } = await import('../../../../api/_app/services/money/nudges.js');
     const cast = { committed_items: [{ merchant_key: 'higgsfield', merchant_name: 'Higgsfield', typical_amount: 53.96, next_expected: '2026-09-22' }], committed: 53.96, month: '2026-09-01' };
     expect(chargeAhead({ cast, allowance: { free: -54.12, basis: 'balance' }, now: new Date('2026-09-21T10:00:00Z') })).toBeNull();
     expect(chargeAhead({ cast, allowance: { free: -54.12, basis: 'income' }, now: new Date('2026-09-21T10:00:00Z') })).not.toBeNull();

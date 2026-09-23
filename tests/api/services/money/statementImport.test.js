@@ -15,7 +15,7 @@ import {
   parseSpanishAmount,
   parseSpanishDate,
   toSightings,
-} from '../../../../api/services/money/statements/importer.js';
+} from '../../../../api/_app/services/money/statements/importer.js';
 
 /** The five preamble rows Santander puts above the header. */
 const PREAMBLE = [

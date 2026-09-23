@@ -1,0 +1,15 @@
+import { chromium } from 'playwright';
+const browser = await chromium.connectOverCDP('http://127.0.0.1:9333');
+const context = browser.contexts()[0];
+const page = context.pages().find((p) => p.url().includes('twinme.me')) || await context.newPage();
+const bad = new Set(); page.on('response', (r) => { if (r.status() >= 400) bad.add(`${r.status()} ${r.url().replace('https://www.twinme.me', '')}`); });
+await page.goto('https://www.twinme.me/money/month', { waitUntil: 'domcontentloaded' }); await page.waitForTimeout(7000);
+const asset = await page.evaluate(() => [...document.scripts].map((s) => s.src).find((s) => /assets\/index-/.test(s)) || '');
+console.log('entry asset:', asset.replace(/^.*assets\//, ''));
+const text = (await page.locator('main').innerText()).trim();
+const lines = text.split('\n').map((l) => l.trim()).filter(Boolean);
+const hero = lines.find((l) => /^\d[\d.]*,\d{2}\s?€$/.test(l)) || lines.find((l) => /,\d{2}\s?€/.test(l));
+console.log('hero line:', hero);
+console.log(lines.filter((l) => /^By the|^Até|^Hasta|had spent|spent_to_day|of August|de agosto/i.test(l)).join('\n'));
+console.log('failed requests:', [...bad].join(', ') || 'none');
+await browser.close();

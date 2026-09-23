@@ -15,7 +15,7 @@ import AdmZip from 'adm-zip';
 // parseWhoop lives in the split-out parser module; gdprImportService only
 // re-exports a handful of helpers and never re-exported parseWhoop, so
 // importing it from there yielded undefined and threw on every call.
-import { parseWhoop } from '../../../../api/services/gdpr/parsers/whoop.js';
+import { parseWhoop } from '../../../../api/_app/services/gdpr/parsers/whoop.js';
 
 // Real Whoop physiological_cycles.csv header row (verified against actual exports).
 const REAL_HEADER =

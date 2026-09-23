@@ -12,7 +12,7 @@ import {
   generateCodeChallenge,
   isValidCodeVerifier,
   generatePKCEParams,
-} from '../../../api/services/pkce.js';
+} from '../../../api/_app/services/pkce.js';
 
 describe('generateCodeVerifier', () => {
   it('produces a 43-char base64url string (32 bytes, no padding)', () => {

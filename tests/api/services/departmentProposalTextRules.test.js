@@ -1,5 +1,5 @@
 /**
- * Tests for PROPOSAL_TEXT_RULES (api/services/departmentService.js) — rules 7-8
+ * Tests for PROPOSAL_TEXT_RULES (api/_app/services/departmentService.js) — rules 7-8
  * of the department heartbeat prompt.
  *
  * optmem-brain audit, Phase 0 item 2 (root cause 11): the few-shot MANDATED
@@ -22,26 +22,26 @@ process.env.NODE_ENV = 'test';
 
 // departmentService pulls in supabase/redis/llm plumbing at module load.
 // PROPOSAL_TEXT_RULES is a static string — mock the heavy deps away.
-vi.mock('../../../api/services/database.js', () => ({ supabaseAdmin: {} }));
-vi.mock('../../../api/services/redisClient.js', () => ({
+vi.mock('../../../api/_app/services/database.js', () => ({ supabaseAdmin: {} }));
+vi.mock('../../../api/_app/services/redisClient.js', () => ({
   get: vi.fn(),
   set: vi.fn(),
 }));
-vi.mock('../../../api/services/llmGateway.js', () => ({
+vi.mock('../../../api/_app/services/llmGateway.js', () => ({
   complete: vi.fn(),
   TIER_EXTRACTION: 'extraction',
   TIER_ANALYSIS: 'analysis',
 }));
-vi.mock('../../../api/services/autonomyService.js', () => ({
+vi.mock('../../../api/_app/services/autonomyService.js', () => ({
   queueActionForApproval: vi.fn(),
   getAutonomyBySkillName: vi.fn(),
   AUTONOMY_LEVELS: {},
 }));
-vi.mock('../../../api/services/departmentBudgetService.js', () => ({
+vi.mock('../../../api/_app/services/departmentBudgetService.js', () => ({
   checkDepartmentBudget: vi.fn(),
 }));
 
-const { PROPOSAL_TEXT_RULES } = await import('../../../api/services/departmentService.js');
+const { PROPOSAL_TEXT_RULES } = await import('../../../api/_app/services/departmentService.js');
 
 const lines = PROPOSAL_TEXT_RULES.split('\n').map(l => l.trim());
 const goodExamples = lines.filter(l => l.startsWith('GOOD:'));

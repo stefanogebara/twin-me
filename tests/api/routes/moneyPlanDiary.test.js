@@ -12,7 +12,7 @@ import request from 'supertest';
 
 const owner = '00000000-0000-4000-8000-000000000001';
 const f = vi.hoisted(() => ({ listFacts: vi.fn(), listTransactions: vi.fn(), forecast: vi.fn() }));
-vi.mock('../../../api/services/money/store.js', () => ({ inPersonScope: (id, fn) => fn(), personProfileCached: async () => ({ timezone: 'Europe/Madrid', country: 'ES', currency: 'EUR', language: null }), 
+vi.mock('../../../api/_app/services/money/store.js', () => ({ inPersonScope: (id, fn) => fn(), personProfileCached: async () => ({ timezone: 'Europe/Madrid', country: 'ES', currency: 'EUR', language: null }), 
   ingestSighting: vi.fn(),
   ingestSightings: vi.fn(),
   listTransactions: f.listTransactions,
@@ -47,8 +47,8 @@ vi.mock('../../../api/services/money/store.js', () => ({ inPersonScope: (id, fn)
   userLanguage: vi.fn(),
   patternsFor: vi.fn(),
 }));
-vi.mock('../../../api/middleware/auth.js', () => ({ authenticateUser: (req, _res, next) => { req.user = { id: owner }; next(); } }));
-import router from '../../../api/routes/money.js';
+vi.mock('../../../api/_app/middleware/auth.js', () => ({ authenticateUser: (req, _res, next) => { req.user = { id: owner }; next(); } }));
+import router from '../../../api/_app/routes/money.js';
 const app = express(); app.use(express.json()); app.use('/money', router);
 
 /* A diary of two events a day across the window the counts cover. */

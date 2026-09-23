@@ -9,7 +9,7 @@ import {
   UserNotFoundError,
   RateLimitError,
   asyncHandler,
-} from '../../../api/middleware/errors.js';
+} from '../../../api/_app/middleware/errors.js';
 
 describe('PlatformError', () => {
   it('sets name, message, statusCode, and details', () => {

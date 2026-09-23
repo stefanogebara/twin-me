@@ -9,7 +9,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 let pendingProposals = [];
 const proposeMock = vi.fn();
 
-vi.mock('../../../api/services/database.js', () => ({
+vi.mock('../../../api/_app/services/database.js', () => ({
   supabaseAdmin: {
     from: () => ({
       select: () => ({ eq: () => ({ single: () => Promise.resolve({ data: { email: 'me@twin.com' } }) }) }),
@@ -17,20 +17,20 @@ vi.mock('../../../api/services/database.js', () => ({
   },
 }));
 
-vi.mock('../../../api/services/departmentService.js', () => ({
+vi.mock('../../../api/_app/services/departmentService.js', () => ({
   proposeDepartmentAction: (...a) => proposeMock(...a),
   getPendingProposals: () => Promise.resolve(pendingProposals),
 }));
 
 // Keep heavy module-load deps inert; proposeTopEmailReply doesn't call these.
-vi.mock('../../../api/services/googleWorkspaceActions.js', () => ({
+vi.mock('../../../api/_app/services/googleWorkspaceActions.js', () => ({
   getEmails: vi.fn(), getEmail: vi.fn(), draftEmail: vi.fn(),
 }));
-vi.mock('../../../api/services/llmGateway.js', () => ({
+vi.mock('../../../api/_app/services/llmGateway.js', () => ({
   complete: vi.fn(), TIER_EXTRACTION: 'x', TIER_ANALYSIS: 'y',
 }));
 
-const { proposeTopEmailReply } = await import('../../../api/services/inboxIntelligenceService.js');
+const { proposeTopEmailReply } = await import('../../../api/_app/services/inboxIntelligenceService.js');
 
 const okBrief = (emails) => ({ status: 'ok', emails, count: emails.length, message: 'x' });
 const pedro = {

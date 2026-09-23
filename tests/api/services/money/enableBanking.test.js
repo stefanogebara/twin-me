@@ -2,7 +2,7 @@
  * enableBanking.toSighting: a Berlin-Group-shaped feed row becomes a bankfeed sighting.
  */
 import { describe, it, expect } from 'vitest';
-import { toSighting, isConfigured, startAuthorisation, fetchTransactions, resetApplicationEnvironment, distinctPending, sessionShape, applicationInfo } from '../../../../api/services/money/feeds/enableBanking.js';
+import { toSighting, isConfigured, startAuthorisation, fetchTransactions, resetApplicationEnvironment, distinctPending, sessionShape, applicationInfo } from '../../../../api/_app/services/money/feeds/enableBanking.js';
 
 describe('toSighting', () => {
   it('maps a debit with a creditor name', () => {
@@ -193,7 +193,7 @@ describe('two identical pending rows in one read', () => {
 
 describe('pickBalance', () => {
   it('prefers the available figure, then expected, then the accounting balance, and marks a credit line', async () => {
-    const { pickBalance } = await import('../../../../api/services/money/feeds/enableBanking.js');
+    const { pickBalance } = await import('../../../../api/_app/services/money/feeds/enableBanking.js');
     const santander = [
       { name: 'closingBooked', balance_amount: { currency: 'EUR', amount: '1250.00' }, balance_type: 'CLBD', reference_date: '2026-09-14' },
       { name: 'expected', balance_amount: { currency: 'EUR', amount: '1198.55' }, balance_type: 'XPCD', last_change_date_time: '2026-09-14T17:47:00Z' },
@@ -220,7 +220,7 @@ describe('getSession', () => {
     process.env.ENABLE_BANKING_PRIVATE_KEY = privateKey;
     global.fetch = async (u) => { url = String(u); return { ok: true, status: 200, text: async () => JSON.stringify({ session_id: 's9', status: 'AUTHORIZED', access: { valid_until: '2027-03-01T00:00:00Z' }, aspsp: { name: 'Revolut', country: 'ES' }, accounts: [{ uid: 'u-2', account_id: { iban: 'LT12' }, name: 'Main', currency: 'EUR' }] }) }; };
     try {
-      const { getSession } = await import('../../../../api/services/money/feeds/enableBanking.js');
+      const { getSession } = await import('../../../../api/_app/services/money/feeds/enableBanking.js');
       const s = await getSession('s9');
       expect(url).toMatch(/\/sessions\/s9$/);
       expect(s.bankName).toBe('Revolut');
@@ -243,7 +243,7 @@ describe('createSession', () => {
     process.env.ENABLE_BANKING_PRIVATE_KEY = privateKey;
     global.fetch = async () => ({ ok: true, status: 200, text: async () => JSON.stringify({ session_id: 's9', access: { valid_until: '2027-03-01T00:00:00Z' }, aspsp: { name: 'Revolut', country: 'ES' }, accounts: [{ uid: 'u-1', account_id: { iban: 'LT123456789012345678' }, name: 'Main', currency: 'EUR' }] }) });
     try {
-      const { createSession } = await import('../../../../api/services/money/feeds/enableBanking.js');
+      const { createSession } = await import('../../../../api/_app/services/money/feeds/enableBanking.js');
       const s = await createSession('code');
       expect(s).toMatchObject({ sessionId: 's9', bankName: 'Revolut', validUntil: '2027-03-01T00:00:00Z' });
       expect(s.accounts[0]).toMatchObject({ uid: 'u-1', iban: 'LT123456789012345678', name: 'Main' });
@@ -257,7 +257,7 @@ describe('createSession', () => {
 
 describe('fetchBalances', () => {
   it('refuses to read without the person present, so the four a day stay true', async () => {
-    const { fetchBalances } = await import('../../../../api/services/money/feeds/enableBanking.js');
+    const { fetchBalances } = await import('../../../../api/_app/services/money/feeds/enableBanking.js');
     await expect(fetchBalances('acc-1', { psu: null })).rejects.toMatchObject({ code: 'psu_required' });
     await expect(fetchBalances('acc-1', { psu: { ip: null, userAgent: 'x' } })).rejects.toMatchObject({ code: 'psu_required' });
   });

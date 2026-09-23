@@ -37,14 +37,14 @@ import { dirname, resolve } from 'path';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const AUTH_CONTEXT_FILE = resolve(__dirname, '../../src/contexts/AuthContext.tsx');
-const AUTH_SIMPLE_FILE = resolve(__dirname, '../../api/routes/auth-simple.js');
+const AUTH_SIMPLE_FILE = resolve(__dirname, '../../api/_app/routes/auth-simple.js');
 const SINGLE_FLIGHT_FILE = resolve(__dirname, '../../src/utils/singleFlight.ts');
 const OAUTH_CALLBACK_FILE = resolve(__dirname, '../../src/pages/OAuthCallback.tsx');
 const API_BASE_FILE = resolve(__dirname, '../../src/services/api/apiBase.ts');
 
 const authContextSrc = readFileSync(AUTH_CONTEXT_FILE, 'utf8');
 const authSimpleSrc = readFileSync(AUTH_SIMPLE_FILE, 'utf8');
-const authStoreSrc = readFileSync(resolve(__dirname, '../../api/services/auth/authStore.js'), 'utf8');
+const authStoreSrc = readFileSync(resolve(__dirname, '../../api/_app/services/auth/authStore.js'), 'utf8');
 const singleFlightSrc = readFileSync(SINGLE_FLIGHT_FILE, 'utf8');
 const oauthCallbackSrc = readFileSync(OAUTH_CALLBACK_FILE, 'utf8');
 const apiBaseSrc = readFileSync(API_BASE_FILE, 'utf8');

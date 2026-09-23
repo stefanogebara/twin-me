@@ -25,7 +25,7 @@ process.env.NODE_ENV = 'test';
 let memoryRows = [];
 let llmBehavior = () => Promise.resolve({ content: '{}' });
 
-vi.mock('../../../api/services/database.js', () => {
+vi.mock('../../../api/_app/services/database.js', () => {
   const makeChain = (table) => {
     const chain = {};
     for (const m of ['select', 'insert', 'update', 'delete', 'eq', 'neq', 'gt', 'gte', 'lt', 'lte', 'in', 'is', 'not', 'or', 'ilike', 'order', 'limit', 'range']) {
@@ -51,18 +51,18 @@ vi.mock('../../../api/services/database.js', () => {
 });
 
 const completeMock = vi.fn((...args) => llmBehavior(...args));
-vi.mock('../../../api/services/llmGateway.js', () => ({
+vi.mock('../../../api/_app/services/llmGateway.js', () => ({
   complete: (...args) => completeMock(...args),
   TIER_ANALYSIS: 'analysis',
   TIER_EXTRACTION: 'extraction',
   TIER_CHAT: 'chat',
 }));
 
-vi.mock('../../../api/services/personalityProfileService.js', () => ({
+vi.mock('../../../api/_app/services/personalityProfileService.js', () => ({
   getProfile: vi.fn(async () => null),
 }));
 
-const routes = (await import('../../../api/routes/morning-briefing.js')).default;
+const routes = (await import('../../../api/_app/routes/morning-briefing.js')).default;
 
 function makeApp() {
   const app = express();

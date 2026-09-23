@@ -1,0 +1,14 @@
+import fs from 'node:fs'; import os from 'node:os';
+const token = JSON.parse(fs.readFileSync(`${os.homedir()}/Library/Application Support/com.vercel.cli/auth.json`, 'utf8')).token;
+const api = async (p) => { const r = await fetch(`https://api.vercel.com${p}`, { headers: { Authorization: `Bearer ${token}` } }); const t = await r.text(); if (!r.ok) throw new Error(`${r.status} ${t.slice(0, 200)}`); return JSON.parse(t); };
+const { projects } = await api('/v9/projects?limit=20');
+const id = projects.find((p) => p.name === 'twin-ai-learn').id;
+const { deployments } = await api(`/v6/deployments?projectId=${id}&limit=10&target=production`);
+const done = deployments.find((d) => d.state === 'READY');
+const files = await api(`/v6/deployments/${done.uid}/files`);
+const walk = (nodes, prefix = '') => nodes.flatMap((n) => (n.children ? walk(n.children, `${prefix}${n.name}/`) : [{ path: `${prefix}${n.name}`, type: n.type, size: n.size || 0 }]));
+const all = walk(files);
+const lambdas = all.filter((f) => f.type === 'lambda');
+console.log(`deployment ${done.uid}: ${all.length} output entries, ${lambdas.length} lambdas`);
+for (const l of lambdas) console.log(`  lambda  ${l.path}  ${(l.size / 1048576).toFixed(1)} MB`);
+process.exit(0);

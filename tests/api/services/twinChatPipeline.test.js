@@ -28,12 +28,12 @@ const h = vi.hoisted(() => {
   return { state, chain };
 });
 
-vi.mock('../../../api/services/database.js', () => ({
+vi.mock('../../../api/_app/services/database.js', () => ({
   supabaseAdmin: h.chain,
   serverDb: {},
 }));
 
-vi.mock('../../../api/services/logger.js', () => ({
+vi.mock('../../../api/_app/services/logger.js', () => ({
   createLogger: () => ({
     info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn(),
   }),
@@ -47,31 +47,31 @@ const memoryMocks = vi.hoisted(() => ({
   extractCommunicationStyle: vi.fn().mockResolvedValue(undefined),
   getMemoryStats: vi.fn().mockResolvedValue({ total: 0, byType: { reflection: 0 } }),
 }));
-vi.mock('../../../api/services/memoryStreamService.js', () => memoryMocks);
+vi.mock('../../../api/_app/services/memoryStreamService.js', () => memoryMocks);
 
 const reflectionMocks = vi.hoisted(() => ({
   shouldTriggerReflection: vi.fn().mockResolvedValue(false),
   generateReflections: vi.fn().mockResolvedValue(undefined),
   seedReflections: vi.fn().mockResolvedValue(undefined),
 }));
-vi.mock('../../../api/services/reflectionEngine.js', () => reflectionMocks);
+vi.mock('../../../api/_app/services/reflectionEngine.js', () => reflectionMocks);
 
 const citationMocks = vi.hoisted(() => ({
   runCitationPipeline: vi.fn().mockResolvedValue([]),
 }));
-vi.mock('../../../api/services/citationExtractionService.js', () => citationMocks);
+vi.mock('../../../api/_app/services/citationExtractionService.js', () => citationMocks);
 
 const linkMocks = vi.hoisted(() => ({ strengthenCoCitedLinks: vi.fn().mockResolvedValue(undefined) }));
-vi.mock('../../../api/services/memoryLinksService.js', () => linkMocks);
+vi.mock('../../../api/_app/services/memoryLinksService.js', () => linkMocks);
 
 const wikiMocks = vi.hoisted(() => ({ fileQueryInsightIfValuable: vi.fn().mockResolvedValue(undefined) }));
-vi.mock('../../../api/services/wikiCompilationService.js', () => wikiMocks);
+vi.mock('../../../api/_app/services/wikiCompilationService.js', () => wikiMocks);
 
 import {
   fetchConversationHistory,
   fetchCreativityBoost,
   runPostResponseSideEffects,
-} from '../../../api/services/twinChatPipeline.js';
+} from '../../../api/_app/services/twinChatPipeline.js';
 
 const USER = '167c27b5-a40b-49fb-8d00-deb1b1c57f4d';
 const CONVO = 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee';

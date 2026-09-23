@@ -16,7 +16,7 @@ let priorRows;        // proactive_insights prior prediction (order, no gte)
 let channelRows;      // messaging_channels
 const inserts = [];
 const updates = [];
-vi.mock('../../../api/services/database.js', () => {
+vi.mock('../../../api/_app/services/database.js', () => {
   function builder(table) {
     const b = { _table: table, _gte: false, _ordered: false };
     for (const m of ['select', 'eq', 'in']) b[m] = () => b;
@@ -44,7 +44,7 @@ vi.mock('../../../api/services/database.js', () => {
 });
 
 const completeMock = vi.fn();
-vi.mock('../../../api/services/llmGateway.js', () => ({
+vi.mock('../../../api/_app/services/llmGateway.js', () => ({
   complete: (...a) => completeMock(...a),
   TIER_ANALYSIS: 'analysis',
   TIER_CHAT: 'chat',
@@ -52,12 +52,12 @@ vi.mock('../../../api/services/llmGateway.js', () => ({
 }));
 
 const deliverInsightMock = vi.fn();
-vi.mock('../../../api/services/messageRouter.js', () => ({
+vi.mock('../../../api/_app/services/messageRouter.js', () => ({
   deliverInsight: (...a) => deliverInsightMock(...a),
 }));
 
 const { simulateFutures, runWeeklySimulation, SIMULATION_LENSES } = await import(
-  '../../../api/services/futureSimulationService.js'
+  '../../../api/_app/services/futureSimulationService.js'
 );
 
 const SCENARIO = JSON.stringify({

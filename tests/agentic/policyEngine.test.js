@@ -9,17 +9,17 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 
 // Mock Redis
-vi.mock('../../api/services/redisClient.js', () => ({
+vi.mock('../../api/_app/services/redisClient.js', () => ({
   getRedisClient: () => null,
   isRedisAvailable: () => false,
 }));
 
 // Mock Supabase
-vi.mock('../../api/services/database.js', () => ({
+vi.mock('../../api/_app/services/database.js', () => ({
   supabaseAdmin: { from: () => ({ select: () => ({ eq: () => ({ single: () => ({ data: null }) }) }) }) },
 }));
 
-const { checkPolicy, getAllowedActions } = await import('../../api/services/policyEngine.js');
+const { checkPolicy, getAllowedActions } = await import('../../api/_app/services/policyEngine.js');
 
 describe('Policy Engine', () => {
   describe('getAllowedActions', () => {

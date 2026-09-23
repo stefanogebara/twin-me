@@ -2,8 +2,8 @@
  * recurring + projection: what comes back on its own, and this month with a band.
  */
 import { describe, it, expect } from 'vitest';
-import { detectRecurring, cadenceOf, subscriptionsAgainstUse } from '../../../../api/services/money/recurring.js';
-import { projectMonth, scenario, dailyTotals } from '../../../../api/services/money/projection.js';
+import { detectRecurring, cadenceOf, subscriptionsAgainstUse } from '../../../../api/_app/services/money/recurring.js';
+import { projectMonth, scenario, dailyTotals } from '../../../../api/_app/services/money/projection.js';
 
 const monthly = (key, amount, months, day = 3) => months.map((m) => ({ merchant_key: key, amount: -amount, occurred_at: `2026-${String(m).padStart(2, '0')}-${String(day).padStart(2, '0')}T08:00:00Z` }));
 
@@ -248,7 +248,7 @@ describe('money coming back is not income', () => {
 });
 
 describe('a series the person ended', async () => {
-  const { withoutCancelled, cancelledKeys } = await import('../../../../api/services/money/recurring.js');
+  const { withoutCancelled, cancelledKeys } = await import('../../../../api/_app/services/money/recurring.js');
   it('is dropped by a merchant_kind fact valued cancelled, and nothing else drops anything', () => {
     const series = [{ merchant_key: 'spotify', typical_amount: 11.99 }, { merchant_key: 'higgsfield', typical_amount: 53.96 }];
     const facts = [{ kind: 'merchant_kind', subject: 'Spotify', value: 'cancelled' }, { kind: 'merchant_kind', subject: 'higgsfield', value: 'still active' }];

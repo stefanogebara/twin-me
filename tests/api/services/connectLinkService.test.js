@@ -7,7 +7,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 const createConnectSessionMock = vi.fn();
 const getAllConnectionsMock = vi.fn();
 const deleteConnectionMock = vi.fn();
-vi.mock('../../../api/services/nangoService.js', () => ({
+vi.mock('../../../api/_app/services/nangoService.js', () => ({
   createConnectSession: (...a) => createConnectSessionMock(...a),
   getAllConnections: (...a) => getAllConnectionsMock(...a),
   deleteConnection: (...a) => deleteConnectionMock(...a),
@@ -18,13 +18,13 @@ vi.mock('../../../api/services/nangoService.js', () => ({
     github: { providerConfigKey: 'github-getting-started', name: 'GitHub' },
   },
 }));
-vi.mock('../../../api/services/database.js', () => ({
+vi.mock('../../../api/_app/services/database.js', () => ({
   supabaseAdmin: { from: () => ({ select: () => ({ eq: () => ({ single: () => Promise.resolve({ data: { email: 'stefano@x.com' } }) }) }) }) },
 }));
 
 const { buildConnectLink, resolveIntegrationId, SUPPORTED_CONNECT_PLATFORMS, classifyConnectIntent,
   classifyDisconnectIntent, classifyConnectionStatusIntent, listConnectedPlatforms, disconnectPlatform } =
-  await import('../../../api/services/connectLinkService.js');
+  await import('../../../api/_app/services/connectLinkService.js');
 
 beforeEach(() => {
   createConnectSessionMock.mockReset();

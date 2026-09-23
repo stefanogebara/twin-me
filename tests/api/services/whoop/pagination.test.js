@@ -8,7 +8,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { fetchAllPages } from '../../../../api/services/whoop/pagination.js';
+import { fetchAllPages } from '../../../../api/_app/services/whoop/pagination.js';
 
 function createMockClient(responses) {
   const getMock = vi.fn();

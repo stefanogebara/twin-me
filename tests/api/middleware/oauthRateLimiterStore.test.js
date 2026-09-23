@@ -5,7 +5,7 @@
 import { describe, expect, it, vi } from 'vitest';
 const shared = vi.hoisted(() => ({ call: vi.fn(async () => 1), available: false }));
 const made = vi.hoisted(() => ({ redis: [], memory: [] }));
-vi.mock('../../../api/services/redisClient.js', () => ({ getRedisClient: () => shared, isRedisAvailable: () => shared.available }));
+vi.mock('../../../api/_app/services/redisClient.js', () => ({ getRedisClient: () => shared, isRedisAvailable: () => shared.available }));
 vi.mock('rate-limit-redis', () => ({ default: class { constructor(opts) { this.opts = opts; made.redis.push(this); } init() {} async increment(key) { await this.opts.sendCommand('INCR', this.opts.prefix + key); return { totalHits: 1, resetTime: new Date() }; } async decrement() {} async resetKey() {} } }));
 vi.mock('express-rate-limit', () => ({
   default: (opts) => Object.assign((req, res, next) => next(), { opts }),
@@ -15,7 +15,7 @@ vi.mock('express-rate-limit', () => ({
 
 describe('the OAuth rate limiter and Redis', () => {
   it('counts in memory while Redis is down, then on the shared client once it is up, with its own prefix', async () => {
-    const mod = await import('../../../api/middleware/oauthRateLimiter.js');
+    const mod = await import('../../../api/_app/middleware/oauthRateLimiter.js');
     const store = mod.oauthAuthorizationLimiter.opts.store;
     expect(made.memory.length).toBe(4);
     expect(new Set(['oauthAuthorizationLimiter', 'oauthCallbackLimiter', 'oauthRefreshLimiter', 'globalOAuthLimiter'].map((n) => mod[n].opts.store.prefix)).size).toBe(4);
@@ -30,7 +30,7 @@ describe('the OAuth rate limiter and Redis', () => {
   });
   it('imports nothing from the redis package', async () => {
     const { readFileSync } = await import('node:fs');
-    const src = readFileSync(new URL('../../../api/middleware/oauthRateLimiter.js', import.meta.url), 'utf8');
+    const src = readFileSync(new URL('../../../api/_app/middleware/oauthRateLimiter.js', import.meta.url), 'utf8');
     expect(src).not.toMatch(/from 'redis'|createClient\(/);
   });
 });

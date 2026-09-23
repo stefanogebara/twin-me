@@ -14,7 +14,7 @@ import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 
 const here = dirname(fileURLToPath(import.meta.url));
-const source = (name) => readFileSync(join(here, '../../../../api/services/money', name), 'utf8');
+const source = (name) => readFileSync(join(here, '../../../../api/_app/services/money', name), 'utf8');
 
 /** The listFacts call in a function, with whatever options it passes. */
 function factCallIn(text, fnName) {

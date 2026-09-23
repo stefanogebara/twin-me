@@ -34,7 +34,7 @@ beforeEach(() => {
   cronLoggerCalls = [];
 });
 
-vi.mock('../../../api/services/database.js', () => {
+vi.mock('../../../api/_app/services/database.js', () => {
   // Re-implement a thin chain that records every call and resolves to
   // whatever supabaseResult is set to by the active test.
   function makeChain(table) {
@@ -54,13 +54,13 @@ vi.mock('../../../api/services/database.js', () => {
   };
 });
 
-vi.mock('../../../api/services/logger.js', () => ({
+vi.mock('../../../api/_app/services/logger.js', () => ({
   createLogger: () => ({
     info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn(),
   }),
 }));
 
-vi.mock('../../../api/services/cronLogger.js', () => ({
+vi.mock('../../../api/_app/services/cronLogger.js', () => ({
   logCronExecution: async (name, status, ms, payload, err) => {
     cronLoggerCalls.push({ name, status, ms, payload, err });
   },
@@ -68,7 +68,7 @@ vi.mock('../../../api/services/cronLogger.js', () => ({
 
 // Import after mocks land.
 const { default: router } = await import(
-  '../../../api/routes/cron-stripe-webhook-events-cleanup.js'
+  '../../../api/_app/routes/cron-stripe-webhook-events-cleanup.js'
 );
 
 function makeApp() {

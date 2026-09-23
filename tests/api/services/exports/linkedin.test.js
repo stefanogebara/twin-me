@@ -1,8 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import AdmZip from 'adm-zip';
-import { detectLinkedInExport, parseLinkedInExport } from '../../../../api/services/exports/parsers/linkedin.js';
+import { detectLinkedInExport, parseLinkedInExport } from '../../../../api/_app/services/exports/parsers/linkedin.js';
 import { buildLinkedInZip } from './fixtures.js';
-import { detectLinkedInExportIntent, formatLinkedInExport } from '../../../../api/services/exports/chat/linkedin.js';
+import { detectLinkedInExportIntent, formatLinkedInExport } from '../../../../api/_app/services/exports/chat/linkedin.js';
 
 describe('linkedin export parser', () => {
   const zip = new AdmZip(buildLinkedInZip());

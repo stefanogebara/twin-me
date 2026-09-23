@@ -23,7 +23,7 @@ const timezoneSingleMock = vi.fn();
 const updateEqMock = vi.fn().mockResolvedValue({ error: null });
 const updateMock = vi.fn(() => ({ eq: (...a) => updateEqMock(...a) }));
 
-vi.mock('../../../api/services/database.js', () => ({
+vi.mock('../../../api/_app/services/database.js', () => ({
   supabaseAdmin: {
     from: vi.fn(() => {
       let cols = '';
@@ -48,14 +48,14 @@ vi.mock('../../../api/services/database.js', () => ({
   serverDb: {},
 }));
 
-vi.mock('../../../api/services/soulSignatureService.js', () => ({
+vi.mock('../../../api/_app/services/soulSignatureService.js', () => ({
   getAllSoulSignatures: vi.fn().mockResolvedValue([]),
 }));
 
 const TEST_USER = '167c27b5-a40b-49fb-8d00-deb1b1c57f4d';
 const signToken = () => jwt.sign({ id: TEST_USER }, 'test-secret', { expiresIn: '1h' });
 
-const accountRoutes = (await import('../../../api/routes/account.js')).default;
+const accountRoutes = (await import('../../../api/_app/routes/account.js')).default;
 
 function createApp() {
   const app = express();

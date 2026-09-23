@@ -14,22 +14,22 @@ const mockGetFeatureFlags = vi.fn();
 const mockGetMonthlyUsage = vi.fn();
 const mockCheckChatRateLimit = vi.fn();
 
-vi.mock('../../../api/services/subscriptionService.js', () => ({
+vi.mock('../../../api/_app/services/subscriptionService.js', () => ({
   getUserSubscription: (...args) => mockGetUserSubscription(...args),
   // M3 audit (2026-05-15): getMonthlyUsage moved here from chat-usage.js.
   getMonthlyUsage: (...args) => mockGetMonthlyUsage(...args),
   PLAN_DISPLAY_NAMES: { free: 'Free', pro: 'Plus', max: 'Pro' },
 }));
 
-vi.mock('../../../api/services/featureFlagsService.js', () => ({
+vi.mock('../../../api/_app/services/featureFlagsService.js', () => ({
   getFeatureFlags: (...args) => mockGetFeatureFlags(...args),
 }));
 
-vi.mock('../../../api/services/chatRateLimiter.js', () => ({
+vi.mock('../../../api/_app/services/chatRateLimiter.js', () => ({
   checkChatRateLimit: (...args) => mockCheckChatRateLimit(...args),
 }));
 
-vi.mock('../../../api/services/database.js', () => ({
+vi.mock('../../../api/_app/services/database.js', () => ({
   supabaseAdmin: {
     from: vi.fn(() => ({
       select: vi.fn().mockReturnThis(),
@@ -41,7 +41,7 @@ vi.mock('../../../api/services/database.js', () => ({
 }));
 
 const { runChatPreFlightChecks } = await import(
-  '../../../api/services/twinChatPreFlightChecks.js'
+  '../../../api/_app/services/twinChatPreFlightChecks.js'
 );
 
 const TEST_USER = '167c27b5-a40b-49fb-8d00-deb1b1c57f4d';

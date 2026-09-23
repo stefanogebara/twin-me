@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import AdmZip from 'adm-zip';
-import { safeAdmZip, isSafeZipEntryName } from '../../api/services/gdpr/zipSafety.js';
+import { safeAdmZip, isSafeZipEntryName } from '../../api/_app/services/gdpr/zipSafety.js';
 
 describe('safeAdmZip (regression: used to recurse infinitely)', () => {
   it('returns a usable AdmZip for a valid buffer', () => {

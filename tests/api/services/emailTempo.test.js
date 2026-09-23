@@ -10,7 +10,7 @@ import {
   buildEmailTempoCandidate,
   EVENING_HOUR,
   LATE_SHARE_FLOOR,
-} from '../../../api/services/emailTempo.js';
+} from '../../../api/_app/services/emailTempo.js';
 
 describe('localParts (timezone bucketing)', () => {
   it('shifts an epoch into the user local day and hour', () => {

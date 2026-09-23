@@ -21,7 +21,7 @@ import { describe, it, expect, afterEach } from 'vitest';
 import {
   combineBriefingWithOffer,
   isDailyActionOfferEnabled,
-} from '../../../api/services/dailyHabitLoop.js';
+} from '../../../api/_app/services/dailyHabitLoop.js';
 
 describe('combineBriefingWithOffer', () => {
   const brief = 'Good morning, Stefano. Two meetings today, recovery is high.';

@@ -1,5 +1,5 @@
 /**
- * Tests for api/routes/system-health.js — detailed health must not hang.
+ * Tests for api/_app/routes/system-health.js — detailed health must not hang.
  *
  * Contract under test (2026-07-03 backend-cost audit):
  *  - The three detail probes (memory count, ingestion last-run, LLM calls)
@@ -39,7 +39,7 @@ const DEFAULT_RESULTS = {
   llmCount: { count: 7, error: null },
 };
 
-vi.mock('../../../api/services/database.js', () => ({
+vi.mock('../../../api/_app/services/database.js', () => ({
   supabaseAdmin: {
     from: (table) => {
       let countRequested = false;
@@ -76,12 +76,12 @@ vi.mock('../../../api/services/database.js', () => ({
   serverDb: {},
 }));
 
-vi.mock('../../../api/services/llmGateway.js', () => ({
+vi.mock('../../../api/_app/services/llmGateway.js', () => ({
   getCircuitBreakerStatus: vi.fn(() => ({ state: 'closed' })),
   resetCircuitBreaker: vi.fn(() => ({ reset: true })),
 }));
 
-vi.mock('../../../api/services/logger.js', () => ({
+vi.mock('../../../api/_app/services/logger.js', () => ({
   createLogger: () => ({ info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() }),
 }));
 
@@ -90,7 +90,7 @@ const signToken = () => jwt.sign({ id: 'health-checker' }, 'test-secret', { expi
 async function createApp() {
   // Fresh module each time — the route caches detailed health for 30s in memory.
   vi.resetModules();
-  const routes = (await import('../../../api/routes/system-health.js')).default;
+  const routes = (await import('../../../api/_app/routes/system-health.js')).default;
   const app = express();
   app.use('/api/system', routes);
   return app;

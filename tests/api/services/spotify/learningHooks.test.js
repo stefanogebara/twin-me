@@ -8,15 +8,15 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 const supabaseChain = { from: vi.fn() };
 const addReflectionMock = vi.fn();
 
-vi.mock('../../../../api/services/database.js', () => ({ supabaseAdmin: supabaseChain }));
-vi.mock('../../../../api/services/memoryStreamService.js', () => ({
+vi.mock('../../../../api/_app/services/database.js', () => ({ supabaseAdmin: supabaseChain }));
+vi.mock('../../../../api/_app/services/memoryStreamService.js', () => ({
   addReflection: addReflectionMock,
 }));
-vi.mock('../../../../api/services/logger.js', () => ({
+vi.mock('../../../../api/_app/services/logger.js', () => ({
   createLogger: () => ({ debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn() }),
 }));
 
-const { persistSpotifyLearning } = await import('../../../../api/services/spotify/learningHooks.js');
+const { persistSpotifyLearning } = await import('../../../../api/_app/services/spotify/learningHooks.js');
 
 const USER = '00000000-0000-0000-0000-000000000001';
 

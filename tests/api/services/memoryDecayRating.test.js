@@ -40,7 +40,7 @@ vi.mock('../../../twin-research/twin-config.js', () => ({
 // Capturing supabase mock: records insert payloads so tests can assert the
 // decay_rate actually written. All other chains resolve empty.
 const inserted = [];
-vi.mock('../../../api/services/database.js', () => {
+vi.mock('../../../api/_app/services/database.js', () => {
   const finalResult = { data: null, error: null };
   const makeChain = (insertPayload) => {
     const chain = {};
@@ -72,35 +72,35 @@ vi.mock('../../../api/services/database.js', () => {
   return { supabaseAdmin: makeChain(null), serverDb: {} };
 });
 
-vi.mock('../../../api/services/embeddingService.js', () => ({
+vi.mock('../../../api/_app/services/embeddingService.js', () => ({
   generateEmbedding: vi.fn().mockResolvedValue(new Array(1536).fill(0.01)),
   vectorToString: (v) => `[${v.join(',')}]`,
 }));
 
-vi.mock('../../../api/services/llmGateway.js', () => ({
+vi.mock('../../../api/_app/services/llmGateway.js', () => ({
   complete: vi.fn().mockResolvedValue({ content: '{"importance": 7, "durability": 9}' }),
   TIER_EXTRACTION: 'extraction',
   TIER_ANALYSIS: 'analysis',
   TIER_CHAT: 'chat',
 }));
 
-vi.mock('../../../api/services/memoryLinksService.js', () => ({
+vi.mock('../../../api/_app/services/memoryLinksService.js', () => ({
   traverseLinksForRetrieval: vi.fn().mockResolvedValue([]),
   getCoCitationBoosts: vi.fn().mockResolvedValue({}),
   autoLinkMemory: vi.fn().mockResolvedValue(undefined),
 }));
 
-vi.mock('../../../api/services/featureFlagsService.js', () => ({
+vi.mock('../../../api/_app/services/featureFlagsService.js', () => ({
   getFeatureFlags: vi.fn().mockResolvedValue({}),
 }));
 
-const { complete } = await import('../../../api/services/llmGateway.js');
+const { complete } = await import('../../../api/_app/services/llmGateway.js');
 const {
   computeDecayRate,
   parseImportanceAndDurability,
   rateImportanceAndDurability,
   addMemory,
-} = await import('../../../api/services/memoryStreamService.js');
+} = await import('../../../api/_app/services/memoryStreamService.js');
 
 const USER = '167c27b5-a40b-49fb-8d00-deb1b1c57f4d';
 

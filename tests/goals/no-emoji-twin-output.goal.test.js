@@ -5,7 +5,7 @@
  * 2026-05-15 H7 (server-side stripEmoji as the delivery backstop).
  *
  * The prompt-level rule can drift with any prompt refactor; this pins the
- * BACKSTOP: api/utils/stripEmoji.js must keep removing pictographic emoji
+ * BACKSTOP: api/_app/utils/stripEmoji.js must keep removing pictographic emoji
  * from outbound text while leaving normal text (including accents and
  * punctuation the twin legitimately uses) untouched.
  *
@@ -13,7 +13,7 @@
  * repo, per the same rule this goal protects.
  */
 import { describe, it, expect } from 'vitest';
-import { stripEmoji } from '../../api/utils/stripEmoji.js';
+import { stripEmoji } from '../../api/_app/utils/stripEmoji.js';
 
 describe('goal: no emoji reaches the user', () => {
   it('strips pictographic emoji from twin output', () => {

@@ -19,7 +19,7 @@ process.env.NODE_ENV = 'test';
 
 // Redis client: simulate "unavailable" — either getRedisClient returns null,
 // OR it throws on .incr. We exercise BOTH: first unavailable-flag, then throwing.
-vi.mock('../../../api/services/redisClient.js', () => ({
+vi.mock('../../../api/_app/services/redisClient.js', () => ({
   getRedisClient: vi.fn(() => {
     // Throw → caught by the route's try/catch → memory fallback
     throw new Error('redis connect refused');
@@ -28,7 +28,7 @@ vi.mock('../../../api/services/redisClient.js', () => ({
 }));
 
 // Stub heavy services the /scan handler depends on so tests don't hit the network
-vi.mock('../../../api/services/profileEnrichmentService.js', () => ({
+vi.mock('../../../api/_app/services/profileEnrichmentService.js', () => ({
   default: {
     quickEnrich: vi.fn().mockResolvedValue({
       data: { source: 'none', social_links: [] },
@@ -36,20 +36,20 @@ vi.mock('../../../api/services/profileEnrichmentService.js', () => ({
   },
 }));
 
-vi.mock('../../../api/services/enrichment/braveSearchProvider.js', () => ({
+vi.mock('../../../api/_app/services/enrichment/braveSearchProvider.js', () => ({
   searchWithBrave: vi.fn().mockResolvedValue([]),
 }));
 
-vi.mock('../../../api/services/enrichment/enrichmentUtils.js', () => ({
+vi.mock('../../../api/_app/services/enrichment/enrichmentUtils.js', () => ({
   inferNameFromEmail: vi.fn().mockReturnValue('Test User'),
 }));
 
-vi.mock('../../../api/services/llmGateway.js', () => ({
+vi.mock('../../../api/_app/services/llmGateway.js', () => ({
   complete: vi.fn().mockResolvedValue({ content: 'a persona narrative' }),
   TIER_ANALYSIS: 'analysis',
 }));
 
-vi.mock('../../../api/services/logger.js', () => ({
+vi.mock('../../../api/_app/services/logger.js', () => ({
   createLogger: () => ({
     info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn(),
   }),
@@ -58,7 +58,7 @@ vi.mock('../../../api/services/logger.js', () => ({
 // Ensure Brave key is NOT set → the heavy Phase 2 path is skipped
 delete process.env.BRAVE_SEARCH_API_KEY;
 
-const discoveryRoutes = (await import('../../../api/routes/discovery.js')).default;
+const discoveryRoutes = (await import('../../../api/_app/routes/discovery.js')).default;
 
 function createApp() {
   const app = express();

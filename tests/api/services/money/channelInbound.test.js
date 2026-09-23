@@ -1,13 +1,13 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-vi.mock('../../../../api/services/logger.js', () => ({ createLogger: () => ({ warn() {}, error() {}, info() {}, debug() {} }) }));
-vi.mock('../../../../api/services/money/chat.js', () => ({ answer: vi.fn(), act: vi.fn(), looksLikeInstruction: () => false }));
-vi.mock('../../../../api/services/money/store.js', () => ({ inPersonScope: (id, fn) => fn(), personProfileCached: async () => ({ timezone: 'Europe/Madrid', country: 'ES', currency: 'EUR', language: null }),  listChatTurns: vi.fn(), userLanguage: vi.fn(), saveChatTurn: vi.fn() }));
-vi.mock('../../../../api/services/money/channelStore.js', () => ({ claimInbound: vi.fn(), keepOffers: vi.fn(), takeOffer: vi.fn(), recentOffers: vi.fn(), offerSaid: vi.fn(), releaseOffer: vi.fn() }));
-vi.mock('../../../../api/services/whatsappService.js', () => ({ sendWhatsAppCtaButton: vi.fn(), sendWhatsAppButtons: vi.fn(), downloadWhatsAppMedia: vi.fn() }));
-vi.mock('../../../../api/services/money/attachments.js', () => ({ readAttachment: vi.fn(), acceptsAttachment: vi.fn(() => true), MAX_ATTACHMENT_BYTES: 4194304 }));
-vi.mock('../../../../api/services/money/attachmentDeps.js', () => ({ ATTACHMENT_DEPS: {} }));
-import { handleMoneyInbound } from '../../../../api/services/money/channelInbound.js';
-import { acceptsAttachment } from '../../../../api/services/money/attachments.js';
+vi.mock('../../../../api/_app/services/logger.js', () => ({ createLogger: () => ({ warn() {}, error() {}, info() {}, debug() {} }) }));
+vi.mock('../../../../api/_app/services/money/chat.js', () => ({ answer: vi.fn(), act: vi.fn(), looksLikeInstruction: () => false }));
+vi.mock('../../../../api/_app/services/money/store.js', () => ({ inPersonScope: (id, fn) => fn(), personProfileCached: async () => ({ timezone: 'Europe/Madrid', country: 'ES', currency: 'EUR', language: null }),  listChatTurns: vi.fn(), userLanguage: vi.fn(), saveChatTurn: vi.fn() }));
+vi.mock('../../../../api/_app/services/money/channelStore.js', () => ({ claimInbound: vi.fn(), keepOffers: vi.fn(), takeOffer: vi.fn(), recentOffers: vi.fn(), offerSaid: vi.fn(), releaseOffer: vi.fn() }));
+vi.mock('../../../../api/_app/services/whatsappService.js', () => ({ sendWhatsAppCtaButton: vi.fn(), sendWhatsAppButtons: vi.fn(), downloadWhatsAppMedia: vi.fn() }));
+vi.mock('../../../../api/_app/services/money/attachments.js', () => ({ readAttachment: vi.fn(), acceptsAttachment: vi.fn(() => true), MAX_ATTACHMENT_BYTES: 4194304 }));
+vi.mock('../../../../api/_app/services/money/attachmentDeps.js', () => ({ ATTACHMENT_DEPS: {} }));
+import { handleMoneyInbound } from '../../../../api/_app/services/money/channelInbound.js';
+import { acceptsAttachment } from '../../../../api/_app/services/money/attachments.js';
 
 let send; let deps;
 beforeEach(() => {

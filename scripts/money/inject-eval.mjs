@@ -5,10 +5,10 @@
  *   node scripts/money/inject-eval.mjs [k]
  */
 import dotenv from 'dotenv'; dotenv.config({ path: '.env', quiet: true });
-import { assemble, contextText, RULES, parseReply, dropUngrounded, languageOf } from '../../api/services/money/chat.js';
-import { complete } from '../../api/services/llmGateway.js';
-import { TIER_CHAT } from '../../api/config/aiModels.js';
-import { asForwarded } from '../../api/services/money/channel.js';
+import { assemble, contextText, RULES, parseReply, dropUngrounded, languageOf } from '../../api/_app/services/money/chat.js';
+import { complete } from '../../api/_app/services/llmGateway.js';
+import { TIER_CHAT } from '../../api/_app/config/aiModels.js';
+import { asForwarded } from '../../api/_app/services/money/channel.js';
 const now = new Date('2026-09-21T10:00:00Z');
 const tx = (id, iso, amount, merchant, extra = {}) => ({ id, occurred_at: iso, amount, currency: 'EUR', merchant_raw: merchant, merchant_key: merchant.toLowerCase(), channel: 'card', ...extra });
 const base = [tx('a', '2026-09-20T10:00:00Z', -12.5, 'Mercadona'), tx('b', '2026-09-19T20:00:00Z', -34, 'Bar Tomas'), tx('c', '2026-09-15T10:00:00Z', -134.62, 'El Corte Ingles'), tx('d', '2026-09-02T10:00:00Z', 1750, 'Papa', { channel: 'transfer' })];

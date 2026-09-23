@@ -3,7 +3,7 @@
  * Names of people and reference codes are invented; the sentence structure is not.
  */
 import { describe, it, expect } from 'vitest';
-import { parseNarrative, channelFrom, cardFrom, prettyMerchant, cityFrom } from '../../../../api/services/money/narrative.js';
+import { parseNarrative, channelFrom, cardFrom, prettyMerchant, cityFrom } from '../../../../api/_app/services/money/narrative.js';
 
 describe('parseNarrative', () => {
   it('reads a mobile-wallet payment as a shop on a card', () => {

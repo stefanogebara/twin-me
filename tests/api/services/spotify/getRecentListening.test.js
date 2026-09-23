@@ -5,7 +5,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { getRecentListening } from '../../../../api/services/spotify/analytics/getRecentListening.js';
+import { getRecentListening } from '../../../../api/_app/services/spotify/analytics/getRecentListening.js';
 
 function play(played_at, name, artist, durationMs = 200000) {
   return {

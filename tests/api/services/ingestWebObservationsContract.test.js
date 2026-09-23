@@ -23,27 +23,27 @@ const memoryStreamMock = vi.hoisted(() => ({
   addPlatformObservation: vi.fn().mockResolvedValue({ id: 'memory-id' }),
 }));
 
-vi.mock('../../../api/services/memoryStreamService.js', () => memoryStreamMock);
+vi.mock('../../../api/_app/services/memoryStreamService.js', () => memoryStreamMock);
 
 const dedupMock = vi.hoisted(() => ({
   isDuplicate: vi.fn().mockResolvedValue(false),
 }));
 
-vi.mock('../../../api/services/observationUtils.js', async () => {
-  const actual = await vi.importActual('../../../api/services/observationUtils.js');
+vi.mock('../../../api/_app/services/observationUtils.js', async () => {
+  const actual = await vi.importActual('../../../api/_app/services/observationUtils.js');
   return { ...actual, isDuplicate: dedupMock.isDuplicate };
 });
 
-// observationIngestion's import graph reaches api/config/supabase.js (via
+// observationIngestion's import graph reaches api/_app/config/supabase.js (via
 // transactionNudgeService → whatsappService), which throws at import time
 // without Supabase env (CI stubs it in ci.yml; a bare checkout has no .env).
-vi.mock('../../../api/config/supabase.js', () => {
+vi.mock('../../../api/_app/config/supabase.js', () => {
   const stub = { from: () => ({ insert: () => Promise.resolve({ error: null }) }) };
   return { supabase: stub, supabaseAdmin: stub, default: stub };
 });
 
 // Import AFTER the mocks so the function picks up the spies.
-const { ingestWebObservations } = await import('../../../api/services/observationIngestion.js');
+const { ingestWebObservations } = await import('../../../api/_app/services/observationIngestion.js');
 
 beforeEach(() => {
   memoryStreamMock.addPlatformObservation.mockClear();

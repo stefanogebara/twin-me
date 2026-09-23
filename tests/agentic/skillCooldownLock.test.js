@@ -11,7 +11,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 const mockInsert = vi.fn();
 const mockSelect = vi.fn();
 
-vi.mock('../../api/services/database.js', () => ({
+vi.mock('../../api/_app/services/database.js', () => ({
   supabaseAdmin: {
     from: (table) => {
       if (table === 'proactive_insights') {
@@ -43,13 +43,13 @@ vi.mock('../../api/services/database.js', () => ({
   },
 }));
 
-vi.mock('../../api/services/logger.js', () => ({
+vi.mock('../../api/_app/services/logger.js', () => ({
   createLogger: () => ({
     info: () => {}, warn: () => {}, error: () => {}, debug: () => {},
   }),
 }));
 
-const { acquireCooldownLock } = await import('../../api/services/skillCooldownLock.js');
+const { acquireCooldownLock } = await import('../../api/_app/services/skillCooldownLock.js');
 
 describe('Skill Cooldown Lock', () => {
   beforeEach(() => {
@@ -64,7 +64,7 @@ describe('Skill Cooldown Lock', () => {
 
   it('returns the skill name in the reason when blocked', async () => {
     // Override the proactive_insights mock to return count > 0
-    const origFrom = (await import('../../api/services/database.js')).supabaseAdmin.from;
+    const origFrom = (await import('../../api/_app/services/database.js')).supabaseAdmin.from;
     // This test validates the interface, not the full DB interaction
     const result = await acquireCooldownLock('user1', 'test_skill_2', 6);
     expect(typeof result.acquired).toBe('boolean');

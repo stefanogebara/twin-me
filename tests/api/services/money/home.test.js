@@ -6,7 +6,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 const upserts = [];
-vi.mock('../../../../api/services/database.js', () => ({
+vi.mock('../../../../api/_app/services/database.js', () => ({
   supabaseAdmin: {
     from: (table) => ({
       upsert: (row, opts) => { upserts.push({ table, row, opts }); return Promise.resolve({ error: null }); },
@@ -14,14 +14,14 @@ vi.mock('../../../../api/services/database.js', () => ({
     }),
   },
 }));
-vi.mock('../../../../api/services/logger.js', () => ({ createLogger: () => ({ warn() {}, info() {}, error() {}, debug() {} }) }));
+vi.mock('../../../../api/_app/services/logger.js', () => ({ createLogger: () => ({ warn() {}, info() {}, error() {}, debug() {} }) }));
 const store = { listTransactions: vi.fn(async () => []), listFacts: vi.fn(async () => []) };
-vi.mock('../../../../api/services/money/store.js', () => store);
-vi.mock('../../../../api/services/money/transactionRepository.js', () => store);
-vi.mock('../../../../api/services/money/factsRepository.js', () => store);
+vi.mock('../../../../api/_app/services/money/store.js', () => store);
+vi.mock('../../../../api/_app/services/money/transactionRepository.js', () => store);
+vi.mock('../../../../api/_app/services/money/factsRepository.js', () => store);
 
-const home = await import('../../../../api/services/money/home.js');
-const { describeContext } = await import('../../../../api/services/money/context.js');
+const home = await import('../../../../api/_app/services/money/home.js');
+const { describeContext } = await import('../../../../api/_app/services/money/context.js');
 const {
   weighPlaces, clusterHome, circlePolygon, filterAreas, filterPlaces, staticMapUrl, pickDistrict, saveHome, savedHome, homeValue, distanceM,
   RING_POINTS, CLUSTER_RADIUS_M,

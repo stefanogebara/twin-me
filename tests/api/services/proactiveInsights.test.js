@@ -1,5 +1,5 @@
 /**
- * Unit tests for api/services/proactiveInsights.js
+ * Unit tests for api/_app/services/proactiveInsights.js
  *
  * Coverage:
  *   - generateProactiveInsights filters to recent high-confidence memories
@@ -18,18 +18,18 @@ process.env.SUPABASE_SERVICE_ROLE_KEY = 'test-service-role';
 
 const getRecentMemoriesMock = vi.fn();
 const retrieveMemoriesMock = vi.fn();
-vi.mock('../../../api/services/memoryStreamService.js', () => ({
+vi.mock('../../../api/_app/services/memoryStreamService.js', () => ({
   getRecentMemories: (...a) => getRecentMemoriesMock(...a),
   retrieveMemories: (...a) => retrieveMemoriesMock(...a),
 }));
 
 const completeMock = vi.fn();
-vi.mock('../../../api/services/llmGateway.js', () => ({
+vi.mock('../../../api/_app/services/llmGateway.js', () => ({
   complete: (...a) => completeMock(...a),
   TIER_ANALYSIS: 'analysis',
 }));
 
-vi.mock('../../../api/services/pushNotificationService.js', () => ({
+vi.mock('../../../api/_app/services/pushNotificationService.js', () => ({
   sendPushToUser: vi.fn().mockResolvedValue(true),
 }));
 
@@ -44,7 +44,7 @@ vi.mock('../../../twin-research/insight-config.js', () => ({
   DEDUP_THRESHOLD: 0.7,
 }));
 
-vi.mock('../../../api/services/logger.js', () => ({
+vi.mock('../../../api/_app/services/logger.js', () => ({
   createLogger: () => ({
     info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn(),
   }),
@@ -58,7 +58,7 @@ let platformDataForEval = [];
 let nudgeHistoryRows = [];
 let recentInsightRows = [];
 
-vi.mock('../../../api/services/database.js', () => ({
+vi.mock('../../../api/_app/services/database.js', () => ({
   supabaseAdmin: {
     from: vi.fn((table) => {
       if (table === 'proactive_insights') {
@@ -142,7 +142,7 @@ const {
   _findUngroundedNumbers,
   _stripDigitsForDedup,
   _extractInsightTheme,
-} = await import('../../../api/services/proactiveInsights.js');
+} = await import('../../../api/_app/services/proactiveInsights.js');
 
 const USER_ID = '167c27b5-a40b-49fb-8d00-deb1b1c57f4d';
 

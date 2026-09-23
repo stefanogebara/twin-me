@@ -35,26 +35,26 @@ function makeBuilder(table) {
   return builder;
 }
 
-vi.mock('../../../api/services/database.js', () => ({
+vi.mock('../../../api/_app/services/database.js', () => ({
   supabaseAdmin: { from: vi.fn((table) => makeBuilder(table)) },
 }));
-vi.mock('../../../api/services/llmGateway.js', () => ({
+vi.mock('../../../api/_app/services/llmGateway.js', () => ({
   complete: vi.fn(),
   TIER_ANALYSIS: 'analysis',
   TIER_EXTRACTION: 'extraction',
 }));
-vi.mock('../../../api/services/memoryStreamService.js', () => ({
+vi.mock('../../../api/_app/services/memoryStreamService.js', () => ({
   addMemory: vi.fn().mockResolvedValue({ id: 'mem-1' }),
 }));
-vi.mock('../../../api/services/reflectionEngine.js', () => ({
+vi.mock('../../../api/_app/services/reflectionEngine.js', () => ({
   shouldTriggerReflection: vi.fn().mockResolvedValue(false),
   generateReflections: vi.fn().mockResolvedValue([]),
 }));
 
 const { maybeGenerateChapterNudge, NUDGE_COOLDOWN_MS } = await import(
-  '../../../api/services/lifeStoryService.js'
+  '../../../api/_app/services/lifeStoryService.js'
 );
-const { LIFE_STORY_CHAPTERS } = await import('../../../api/config/lifeStoryScript.js');
+const { LIFE_STORY_CHAPTERS } = await import('../../../api/_app/config/lifeStoryScript.js');
 
 const USER = '167c27b5-a40b-49fb-8d00-deb1b1c57f4d';
 const ALL_IDS = LIFE_STORY_CHAPTERS.map(c => c.id);

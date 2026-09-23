@@ -41,14 +41,14 @@ function makeChain(table, ops = []) {
   return chain;
 }
 
-vi.mock('../../api/services/database.js', () => ({
+vi.mock('../../api/_app/services/database.js', () => ({
   supabaseAdmin: {
     from: (table) => makeChain(table),
     rpc: (fn, args) => makeChain(`rpc:${fn}`, [['rpc', fn, args]]),
   },
 }));
 
-const store = await import('../../api/services/presenceStore.js');
+const store = await import('../../api/_app/services/presenceStore.js');
 
 const PRESENCE_ID = '11111111-1111-4111-8111-111111111111';
 

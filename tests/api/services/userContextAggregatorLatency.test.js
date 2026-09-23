@@ -32,19 +32,19 @@ const {
 }));
 
 vi.mock('axios', () => ({ default: { get: mockAxiosGet } }));
-vi.mock('../../../api/services/database.js', () => ({
+vi.mock('../../../api/_app/services/database.js', () => ({
   supabaseAdmin: { from: mockFrom },
 }));
-vi.mock('../../../api/services/encryption.js', () => ({
+vi.mock('../../../api/_app/services/encryption.js', () => ({
   decryptToken: vi.fn((t) => t),
 }));
-vi.mock('../../../api/services/tokenRefreshService.js', () => ({
+vi.mock('../../../api/_app/services/tokenRefreshService.js', () => ({
   ensureFreshToken: mockEnsureFreshToken,
 }));
-vi.mock('../../../api/services/lifeEventInferenceService.js', () => ({
+vi.mock('../../../api/_app/services/lifeEventInferenceService.js', () => ({
   lifeEventInferenceService: { buildLifeContextSummary: vi.fn() },
 }));
-vi.mock('../../../api/services/nangoService.js', () => ({
+vi.mock('../../../api/_app/services/nangoService.js', () => ({
   whoop: {
     getCycles: mockGetCycles,
     getRecovery: mockGetRecovery,
@@ -54,7 +54,7 @@ vi.mock('../../../api/services/nangoService.js', () => ({
 }));
 
 const { default: userContextAggregator } = await import(
-  '../../../api/services/userContextAggregator.js'
+  '../../../api/_app/services/userContextAggregator.js'
 );
 
 const USER_ID = '167c27b5-a40b-49fb-8d00-deb1b1c57f4d';

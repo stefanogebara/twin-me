@@ -4,7 +4,7 @@
  * said in passing; this cannot.
  */
 import { describe, it, expect } from 'vitest';
-import { distressTripwire } from '../../api/services/presenceTripwire.js';
+import { distressTripwire } from '../../api/_app/services/presenceTripwire.js';
 
 const turns = (...lines) => lines.map(([role, content]) => ({ role, content }));
 

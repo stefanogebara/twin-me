@@ -84,10 +84,10 @@ TwinMe is a substantial, feature-rich codebase with ~100+ services, multiple OAu
 - ✅ PKCE + state encryption
 
 ### Demo/Mock Data Found In
-- `api/routes/soul-data.js` - Has mock fallbacks
-- `api/routes/intelligent-twin.js` - Demo responses
-- `api/routes/calendar-oauth.js` - Sample data generation
-- `api/routes/data-verification.js` - Mock verification
+- `api/_app/routes/soul-data.js` - Has mock fallbacks
+- `api/_app/routes/intelligent-twin.js` - Demo responses
+- `api/_app/routes/calendar-oauth.js` - Sample data generation
+- `api/_app/routes/data-verification.js` - Mock verification
 
 ### Unclear Status
 - Browser extension (large codebase, may not work)

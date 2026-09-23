@@ -41,14 +41,14 @@ vi.mock('@supabase/supabase-js', () => ({
 }));
 
 // Mock service imports that intelligent-twin.js pulls in
-vi.mock('../../../api/services/intelligentTwinEngine.js', () => ({ default: {} }));
-vi.mock('../../../api/services/userContextAggregator.js', () => ({ default: {} }));
-vi.mock('../../../api/services/intelligentMusicService.js', () => ({ default: {} }));
-vi.mock('../../../api/services/spotifyInsightGenerator.js', () => ({ default: {} }));
-vi.mock('../../../api/services/specialists/SpecialistOrchestrator.js', () => ({ default: {} }));
-vi.mock('../../../api/services/crossPlatformInferenceService.js', () => ({ crossPlatformInferenceService: {} }));
-vi.mock('../../../api/services/purposeLearningService.js', () => ({ default: {} }));
-vi.mock('../../../api/middleware/auth.js', () => ({
+vi.mock('../../../api/_app/services/intelligentTwinEngine.js', () => ({ default: {} }));
+vi.mock('../../../api/_app/services/userContextAggregator.js', () => ({ default: {} }));
+vi.mock('../../../api/_app/services/intelligentMusicService.js', () => ({ default: {} }));
+vi.mock('../../../api/_app/services/spotifyInsightGenerator.js', () => ({ default: {} }));
+vi.mock('../../../api/_app/services/specialists/SpecialistOrchestrator.js', () => ({ default: {} }));
+vi.mock('../../../api/_app/services/crossPlatformInferenceService.js', () => ({ crossPlatformInferenceService: {} }));
+vi.mock('../../../api/_app/services/purposeLearningService.js', () => ({ default: {} }));
+vi.mock('../../../api/_app/middleware/auth.js', () => ({
   authenticateUser: (req, _res, next) => {
     req.user = { id: 'test-user-id' };
     next();
@@ -68,7 +68,7 @@ describe('C1: Brain page reflections endpoint', { timeout: 30_000 }, () => {
   });
 
   it('returns { success: true, reflections: [] } when user has no reflections', async () => {
-    const { default: router } = await import('../../../api/routes/intelligent-twin.js');
+    const { default: router } = await import('../../../api/_app/routes/intelligent-twin.js');
     const layer = router.stack.find(l => l.route?.path === '/reflections' && l.route?.methods?.get);
     expect(layer).toBeTruthy();
 
@@ -98,7 +98,7 @@ describe('C1: Brain page reflections endpoint', { timeout: 30_000 }, () => {
       created_at: '2026-03-11T02:31:35.146934+00:00',
     });
 
-    const { default: router } = await import('../../../api/routes/intelligent-twin.js');
+    const { default: router } = await import('../../../api/_app/routes/intelligent-twin.js');
     const layer = router.stack.find(l => l.route?.path === '/reflections' && l.route?.methods?.get);
     const handler = layer.route.stack[layer.route.stack.length - 1].handle;
 
@@ -137,7 +137,7 @@ describe('C1: Brain page reflections endpoint', { timeout: 30_000 }, () => {
       created_at: '2026-03-10T00:00:00Z',
     });
 
-    const { default: router } = await import('../../../api/routes/intelligent-twin.js');
+    const { default: router } = await import('../../../api/_app/routes/intelligent-twin.js');
     const layer = router.stack.find(l => l.route?.path === '/reflections' && l.route?.methods?.get);
     const handler = layer.route.stack[layer.route.stack.length - 1].handle;
 

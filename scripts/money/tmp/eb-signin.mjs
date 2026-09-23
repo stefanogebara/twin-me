@@ -1,0 +1,12 @@
+import { chromium } from 'playwright';
+const browser = await chromium.connectOverCDP('http://127.0.0.1:9333');
+const context = browser.contexts()[0];
+const page = await context.newPage();
+await page.goto('https://enablebanking.com/sign-in?next=%2Fcp%2F', { waitUntil: 'domcontentloaded' }); await page.waitForTimeout(3000);
+const email = page.locator('input[type="email"], input[name="email"]').first();
+await email.fill('stefanogebara@gmail.com');
+await page.getByRole('button', { name: /next|sign in|continue/i }).first().click();
+await page.waitForTimeout(4000);
+console.log('url:', page.url());
+console.log((await page.locator('body').innerText()).split('\n').filter((l) => /link|email|sent|check|inbox|mail/i.test(l)).slice(0, 6).join('\n'));
+await page.close(); await browser.close();

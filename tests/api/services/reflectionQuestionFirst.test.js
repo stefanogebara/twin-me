@@ -23,30 +23,30 @@
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-vi.mock('../../../api/services/llmGateway.js', () => ({
+vi.mock('../../../api/_app/services/llmGateway.js', () => ({
   complete: vi.fn(),
   TIER_ANALYSIS: 'analysis',
 }));
-vi.mock('../../../api/services/redisClient.js', () => ({ get: vi.fn(), set: vi.fn(), del: vi.fn() }));
-vi.mock('../../../api/services/memoryStreamService.js', () => ({
+vi.mock('../../../api/_app/services/redisClient.js', () => ({ get: vi.fn(), set: vi.fn(), del: vi.fn() }));
+vi.mock('../../../api/_app/services/memoryStreamService.js', () => ({
   getRecentMemories: vi.fn(), retrieveMemories: vi.fn(), addReflection: vi.fn(),
   getRecentImportanceSum: vi.fn(), decaySourceMemories: vi.fn(), getMemoryStats: vi.fn(),
 }));
-vi.mock('../../../api/services/identityContextService.js', () => ({ inferIdentityContext: vi.fn() }));
-vi.mock('../../../api/services/database.js', () => ({ supabaseAdmin: { from: vi.fn(), rpc: vi.fn() } }));
-vi.mock('../../../api/services/embeddingService.js', () => ({
+vi.mock('../../../api/_app/services/identityContextService.js', () => ({ inferIdentityContext: vi.fn() }));
+vi.mock('../../../api/_app/services/database.js', () => ({ supabaseAdmin: { from: vi.fn(), rpc: vi.fn() } }));
+vi.mock('../../../api/_app/services/embeddingService.js', () => ({
   generateEmbedding: vi.fn(), vectorToString: vi.fn(),
 }));
-vi.mock('../../../api/services/memoryLinksService.js', () => ({ autoLinkMemory: vi.fn() }));
+vi.mock('../../../api/_app/services/memoryLinksService.js', () => ({ autoLinkMemory: vi.fn() }));
 process.env.SUPABASE_URL = 'http://localhost';
 process.env.SUPABASE_SERVICE_ROLE_KEY = 'test-key';
 
-const { complete } = await import('../../../api/services/llmGateway.js');
+const { complete } = await import('../../../api/_app/services/llmGateway.js');
 const {
   EXPERT_PERSONAS,
   generateSalientQuestions,
   buildExpertAnchor,
-} = await import('../../../api/services/reflectionEngine.js');
+} = await import('../../../api/_app/services/reflectionEngine.js');
 
 const OBSERVATIONS = 'Listened to Radiohead 14 times. Slept 5h twice. Shipped the payments branch.';
 

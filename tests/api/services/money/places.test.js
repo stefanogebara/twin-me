@@ -12,7 +12,7 @@ import {
   categoryFromGoogleTypes, categoryFromOsm, categoryFromBrand,
   CATEGORIES, PROVIDER_NONE, GOOGLE_URL, GOOGLE_FIELD_MASK,
   NOMINATIM_URL, NOMINATIM_USER_AGENT, NOMINATIM_MIN_INTERVAL_MS,
-  nominatimThrottleState, resetPlaceThrottle, looksLikePerson, inCountry } from '../../../../api/services/money/places.js';
+  nominatimThrottleState, resetPlaceThrottle, looksLikePerson, inCountry } from '../../../../api/_app/services/money/places.js';
 
 /** A provider response, shaped the way fetch shapes one. */
 const ok = (body) => ({ ok: true, status: 200, json: async () => body });

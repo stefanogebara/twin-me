@@ -7,7 +7,7 @@
  */
 import { describe, it, expect, vi } from 'vitest';
 
-vi.mock('../../../api/services/database.js', () => ({
+vi.mock('../../../api/_app/services/database.js', () => ({
   supabaseAdmin: { from: vi.fn() },
 }));
 
@@ -15,7 +15,7 @@ import {
   scorePatternConfidence,
   getConfidenceLevel,
   getConfidenceDescription,
-} from '../../../api/services/behavioralPatternRecognition.js';
+} from '../../../api/_app/services/behavioralPatternRecognition.js';
 
 describe('scorePatternConfidence', () => {
   it('uses safe defaults (1 occurrence, 0 consistency, no dates) -> ~4', () => {
