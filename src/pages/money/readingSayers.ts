@@ -133,8 +133,13 @@ export const SAYERS: Record<string, Sayer> = {
     const sentence = t('{weekday} cost {amount}; the six before, {usual} in the middle.', { weekday: weekdayName(wd, locale), amount: euro(current), usual: euro(usual) });
     const count = n(num.count) ?? receipts.length;
     if (!count) return { sentence, detail: t('Nothing paid that day.') };
-    const names = receipts.map((x) => x.merchant_raw || x.merchant_key).filter(Boolean).slice(0, 3).join(', ');
-    if (!names) return { sentence, detail: r.detail ?? null };
+    /* 'unknown' is the ledger's key for a payment the bank did not name, not a shop. */
+    const named = receipts.map((x) => x.merchant_raw || (x.merchant_key !== 'unknown' ? x.merchant_key : null)).filter(Boolean) as string[];
+    const nameless = receipts.length - named.length;
+    if (!named.length && !nameless) return { sentence, detail: r.detail ?? null };
+    const names = named.slice(0, 3).join(', ');
+    if (!named.length) return { sentence, detail: count === 1 ? t('{n} payment, without a name.', { n: count }) : t('{n} payments, none with a name.', { n: count }) };
+    if (nameless > 0) return { sentence, detail: t('{n} payments: {names}, and {m} without a name.', { n: count, names, m: nameless }) };
     return { sentence, detail: count === 1 ? t('{n} payment: {names}.', { n: count, names }) : t('{n} payments: {names}.', { n: count, names }) };
   },
 
@@ -357,7 +362,8 @@ export const SAYERS: Record<string, Sayer> = {
     if (typical === null || amount === null || !name || !on) return keep;
     const sentence = t('{name} usually takes {typical}; on {day} it took {amount}.', { name, typical: euro(typical), day: dayAndMonth(on, locale), amount: euro(amount) });
     if (multiple === null || times === null) return { sentence, detail: r.detail ?? null };
-    return { sentence, detail: t('That is {x} times its usual, across {n} payments there.', { x: multiple, n: times }) };
+    /* A multiple in the reader's figures: "3.3" sat on a page whose every other number said "3,3" (2026-09-23). */
+    return { sentence, detail: t('That is {x} times its usual, across {n} payments there.', { x: multiple.toLocaleString(locale, { maximumFractionDigits: 1 }), n: times }) };
   },
 
   category_rhythm: ({ r, t, num, keep }) => {

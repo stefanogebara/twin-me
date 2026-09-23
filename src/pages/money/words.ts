@@ -34,7 +34,10 @@ export function stillToCome(t: T, locale: string, f: MoneyForecast): Ahead[] {
     /* The basis arrives as an English phrase; the same two numbers say it here. */
     why: i.said && i.basis === 'said' ? t('Comes in, as you said')
       : i.times ? t('Comes in, seen {n} times, usually the {day}', { n: i.times, day: ordinalDay(t, Number(i.day) || 1) })
-        : t('Comes in, as you said') });
+        : i.said ? t('Comes in, as you said')
+          /* A regular arrival nobody mentioned was called "as you said" here while Plan called it
+             "seen before, not said" (2026-09-23). */
+          : t('Comes in, seen before, not said') });
   /* { title, day, amount } is what the calendar sends; asking for e.expected.amount and e.on
      meant a day in the diary never appeared here at all (2026-09-16). */
   for (const e of f.calendar_items || []) {
@@ -46,6 +49,9 @@ export function stillToCome(t: T, locale: string, f: MoneyForecast): Ahead[] {
 }
 
 export const NO_NAME = 'A payment without a name';
+/** A merchant the bank named, or the words for one it did not; 'unknown' is the ledger's key, not a name. */
+export const merchantName = (name: string | null | undefined, t: T): string => (!name || name === 'unknown' ? t('without a name') : name);
+
 export function merchantLabel(x: { merchant_name?: string | null; merchant_raw?: string | null; merchant_key: string }, t: T = (s) => s) {
   const s = String(x.merchant_name || x.merchant_raw || x.merchant_key || '').trim();
   /* A line the bank sent without a name is not a place called Unknown (2026-09-21). */

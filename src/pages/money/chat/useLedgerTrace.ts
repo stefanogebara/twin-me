@@ -3,7 +3,7 @@
  * whether a read is in progress. (Split from MoneyChatPage on 2026-09-19, M2-2b.)
  */
 import { useEffect, useState } from 'react';
-import { authFetch } from '../../../services/api/apiBase';
+import { authFetch, getAccessToken, accessTokenReady, sessionExpected } from '../../../services/api/apiBase';
 
 export type TraceStep = { step: string; label: string; detail: string | null; count: number | null; done: boolean; say?: { key: string; vars?: Record<string, string | number> } | null };
 
@@ -27,6 +27,9 @@ export function useLedgerTrace(): { steps: TraceStep[]; reading: boolean } {
     const read = async () => {
       let response: Response;
       try {
+        /* The stream is opened as the page mounts, which for a known person is before the token
+           arrives (M2-A); it answered 401 and the trace stayed empty (2026-09-23). */
+        if (!getAccessToken() && sessionExpected()) await accessTokenReady();
         response = await authFetch('/money/stream', {
           headers: { Accept: 'text/event-stream' },
           signal: controller.signal,

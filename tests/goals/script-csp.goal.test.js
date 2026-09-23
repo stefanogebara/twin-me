@@ -50,4 +50,11 @@ describe('scripts come only from files the CSP names', () => {
     const workerSrc = csp.value.split(';').map((d) => d.trim()).find((d) => d.startsWith('worker-src '));
     expect(workerSrc).toBe("worker-src 'self' blob:");
   });
+
+  it('lets the error reporter through: Sentry received nothing from production until 2026-09-23', () => {
+    const vercel = JSON.parse(fs.readFileSync(path.join(ROOT, 'vercel.json'), 'utf8'));
+    const csp = vercel.headers.flatMap((h) => h.headers).find((h) => h.key === 'Content-Security-Policy');
+    const connectSrc = csp.value.split(';').map((d) => d.trim()).find((d) => d.startsWith('connect-src '));
+    expect(connectSrc.split(/\s+/)).toContain('https://*.ingest.de.sentry.io');
+  });
 });

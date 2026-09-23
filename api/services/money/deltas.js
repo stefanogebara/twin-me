@@ -56,7 +56,8 @@ const abs = (t) => Math.abs(Number(t.amount) || 0);
 const WEEKDAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 const CATEGORY_WORDS = { 'eating out': 'Eating out', coffee: 'Coffee', groceries: 'Groceries', transport: 'Transport', taxi: 'Taxis', entertainment: 'Going out', clothing: 'Clothes', health: 'Health', pharmacy: 'Pharmacy', sport: 'Sport', software: 'Software', travel: 'Travel', education: 'Education', home: 'Home', electronics: 'Electronics', fuel: 'Fuel', lodging: 'Lodging', cash: 'Cash', fees: 'Fees' };
 const categoryWord = (c) => CATEGORY_WORDS[c] || (c ? c.charAt(0).toUpperCase() + c.slice(1) : 'Other');
-const nameOf = (t) => t.merchant_name || t.merchant_raw || t.merchant_key || 'somewhere';
+/* 'unknown' is the ledger's key for a payment the bank did not name, not a place. */
+const nameOf = (t) => t.merchant_name || t.merchant_raw || (t.merchant_key !== 'unknown' ? t.merchant_key : null) || 'a payment without a name';
 function median(xs) { const s = [...xs].sort((a, b) => a - b); if (!s.length) return 0; const m = Math.floor(s.length / 2); return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2; }
 const dayOf = (ms) => dayIn(ms);
 

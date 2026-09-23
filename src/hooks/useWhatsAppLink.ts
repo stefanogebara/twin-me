@@ -9,7 +9,7 @@
  * error and stays on the phone step — no number is ever linked unverified.
  */
 import { useCallback, useEffect, useState } from 'react';
-import { API_URL, getAccessToken } from '@/services/api/apiBase';
+import { API_URL, getAccessToken, accessTokenReady, sessionExpected } from '@/services/api/apiBase';
 
 export type WhatsAppLinkStep = 'phone' | 'code' | 'linked';
 
@@ -57,6 +57,9 @@ export function useWhatsAppLink(): UseWhatsAppLink {
 
   const refresh = useCallback(async () => {
     try {
+      /* Money mounts before the token arrives for a known person (M2-A); a status read that left
+         first answered 401 on every load (seen 2026-09-23). Wait for the token as the money reads do. */
+      if (!getAccessToken() && sessionExpected()) await accessTokenReady();
       const res = await fetch(`${API_URL}/whatsapp-link/status`, { headers: getAuthHeaders() });
       const data = await res.json();
       if (data.success && data.linked) {

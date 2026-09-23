@@ -57,7 +57,7 @@ export async function forecast(userId, now = new Date(), given = {}) {
   /* What comes in, as dated events (income.js): the stated incomes on the day and amount
      their arrivals support, with a confidence, and the regular senders nobody mentioned. */
   const income = incomeEvents({ facts, transactions: rows, isIncome, now })
-    .map((e) => ({ subject: e.source, source: e.source, amount: e.amount, day: e.day, due_on: e.due_on, confidence: e.confidence, basis: e.basis, said: e.said }));
+    .map((e) => ({ subject: e.source, source: e.source, amount: e.amount, day: e.day, due_on: e.due_on, confidence: e.confidence, basis: e.basis, said: e.said, times: e.times ?? null }));
   const shareOf = (t) => {
     /* A payment the person said was split so many ways is theirs by one part. */
     const split = ownShare(t);
