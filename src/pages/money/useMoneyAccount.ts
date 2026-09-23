@@ -119,7 +119,7 @@ export function useMoneyRead(userId: string | null, view: MoneyView) {
     const rd = got('readings'); if (rd !== undefined) setReadings(rd);
     const c = got('categories'); if (c !== undefined) setCategories(c);
     const u = got('usage'); if (u !== undefined) setUsage(u);
-    const cap = got('capabilities'); if (cap !== undefined) setCapabilities(cap);
+    const cap = got('capabilities'); if (cap !== undefined) setCapabilities(cap); else if (page && failed.has('capabilities')) setCapabilities({ bank: false, capture: false, why: 'unread' });
     const ib = got('inbox'); if (ib !== undefined) setInbox(ib); else if (page && failed.has('inbox')) setInbox(null);
     const fa = got('facts'); if (fa !== undefined) setFacts(fa);
     const sn = got('seen'); if (sn !== undefined) setSeen(sn);
