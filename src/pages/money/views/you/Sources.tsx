@@ -144,13 +144,23 @@ export default function Sources({ m }: { m: MoneyAccount }) {
                     <span className="mv-icon" aria-hidden="true"><Mail size={16} /></span>
                     <span className="mv-item-text">
                       <span className="mv-item-title">{t('Receipts by email')}</span>
-                      <span className="mv-item-sub">{inbox.receiving ? t('Forward a receipt or invoice; the line items join the ledger.') : t('Forward receipts here once the domain is switched on.')}</span>
+                      <span className="mv-item-sub">{inbox.receiving ? t("Forward receipts, or your bank's alert mails; they join the ledger.") : t('Forward receipts here once the domain is switched on.')}</span>
                     </span>
                     <span className="mv-item-end">
                       <button type="button" className="mv-pill mv-pill--ghost" onClick={() => void copyInbox()}>{copied ? t('Copied') : t('Copy address')}</button>
                     </span>
                   </div>
                   <div className="mv-body mv-body--icon"><code className="mv-code">{inbox.address}</code></div>
+                  {/* Gmail confirms a forwarding address by mail to that address, which is this one: the code and the link are shown here, where the person can act on them. */}
+                  {(inbox.forwarding || []).map((f) => (
+                    <div key={f.at} className="mv-item mv-item--sub">
+                      <span className="mv-item-text">
+                        <span className="mv-item-title">{t('Gmail asks to confirm forwarding')}</span>
+                        <span className="mv-item-sub">{f.requester && f.code ? t('From {from}. Code {code}.', { from: f.requester, code: f.code }) : f.code ? t('Code {code}.', { code: f.code }) : t('Open the link to allow it.')}</span>
+                      </span>
+                      {f.link ? <span className="mv-item-end"><a className="mv-pill mv-pill--ghost" href={f.link} target="_blank" rel="noopener noreferrer">{t('Confirm')}</a></span> : null}
+                    </div>
+                  ))}
                 </li>
               ) : null}
               {capabilities.capture && <PhoneSource m={m} />}

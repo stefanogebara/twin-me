@@ -188,13 +188,16 @@ async function completeLedger(since?: string): Promise<MoneyTransaction[]> {
 }
 
 /* What this person may connect, computed from facts; `why` says the bank's reason in one word. */
+/** Gmail asked this address to confirm forwarding: the code from the subject, the link that confirms. */
+export type ForwardingRequest = { requester: string | null; code: string | null; link: string | null; at: string };
+export type MoneyInbox = { address: string; receiving: boolean; forwarding?: ForwardingRequest[] };
 export type MoneyCapabilities = { bank: boolean; capture: boolean; whatsapp?: boolean; why?: 'unconfigured' | 'linked' | 'listed' | 'restricted' | 'country' | 'open' | 'unread' };
 export type MoneyProfile = { timezone: string; country: string; currency: string; language: string | null };
 
 export type MoneyPage = {
   forecast: MoneyForecast | null; today: MoneyToday | null; ledger: MoneyTransaction[] | null; recurring: MoneyRecurring[] | null;
   accounts: MoneyAccount[] | null; months: MoneyMonth[] | null; readings: MoneyReading[] | null; categories: MoneyCategories | null;
-  usage: MoneyUsage | null; capabilities: MoneyCapabilities | null; inbox: { address: string; receiving: boolean } | null;
+  usage: MoneyUsage | null; capabilities: MoneyCapabilities | null; inbox: MoneyInbox | null;
   facts: MoneyFact[] | null;
   /* Where the person is, from their own data: the zone the page reads its days in. */
   profile: MoneyProfile | null;
@@ -281,7 +284,7 @@ export const moneyAPI = {
   connect: (bank = 'Banco Santander', country = 'ES', back = '') =>
     moneyFetch('/money/bank/connect', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ bank, country, back }) }).then((r) => json<{ url: string }>(r)),
   /** The person's own receipts address: forward a receipt or invoice there and it joins the ledger. */
-  inbox: () => moneyFetch('/money/inbox').then((r) => json<{ address: string; domain: string; receiving: boolean }>(r)),
+  inbox: () => moneyFetch('/money/inbox').then((r) => json<MoneyInbox & { domain: string }>(r)),
   /* The calendar lens: Google, or links pasted from Canvas and Blackboard. */
   calendar: () => moneyFetch('/money/calendar').then((r) => json<MoneyCalendar>(r)),
   calendarConnect: () => moneyFetch('/money/calendar/connect').then((r) => json<{ url: string }>(r)),

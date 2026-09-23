@@ -8,7 +8,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { dayPartsIn, browserZone } from './readingHelpers';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLocale, useT } from '@/lib/i18n';
-import { moneyAPI, shortDay, BANKS, setLedgerCurrency, ownCurrency, type MoneyProfile, type MoneyCapabilities, type MoneyAccount as MoneyBankAccount, type MoneyCalendar, type MoneyCategories, type MoneyFact, type MoneyForecast, type MoneyPattern, type MoneyQuestions, type MoneyToday, type MoneyMonth, type MoneyPage, type MoneyReading, type MoneyRecurring, type MoneyTransaction, type MoneyUsage, type MoneySourceCounts } from '../../services/api/moneyAPI';
+import { moneyAPI, shortDay, BANKS, setLedgerCurrency, ownCurrency, type MoneyProfile, type MoneyCapabilities, type MoneyAccount as MoneyBankAccount, type MoneyCalendar, type MoneyCategories, type MoneyFact, type MoneyForecast, type MoneyPattern, type MoneyQuestions, type MoneyToday, type MoneyMonth, type MoneyPage, type MoneyReading, type MoneyRecurring, type MoneyTransaction, type MoneyUsage, type MoneySourceCounts, type MoneyInbox } from '../../services/api/moneyAPI';
 import { moneyRevision, MONEY_CHANGED } from '../../services/api/moneyChanges';
 import { todayHere, localDay } from './readingWords';
 import type { MoneyView } from './navLinks';
@@ -23,7 +23,7 @@ import { CHANGE_BOUNDARY, readingRank, readingStake } from './readingOrder';
 type Snapshot = {
   userId: string | null; revision: number; at: number; forecast: MoneyForecast | null; today: MoneyToday | null; ledger: MoneyTransaction[]; recurring: MoneyRecurring[];
   accounts: MoneyBankAccount[]; months: MoneyMonth[]; readings: MoneyReading[]; categories: MoneyCategories | null; usage: MoneyUsage | null; unread: boolean;
-  capabilities: MoneyCapabilities; inbox: { address: string; receiving: boolean } | null; facts: MoneyFact[] | null; seen: Record<string, string[]>; sources: MoneySourceCounts | null;
+  capabilities: MoneyCapabilities; inbox: MoneyInbox | null; facts: MoneyFact[] | null; seen: Record<string, string[]>; sources: MoneySourceCounts | null;
 };
 let SNAPSHOT: Snapshot | null = null;
 const SNAPSHOT_FRESH_MS = 30000;
@@ -68,7 +68,7 @@ export function useMoneyRead(userId: string | null, view: MoneyView) {
   const [categories, setCategories] = useState<MoneyCategories | null>(SNAPSHOT?.categories ?? null);
   const [usage, setUsage] = useState<MoneyUsage | null>(SNAPSHOT?.usage ?? null);
   const [capabilities, setCapabilities] = useState(SNAPSHOT?.capabilities ?? { bank: false, capture: false });
-  const [inbox, setInbox] = useState<{ address: string; receiving: boolean } | null>(SNAPSHOT?.inbox ?? null);
+  const [inbox, setInbox] = useState<MoneyInbox | null>(SNAPSHOT?.inbox ?? null);
   /* What it knows, in the person's words: the You page and the onboarding both read it. */
   const [facts, setFacts] = useState<MoneyFact[] | null>(SNAPSHOT?.facts ?? null);
   /* Which sources saw each payment: what a row's grey line says about its reconciliation. */
@@ -199,7 +199,7 @@ export function useMoneyRead(userId: string | null, view: MoneyView) {
 }
 
 /** What only You shows, read only there: the calendar, the questions, the patterns. */
-export function useYouReads(view: MoneyView, inbox: { address: string; receiving: boolean } | null) {
+export function useYouReads(view: MoneyView, inbox: MoneyInbox | null) {
   const [copied, setCopied] = useState(false);
   /* The calendar lens: Google, or links pasted from Canvas and Blackboard. */
   const [calendar, setCalendar] = useState<MoneyCalendar | null>(null);
