@@ -779,6 +779,26 @@ describe('a short follow-up asks about what the previous message asked about', (
   });
 });
 
+describe('one kind, one month, asked how much', () => {
+  it('is a shape: total and count, the largest, last month, what comes back in that kind, the bank; the table by place under it', async () => {
+    const { kindAnswer, shortCircuit } = await import('../../../../api/services/money/chat.js');
+    const c = ctx();
+    const r = kindAnswer("How's software expenditure?", c);
+    expect(r?.text).toBe('Software this month: 11,99 \u20ac in one payment, Spotify. In August, software was 11,99 \u20ac. Coming back every month in software: Spotify, 11,99 \u20ac together.');
+    expect(r?.figures.map((f) => [f.kind, f.category, f.by])).toEqual([['shares', 'software', 'merchant']]);
+    expect(r?.receipts.length).toBeGreaterThan(0);
+    expect(shortCircuit('how much on software this month?', c)?.text).toMatch(/^Software this month/);
+    expect(kindAnswer('cuanto llevo gastado en software?', { ...c, language: 'es' })?.text).toMatch(/^Software este mes: 11,99 \u20ac en un pago, Spotify\. En agosto, software fue 11,99 \u20ac\./);
+    expect(kindAnswer('how much on clothing this month?', c)?.text).toMatch(/^Clothing this month: 116,76 \u20ac in one payment, El Corte Ingles\. Nothing on clothing in August\.$/);
+    expect(kindAnswer('how much on clothes and spotify?', c)).toBeNull();
+    expect(kindAnswer('did I spend more on groceries this month than in August?', c)).toBeNull();
+    expect(kindAnswer('why is software so high this month?', c)).toBeNull();
+    expect(kindAnswer('software every month?', c)).toBeNull();
+    expect(kindAnswer('how much on software last Friday night?', c)).toBeNull();
+    expect(kindAnswer('how much is left?', c)).toBeNull();
+  });
+});
+
 describe('each kind, largest first, and each kind by month', () => {
   it('are computed lines, so a table and a month-by-month answer are readings and not guesses', async () => {
     const { contextText, RULES } = await import('../../../../api/services/money/chat.js');

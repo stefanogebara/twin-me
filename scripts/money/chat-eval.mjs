@@ -63,6 +63,8 @@ function score(s, reply) {
   const acts = (reply.actions || []).map((a) => a.kind);
   const checks = {};
   checks.figures = s.figures.only ? kinds.every((k) => s.figures.only.includes(k)) : kinds.some((k) => s.figures.some.includes(k));
+  /* the shape asked for: a shares figure of one kind by place, not the month by kind */
+  if (s.figureCategory) checks.figures = checks.figures && (reply.figures || []).some((f) => f.kind === 'shares' && f.category === s.figureCategory && f.by === 'merchant');
   checks.actions = s.actions.none ? acts.length === 0 : (s.actions.optional && acts.length === 0) || acts.some((k) => s.actions.some.includes(k));
   checks.length = sentenceCount(text) <= s.maxSentences;
   const restates = s.message.split(/\s+/).length > 3 && text.toLowerCase().startsWith(s.message.toLowerCase().slice(0, 24));

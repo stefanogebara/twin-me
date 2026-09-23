@@ -356,7 +356,8 @@ describe('the streamed answer', () => {
   it('a sentence with an amount the ledger does not hold never reaches the wire', async () => {
     streamCall.mockImplementation(streamsIn(['Clothing took 116,76 EUR. ', 'That leaves 283,51 EUR for the rest of the month. ', 'Spotify is 11,99 EUR a month.']));
     const { events, onEvent } = recorder();
-    const reply = await answerStream('u1', 'how much on clothes?', [], { now: NOW, onEvent });
+    /* two subjects, so the model answers (one kind alone is computed since 2026-09-23) */
+    const reply = await answerStream('u1', 'how much on clothes and spotify?', [], { now: NOW, onEvent });
     expect(textOf(events)).toBe('Clothing took 116,76 \u20ac. Spotify is 11,99 \u20ac a month.');
     expect(reply.text).toBe(textOf(events));
   });
@@ -367,7 +368,7 @@ describe('the streamed answer', () => {
        number never shows, and the sentence closes honestly. */
     streamCall.mockImplementation(streamsIn(['{"text":"Clothing took 116,76 EUR. The average of the full months is ', '196,94 EUR. ', 'Spotify is 11,99 EUR a month.","figures":[],"actions":[]}']));
     const { events, onEvent } = recorder();
-    const reply = await answerStream('u1', 'how much on clothes?', [], { now: NOW, onEvent });
+    const reply = await answerStream('u1', 'how much on clothes and spotify?', [], { now: NOW, onEvent });
     expect(textOf(events)).not.toMatch(/196,94/);
     expect(textOf(events)).toMatch(/^Clothing took 116,76 \u20ac\. The average of the full months ?\u2026 The ledger does not hold that number\. Spotify is 11,99 \u20ac a month\.$/);
     expect(reply.text).toBe(textOf(events));
