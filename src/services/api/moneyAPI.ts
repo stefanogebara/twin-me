@@ -303,9 +303,27 @@ export const moneyAPI = {
  * "100,00 €" in a column of receipts, and a column that does not line up reads as a
  * mistake in the number rather than in the formatting.
  */
-export function euro(n: number | string | null | undefined, currency = 'EUR'): string {
+/*
+ * The ledger's own currency on this screen: the person's, from the page read (profile.currency),
+ * the euro until the page has heard. Every figure the page writes without naming a currency is
+ * in it, and every filter that keeps "our" rows compares to it. The formatter keeps its old
+ * name (140 call sites) though it writes reais for a person in Brazil.
+ */
+let ledgerCcy = 'EUR';
+export function setLedgerCurrency(currency: string | null | undefined): void {
+  if (typeof currency === 'string' && /^[A-Z]{3}$/i.test(currency)) ledgerCcy = currency.toUpperCase();
+}
+export function ledgerCurrency(): string { return ledgerCcy; }
+/** Is this row's money the ledger's own? A row with no currency is (written before there was a column). */
+export function ownCurrency(currency: string | null | undefined): boolean {
+  return !currency || String(currency).toUpperCase() === ledgerCcy;
+}
+/* How a figure is written where that money is spent: Spain 1.234,56 EUR; the United States $1,234.56. */
+const CURRENCY_LOCALES: Record<string, string> = { EUR: 'es-ES', USD: 'en-US', GBP: 'en-GB', BRL: 'pt-BR', CHF: 'de-CH', MXN: 'es-MX', ARS: 'es-AR' };
+export function euro(n: number | string | null | undefined, currency?: string | null): string {
   const v = Math.abs(Number(n) || 0);
-  return new Intl.NumberFormat('es-ES', { style: 'currency', currency: /^[A-Z]{3}$/.test(currency) ? currency : 'EUR', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(v);
+  const ccy = currency && /^[A-Z]{3}$/i.test(currency) ? currency.toUpperCase() : ledgerCcy;
+  return new Intl.NumberFormat(CURRENCY_LOCALES[ccy] || 'en-US', { style: 'currency', currency: ccy, minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(v);
 }
 export function shortDay(iso: string | null | undefined, locale?: string): string {
   if (!iso) return '';

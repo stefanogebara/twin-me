@@ -7,6 +7,7 @@
  * pure computation (projection.js, calibration.js, analyst.js); the one write is the
  * forecast snapshot, kept for the record.
  */
+import { ledgerCurrency } from './currency.js';
 import { supabaseAdmin } from '../database.js';
 import { withoutCancelled } from './recurring.js';
 import { createLogger } from '../logger.js';
@@ -19,7 +20,7 @@ import { calibrate, carriedWiden, dayStrip } from './calibration.js';
 import { currentFigureScores } from './figureScoreStore.js';
 import { calendarForecast } from './calendar.js';
 import { dayIn } from './zone.js';
-import { listEuroTransactions, listTransactions, selectTransactions } from './transactionRepository.js';
+import { listOwnTransactions, listTransactions, selectTransactions } from './transactionRepository.js';
 import { listFacts, publicFacts } from './factsRepository.js';
 import { quietly } from './quietly.js';
 
@@ -33,7 +34,7 @@ const log = createLogger('money-forecast');
 export async function forecast(userId, now = new Date(), given = {}) {
   const since = new Date(now.getTime() - 100 * 86400000).toISOString();
   const [rows, rec, facts] = await Promise.all([
-    given.transactions ? selectTransactions(given.transactions, { since, limit: 5000, currency: 'EUR' }) : listEuroTransactions(userId, { since, limit: 5000 }),
+    given.transactions ? selectTransactions(given.transactions, { since, limit: 5000, currency: ledgerCurrency() }) : listOwnTransactions(userId, { since, limit: 5000 }),
     supabaseAdmin.from('money_recurring').select('*').eq('user_id', userId).then((r) => {
       if (r.error) throw new Error(`Cannot read recurring commitments: ${r.error.message}`);
       return r.data || [];
@@ -112,7 +113,7 @@ export async function forecast(userId, now = new Date(), given = {}) {
 
 export async function months(userId, now = new Date(), given = {}) {
   const [transactions, facts] = await Promise.all([
-    given.transactions ? selectTransactions(given.transactions, { limit: 5000, currency: 'EUR' }) : listEuroTransactions(userId, { limit: 5000 }),
+    given.transactions ? selectTransactions(given.transactions, { limit: 5000, currency: ledgerCurrency() }) : listOwnTransactions(userId, { limit: 5000 }),
     given.facts ? publicFacts(given.facts) : listFacts(userId).catch(quietly('forecast/facts', () => [])),
   ]);
   return monthSegments(transactions, now, spendingRule(facts));
@@ -125,7 +126,7 @@ export async function scorePredictions(userId, now = new Date()) {
     .eq('user_id', userId).is('happened', null).lt('expected_on', now.toISOString().slice(0, 10));
   if (!open?.length) return { scored: 0, hit: 0 };
 
-  const transactions = await listEuroTransactions(userId, { limit: 5000 });
+  const transactions = await listOwnTransactions(userId, { limit: 5000 });
   let hit = 0;
   for (const p of open) {
     const target = new Date(`${p.expected_on}T12:00:00Z`).getTime();

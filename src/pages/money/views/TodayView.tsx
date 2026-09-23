@@ -7,7 +7,7 @@
 import { useState } from 'react';
 import { orbFor } from '../orbFor';
 import { Link } from 'react-router-dom';
-import { euro, shortDay, BANKS } from '../../../services/api/moneyAPI';
+import { ownCurrency, euro, shortDay, BANKS } from '../../../services/api/moneyAPI';
 import type { MoneyAccount } from '../useMoneyAccount';
 import Wait from '../../../components/Wait';
 import HomeAsk from '../HomeAsk';
@@ -83,7 +83,7 @@ export default function TodayView({ m }: { m: MoneyAccount }) {
                     ) : null}
                     {dayOpen ? (() => {
                       const todayKey = todayHere();
-                      const rows = ledger.filter((t) => t.verdict !== 'not_me' && (!t.currency || t.currency === 'EUR') && localDay(t.occurred_at) === todayKey && Number(t.amount) < 0);
+                      const rows = ledger.filter((t) => t.verdict !== 'not_me' && ownCurrency(t.currency) && localDay(t.occurred_at) === todayKey && Number(t.amount) < 0);
                       return rows.length ? (
                         <ul className="mv-list mv-day-rows" aria-label={t("Today's payments")}>
                           {rows.map((row) => (

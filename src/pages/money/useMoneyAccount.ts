@@ -8,7 +8,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { dayPartsIn, browserZone } from './readingHelpers';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLocale, useT } from '@/lib/i18n';
-import { moneyAPI, shortDay, BANKS, type MoneyProfile, type MoneyAccount as MoneyBankAccount, type MoneyCalendar, type MoneyCategories, type MoneyFact, type MoneyForecast, type MoneyPattern, type MoneyQuestions, type MoneyToday, type MoneyMonth, type MoneyPage, type MoneyReading, type MoneyRecurring, type MoneyTransaction, type MoneyUsage, type MoneySourceCounts } from '../../services/api/moneyAPI';
+import { moneyAPI, shortDay, BANKS, setLedgerCurrency, ownCurrency, type MoneyProfile, type MoneyAccount as MoneyBankAccount, type MoneyCalendar, type MoneyCategories, type MoneyFact, type MoneyForecast, type MoneyPattern, type MoneyQuestions, type MoneyToday, type MoneyMonth, type MoneyPage, type MoneyReading, type MoneyRecurring, type MoneyTransaction, type MoneyUsage, type MoneySourceCounts } from '../../services/api/moneyAPI';
 import { moneyRevision, MONEY_CHANGED } from '../../services/api/moneyChanges';
 import { todayHere, localDay } from './readingWords';
 import type { MoneyView } from './navLinks';
@@ -124,7 +124,7 @@ export function useMoneyRead(userId: string | null, view: MoneyView) {
     const fa = got('facts'); if (fa !== undefined) setFacts(fa);
     const sn = got('seen'); if (sn !== undefined) setSeen(sn);
     const sc = got('sources'); if (sc !== undefined) setSources(sc);
-    const pf = got('profile'); if (pf !== undefined) setProfile(pf);
+    const pf = got('profile'); if (pf !== undefined) { setProfile(pf); setLedgerCurrency(pf.currency); }
     setFailedParts(page ? failed : new Set(['forecast', 'today', 'ledger', 'recurring', 'accounts', 'months', 'readings', 'categories', 'usage', 'capabilities', 'inbox', 'facts']));
     /* A month that could not be read is not an empty month. Every rejection was dropped, so a
        server that was down told the person their ledger was empty and offered to connect the
@@ -377,7 +377,7 @@ export function useMoneyAccount(view: MoneyView, userId: string | null) {
   /* How far the bank has booked, and what the phone or the inbox saw after that. The bank
      posts card payments on working days, so a weekend's spending is here before it is there. */
   const bookedTo = ledger.reduce<string | null>((m, t) => (t.posted_at && (!m || t.occurred_at > m) ? t.occurred_at : m), null);
-  const sinceRows = bookedTo ? ledger.filter((t) => t.verdict !== 'not_me' && (!t.currency || t.currency === 'EUR') && !t.posted_at && t.occurred_at > bookedTo) : [];
+  const sinceRows = bookedTo ? ledger.filter((t) => t.verdict !== 'not_me' && ownCurrency(t.currency) && !t.posted_at && t.occurred_at > bookedTo) : [];
   const since = sinceRows.length;
   /* What the pending alerts add up to, signed: the bank's booked figure minus these is about
      what is really left, and the bank does not say it. */
@@ -408,7 +408,7 @@ export function useMoneyAccount(view: MoneyView, userId: string | null) {
      every render, so any unrelated state change tore down the orbits and replayed their
      entrance; for the second and a half that took, nothing on the figure could be clicked. */
   const monthKey = (forecast?.month || new Date().toISOString()).slice(0, 7);
-  const monthRows = useMemo(() => ledger.filter((tx) => tx.verdict !== 'not_me' && (!tx.currency || tx.currency === 'EUR') && localDay(tx.occurred_at, profile?.timezone).slice(0, 7) === monthKey), [ledger, monthKey, profile?.timezone]);
+  const monthRows = useMemo(() => ledger.filter((tx) => tx.verdict !== 'not_me' && ownCurrency(tx.currency) && localDay(tx.occurred_at, profile?.timezone).slice(0, 7) === monthKey), [ledger, monthKey, profile?.timezone]);
   /* What they said comes in each month is the band's right edge; the month is drawn against
      it, not against its own worst case. Without a stated income the band keeps its old edge. */
   /* The month is framed by what they said comes in even when the day rests on the balance. */

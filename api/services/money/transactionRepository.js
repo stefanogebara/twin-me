@@ -1,3 +1,4 @@
+import { ledgerCurrency } from './currency.js';
 import { z } from 'zod';
 import { supabaseAdmin } from '../database.js';
 
@@ -29,7 +30,8 @@ export async function listTransactions(userId, { since, limit = 10000, currency 
   } while (cursor);
   return includeRejected ? all : all.filter((row) => row.verdict !== 'not_me');
 }
-export const listEuroTransactions = (userId, options = {}) => listTransactions(userId, { ...options, currency: 'EUR' });
+/** The rows in the ledger's own currency (the person's, when set; see currency.js). */
+export const listOwnTransactions = (userId, options = {}) => listTransactions(userId, { ...options, currency: ledgerCurrency() });
 
 /**
  * The same selection listTransactions makes, on rows already read: `since` is inclusive on

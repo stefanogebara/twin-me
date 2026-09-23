@@ -7,7 +7,7 @@
  */
 import { createLogger } from '../logger.js';
 import { answer, act, looksLikeInstruction } from './chat.js';
-import { inPersonZone, listChatTurns, userLanguage, saveChatTurn } from './store.js';
+import { inPersonScope, listChatTurns, userLanguage, saveChatTurn } from './store.js';
 import { claimInbound, keepOffers, takeOffer, recentOffers, offerSaid, releaseOffer } from './channelStore.js';
 import { sendWhatsAppCtaButton, sendWhatsAppButtons, downloadWhatsAppMedia } from '../whatsappService.js';
 import { readAttachment, acceptsAttachment, MAX_ATTACHMENT_BYTES } from './attachments.js';
@@ -26,7 +26,7 @@ const APP_URL = () => String(process.env.APP_URL || process.env.VITE_APP_URL || 
 
 /** The one effectful entry point, run in the person's own zone. */
 export async function handleMoneyInbound(parsed, opts) {
-  const scope = opts?.deps?.inPersonZone || inPersonZone;
+  const scope = opts?.deps?.inPersonScope || inPersonScope;
   return scope(opts.userId, () => handleMoneyInboundIn(parsed, opts));
 }
 

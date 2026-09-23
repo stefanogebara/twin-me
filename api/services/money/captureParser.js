@@ -14,6 +14,7 @@
  *   "Pago de 3,20 € con Apple Pay en METRO MADRID"
  * Anything with a EUR amount still yields a low-confidence sighting so nothing is lost.
  */
+import { ledgerCurrency } from './currency.js';
 
 const AMOUNT = /(\d{1,3}(?:\.\d{3})*(?:,\d{1,2})?|\d+(?:[.,]\d{1,2})?)\s?(?:€|EUR\b|euros?\b)/i;
 const CARD = /(?:terminada en|acabada en|\*{1,4}|tarjeta\s+\*?)\s?(\d{4})\b/i;
@@ -120,7 +121,7 @@ export function parseCapture(text, opts = {}) {
     source: channel === 'bizum' ? 'bizum' : (opts.source || 'phone'),
     raw_text: clean,
     amount,
-    currency: 'EUR',
+    currency: ledgerCurrency(),
     direction,
     channel,
     merchant_raw: merchantRaw,

@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { ChevronRight, FileText } from 'lucide-react';
 import { useT } from '@/lib/i18n';
-import { moneyAPI, type MoneyStatementAccount } from '@/services/api/moneyAPI';
+import { ownCurrency, moneyAPI, type MoneyStatementAccount } from '@/services/api/moneyAPI';
 
 /** Keep the account decision next to the file, before any ledger write. */
 export default function StatementImport({ onImported }: { onImported: () => Promise<void> }) {
@@ -23,7 +23,7 @@ export default function StatementImport({ onImported }: { onImported: () => Prom
     setLoading(true); setError(null);
     try {
       const rows = await moneyAPI.statementAccounts();
-      if (active.current) setAccounts(rows.filter((a) => a.currency === 'EUR'));
+      if (active.current) setAccounts(rows.filter((a) => ownCurrency(a.currency)));
     } catch { if (active.current) setError(t('Your accounts could not be loaded. Try again.')); }
     finally { if (active.current) setLoading(false); }
   }

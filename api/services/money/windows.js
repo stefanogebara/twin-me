@@ -8,13 +8,14 @@
  * night, this week, last week, the last seven days, and each of those days on its own.
  * Spending only: money out, not a line they said is not theirs.
  */
+import { ledgerCurrency, ours } from './currency.js';
 import { dayIn, startOfDayIn, partsIn } from './zone.js';
 
 const DECIMAL = new Intl.NumberFormat('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-export const eur = (n) => `${DECIMAL.format(Math.abs(Number(n) || 0))} EUR`;
+export const eur = (n) => `${DECIMAL.format(Math.abs(Number(n) || 0))} ${ledgerCurrency()}`;
 const r2 = (n) => Math.round(n * 100) / 100;
 const DAY_MS = 86400000;
-const spending = (t) => Number(t.amount) < 0 && t.counts !== false && t.verdict !== 'not_me' && (!t.currency || t.currency === 'EUR');
+const spending = (t) => Number(t.amount) < 0 && t.counts !== false && t.verdict !== 'not_me' && ours(t.currency);
 const at = (t) => new Date(t.occurred_at).getTime();
 /* "unknown" read as a place called unknown (2026-09-20, "the largest was 22,36 EUR at unknown"). */
 export const NO_NAME = 'a payment without a name';

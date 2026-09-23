@@ -3,6 +3,7 @@
  * The pure files decide; this file applies.
  */
 
+import { ledgerCurrency } from './currency.js';
 import { supabaseAdmin } from '../database.js';
 import crypto from 'node:crypto';
 import { splitShareOf, reimbursementIds, splitFindings, SPLIT_OPEN } from './bizum.js';
@@ -31,9 +32,10 @@ import { readUsage, unmeasurable, platformForMerchant } from './usage.js';
 import { learnMerchants, predictNext, learnPatterns, describeForTwin, TWIN_PREDICTION_CONFIDENCE } from './brain.js';
 import { openingQuestions, followUpQuestions, ledgerQuestions, checkCommitment, describeContext, FACT_KINDS, RENT_SPLIT_FLOOR } from './context.js';
 import { calendarForecast, calendarFromFacts } from './calendar.js';
-import { withZone, dayIn, dayOfMonthIn } from './zone.js';
+import { withPerson } from './scope.js';
+import { dayIn, dayOfMonthIn } from './zone.js';
 
-import { listEuroTransactions, selectTransactions } from './transactionRepository.js';
+import { listOwnTransactions, selectTransactions } from './transactionRepository.js';
 export { listTransactions, transactionPage } from './transactionRepository.js';
 /* Pure reads and the forecast live in their own modules since 2026-09-19 (the two import
    cycles); store.js keeps their names so no caller had to move. */
@@ -58,8 +60,8 @@ export async function sightingsFor(userId, transactionId) {
 export async function refreshRecurring(userId, now = new Date(), given = {}) {
   const since = new Date(now.getTime() - 400 * 86400000).toISOString();
   const evidence = given.transactions
-    ? selectTransactions(given.transactions, { since, limit: 5000, currency: 'EUR', includeRejected: true })
-    : await listEuroTransactions(userId, { since, limit: 5000, includeRejected: true });
+    ? selectTransactions(given.transactions, { since, limit: 5000, currency: ledgerCurrency(), includeRejected: true })
+    : await listOwnTransactions(userId, { since, limit: 5000, includeRejected: true });
   const rows = evidence.filter((row) => row.verdict !== 'not_me');
   const { data: merchants } = await supabaseAdmin.from('money_merchants').select('merchant_key, platform').not('platform', 'is', null);
   const platforms = Object.fromEntries((merchants || []).map((m) => [m.merchant_key, m.platform]));
@@ -390,7 +392,7 @@ export async function pullBankFeed(userId, { since, attended = false, psu = null
  */
 export async function refreshReadings(userId, now = new Date()) {
   const [transactions, recurring, facts] = await Promise.all([
-    listEuroTransactions(userId, { limit: 5000 }),
+    listOwnTransactions(userId, { limit: 5000 }),
     supabaseAdmin.from('money_recurring').select('*').eq('user_id', userId).then((r) => {
       if (r.error) throw new Error(`Cannot read recurring commitments: ${r.error.message}`);
       return r.data || [];
@@ -508,7 +510,7 @@ export async function setReadingVerdict(userId, readingId, verdict) {
  */
 export async function moneyContext(userId, now = new Date()) {
   const [transactions, readings] = await Promise.all([
-    listEuroTransactions(userId, { limit: 2000 }),
+    listOwnTransactions(userId, { limit: 2000 }),
     supabaseAdmin.from('money_readings').select('kind, sentence, detail, computed_at').eq('user_id', userId)
       .order('computed_at', { ascending: false }).limit(4).then((r) => r.data || []),
   ]);
@@ -843,7 +845,7 @@ export async function subscriptionUsage(userId, now = new Date(), given = {}) {
       if (r.error) throw new Error(`Cannot read recurring commitments: ${r.error.message}`);
       return r.data || [];
     }),
-    given.transactions ? selectTransactions(given.transactions, { limit: 5000, currency: 'EUR' }) : listEuroTransactions(userId, { limit: 5000 }),
+    given.transactions ? selectTransactions(given.transactions, { limit: 5000, currency: ledgerCurrency() }) : listOwnTransactions(userId, { limit: 5000 }),
   ]);
   if (!series.length) return { findings: [], unmeasurable: [], measured: [] };
 
@@ -916,7 +918,7 @@ export async function subscriptionUsage(userId, now = new Date(), given = {}) {
  * (Stefano, 2026-09-16).
  */
 export async function patternsFor(userId, now = new Date()) {
-  const transactions = await listEuroTransactions(userId, { limit: 5000 });
+  const transactions = await listOwnTransactions(userId, { limit: 5000 });
   if (!transactions.length) return [];
   const keys = [...new Set(transactions.map((t) => t.merchant_key))];
   const categories = await categoriesFor(userId, keys);
@@ -926,7 +928,7 @@ export async function patternsFor(userId, now = new Date()) {
 }
 
 export async function learn(userId, now = new Date()) {
-  const transactions = await listEuroTransactions(userId, { limit: 5000 });
+  const transactions = await listOwnTransactions(userId, { limit: 5000 });
   if (!transactions.length) return { profiles: [], patterns: [], predictions: [], summary: null };
 
   const keys = [...new Set(transactions.map((t) => t.merchant_key))];
@@ -1004,7 +1006,7 @@ export async function predictionAccuracy(userId) {
 export async function questionsFor(userId, now = new Date()) {
   const [facts, transactions, asked, accounts] = await Promise.all([
     listFacts(userId),
-    listEuroTransactions(userId, { limit: 5000 }),
+    listOwnTransactions(userId, { limit: 5000 }),
     supabaseAdmin.from('money_questions_asked').select('question_id, skipped').eq('user_id', userId).then((r) => r.data || []),
     listBankAccounts(userId).catch(quietly('questions/accounts', () => [])),
   ]);
@@ -1061,7 +1063,7 @@ export async function answerQuestion(userId, { questionId, kind, subject, subjec
   if (kind === 'commitment' && String(questionId || '').startsWith('rent:')) {
     if (String(value || '').toLowerCase() === 'not fixed') return skipQuestion(userId, questionId);
     if (!amount && subject) {
-      const rows = (await listEuroTransactions(userId, { limit: 5000 }))
+      const rows = (await listOwnTransactions(userId, { limit: 5000 }))
         .filter((t) => t.merchant_key === subject && Number(t.amount) < 0 && Math.abs(Number(t.amount)) >= RENT_SPLIT_FLOOR);
       if (rows.length) {
         const amounts = rows.map((t) => Math.abs(Number(t.amount))).sort((a, b) => a - b);
@@ -1080,7 +1082,7 @@ export async function answerQuestion(userId, { questionId, kind, subject, subjec
     source: 'asked', question_id: questionId || null, answered_at: new Date().toISOString(),
   };
   if (kind === 'commitment' && amount) {
-    const transactions = await listEuroTransactions(userId, { limit: 5000 });
+    const transactions = await listOwnTransactions(userId, { limit: 5000 });
     const check = checkCommitment(row, transactions);
     row.check_status = check.status;
     row.check_note = check.note;
@@ -1179,9 +1181,9 @@ export function forgetProfile(userId) { profiles.delete(userId); }
  * per request, the crons per person, the WhatsApp inbound per message. A profile that
  * cannot be read leaves the deployment's zone standing.
  */
-export async function inPersonZone(userId, fn) {
-  const profile = await personProfileCached(userId).catch((error) => { log.warn(`profile not read for zone: ${error.message}`); return null; });
-  return withZone(profile?.timezone, fn);
+export async function inPersonScope(userId, fn) {
+  const profile = await personProfileCached(userId).catch((error) => { log.warn(`profile not read for scope: ${error.message}`); return null; });
+  return withPerson(profile || {}, fn);
 }
 
 export async function personProfile(userId) {

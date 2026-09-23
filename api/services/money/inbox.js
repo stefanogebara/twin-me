@@ -22,6 +22,7 @@
  * webhook's signing secret), MONEY_INBOX_DOMAIN (default in.twinme.me).
  */
 
+import { ledgerCurrency } from './currency.js';
 import crypto from 'node:crypto';
 import { returnWindow } from './returns.js';
 import { supabaseAdmin } from '../database.js';
@@ -253,7 +254,7 @@ export function bankAlertSighting({ subject, from, text, html }, { emailId, rece
         raw_text: movement[0].slice(0, 500),
         raw_json: { kind: 'bank_alert', from: from || null, subject: subject || null, account_last4: movement[2] || null },
         amount,
-        currency: 'EUR',
+        currency: ledgerCurrency(),
         direction: /^-/.test(movement[1].trim()) ? 'out' : 'in',
         channel: null,
         merchant_raw: null,

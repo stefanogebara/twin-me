@@ -15,7 +15,7 @@ const places = vi.fn();
 const learn = vi.fn();
 const recurring = vi.fn();
 const learnLedger = vi.fn();
-vi.mock('../../../api/services/money/store.js', () => ({ inPersonZone: (id, fn) => fn(), personProfileCached: async () => ({ timezone: 'Europe/Madrid', country: 'ES', currency: 'EUR', language: null }), 
+vi.mock('../../../api/services/money/store.js', () => ({ inPersonScope: (id, fn) => fn(), personProfileCached: async () => ({ timezone: 'Europe/Madrid', country: 'ES', currency: 'EUR', language: null }), 
   pullBankFeed: (...a) => pull(...a),
   enrichPlaces: (...a) => places(...a),
   refreshReadings: (...a) => refresh(...a),

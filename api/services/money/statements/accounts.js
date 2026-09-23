@@ -1,4 +1,5 @@
 /** Statement accounts are local ledger identities, never bank authorisations. */
+import { ledgerCurrency, ours } from '../currency.js';
 import { createHash } from 'node:crypto';
 import { z } from 'zod';
 import { supabaseAdmin } from '../../database.js';
@@ -22,7 +23,7 @@ export async function createStatementAccount(userId, input) {
   // Repeating a creation request cannot create another account and duplicate its imports.
   const identity = createHash('sha256').update(name.normalize('NFKC').toLowerCase().replace(/\s+/g, ' ')).digest('hex');
   const { data, error } = await supabaseAdmin.from('money_accounts').upsert({
-    user_id: userId, provider: 'statement', provider_account_id: identity, name, currency: 'EUR',
+    user_id: userId, provider: 'statement', provider_account_id: identity, name, currency: ledgerCurrency(),
   }, { onConflict: 'user_id,provider,provider_account_id' }).select(fields).single();
   if (error) throw error;
   return data;
@@ -34,7 +35,7 @@ export async function ownedStatementAccount(userId, accountId) {
     .eq('user_id', userId).eq('id', accountId).in('provider', ['statement', 'enablebanking']).maybeSingle();
   if (error) throw error;
   if (!data) throw new StatementInputError('Choose one of your own accounts.', 404);
-  if (data.currency !== 'EUR') throw new StatementInputError('Statement imports currently support euro accounts only.', 422);
+  if (!ours(data.currency)) throw new StatementInputError(ledgerCurrency() === 'EUR' ? 'Statement imports currently support euro accounts only.' : `Statement imports currently support ${ledgerCurrency()} accounts only.`, 422);
   return data;
 }
 

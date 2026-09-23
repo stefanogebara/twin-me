@@ -25,6 +25,7 @@
  * the text is complete, because they are computed here from the ledger and never streamed.
  */
 
+import { ledgerCurrency, ours, currencyWord } from './currency.js';
 import { complete, stream as streamComplete, TIER_CHAT } from '../llmGateway.js';
 import { windowLines, weekAverageLine, costliestDayLine, cheapestDayLine, monthPaceLine, weekdayLine, spendWindows, breakdown, eur, NO_NAME } from './windows.js';
 import { askedLines, askedDays, askedWindows } from './asked.js';
@@ -87,7 +88,7 @@ export function learnFromStatement(message, ctx, { now = new Date() } = {}) {
   }
   const sub = subscriptionStatement(message);
   if (sub) {
-    if (sub.currency !== 'EUR') return { ask: say(L, '{name} is in {ccy}: about how much is that in euros a month?', { name: sub.name, ccy: sub.currency }) };
+    if (!ours(sub.currency)) return { ask: say(L, '{name} is in {ccy}: about how much is that in {ours} a month?', { name: sub.name, ccy: sub.currency, ours: currencyWord(L) }) };
     if (!sub.day) return { ask: say(L, 'On which day of the month does {name} take its {amount}?', { name: sub.name, amount: amountText(sub.amount) }) };
     return { offer: { kind: 'fact', fact: { kind: 'commitment', subject: keyOf(sub.name), subjectLabel: sub.name, value: 'subscription', amount: sub.amount, day: sub.day, note: sub.cadence }, label: say(L, 'Expect {name}: {amount} {cadence}, {day}', { name: sub.name, amount: amountText(sub.amount), cadence: say(L, sub.cadence), day: dayWord(L, sub.day) }) } };
   }
@@ -105,7 +106,7 @@ export function learnFromStatement(message, ctx, { now = new Date() } = {}) {
      the person (person) as the rules say (2026-09-23). */
   if (inc && inc.irregular) return null;
   if (inc) {
-    if (inc.currency !== 'EUR') return { ask: say(L, '{source} pays in {ccy}: about how much is that in euros? Then the month can count it.', { source: inc.source, ccy: inc.currency }) };
+    if (!ours(inc.currency)) return { ask: say(L, '{source} pays in {ccy}: about how much is that in {ours}? Then the month can count it.', { source: inc.source, ccy: inc.currency, ours: currencyWord(L) }) };
     const day = inc.day || (inc.once ? partsIn(now)?.day || 1 : null);
     if (!day) return { ask: say(L, 'On which day does the {amount} from {source} usually come?', { amount: amountText(inc.amount), source: inc.source }) };
     const month = dayIn(now).slice(0, 7);
@@ -201,7 +202,7 @@ const out = (t) => Number(t.amount) < 0 && t.counts !== false;
 const abs = (t) => Math.abs(Number(t.amount) || 0);
 const at = (t) => new Date(t.occurred_at).getTime();
 /** An amount as the prompt reads it: es-ES digits and the currency spelled, ASCII throughout. */
-const amountText = (n) => `${DECIMAL.format(Math.abs(Number(n) || 0))} EUR`;
+const amountText = (n) => `${DECIMAL.format(Math.abs(Number(n) || 0))} ${ledgerCurrency()}`;
 const dayMonth = (iso, language = null) => {
   const d = new Date(iso);
   const p = partsIn(d);
@@ -223,6 +224,8 @@ const nameOf = (t) => t.merchant_raw || t.merchant_key || NO_NAME;
 export const plainWords = (text) => String(text || '').replace(/\p{Extended_Pictographic}|\u{FE0F}|\u{200D}|\u{20E3}/gu, '').replace(/ {2,}/g, ' ');
 
 export function euroGlyphs(text) {
+  /* Only the euro has a glyph the page writes; any other ledger keeps its code. */
+  if (ledgerCurrency() !== 'EUR') return String(text || '');
   return String(text || '').replace(/(\d),(\d{2}) EUR\b/g, '$1,$2 \u20ac').replace(/(\d) EUR\b/g, '$1 \u20ac');
 }
 
@@ -253,7 +256,7 @@ export async function gather(userId, now = new Date()) {
     settled(questionsFor(userId, now), { opening: [], fromLedger: [], answered: 0 }),
     settled(listPlaces(userId), []),
   ]);
-  const transactions = allTransactions ? selectTransactions(allTransactions, { currency: 'EUR', limit: 5000 }) : [];
+  const transactions = allTransactions ? selectTransactions(allTransactions, { currency: ledgerCurrency(), limit: 5000 }) : [];
   const [accounts, language] = await Promise.all([settled(Promise.resolve().then(() => listBankAccounts(userId)), []), settled(Promise.resolve().then(() => userLanguage(userId)), null)]);
   const thisMonth = cast?.month || `${now.toISOString().slice(0, 7)}-01`;
   const lastMonth = (() => { const d = new Date(`${thisMonth}T12:00:00Z`); d.setUTCMonth(d.getUTCMonth() - 1); return d.toISOString().slice(0, 8) + '01'; })();
@@ -541,7 +544,7 @@ export function receiptsFor(built, ctx, citedIds = []) {
 export function contextText(ctx) {
   const lines = [];
   const today = ctx.now;
-  lines.push(`Today is ${dayMonth(today.toISOString())} ${partsIn(today).year}. Amounts are in EUR.`);
+  lines.push(`Today is ${dayMonth(today.toISOString())} ${partsIn(today).year}. Amounts are in ${ledgerCurrency()}.`);
   const LANGUAGE_NAMES = { en: 'English', es: 'Spanish', 'pt-BR': 'Brazilian Portuguese' };
   if (ctx.language && LANGUAGE_NAMES[ctx.language]) lines.push(`The person chose ${LANGUAGE_NAMES[ctx.language]} for TwinMe.`);
   /* Last line, and plainly: a ledger full of Spanish shops and Spanish names talked the model
@@ -799,10 +802,10 @@ const PHRASES = {
   es: {
     'Cancelled: {name}, no longer expected': 'Cancelado: {name}, ya no se espera',
     'The ledger sees no charge called {name} that comes back. Which one did you cancel?': 'El libro no ve ning\u00fan cargo llamado {name} que vuelva. \u00bfCu\u00e1l cancelaste?',
-    '{name} is in {ccy}: about how much is that in euros a month?': '{name} est\u00e1 en {ccy}: \u00bfcu\u00e1nto es eso en euros al mes, m\u00e1s o menos?',
+    '{name} is in {ccy}: about how much is that in {ours} a month?': '{name} est\u00e1 en {ccy}: \u00bfcu\u00e1nto es eso en {ours} al mes, m\u00e1s o menos?',
     'On which day of the month does {name} take its {amount}?': '\u00bfQu\u00e9 d\u00eda del mes cobra {name} sus {amount}?',
     'Expect {name}: {amount} {cadence}, {day}': 'Esperar {name}: {amount} {cadence}, {day}',
-    '{source} pays in {ccy}: about how much is that in euros? Then the month can count it.': '{source} paga en {ccy}: \u00bfcu\u00e1nto es en euros, m\u00e1s o menos? As\u00ed el mes puede contarlo.',
+    '{source} pays in {ccy}: about how much is that in {ours}? Then the month can count it.': '{source} paga en {ccy}: \u00bfcu\u00e1nto es en {ours}, m\u00e1s o menos? As\u00ed el mes puede contarlo.',
     'On which day does the {amount} from {source} usually come?': '\u00bfQu\u00e9 d\u00eda suelen llegar los {amount} de {source}?',
     'Coming in this month: {source}, {amount}': 'Entra este mes: {source}, {amount}',
     'Comes in: {source}, {amount} on {day}': 'Entra: {source}, {amount} el {day}',
@@ -894,10 +897,10 @@ const PHRASES = {
   'pt-BR': {
     'Cancelled: {name}, no longer expected': 'Cancelado: {name}, n\u00e3o \u00e9 mais esperado',
     'The ledger sees no charge called {name} that comes back. Which one did you cancel?': 'O livro n\u00e3o v\u00ea nenhuma cobran\u00e7a chamada {name} que volte. Qual voc\u00ea cancelou?',
-    '{name} is in {ccy}: about how much is that in euros a month?': '{name} est\u00e1 em {ccy}: quanto d\u00e1 isso em euros por m\u00eas, mais ou menos?',
+    '{name} is in {ccy}: about how much is that in {ours} a month?': '{name} est\u00e1 em {ccy}: quanto d\u00e1 isso em {ours} por m\u00eas, mais ou menos?',
     'On which day of the month does {name} take its {amount}?': 'Em que dia do m\u00eas {name} cobra os {amount}?',
     'Expect {name}: {amount} {cadence}, {day}': 'Esperar {name}: {amount} {cadence}, {day}',
-    '{source} pays in {ccy}: about how much is that in euros? Then the month can count it.': '{source} paga em {ccy}: quanto d\u00e1 em euros, mais ou menos? A\u00ed o m\u00eas pode contar.',
+    '{source} pays in {ccy}: about how much is that in {ours}? Then the month can count it.': '{source} paga em {ccy}: quanto d\u00e1 em {ours}, mais ou menos? A\u00ed o m\u00eas pode contar.',
     'On which day does the {amount} from {source} usually come?': 'Em que dia os {amount} de {source} costumam chegar?',
     'Coming in this month: {source}, {amount}': 'Entra este m\u00eas: {source}, {amount}',
     'Comes in: {source}, {amount} on {day}': 'Entra: {source}, {amount} no {day}',

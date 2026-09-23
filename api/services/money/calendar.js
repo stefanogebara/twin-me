@@ -13,6 +13,7 @@
  * Deterministic throughout. No model touches this; the chat only phrases what is here.
  */
 
+import { ledgerCurrency } from './currency.js';
 import { supabaseAdmin } from '../database.js';
 import { awayWindows, weekWord, AWAY_WORDS, EXAM_WORDS, DEADLINE_WORDS } from './covariates.js';
 import { parseIcs, feedKind, isFeedUrl, looksLikeIcs, FEED_LABELS } from './ics.js';
@@ -765,7 +766,7 @@ export async function learnEventSpend(userId, { now = new Date(), events = null 
   const from = new Date(now.getTime() - LEARN_DAYS * DAY_MS).toISOString();
   const to = new Date(now.getTime() + SNAPSHOT_DAYS * DAY_MS).toISOString();
   const evs = events || (await eventsFor(userId, from, to));
-  const transactions = await listTransactions(userId, { currency: 'EUR', since: from, limit: 5000 });
+  const transactions = await listTransactions(userId, { currency: ledgerCurrency(), since: from, limit: 5000 });
   const categoryOf = await categoryLookup(userId, transactions);
   const learned = learnShapes(evs, transactions, { categoryOf, now });
   const byKey = new Map(learned.map((s) => [s.key, s]));
