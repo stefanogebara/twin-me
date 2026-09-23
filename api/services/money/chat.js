@@ -375,7 +375,7 @@ export function buildFigure(request, ctx) {
       : byMerchant
         ? say(ctx.language, 'Where {month} went, by place', { month: monthLabel(month, ctx.language) })
         : say(ctx.language, 'Where {month} went', { month: monthLabel(month, ctx.language) });
-    return { figure: { kind, title, items }, rows };
+    return { figure: { kind, title, items, category: onlyKind, by: byMerchant ? 'merchant' : 'kind' }, rows };
   }
 
   if (kind === 'weekdays') {
@@ -754,6 +754,7 @@ export const RULES = [
   'A figure you ask for is drawn under your words before the person reads them: never ask whether they want it, never tell them to ask for it, never say "here is the graph"; say what it shows.',
   'Asked for a table, a list or a ranking of one kind\'s payments, read the line "<kind> this month, largest first" and say every name and amount on it, in that order, then the kind\'s total; the shares figure by place within that kind is drawn under your words too. Never say you cannot make a table, never stop at the largest.',
   'Asked what a kind costs every month, per month or month by month, read the line "<kind> by month" and say each month with its figure, newest first; never give an average, never take one month for all.',
+  'Asked about one kind and one month, never list the other months and never name charges of other kinds: this month\'s total and count, its largest, one comparison with last month, and only that kind\'s own charges that come back.',
   'Never ask whether they would like a figure or a chart: when one would help, ask for it by kind and it is drawn under your words. When a figure would show the thing better than words, ask for it by kind. Kinds: months (spent per month), shares (where a month went; add month, and by: "merchant" for places), weekdays (spend by weekday), recurring (what comes back), band (this month so far and likely), history (one merchant over time; add merchant). Ask for at most two, and only when they add something.',
   'Actions are offers the person taps, never things you did: the text must not claim to have changed, marked or recorded anything. Say something like "If that is right, mark it below." and leave the doing to the card.',
   'Propose an action only when the person asks to fix or record something: not_me with transaction_id from the recent payments; recategorise with merchant_key from the places and a category from: ' + CATEGORIES.join(', ') + '; answer with question_id from the open questions and the value they gave; split with transaction_id from the recent payments and ways (2 to 12, the person included) when they say a payment was shared, for a dinner, a shop, a present.',
@@ -875,6 +876,15 @@ const PHRASES = {
     'That took too long to answer. Ask it again.': 'Eso tard\u00f3 demasiado en responder. Pregunta otra vez.',
     'The ledger has no total for that; it can only name the parts it holds.': 'El libro no tiene un total para eso; solo puede nombrar las partes que guarda.',
     'In {month}: {parts}.': 'En {month}: {parts}.',
+    '{kind} this month: {total} in {n} payments, the largest {name} {amount}.': '{kind} este mes: {total} en {n} pagos, el mayor {name} {amount}.',
+    '{kind} this month: {total} in one payment, {name}.': '{kind} este mes: {total} en un pago, {name}.',
+    '{kind} in {month}: {total} in {n} payments, the largest {name} {amount}.': '{kind} en {month}: {total} en {n} pagos, el mayor {name} {amount}.',
+    '{kind} in {month}: {total} in one payment, {name}.': '{kind} en {month}: {total} en un pago, {name}.',
+    'Nothing on {kind} this month.': 'Nada en {kind} este mes.',
+    'Nothing on {kind} in {month}.': 'Nada en {kind} en {month}.',
+    'In {month}, {kind} was {amount}.': 'En {month}, {kind} fue {amount}.',
+    'Coming back every month in {kind}: {names}, {total} together.': 'Vuelve cada mes en {kind}: {names}, {total} en total.',
+    "The bank's lines, last read at {time}.": 'Las l\u00edneas del banco, le\u00eddas por \u00faltima vez a las {time}.',
     'Noted: {what}. If that is right, mark it below.': 'Anotado: {what}. Si es correcto, m\u00e1rcalo abajo.',
     '{name} is family': '{name} es familia',
     '{name} is your flatmate': '{name} es tu compa\u00f1ero de piso',
@@ -979,6 +989,15 @@ const PHRASES = {
     'That took too long to answer. Ask it again.': 'Isso demorou demais para responder. Pergunte de novo.',
     'The ledger has no total for that; it can only name the parts it holds.': 'O livro n\u00e3o tem um total para isso; s\u00f3 pode nomear as partes que guarda.',
     'In {month}: {parts}.': 'Em {month}: {parts}.',
+    '{kind} this month: {total} in {n} payments, the largest {name} {amount}.': '{kind} este m\u00eas: {total} em {n} pagamentos, o maior {name} {amount}.',
+    '{kind} this month: {total} in one payment, {name}.': '{kind} este m\u00eas: {total} em um pagamento, {name}.',
+    '{kind} in {month}: {total} in {n} payments, the largest {name} {amount}.': '{kind} em {month}: {total} em {n} pagamentos, o maior {name} {amount}.',
+    '{kind} in {month}: {total} in one payment, {name}.': '{kind} em {month}: {total} em um pagamento, {name}.',
+    'Nothing on {kind} this month.': 'Nada em {kind} este m\u00eas.',
+    'Nothing on {kind} in {month}.': 'Nada em {kind} em {month}.',
+    'In {month}, {kind} was {amount}.': 'Em {month}, {kind} foi {amount}.',
+    'Coming back every month in {kind}: {names}, {total} together.': 'Volta todo m\u00eas em {kind}: {names}, {total} no total.',
+    "The bank's lines, last read at {time}.": 'As linhas do banco, lidas pela \u00faltima vez \u00e0s {time}.',
     'Noted: {what}. If that is right, mark it below.': 'Anotado: {what}. Se estiver certo, marque abaixo.',
     '{name} is family': '{name} \u00e9 fam\u00edlia',
     '{name} is your flatmate': '{name} \u00e9 seu colega de apartamento',
@@ -1050,6 +1069,8 @@ export function shortCircuit(message, ctx) {
   const m = String(message || '').toLowerCase();
   const small = smalltalkReply(message, ctx.language);
   if (small) return { text: small, figures: [], actions: [], receipts: [] };
+  const byKind = kindAnswer(message, ctx);
+  if (byKind) return byKind;
   if (!isShortAsk(message)) return null;
   if (/\b(subscri|suscrip|assinatura|recurring|comes? back)/.test(m) || (/\b(every month|cada mes|todo mes|todos os meses)\b/.test(m) && !/\b(software|groceries|food|transport|eating|comida|supermercado|transporte|bares?|restaurantes?|em |en |on |at )\b/.test(m)) && !/\b(cancel|not mine|isn'?t mine|fix|wrong|change)\b/.test(m)) {
     const built = buildFigure({ kind: 'recurring' }, ctx);
@@ -1080,6 +1101,62 @@ export function shortCircuit(message, ctx) {
     return { text: euroGlyphs(text), figures: [built.figure], actions: [], receipts: receiptsFor([built], ctx) };
   }
   return null;
+}
+
+/**
+ * One kind, one month, asked how much: the answer a person wants is a shape, not a paragraph.
+ * The total and the count, the largest, how last month closed, what comes back in that kind,
+ * and where the lines were read from; under it the table by place, largest first, with the
+ * bank's rows as receipts. Asked "How's software expenditure?", the model crammed the month's
+ * list, four months by comma and six recurring charges of other kinds into one paragraph, and
+ * drew the whole month's kinds (the owner, 2026-09-23). Computed, in the person's language.
+ * Questions with a stretch (this week, yesterday, a date), a "why", or "every month" go to the
+ * model with the lines.
+ */
+const KIND_ASK = /\b(how much|how'?s|how is|how are|what did i spend|what have i spent|what am i spending|spend(ing)?|spent|expenditure|expenses?|costs?|total|quanto|cu[a\u00e1]nto|gast(ei|o|os|ando|ado|aste)|llevo|gastos?)\b/;
+const NOT_A_KIND_ASK = /\b(why|por ?qu[e\u00ea]|porqu[e\u00ea]|than|do que|compared?|versus|vs|and|or|y|e|ou|every month|each month|per month|by month|month by month|mes a mes|m[e\u00ea]s a m[e\u00ea]s|todo m[e\u00ea]s|todos os meses|cada m[e\u00ea]s|yesterday|ontem|ayer|today|hoje|hoy|week|semana|weekend|fim de semana|fin de semana|night|noite|noche|morning|manh[a\u00e3]|ma[n\u00f1]ana|last month|mes pasado|m[e\u00ea]s passado)\b/;
+export function kindAnswer(message, ctx) {
+  const m = String(message || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  const kind = kindInMessage(message);
+  const comparative = /\b(more|less|mais|menos|mas)\s+(than|que|do que|de lo que)\b/.test(m);
+  if (!kind || comparative || NOT_A_KIND_ASK.test(m) || !(KIND_ASK.test(m) || asksTable(message))) return null;
+  if (askedWindows(message, ctx.now).length) return null;
+  /* Two kinds, or a kind and a place ("clothes and spotify"): more than one subject, the
+     model answers from the lines. */
+  if (KIND_WORDS.filter(([, re]) => re.test(m)).length > 1) return null;
+  if ([...(ctx.placeByKey?.keys() || [])].some((k) => String(k).length >= 4 && m.includes(String(k).toLowerCase()))) return null;
+  /* In the language written, as the model would: a Spanish question on an English account
+     came back in English (2026-09-23). */
+  const written = languageOf(message);
+  const L = written === 'pt' ? 'pt-BR' : (written || ctx.language);
+  const named = monthInMessage(message);
+  const month = resolveMonth(ctx, named && named !== 'last' ? named : undefined);
+  const key = monthKeyOf(month);
+  const prev = (() => { const d = new Date(`${key}-01T12:00:00Z`); d.setUTCMonth(d.getUTCMonth() - 1); return d.toISOString().slice(0, 7); })();
+  const ofKind = (t) => (ctx.categoryOf(t) || 'not read yet') === kind;
+  const rows = ctx.transactions.filter((t) => out(t) && monthKeyOf(t.occurred_at) === key && ofKind(t)).sort((a, b) => abs(b) - abs(a));
+  const before = ctx.transactions.filter((t) => out(t) && monthKeyOf(t.occurred_at) === prev && ofKind(t));
+  const sum = (xs) => round2(xs.reduce((s, t) => s + abs(t), 0));
+  const word = kindWord(L, kind);
+  const thisMonth = monthKeyOf(ctx.now.toISOString()) === key;
+  const monthName = monthLong(`${key}-01`, L);
+  const parts = [];
+  if (!rows.length) parts.push(thisMonth ? say(L, 'Nothing on {kind} this month.', { kind: word }) : say(L, 'Nothing on {kind} in {month}.', { kind: word, month: monthName }));
+  else {
+    const largest = rows[0];
+    const holes = { kind: word, month: monthName, total: amountText(sum(rows)), n: rows.length, name: nameOf(largest), amount: amountText(abs(largest)) };
+    parts.push(say(L, thisMonth
+      ? (rows.length === 1 ? '{kind} this month: {total} in one payment, {name}.' : '{kind} this month: {total} in {n} payments, the largest {name} {amount}.')
+      : (rows.length === 1 ? '{kind} in {month}: {total} in one payment, {name}.' : '{kind} in {month}: {total} in {n} payments, the largest {name} {amount}.'), holes));
+  }
+  parts.push(before.length ? say(L, 'In {month}, {kind} was {amount}.', { month: monthLong(`${prev}-01`, L), kind: word, amount: amountText(sum(before)) }) : say(L, 'Nothing on {kind} in {month}.', { kind: word, month: monthLong(`${prev}-01`, L) }));
+  const monthly = (ctx.recurring || []).filter((r) => r.cadence === 'monthly' && (ctx.categoryOf({ merchant_key: r.merchant_key, channel: 'card' }) || 'not read yet') === kind);
+  if (monthly.length) parts.push(say(L, 'Coming back every month in {kind}: {names}, {total} together.', { kind: word, names: monthly.map((r) => r.merchant_name || r.merchant_key).join(', '), total: amountText(monthly.reduce((s, r) => s + Number(r.typical_amount || 0), 0)) }));
+  const bank = (ctx.accounts || []).filter((a) => a.provider === 'enablebanking' && a.last_pulled_at).sort((a, b) => new Date(b.last_pulled_at) - new Date(a.last_pulled_at))[0];
+  if (bank) { const p = partsIn(bank.last_pulled_at); if (p) parts.push(say(L, "The bank's lines, last read at {time}.", { time: `${String(p.hour).padStart(2, '0')}:${String(p.minute).padStart(2, '0')}` })); }
+  const text = parts.join(' ');
+  const built = rows.length ? buildFigure({ kind: 'shares', by: 'merchant', category: kind, ...(named ? { month: named } : {}) }, ctx) : null;
+  return { text: euroGlyphs(text.charAt(0).toUpperCase() + text.slice(1)), figures: built ? [built.figure] : [], actions: [], receipts: built ? receiptsFor([built], ctx) : [] };
 }
 
 /* ------------------------------------------------------------------------ answer */
@@ -1241,8 +1318,9 @@ export function assembleReply(parsed, ctx, message = '') {
     const i = requests.findIndex((r) => r?.kind === 'weekdays' || r?.kind === 'history');
     if (i >= 0) requests[i] = { kind: 'week' }; else requests.unshift({ kind: 'week' });
   }
-  /* A table of one kind's payments, largest first, is the shares figure by place within that kind. */
-  const tableKind = asksTable(message) ? kindInMessage(message) : null;
+  /* A question about one kind draws that kind by place, whatever the model asked for: asked
+     about software, it drew the whole month's kinds under its words (2026-09-23). */
+  const tableKind = kindInMessage(message);
   if (tableKind) {
     const i = requests.findIndex((r) => r?.kind === 'shares');
     const named = monthInMessage(message);
