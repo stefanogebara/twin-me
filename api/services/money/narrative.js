@@ -23,7 +23,7 @@ const AGGREGATORS = /^(sq|square|sumup|izettle|iz|paypal|pp|pay|stripe|shopify|g
 const NOISE = /^(comision|comisión|concepto|tarj|tarjeta|es|españa|spain)$/i;
 
 /** How the money moved, from the words the bank uses for it. */
-export function channelFrom(text) {
+export function channelFrom(text, { amount = null } = {}) {
   const t = String(text || '');
   if (/\bbizum\b/i.test(t)) return 'bizum';
   if (/\bpago\s+movil\b|\bpago\s+móvil\b|\bcompra\b|\btarjeta\b|\btarj\./i.test(t)) return 'card';
@@ -31,7 +31,12 @@ export function channelFrom(text) {
   if (/\bcajero\b|\breintegro\b|\bdisposicion\b|\bdisposición\b/i.test(t)) return 'cash';
   if (/\bnomina\b|\bnómina\b|\btransferencia\b|\btraspaso\b|\bingreso\b/i.test(t)) return 'transfer';
   if (/\bliquidacion\b|\bliquidación\b|\bcomision\b|\bcomisión\b|\bintereses\b/i.test(t)) return 'fee';
-  return 'transfer';
+  /* A bare name says nothing about the channel. Santander writes COMPRA before a card
+     payment; other banks' exports and the API's own lines do not, and every such line was
+     read as a transfer: a cinema and a metro fare filed under transfers, "METRO DE MADRID"
+     read as money from somebody called Madrid (2026-09-23, a stranger's statement). Money
+     going out under a bare name is a card payment; money coming in is a transfer. */
+  return Number(amount) > 0 ? 'transfer' : 'card';
 }
 
 /** The last four digits of the card, from a masked PAN or a *NNNNNN fragment. */
@@ -145,9 +150,9 @@ export function cityFrom(text) {
  * Returns { merchant, channel, cardLast4, isRefund }. `merchant` is null when the sentence
  * names no counterparty (a settlement, an interest line), and the caller keeps the raw text.
  */
-export function parseNarrative(text) {
+export function parseNarrative(text, opts = {}) {
   const t = String(text || '').replace(/\s{2,}/g, ' ').trim();
-  const channel = channelFrom(t);
+  const channel = channelFrom(t, opts);
   const cardLast4 = cardFrom(t);
   const isRefund = /^devolucion|^devolución|^abono/i.test(t);
   if (!t) return { merchant: null, channel, cardLast4, isRefund };

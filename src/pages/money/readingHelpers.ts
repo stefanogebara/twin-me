@@ -126,7 +126,7 @@ export const CATEGORY_WORD: Record<string, string> = {
   entertainment: 'Going out', clothing: 'Clothes', health: 'Health', pharmacy: 'Pharmacy', sport: 'Sport',
   software: 'Software', travel: 'Travel', education: 'Education', home: 'Home', electronics: 'Electronics',
   fuel: 'Fuel', lodging: 'Lodging', cash: 'Cash', fees: 'Fees', rent: 'Rent', bills: 'Bills', other: 'Other',
-  advertising: 'Advertising',
+  advertising: 'Advertising', transfers: 'Transfers',
 };
 /** The word for a kind of place, capitalised as a line's first word. */
 export function categoryWord(t: T, category: string | null): string {

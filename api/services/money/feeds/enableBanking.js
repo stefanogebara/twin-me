@@ -335,6 +335,6 @@ export function toSighting(row, accountId) {
     occurred_at: date ? new Date(`${date}T12:00:00Z`).toISOString() : null,
     card_last4: cardFrom(said),
     parse_confidence: pending ? 0.85 : 1,
-    channel: channelFrom(said),
+    channel: channelFrom(said, { amount: amt }),
   };
 }

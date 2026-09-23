@@ -35,6 +35,15 @@ const BLANK_ROW = ['', '', '', '', ''];
 
 const SANTANDER_SHEET = [...PREAMBLE, HEADER, CARD_ROW, BIZUM_ROW, TRANSFER_ROW, BLANK_ROW];
 
+it('reads a bare concept as a card payment with its own name, and a bare credit as a transfer', () => {
+  /* Other banks' exports carry no COMPRA before a card payment; every such line was a transfer,
+     and "METRO DE MADRID" was money from somebody called Madrid (2026-09-23). */
+  const { sightings } = toSightings([['Fecha', 'Concepto', 'Importe'], ['17/09/2026', 'METRO DE MADRID', '-12,20'], ['17/09/2026', 'CINES YELMO', '-9,50'], ['18/09/2026', 'MARIA GARCIA', '25,00']]);
+  expect(sightings.map((x) => x.channel)).toEqual(['card', 'card', 'transfer']);
+  expect(sightings[0].merchant_raw).toMatch(/metro de madrid/i);
+  expect(sightings[0].merchant_key).toBe('metro de madrid');
+});
+
 it('does not label an unrecognised explicit currency as euros', () => {
   const { sightings } = toSightings([['Fecha', 'Concepto', 'Importe', 'Divisa'], ['17/09/2026', 'Cafe', '-5,00', 'Unknown currency']]);
   expect(sightings).toHaveLength(1);

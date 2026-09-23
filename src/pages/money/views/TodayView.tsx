@@ -148,6 +148,9 @@ export default function TodayView({ m }: { m: MoneyAccount }) {
                          is a line nobody parses; what comes in is already in the day's own line. */
                       /* One figure on the band: the reach ("up to") is the Month page's, and two figures
                          for one grey segment was the line nobody parsed (2026-09-22). */
+                      /* No band yet: a "likely" figure equal to what is spent read as a forecast
+                         under a sentence saying it was too early for one (2026-09-23). */
+                      if (!projectable) return t('No forecast yet');
                       if (incomeEdge) return t('Likely {amount}', likely);
                       return t('Likely {amount} by the {day}', likely);
                     })()}
