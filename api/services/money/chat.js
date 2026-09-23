@@ -583,6 +583,29 @@ export function contextText(ctx) {
     if (thisLargest) lines.push(`Largest payment per kind this month: ${thisLargest}.`);
     const lastLargest = largestByKind(spendingIn(lastKey));
     if (lastLargest) lines.push(`Largest payment per kind in ${monthLabel(`${lastKey}-01`)}: ${lastLargest}.`);
+    /* Each kind's payments this month, largest first: asked for software from the most
+       expensive down, the model had the kind's total and its largest and nothing between
+       (2026-09-23). Every kind, the names capped, so a table is a reading and not a guess. */
+    const r2 = (n) => Math.round(Number(n) * 100) / 100;
+    const perKind = new Map();
+    for (const t of spendingIn(monthKey)) { const k = ctx.categoryOf(t) || 'not read yet'; if (!perKind.has(k)) perKind.set(k, []); perKind.get(k).push(t); }
+    for (const [kind, rows] of perKind) {
+      const sorted = [...rows].sort((a, b) => Math.abs(Number(b.amount)) - Math.abs(Number(a.amount)));
+      const shown = sorted.slice(0, 8).map((t) => `${placeName(t)} ${eur(Math.abs(Number(t.amount)))} (${dayMonth(t.occurred_at)})`).join('; ');
+      lines.push(`${kind} this month, largest first (${rows.length} ${rows.length === 1 ? 'payment' : 'payments'}): ${shown}${sorted.length > 8 ? `; and ${sorted.length - 8} smaller` : ''}.`);
+    }
+    /* Each kind by month, the last four: "how much do I spend on software every month" is a
+       list of months, never an average of one (2026-09-23). */
+    const monthKeys = [0, 1, 2, 3].map((back) => { const d = new Date(`${monthKey}-01T12:00:00Z`); d.setUTCMonth(d.getUTCMonth() - back); return d.toISOString().slice(0, 7); });
+    /* A month the ledger holds nothing of is not a month of 0,00: the list stops at the
+       months that have any spending at all, so a feed that began in September never reads
+       as three empty months. */
+    const coveredKeys = monthKeys.filter((key) => spendingIn(key).length > 0);
+    const kindByMonth = new Map();
+    for (const key of coveredKeys) for (const t of spendingIn(key)) { const k = ctx.categoryOf(t) || 'not read yet'; if (!kindByMonth.has(k)) kindByMonth.set(k, new Map()); const m = kindByMonth.get(k); m.set(key, r2((m.get(key) || 0) + Math.abs(Number(t.amount)))); }
+    for (const [kind, months] of kindByMonth) {
+      lines.push(`${kind} by month: ${coveredKeys.map((key) => `${monthLabel(`${key}-01`)} ${eur(months.get(key) || 0)}`).join('; ')}.`);
+    }
     lines.push('Words people use for the kinds: eating out is a bar, a cafe, a restaurant, a pub, a terrace, a night out, comida fuera, restaurantes, bares, food when it is not groceries; groceries is a supermarket (Mercadona, Lidl, Carrefour, Dia), mantimentos, supermercado; transport is metro, bus, Renfe, Cercanias, Uber, Cabify, taxi; entertainment is cinema, concerts, tickets, games; software is apps and subscriptions like Spotify or OpenAI. Answer a question about one of these words from the kind\'s own line.');
   }
   const lastGroups = ctx.lastCategories?.groups || [];
@@ -684,7 +707,8 @@ export const RULES = [
   'When the calendar lines say what a kind of event usually costs, you may say what the days ahead are likely to cost, always as "usually about", never as a promise.',
   'Asked for each day, per day, day by day, or how the week went, draw the week figure (one bar per day, the last seven) and say in words only the total for the stretch and the day that cost most; never list every day as a sentence.',
   'A figure you ask for is drawn under your words before the person reads them: never ask whether they want it, never tell them to ask for it, never say "here is the graph"; say what it shows.',
-  'Asked for a table, a list or a ranking of one kind\'s payments, the shares figure by place within that kind is drawn under your words (it is the table, largest first): say the kind\'s total and its largest, never say you cannot make a table.',
+  'Asked for a table, a list or a ranking of one kind\'s payments, read the line "<kind> this month, largest first" and say every name and amount on it, in that order, then the kind\'s total; the shares figure by place within that kind is drawn under your words too. Never say you cannot make a table, never stop at the largest.',
+  'Asked what a kind costs every month, per month or month by month, read the line "<kind> by month" and say each month with its figure, newest first; never give an average, never take one month for all.',
   'Never ask whether they would like a figure or a chart: when one would help, ask for it by kind and it is drawn under your words. When a figure would show the thing better than words, ask for it by kind. Kinds: months (spent per month), shares (where a month went; add month, and by: "merchant" for places), weekdays (spend by weekday), recurring (what comes back), band (this month so far and likely), history (one merchant over time; add merchant). Ask for at most two, and only when they add something.',
   'Actions are offers the person taps, never things you did: the text must not claim to have changed, marked or recorded anything. Say something like "If that is right, mark it below." and leave the doing to the card.',
   'Propose an action only when the person asks to fix or record something: not_me with transaction_id from the recent payments; recategorise with merchant_key from the places and a category from: ' + CATEGORIES.join(', ') + '; answer with question_id from the open questions and the value they gave; split with transaction_id from the recent payments and ways (2 to 12, the person included) when they say a payment was shared, for a dinner, a shop, a present.',
@@ -1724,11 +1748,29 @@ export function amountKey(token) {
 export function basisOf(text, ctx) {
   const numbers = new Set((String(text || '').match(AMOUNT_TOKEN) || []).map(amountKey));
   if (!numbers.size) return [];
-  return contextText(ctx).split('\n')
+  const lines = contextText(ctx).split('\n')
     /* The line of fact ids is for the model's offers, never for a person to read. */
     .filter((line) => !line.startsWith('Facts they gave'))
-    .filter((line) => (line.match(AMOUNT_TOKEN) || []).some((n) => numbers.has(amountKey(n))))
-    .slice(0, 8);
+    .map((line) => ({ line, hits: new Set((line.match(AMOUNT_TOKEN) || []).map(amountKey).filter((k) => numbers.has(k))) }))
+    .filter((x) => x.hits.size);
+  /* Eight lines at most, and every number in the words covered first: a table of seven
+     payments used to fill the eight with single rows and leave its own line out, so the
+     receipt could not ground the total (2026-09-23). Greedy cover, then the rest in order. */
+  const left = new Set(numbers);
+  const chosen = [];
+  while (left.size && chosen.length < 8) {
+    let best = null;
+    for (const x of lines) {
+      if (chosen.includes(x)) continue;
+      const gain = [...x.hits].filter((k) => left.has(k)).length;
+      if (gain && (!best || gain > best.gain)) best = { x, gain };
+    }
+    if (!best) break;
+    chosen.push(best.x);
+    for (const k of best.x.hits) left.delete(k);
+  }
+  for (const x of lines) { if (chosen.length >= 8) break; if (!chosen.includes(x)) chosen.push(x); }
+  return chosen.sort((a, b) => lines.indexOf(a) - lines.indexOf(b)).map((x) => x.line);
 }
 
 /* ------------------------------------------------------------------------ act */
