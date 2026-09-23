@@ -8,11 +8,11 @@
 import { createLogger } from '../logger.js';
 import { answer, act, looksLikeInstruction } from './chat.js';
 import { inPersonScope, listChatTurns, userLanguage, saveChatTurn } from './store.js';
-import { claimInbound, keepOffers, takeOffer, recentOffers, offerSaid, releaseOffer } from './channelStore.js';
+import { claimInbound, keepOffers, takeOffer, recentOffers, offerSaid, releaseOffer, noteOfferMessage, offersOfMessage } from './channelStore.js';
 import { sendWhatsAppCtaButton, sendWhatsAppButtons, downloadWhatsAppMedia } from '../whatsappService.js';
 import { readAttachment, acceptsAttachment, MAX_ATTACHMENT_BYTES } from './attachments.js';
 import { ATTACHMENT_DEPS } from './attachmentDeps.js';
-import { renderReply, channelSay, offerMessage, offerIdFrom, numberedChoice, asForwarded, labelOf, CHANNEL_DEADLINE_MS } from './channel.js';
+import { renderReply, channelSay, offerMessage, offerIdFrom, numberedChoice, asForwarded, labelOf, CHANNEL_DEADLINE_MS, reactionVerdict } from './channel.js';
 import { quietly } from './quietly.js';
 
 const log = createLogger('MoneyChannel');
@@ -21,7 +21,7 @@ export const HISTORY_TURNS = 8;
 /** A private token: only the deadline timer resolves with this, never answer(). */
 const DEADLINE = Symbol('money_channel_deadline');
 
-const DEFAULT_DEPS = { answer, act, listChatTurns, userLanguage, claimInbound, keepOffers, takeOffer, recentOffers, offerSaid, releaseOffer, sendCta: sendWhatsAppCtaButton, sendButtons: sendWhatsAppButtons, looksLikeInstruction, download: downloadWhatsAppMedia, readAttachment, saveChatTurn, attachmentDeps: ATTACHMENT_DEPS, deadlineMs: CHANNEL_DEADLINE_MS };
+const DEFAULT_DEPS = { answer, act, listChatTurns, userLanguage, claimInbound, keepOffers, takeOffer, recentOffers, offerSaid, releaseOffer, noteOfferMessage, offersOfMessage, sendCta: sendWhatsAppCtaButton, sendButtons: sendWhatsAppButtons, looksLikeInstruction, download: downloadWhatsAppMedia, readAttachment, saveChatTurn, attachmentDeps: ATTACHMENT_DEPS, deadlineMs: CHANNEL_DEADLINE_MS };
 const APP_URL = () => String(process.env.APP_URL || process.env.VITE_APP_URL || 'https://twinme.me').replace(/\/+$/, '');
 
 /** The one effectful entry point, run in the person's own zone. */
@@ -55,9 +55,18 @@ async function handleMoneyInboundIn(parsed, { userId, send, deps = {} }) {
     return { handled: true, kind: 'money_attachment', userId };
   }
 
+  /* A reaction on a message that carried offers: a thumbs-up is the tap of its first offer, a
+     thumbs-down leaves them where they are, anything else is a reaction and nothing more. */
+  let offerId = offerIdFrom(parsed.replyId);
+  if (!offerId && parsed.reaction) {
+    const verdict = reactionVerdict(parsed.reaction.emoji);
+    if (verdict !== 'yes') return { handled: true, kind: verdict === 'no' ? 'money_reaction_no' : 'money_reaction', userId };
+    const rows = await Promise.resolve(d.offersOfMessage(userId, parsed.reaction.messageId)).catch(quietly('channel/offers-of-message', () => []));
+    offerId = rows[0]?.id || null;
+    if (!offerId) return { handled: true, kind: 'money_reaction', userId };
+  }
   /* A tap, or a bare number while the offers are still on the screen. No model in this path:
      act() validates against the ledger as it does on the page. */
-  let offerId = offerIdFrom(parsed.replyId);
   if (!offerId && !parsed.context?.forwarded) {
     const n = numberedChoice(text);
     if (n) offerId = (await Promise.resolve(d.recentOffers(userId)).catch(quietly('channel/recent-offers', () => [])))[n - 1]?.id || null;
@@ -123,7 +132,10 @@ async function handleMoneyInboundIn(parsed, { userId, send, deps = {} }) {
   if (setup) await d.sendCta(phone, { body: labelOf(setup), buttonText: channelSay(language, 'Open TwinMe'), url: `${APP_URL()}${setup.href}` });
   const kept = await d.keepOffers(userId, reply.actions || []);
   const offers = offerMessage(kept, language);
-  if (offers) await d.sendButtons(phone, offers);
+  if (offers) {
+    const sent = await d.sendButtons(phone, offers);
+    if (sent?.messageId) await Promise.resolve(d.noteOfferMessage(userId, kept.map((k) => k.id), sent.messageId)).catch(quietly('channel/note-offer-message', undefined));
+  }
   log.info('money channel answered', { userId, chars: out.text.length, figure: Boolean(out.link) });
   return { handled: true, kind: 'money_chat', userId };
 }

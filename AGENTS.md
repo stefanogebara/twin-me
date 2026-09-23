@@ -196,27 +196,24 @@ Gone (delete any reference you find): `neurotransmitterService.js`, `neuropilRou
 - **Auth**: JWT + OAuth 2.0 for platform connections
 - **Analytics**: PostHog
 
-## Active Platform Integrations (9 OAuth-connectable)
+## Sources (the money product's, since 2026-09-24)
 
-Source of truth: `VALID_PROVIDERS` in `api/_app/routes/oauth-callback.js`. Do not add a
-platform here without a matching entry there.
+Stefano, 2026-09-24: "forget Spotify and the other platforms connected in TwinMe; money is the
+new product we are making from scratch." What a ledger reads from, and nothing else:
 
-1. **Spotify** - Music taste, listening patterns, mood
-2. **Google Calendar** (`google_calendar`) - Schedule, events, time patterns
-3. **YouTube** - Content preferences, subscriptions
-4. **Gmail** (`google_gmail`) - Communication patterns from email metadata
-5. **Discord** - Server activity, community interests, communication style
-6. **GitHub** - Coding activity and open source contributions
-7. **Whoop** - Recovery, strain, sleep, HRV patterns
-8. **Instagram** - Visual identity, posting patterns
-9. **Outlook** - Communication patterns from email metadata
+1. **The bank** (PSD2 through Enable Banking; `feeds/enableBanking.js`), read four times a day.
+2. **The phone's notifications** (Android app, iPhone Shortcut; `routes/purchase-notification.js`).
+3. **The receipts address** (`in.twinme.me`, Resend inbound; `inbox.js`, `mailAttachments.js`): a
+   forwarded receipt, a bank's alert mail, a statement as an attachment.
+4. **Statements** uploaded on Sources or sent on WhatsApp (`statements/importer.js`).
+5. **The calendar** (Google Calendar OAuth, and pasted Canvas or Blackboard links; `calendar.js`).
+6. **WhatsApp** (the channel; `channel*.js`), modelled on Instinct's assistant: reactions as
+   answers, one interruption removed at a time, never writing first until the per-message
+   pricing is decided.
 
-### Retired (replan-2026-06-10 Track C portfolio cut)
-Reddit, Twitch, LinkedIn, Slack, TikTok, Strava, Notion, Pinterest, SoundCloud,
-Fitbit, Steam, Apple Music. Their OAuth/live-fetch stacks are gone — existing
-`platform_connections` rows keep their data but are no longer connectable or
-extractable. LinkedIn and Reddit remain available via the GDPR export upload path
-(`api/_app/services/gdpr/parsers/`).
+The legacy OAuth platforms (Spotify, YouTube, Gmail as a twin source, Discord, GitHub, Whoop,
+Instagram, Outlook; `VALID_PROVIDERS` in `routes/oauth-callback.js`) are parked behind the 410
+gate (D20) and leave with the parked API on 2026-10-22 (M2-B). Do not build on them.
 
 ## LLM Model Strategy
 All LLM calls route through `llmGateway.js` using the tiers in `api/_app/config/aiModels.js` (single source of truth). Twin chat additionally smart-routes per message via `chatRouter.js`.

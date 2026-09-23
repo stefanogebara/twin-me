@@ -116,6 +116,21 @@ function parseIncomingMessage(body) {
     };
   }
 
+  // Kapso v2 reaction: an emoji on one of our messages. The money channel reads a thumbs-up
+  // on a message that carried offers as the tap of its first offer (2026-09-24).
+  if (body?.message?.type === 'reaction' && body?.message?.from && body?.message?.reaction) {
+    const msg = body.message;
+    return {
+      phone: msg.from,
+      text: null,
+      messageId: msg.id,
+      contactName: msg.username || null,
+      reaction: { messageId: msg.reaction.message_id || null, emoji: msg.reaction.emoji || '' },
+      context: quoted(msg),
+      format: 'kapso_v2_reaction',
+    };
+  }
+
   // Kapso v2 interactive reply (tapped a list row or quick-reply button). Map a
   // `connect:<alias>` selection back to a connect intent by synthesizing the
   // equivalent text, so it flows through the existing connect handler; for any

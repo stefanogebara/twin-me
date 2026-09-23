@@ -39,6 +39,23 @@ export async function keepOffers(userId, actions) {
   return (data || []).sort((a, b) => a.position - b.position);
 }
 
+/** The message the offers rode in, once the send has answered with its id. */
+export async function noteOfferMessage(userId, offerIds, messageId) {
+  const ids = (offerIds || []).filter(Boolean);
+  if (!ids.length || !messageId) return;
+  const { error } = await supabaseAdmin.from('money_channel_offers').update({ message_id: String(messageId).slice(0, 200) }).eq('user_id', userId).in('id', ids);
+  if (error) log.warn(`offer message not noted: ${error.message}`);
+}
+
+/** The untaken offers that rode in one message, in the order shown; a reaction finds them by it. */
+export async function offersOfMessage(userId, messageId) {
+  if (!messageId) return [];
+  const { data, error } = await supabaseAdmin.from('money_channel_offers').select('id, position, action')
+    .eq('user_id', userId).eq('message_id', String(messageId)).is('taken_at', null).order('position', { ascending: true }).limit(MAX_BUTTONS);
+  if (error) { log.warn(`offers of message not read: ${error.message}`); return []; }
+  return data || [];
+}
+
 /** Takes an offer once. Null when it was taken already or is not this person's. */
 export async function takeOffer(userId, offerId) {
   const { data, error } = await supabaseAdmin.from('money_channel_offers').update({ taken_at: new Date().toISOString() })
