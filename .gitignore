@@ -245,6 +245,8 @@ audit-screenshots/
 money-merge-backup*.json
 # An account merge backup holds real payments; it never belongs in the repository.
 money-account-merge-backup*.json
+# The nameless-alert repair's backup holds real payments too (2026-09-24).
+money-nameless-backup*.json
 
 # A client's dependencies are installed, never committed.
 mobile/node_modules/

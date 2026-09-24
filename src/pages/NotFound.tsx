@@ -47,10 +47,6 @@ const NotFound = () => {
             Go back
           </button>
         </div>
-
-        <p className="n-micro mt-12">
-          Lost? Head home to find your soul signature.
-        </p>
       </div>
     </main>
   );

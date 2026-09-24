@@ -142,6 +142,8 @@ export const PT_BR_MONEY: Record<string, string> = {
   "Not me": "N\u00e3o fui eu",
   "What comes back on its own.": "O que volta sozinho.",
   "A charge counts once it has come back three times at the same rhythm.": "Uma cobran\u00e7a conta quando voltou tr\u00eas vezes no mesmo ritmo.",
+  "{amount} leaves every month.": "{amount} sai todo m\u00eas.",
+  "{n} of these leave every month, {amount} together.": "{n} destes saem todo m\u00eas, {amount} no total.",
   "{amount} of it leaves every month.": "{amount} disso sai todo m\u00eas.",
   "Lands on the {day}.": "Cai no dia {day}.",
   "next around {day}": "o pr\u00f3ximo por volta de {day}",

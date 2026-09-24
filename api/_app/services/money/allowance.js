@@ -24,6 +24,10 @@ import { studentMonth } from './priors.js';
 import { keepAmount } from './intention.js';
 import { dayIn, weekdayIn, daysBetweenIn } from './zone.js';
 import { ledgerCurrency, ours } from './currency.js';
+/* The window reconciliation waits out before it calls two sightings different payments is
+   also the window a bank books a card payment in. A payment older than it with no bank
+   evidence of its own was paid from something this ledger does not read. */
+import { MATCH_WINDOW_MS } from './ledger.js';
 
 /** Two complete months is the least that can stand for "a typical month" of this person. */
 export const MIN_MONTHS_FOR_TYPICAL = 2;
@@ -132,6 +136,16 @@ export function freshBalance(accounts = [], now = new Date(), facts = [], transa
       return Number.isFinite(pulled) && pulled > at;
     });
     if (!account && !t.posted_at && !afterEvery && !readSince) return null;
+    /* A receipt from a card this ledger does not read. OpenAI charged 103,00 EUR on 17
+       September 2026 and the receipt reached the inbox; the bank was read every hour for the
+       seven days after and never booked it, because it was never paid from that bank. It came
+       off the Santander balance all the same, so the day's number was 103,00 EUR short, and
+       then stopped being short on the eighth day only because the caller passes eight days of
+       payments: right by accident, having been wrong by rule. Once the bank has been read
+       past the window it books inside and still shows nothing, the payment is not this
+       account's and never was. Inside the window it still comes off: the bank may yet book
+       it, and understating the money for a day or two is the safe side of that doubt. */
+    if (!account && !t.posted_at && readSince && at < current - MATCH_WINDOW_MS) continue;
     const uncovered = !account || candidates.some((a) => at > Date.parse(a.balance_at)
       || (!t.posted_at && ['ITBD', 'CLBD'].includes(a.balance_type)));
     if (uncovered) adjustment += Math.abs(Number(t.amount));
