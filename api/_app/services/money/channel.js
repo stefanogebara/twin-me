@@ -55,6 +55,8 @@ export function renderReply(reply, { appUrl = process.env.APP_URL || process.env
    are the ones only a channel says. English is the key, as in chat.js. */
 const WORDS = {
   es: {
+    'I cannot hear voice notes yet. Type it and I will answer.': 'Todav\u00eda no oigo notas de voz. Escr\u00edbelo y te contesto.',
+    'I could not make out that voice note. Type it and I will answer.': 'No entend\u00ed esa nota de voz. Escr\u00edbelo y te contesto.',
     'That was already done.': 'Eso ya estaba hecho.',
     'That could not be done right now.': 'Eso no se pudo hacer ahora.',
     'That took too long to answer. Ask it again.': 'Eso tardó demasiado en responder. Pregunta de nuevo.',
@@ -66,6 +68,8 @@ const WORDS = {
     'That file could not be read. A photo of it would come through.': 'Ese archivo no se pudo leer. Una foto sí llegaría.',
   },
   'pt-BR': {
+    'I cannot hear voice notes yet. Type it and I will answer.': 'Ainda n\u00e3o ou\u00e7o notas de voz. Escreva e eu respondo.',
+    'I could not make out that voice note. Type it and I will answer.': 'N\u00e3o entendi essa nota de voz. Escreva e eu respondo.',
     'That was already done.': 'Isso já estava feito.',
     'That could not be done right now.': 'Não deu para fazer isso agora.',
     'That took too long to answer. Ask it again.': 'Isso demorou demais para responder. Pergunte de novo.',

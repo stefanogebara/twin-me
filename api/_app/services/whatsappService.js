@@ -774,7 +774,7 @@ export async function downloadWhatsAppMedia(mediaId) {
  * Meta directly which made send/read inconsistent under Kapso setups.
  * Test-mode short-circuit so suite doesn't hit live APIs.
  */
-export async function markMessageAsRead(messageId) {
+export async function markMessageAsRead(messageId, { typing = false } = {}) {
   if (process.env.TWINME_DISABLE_OUTBOUND_SEND === 'true') return;
   if (!messageId) return;
   if (!USE_KAPSO) return;
@@ -783,7 +783,8 @@ export async function markMessageAsRead(messageId) {
     const client = await getKapsoClient();
     const phoneNumberId = process.env.KAPSO_PHONE_NUMBER_ID;
     if (client?.messages?.markRead && phoneNumberId) {
-      await client.messages.markRead({ phoneNumberId, messageId });
+      /* The typing indicator with the read receipt: while the ledger works, the person sees it working (Instinct's silence-is-work, 2026-09-24). */
+      await client.messages.markRead({ phoneNumberId, messageId, ...(typing ? { typingIndicator: { type: 'text' } } : {}) });
     }
   } catch {
     // Non-fatal

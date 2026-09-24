@@ -87,3 +87,12 @@ describe('whatsapp kapso webhook - a reaction', () => {
     expect(parsed).toMatchObject({ phone: '34600000000', text: null, messageId: 'wamid.rx1', format: 'kapso_v2_reaction', reaction: { messageId: 'wamid.buttons', emoji: '\u{1F44D}' } });
   });
 });
+
+describe('whatsapp kapso webhook - a voice note', () => {
+  it('passes the audio id, its type and whether it is a voice note, with no text', async () => {
+    const raw = JSON.stringify({ message: { id: 'wamid.a1', from: '34600000000', type: 'audio', audio: { id: 'media-9', mime_type: 'audio/ogg; codecs=opus', voice: true } } });
+    await post(raw);
+    const parsed = processInboundWhatsApp.mock.calls[0][0];
+    expect(parsed).toMatchObject({ phone: '34600000000', text: null, messageId: 'wamid.a1', format: 'kapso_v2_audio', audio: { id: 'media-9', mimeType: 'audio/ogg; codecs=opus', voice: true } });
+  });
+});

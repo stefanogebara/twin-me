@@ -6,10 +6,11 @@
  * `deps` carries every side effect, as in attachments.js, so the tests hand in spies.
  */
 import { createLogger } from '../logger.js';
+import { transcribeVoice, canHear } from './hearing.js';
 import { answer, act, looksLikeInstruction } from './chat.js';
 import { inPersonScope, listChatTurns, userLanguage, saveChatTurn } from './store.js';
 import { claimInbound, keepOffers, takeOffer, recentOffers, offerSaid, releaseOffer, noteOfferMessage, offersOfMessage } from './channelStore.js';
-import { sendWhatsAppCtaButton, sendWhatsAppButtons, downloadWhatsAppMedia } from '../whatsappService.js';
+import { sendWhatsAppCtaButton, sendWhatsAppButtons, downloadWhatsAppMedia, markMessageAsRead } from '../whatsappService.js';
 import { readAttachment, acceptsAttachment, MAX_ATTACHMENT_BYTES } from './attachments.js';
 import { ATTACHMENT_DEPS } from './attachmentDeps.js';
 import { renderReply, channelSay, offerMessage, offerIdFrom, numberedChoice, asForwarded, labelOf, CHANNEL_DEADLINE_MS, reactionVerdict } from './channel.js';
@@ -21,7 +22,7 @@ export const HISTORY_TURNS = 8;
 /** A private token: only the deadline timer resolves with this, never answer(). */
 const DEADLINE = Symbol('money_channel_deadline');
 
-const DEFAULT_DEPS = { answer, act, listChatTurns, userLanguage, claimInbound, keepOffers, takeOffer, recentOffers, offerSaid, releaseOffer, noteOfferMessage, offersOfMessage, sendCta: sendWhatsAppCtaButton, sendButtons: sendWhatsAppButtons, looksLikeInstruction, download: downloadWhatsAppMedia, readAttachment, saveChatTurn, attachmentDeps: ATTACHMENT_DEPS, deadlineMs: CHANNEL_DEADLINE_MS };
+const DEFAULT_DEPS = { markRead: (messageId) => markMessageAsRead(messageId, { typing: true }), transcribe: transcribeVoice, canHear, answer, act, listChatTurns, userLanguage, claimInbound, keepOffers, takeOffer, recentOffers, offerSaid, releaseOffer, noteOfferMessage, offersOfMessage, sendCta: sendWhatsAppCtaButton, sendButtons: sendWhatsAppButtons, looksLikeInstruction, download: downloadWhatsAppMedia, readAttachment, saveChatTurn, attachmentDeps: ATTACHMENT_DEPS, deadlineMs: CHANNEL_DEADLINE_MS };
 const APP_URL = () => String(process.env.APP_URL || process.env.VITE_APP_URL || 'https://twinme.me').replace(/\/+$/, '');
 
 /** The one effectful entry point, run in the person's own zone. */
@@ -33,10 +34,31 @@ export async function handleMoneyInbound(parsed, opts) {
 async function handleMoneyInboundIn(parsed, { userId, send, deps = {} }) {
   const startedAt = Date.now();
   const d = { ...DEFAULT_DEPS, ...deps };
-  const { phone, text, messageId } = parsed;
+  const { phone, messageId } = parsed;
+  let text = parsed.text;
 
   if (!(await d.claimInbound(messageId, userId))) return { handled: true, kind: 'money_duplicate', userId };
+  /* Read, and typing: the person sees the ledger at work while it reads; a failure here is nothing. */
+  Promise.resolve(d.markRead(messageId)).catch(quietly('channel/mark-read', undefined));
   const language = await Promise.resolve(d.userLanguage(userId)).catch(quietly('channel/user-language', null));
+
+  /* A voice note: written down, then answered as the typed words would be. */
+  if (parsed.audio) {
+    if (!d.canHear()) {
+      await send(phone, channelSay(language, 'I cannot hear voice notes yet. Type it and I will answer.'));
+      return { handled: true, kind: 'money_voice_unheard', userId };
+    }
+    const buffer = await d.download(parsed.audio.id);
+    let heard = '';
+    try { heard = buffer ? await d.transcribe(buffer, parsed.audio.mimeType || 'audio/ogg', { language }) : ''; }
+    catch (e) { log.warn(`voice note failed: ${e.message}`); }
+    if (!heard) {
+      await send(phone, channelSay(language, 'I could not make out that voice note. Type it and I will answer.'));
+      return { handled: true, kind: 'money_voice_unheard', userId };
+    }
+    text = heard.slice(0, 2000);
+    parsed = { ...parsed, text, heard: true };
+  }
 
   /* A photo or a document: read in memory and dropped, as on the page. Only what it said is kept. */
   const file = parsed.document || parsed.image;

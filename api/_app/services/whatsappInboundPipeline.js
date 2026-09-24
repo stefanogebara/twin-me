@@ -149,7 +149,7 @@ rateLimitCleanupInterval.unref();
 // still 200s so the provider doesn't retry-storm).
 // ====================================================================
 export async function processInboundWhatsApp(parsed, { send, provider }) {
-  if (!parsed || !parsed.phone || (!parsed.text && !parsed.document && !parsed.image && !parsed.reaction)) {
+  if (!parsed || !parsed.phone || (!parsed.text && !parsed.document && !parsed.image && !parsed.reaction && !parsed.audio)) {
     log.info('Non-text or unparseable message, skipping', { format: parsed?.format });
     return { handled: false, reason: 'unparseable' };
   }
@@ -236,7 +236,7 @@ export async function processInboundWhatsApp(parsed, { send, provider }) {
   // 2c. The money twin's beta: answered by the ledger, and by nothing below. A family note
   // (2b) still wins; a statement or a photo never reaches the legacy branches for these people.
   /* A reaction means something only on the money channel, where a thumbs-up takes an offer. */
-  if (parsed.reaction && !isMoneyChannelUser(userId)) return { handled: false, reason: 'reaction', userId };
+  if ((parsed.reaction || parsed.audio) && !isMoneyChannelUser(userId)) return { handled: false, reason: parsed.audio ? 'audio' : 'reaction', userId };
   if (isMoneyChannelUser(userId)) {
     try {
       return await handleMoneyInbound(parsed, { userId, send });
