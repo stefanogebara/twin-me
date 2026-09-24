@@ -579,3 +579,17 @@ With the API on another port, every request with an Authorization header is prec
 Six blocking Google Fonts stylesheets, five of them for retired systems, held the first API request for four seconds on a slow link; the fix was to serve the one family the register uses from `public/fonts`. A third-party `<link rel="stylesheet">` in the head is on the critical path of every screen, whatever the page itself does.
 
 A percentage height only resolves against a definite row, so `height: 97%` on a bar inside a grid column the content sizes fell back to `min-height: 3px`: the term strip merged to production with all nine weeks drawn as one grey line. Nothing catches that — the build passes, the tests pass, the number above each bar is correct. A chart's geometry has to be looked at rendered, and a bar's height is safer computed in pixels in the component (as the prototype did) than delegated to a percentage.
+
+## 2026-09-24, the same day: deleting files without following dynamic imports
+
+The parked API's deletion removed 331 files and every `import x from './gone.js'` of them. It
+did not see `app.use('/api/costs', (await import('./routes/cost-dashboard.js')).default)`, a
+dynamic import at the top level of server.js, and production went down a second time the moment
+that build deployed. Six more dynamic imports of deleted routers were sitting behind
+development-only conditions, waiting for whoever next ran the server locally.
+
+- A deletion is finished when every specifier that remains resolves: static, re-exported and
+  dynamic. `tests/goals/no-dead-imports.goal.test.js` checks all three, and
+  `scripts/ci/dead-imports.mjs` prints them.
+- A route nobody tests is a route nobody imports, so the suite cannot see it. Only resolution
+  against the disk can.
