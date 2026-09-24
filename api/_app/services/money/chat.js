@@ -1882,7 +1882,7 @@ export async function answer(userId, message, history = [], { now = new Date() }
   if (wanted && before) { ctx.language = wanted; ctx.forceLanguage = wanted; }
   const keep = async (reply) => {
     await saveChatTurn(userId, { role: 'user', text }).catch(quietly('chat/save-user-turn', null));
-    await saveChatTurn(userId, { role: 'twin', text: reply.text, figures: reply.figures || null, actions: reply.actions || null, basis: reply.basis || null, receipts: reply.receipts || null }).catch(quietly('chat/save-twin-turn', null));
+    await saveChatTurn(userId, { role: 'twin', text: reply.text, figures: reply.figures || null, actions: reply.actions || null, basis: reply.basis || null, receipts: reply.receipts || null, next: reply.next || null }).catch(quietly('chat/save-twin-turn', null));
     return reply;
   };
   if (!ctx.transactions.length) return keep({ text: say(ctx.language, EMPTY_LEDGER), figures: [], actions: [setupOffer(text, ctx)].filter(Boolean), receipts: [] });
@@ -2088,7 +2088,7 @@ export async function answerStream(userId, message, history = [], { now = new Da
     try {
       // The route must await both writes before ending a serverless invocation.
       await saveChatTurn(userId, { role: 'user', text: asked });
-      await saveChatTurn(userId, { role: 'twin', text: reply.text, figures: reply.figures || null, actions: reply.actions || null, thinking: reply.thinking || null, basis: reply.basis || null, receipts: reply.receipts || null });
+      await saveChatTurn(userId, { role: 'twin', text: reply.text, figures: reply.figures || null, actions: reply.actions || null, thinking: reply.thinking || null, basis: reply.basis || null, receipts: reply.receipts || null, next: reply.next || null });
       send({ phase: 'done' });
     } catch (error) {
       log.warn(`chat history could not be saved: ${error.message}`);

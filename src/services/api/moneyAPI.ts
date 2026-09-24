@@ -376,7 +376,7 @@ export type ChatReply = { text: string; figures?: ChatFigure[]; actions?: ChatAc
 /** A question the page offers, with the figure the ledger would answer it with when it has one. */
 export type ChatOpener = { ask: string; figure: string | null };
 /** One kept turn of the conversation, as the server hands it back. */
-export type ChatTurnKept = { id: string; role: 'user' | 'twin'; text: string; figures?: ChatFigure[] | null; actions?: ChatAction[] | null; receipts?: ChatReceipt[] | null; thinking?: string | null; basis?: string[] | null; created_at: string };
+export type ChatTurnKept = { id: string; role: 'user' | 'twin'; text: string; figures?: ChatFigure[] | null; actions?: ChatAction[] | null; receipts?: ChatReceipt[] | null; thinking?: string | null; basis?: string[] | null; created_at: string; next?: string[] | null };
 /** One answer, in the pieces the server sends. The phases arrive in this order. */
 /** What the ledger made of a file: a bank export, a receipt, one sentence kept, or nothing. */
 export type ChatAttachment = { kind: 'statement' | 'receipt' | 'note' | 'nothing' | 'unreadable'; said: string; receipts: ChatReceipt[] };

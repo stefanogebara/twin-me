@@ -1159,8 +1159,12 @@ export async function deleteFact(userId, factId, { reason = 'forget' } = {}) {
 /* ------------------------------------------------------------------ the conversation, kept */
 
 /** One turn of the conversation with the ledger, kept so it can be picked up again. */
-export async function saveChatTurn(userId, { role, text, figures = null, actions = null, thinking = null, basis = null, receipts = null }) {
-  if (receipts && receipts.length) figures = { figures: figures || [], receipts: receipts.slice(0, 8) };
+export async function saveChatTurn(userId, { role, text, figures = null, actions = null, thinking = null, basis = null, receipts = null, next = null }) {
+  /* The receipts have ridden inside the figures column since the column was the only one there;
+     what to ask next rides with them, so a reloaded conversation keeps the suggestions its last
+     answer earned instead of falling back to the fixed six (2026-09-24). */
+  const riders = (receipts && receipts.length) || (next && next.length);
+  if (riders) figures = { figures: figures || [], receipts: (receipts || []).slice(0, 8), ...(next && next.length ? { next: next.slice(0, 3) } : {}) };
   if (!text || !String(text).trim()) return null;
   const small = (v, n) => { if (v == null) return null; const j = JSON.stringify(v); return j.length > n ? null : v; };
   const { data, error } = await supabaseAdmin.from('money_chat_turns')
@@ -1183,8 +1187,8 @@ export async function listChatTurns(userId, { limit = 30 } = {}) {
   if (error) { log.warn(`chat turns not read: ${error.message}`); throw new Error('Could not read the conversation'); }
   /* Receipts ride inside the figures column; they come back out here. */
   return (data || []).reverse().map((t) => {
-    if (t.figures && !Array.isArray(t.figures) && Array.isArray(t.figures.figures)) return { ...t, figures: t.figures.figures, receipts: t.figures.receipts || [] };
-    return { ...t, receipts: [] };
+    if (t.figures && !Array.isArray(t.figures) && Array.isArray(t.figures.figures)) return { ...t, figures: t.figures.figures, receipts: t.figures.receipts || [], next: t.figures.next || [] };
+    return { ...t, receipts: [], next: [] };
   });
 }
 
