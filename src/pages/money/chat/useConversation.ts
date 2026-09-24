@@ -45,6 +45,8 @@ export function useConversation() {
         const kept: AskLine[] = turns.map((t) => ({
           id: `kept-${t.id}`, who: t.role === 'twin' ? 'twin' : 'you', text: t.text,
           figures: t.figures || undefined, receipts: t.receipts || undefined, thinking: t.thinking || undefined, basis: t.basis || undefined,
+          /* What that answer suggested asking next, kept with it, so a reload does not fall back to the fixed six. */
+          next: t.next || undefined,
         }));
         /* Whatever was typed while this loaded stays: the kept turns go in front of it. */
         setLines((all) => (all.length ? [...kept, ...all] : kept));
