@@ -25,6 +25,10 @@ beforeEach(() => {
     offerSaid: vi.fn().mockResolvedValue(),
     releaseOffer: vi.fn().mockResolvedValue(),
     sendButtons: vi.fn().mockResolvedValue({ success: true, messageId: 'wamid.buttons' }),
+    markRead: vi.fn().mockResolvedValue(undefined),
+    canHear: vi.fn(() => true),
+    transcribe: vi.fn(),
+    download: vi.fn().mockResolvedValue(Buffer.from('ogg')),
     noteOfferMessage: vi.fn().mockResolvedValue(undefined),
     offersOfMessage: vi.fn().mockResolvedValue([]),
     looksLikeInstruction: vi.fn().mockReturnValue(false),
@@ -211,5 +215,28 @@ describe('a reaction on the message that carried the offers', () => {
     deps.keepOffers.mockResolvedValue([{ id: OFFER, position: 0, action }]);
     await handleMoneyInbound({ phone: '34600000000', text: 'what about that cafe', messageId: 'wamid.q9' }, { userId: 'u1', send, deps });
     expect(deps.noteOfferMessage).toHaveBeenCalledWith('u1', [OFFER], 'wamid.buttons');
+  });
+});
+
+describe('a voice note', () => {
+  it('is written down and answered as the typed words would be, with typing shown from the start', async () => {
+    deps.transcribe.mockResolvedValue('how much on groceries');
+    deps.answer.mockResolvedValue({ text: 'Groceries were 40,00 EUR.', figures: [], actions: [], receipts: [] });
+    const r = await handleMoneyInbound({ phone: '34600000000', text: null, messageId: 'wamid.v1', audio: { id: 'media-1', mimeType: 'audio/ogg', voice: true } }, { userId: 'u1', send, deps });
+    expect(r).toMatchObject({ handled: true, kind: 'money_chat' });
+    expect(deps.markRead).toHaveBeenCalledWith('wamid.v1');
+    expect(deps.download).toHaveBeenCalledWith('media-1');
+    expect(deps.transcribe).toHaveBeenCalledWith(expect.any(Buffer), 'audio/ogg', expect.objectContaining({ language: expect.anything() }));
+    expect(deps.answer.mock.calls[0][1]).toBe('how much on groceries');
+    expect(send).toHaveBeenCalledWith('34600000000', expect.stringContaining('Groceries were 40,00'));
+  });
+  it('says so when it cannot hear, and when nothing could be made out', async () => {
+    deps.canHear.mockReturnValue(false);
+    expect(await handleMoneyInbound({ phone: '34600000000', text: null, messageId: 'wamid.v2', audio: { id: 'media-2', mimeType: 'audio/ogg', voice: true } }, { userId: 'u1', send, deps })).toMatchObject({ kind: 'money_voice_unheard' });
+    expect(send).toHaveBeenLastCalledWith('34600000000', 'I cannot hear voice notes yet. Type it and I will answer.');
+    deps.canHear.mockReturnValue(true); deps.transcribe.mockResolvedValue('');
+    expect(await handleMoneyInbound({ phone: '34600000000', text: null, messageId: 'wamid.v3', audio: { id: 'media-3', mimeType: 'audio/ogg', voice: true } }, { userId: 'u1', send, deps })).toMatchObject({ kind: 'money_voice_unheard' });
+    expect(send).toHaveBeenLastCalledWith('34600000000', 'I could not make out that voice note. Type it and I will answer.');
+    expect(deps.answer).not.toHaveBeenCalled();
   });
 });

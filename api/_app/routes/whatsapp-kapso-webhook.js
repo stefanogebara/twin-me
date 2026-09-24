@@ -100,6 +100,20 @@ function parseIncomingMessage(body) {
   }
 
   // Kapso v2 image (Pix comprovante screenshot)
+  // Kapso v2 voice note or audio file: heard by the money channel (hearing.js), 2026-09-24.
+  if (body?.message?.type === 'audio' && body?.message?.from) {
+    const msg = body.message;
+    return {
+      phone: msg.from,
+      text: null,
+      audio: { id: msg.audio?.id, mimeType: msg.audio?.mime_type || null, voice: Boolean(msg.audio?.voice) },
+      messageId: msg.id,
+      contactName: msg.username || null,
+      context: quoted(msg),
+      format: 'kapso_v2_audio',
+    };
+  }
+
   if (body?.message?.type === 'image' && body?.message?.from) {
     const msg = body.message;
     return {
