@@ -14,6 +14,15 @@
  *   node --env-file=.env scripts/money/merge-nameless-alerts.mjs --user <uuid>
  *   node --env-file=.env scripts/money/merge-nameless-alerts.mjs --user <uuid> --apply
  *
+ * By default it is as careful as the live rule and will not put a second alert on a line
+ * that already carries one: two alerts usually mean two payments. --settled lifts that for
+ * alerts older than the match window, where the argument is arithmetic rather than a guess.
+ * The bank has had longer than the window to book a payment of its own and has not, so the
+ * alert is announcing the booking that is already there. Three such lines stood after the
+ * first pass of 2026-09-24: a second 19,00 EUR against one booked Bolt ride, a second
+ * 22,36 EUR against one booked Playtomic, a second 3,00 EUR against one booked vending
+ * machine. A line the bank may still book is younger than the window and is never touched.
+ *
  * It reads and reports by default. With --apply it moves each alert's evidence onto the line
  * it belongs to and deletes the empty line, after writing every row it is about to touch to
  * --backup (default: money-nameless-backup.json).
@@ -27,6 +36,7 @@ const arg = (name, fallback = null) => {
 };
 const USER = arg('user');
 const APPLY = process.argv.includes('--apply');
+const SETTLED = process.argv.includes('--settled');
 const BACKUP = arg('backup', 'money-nameless-backup.json');
 const URL = process.env.VITE_SUPABASE_URL;
 const KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -79,9 +89,14 @@ for (const orphan of orphans) {
   /* The same rule the ingestion runs: the orphan itself is out of the running, and so is any
      line already carrying evidence from this alert's own source, or already repaired in this
      pass. */
-  const exclude = new Set([orphan.id, ...taken]);
-  for (const t of transactions) {
-    if ((backings.get(t.id) || []).some((s) => s.source === alert.source)) exclude.add(t.id);
+  const settled = Date.now() - Date.parse(orphan.occurred_at) > MATCH_WINDOW_MS;
+  const exclude = new Set([orphan.id, ...(SETTLED && settled ? [] : taken)]);
+  /* A line already carrying evidence from this alert's own source is out of the running, as
+     it is in the live rule -- unless the alert has outlived the window the bank books in. */
+  if (!(SETTLED && settled)) {
+    for (const t of transactions) {
+      if ((backings.get(t.id) || []).some((s) => s.source === alert.source)) exclude.add(t.id);
+    }
   }
   const candidates = transactions.filter((t) => !orphans.some((o) => o.id === t.id));
   const match = findMatch({
@@ -93,7 +108,21 @@ for (const orphan of orphans) {
     account_id: orphan.account_id,
     card_last4: orphan.card_last4,
   }, candidates, { exclude });
-  if (!match) { kept.push(orphan); continue; }
+  if (!match) {
+    /* Say which of the two reasons it is, because they mean different things: a figure the
+       bank never booked is a payment with no name, and one it booked on a line that already
+       carries an alert is a second alert waiting for the window to pass. */
+    const booked = findMatch({
+      amount: Math.abs(Number(orphan.amount)), direction: Number(orphan.amount) >= 0 ? 'in' : 'out',
+      currency: orphan.currency, merchant_key: 'unknown', occurred_at: orphan.occurred_at,
+      account_id: orphan.account_id, card_last4: orphan.card_last4,
+    }, candidates, { exclude: new Set([orphan.id]) });
+    kept.push({ row: orphan, why: !booked
+      ? `no booked line of that figure within ${MATCH_WINDOW_MS / 86400000} days`
+      : settled ? 'its figure is booked on a line that already carries an alert (pass --settled)'
+        : 'its figure is booked on a line that already carries an alert, and the bank may still book this one' });
+    continue;
+  }
   taken.add(match.id);
   moves.push({ orphan, match, alerts: rows });
 }
@@ -104,7 +133,7 @@ for (const { orphan, match, alerts } of moves) {
   const days = ((Date.parse(match.occurred_at) - Date.parse(orphan.occurred_at)) / 86400000).toFixed(1);
   console.log(`  ${orphan.occurred_at.slice(0, 10)} ${eur(orphan.amount)} -> ${name} ${match.occurred_at.slice(0, 10)} (${days} days, ${alerts.length} alert${alerts.length === 1 ? '' : 's'})`);
 }
-for (const t of kept) console.log(`  kept ${t.occurred_at.slice(0, 10)} ${eur(t.amount)}: no booked line of that figure within ${MATCH_WINDOW_MS / 86400000} days`);
+for (const { row, why } of kept) console.log(`  kept ${row.occurred_at.slice(0, 10)} ${eur(row.amount)}: ${why}`);
 
 const spend = moves.reduce((n, m) => n + (Number(m.orphan.amount) < 0 ? -Number(m.orphan.amount) : 0), 0);
 const income = moves.reduce((n, m) => n + (Number(m.orphan.amount) > 0 ? Number(m.orphan.amount) : 0), 0);
