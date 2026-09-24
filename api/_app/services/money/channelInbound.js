@@ -77,13 +77,17 @@ async function handleMoneyInboundIn(parsed, { userId, send, deps = {} }) {
     return { handled: true, kind: 'money_attachment', userId };
   }
 
-  /* A reaction on a message that carried offers: a thumbs-up is the tap of its first offer, a
+  /* A reaction on a message that carried offers: a positive reaction can approve a single offer only; a
      thumbs-down leaves them where they are, anything else is a reaction and nothing more. */
   let offerId = offerIdFrom(parsed.replyId);
   if (!offerId && parsed.reaction) {
     const verdict = reactionVerdict(parsed.reaction.emoji);
     if (verdict !== 'yes') return { handled: true, kind: verdict === 'no' ? 'money_reaction_no' : 'money_reaction', userId };
     const rows = await Promise.resolve(d.offersOfMessage(userId, parsed.reaction.messageId)).catch(quietly('channel/offers-of-message', () => []));
+    if (rows.length > 1) {
+      await send(phone, channelSay(language, 'Tap the specific action you want to confirm.'));
+      return { handled: true, kind: 'money_reaction_ambiguous', userId };
+    }
     offerId = rows[0]?.id || null;
     if (!offerId) return { handled: true, kind: 'money_reaction', userId };
   }
@@ -96,7 +100,7 @@ async function handleMoneyInboundIn(parsed, { userId, send, deps = {} }) {
   if (offerId) {
     const row = await d.takeOffer(userId, offerId);
     if (!row) {
-      await send(phone, channelSay(language, 'That was already done.'));
+      await send(phone, channelSay(language, 'That confirmation has expired or was already used.'));
       return { handled: true, kind: 'money_act_stale', userId };
     }
     let said;

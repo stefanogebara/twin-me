@@ -15,7 +15,7 @@
  */
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { DeviceEventEmitter, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, TextInput, View, type NativeScrollEvent, type NativeSyntheticEvent } from 'react-native';
+import { AppState, DeviceEventEmitter, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, TextInput, View, type NativeScrollEvent, type NativeSyntheticEvent } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { cosmos, dayMonth, euro } from '../constants/cosmos';
 import { Body, Card, Enter, Hairline, Heading, Label, Micro, Page, Pill, Press, Row, Small, Title } from '../ui/primitives';
@@ -28,10 +28,11 @@ import {
   type ChatAction, type ChatReceipt, type ChatTurn, type HomePlace, type HomeSaved, type LedgerStreamEvent, type MoneyQuestion,
 } from '../services/moneyApi';
 import {
-  lineId, readLines, recallLikely, rememberLikely, setLines as storeLines, useTranscript,
+  lineId, readLines, recallLikely, rememberLikely, replaceUnchangedHistory, setLines as storeLines, useTranscript,
   type HomeSpot, type Line, type TraceStep,
 } from './chatStore';
 import { PACE, beatFor, beatText, chapterFor, pause } from './pace';
+import { currentSessionEpoch } from '../services/sessionEpoch';
 
 /* ----------------------------------------------------------------------------------------
  * Answers. The same parsing the web and the old questions screen used, kept verbatim so a
@@ -161,19 +162,21 @@ function Trace({ steps }: { steps: TraceStep[] }) {
   );
 }
 
-/** The payments an answer rests on. Never more than eight; the ledger has the rest. */
+/** Supporting evidence stays available without displacing the answer. */
 function Receipts({ receipts }: { receipts: ChatReceipt[] }) {
-  const shown = receipts.slice(0, 8);
+  const [open, setOpen] = useState(false);
   return (
     <View style={s.receipts}>
-      <Micro>{`Read from ${receipts.length} ${receipts.length === 1 ? 'payment' : 'payments'}`}</Micro>
-      <Hairline />
-      {shown.map((r, i) => (
+      <Press onPress={() => setOpen(value => !value)} accessibilityRole="button" accessibilityLabel={`Supporting payments (${receipts.length})`} accessibilityState={{ expanded: open }}>
+        <Micro>{`Supporting payments (${receipts.length})`}</Micro>
+      </Press>
+      {open ? <Hairline /> : null}
+      {open ? receipts.map((r, i) => (
         <Enter key={r.id} index={i}>
           <Row lead={dayMonth(r.occurred_at)} label={r.merchant || 'Unnamed'} trail={euro(r.amount)} />
           <Hairline />
         </Enter>
-      ))}
+      )) : null}
     </View>
   );
 }
@@ -194,7 +197,8 @@ export default function ChatScreen({ mode, onDone, onClose }: { mode: 'onboardin
   /* The transcript is kept outside the screen (chatStore), so closing the page and coming
      back finds the conversation where it was, and the greeting is said once. */
   const lines = useTranscript(mode);
-  const setLines = useCallback((next: Line[] | ((all: Line[]) => Line[])) => storeLines(mode, next), [mode]);
+  const sessionEpoch = useRef(currentSessionEpoch()).current;
+  const setLines = useCallback((next: Line[] | ((all: Line[]) => Line[])) => storeLines(mode, next, sessionEpoch), [mode, sessionEpoch]);
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [queue, setQueue] = useState<MoneyQuestion[]>([]);
   const [index, setIndex] = useState(0);
@@ -236,13 +240,13 @@ export default function ChatScreen({ mode, onDone, onClose }: { mode: 'onboardin
     try {
       const f = await moneyApi.forecast();
       const before = recallLikely();
-      rememberLikely(f.projected_p50);
+      rememberLikely(f.projected_p50, sessionEpoch);
       if (before === null || !Number.isFinite(before)) return;
       const diff = f.projected_p50 - before;
       if (Math.abs(diff) <= 1) return;
       say({ who: 'twin', quiet: true, text: `The month now reads ${euro(Math.abs(diff))} ${diff < 0 ? 'lower' : 'higher'}.` });
     } catch { /* the month page still has the number */ }
-  }, [say]);
+  }, [say, sessionEpoch]);
 
   /* Suggestions: questions the ledger can answer for this person, worked out from what the
      app already has. Nothing is offered that the data cannot back. */
@@ -255,7 +259,7 @@ export default function ChatScreen({ mode, onDone, onClose }: { mode: 'onboardin
       ]);
       if (!live) return;
       const out: string[] = [];
-      if (fc.status === 'fulfilled') rememberLikely(fc.value.projected_p50);
+      if (fc.status === 'fulfilled') rememberLikely(fc.value.projected_p50, sessionEpoch);
       if (rec.status === 'fulfilled' && rec.value.length > 0) out.push('What comes back every month?');
       if (months.status === 'fulfilled' && months.value.length >= 2) out.push('How does this month compare?');
       if (cats.status === 'fulfilled' && cats.value.groups.length > 0) out.push('Where did the money go?');
@@ -273,33 +277,38 @@ export default function ChatScreen({ mode, onDone, onClose }: { mode: 'onboardin
       setSuggestions(out);
     })();
     return () => { live = false; };
-  }, [mode]);
+  }, [mode, sessionEpoch]);
 
   /* Opening. Onboarding asks what only the person knows; ask mode opens the floor, once. */
   useEffect(() => {
     let live = true;
     if (mode === 'ask') {
-      if (readLines('ask').length === 0) {
-        /* The conversation is kept on the server: open where it stood, or on the floor. */
+      const refreshHistory = () => {
+        const before = readLines('ask');
+        if (before.some(line => line.pending)) return;
+        /* Reopening or foregrounding includes conversations from the web. A new local
+           message or account change invalidates this read before it can replace anything. */
         moneyApi.chatHistory().then((turns) => {
-          if (!live) return;
+          if (!live || currentSessionEpoch() !== sessionEpoch || readLines('ask') !== before) return;
           if (!turns.length) {
-            say({ who: 'twin', text: 'Ask about any month, any shop, anything that leaves your account. Answers come from your own payments, with the payments underneath.' });
+            replaceUnchangedHistory(before, [{ id: lineId(), who: 'twin', text: 'Ask about any month, any shop, anything that leaves your account. Answers come from your own payments, with the payments underneath.' }], sessionEpoch);
             return;
           }
-          setLines((all) => (all.length ? all : turns.map((t) => ({
+          replaceUnchangedHistory(before, turns.map((t) => ({
             id: `kept-${t.id}`, who: t.role === 'twin' ? 'twin' as const : 'you' as const, text: t.text, lead: t.role === 'twin' ? leadOf(t.text) : undefined,
             figures: t.figures || undefined, receipts: t.receipts || undefined, thinking: t.thinking || undefined, basis: t.basis || undefined,
-          }))));
+          })), sessionEpoch);
         }).catch(() => {
-          if (live) say({ who: 'twin', text: 'Ask about any month, any shop, anything that leaves your account. Answers come from your own payments, with the payments underneath.' });
+          if (live && currentSessionEpoch() === sessionEpoch) setNote('The conversation could not refresh. Reopen Ask to try again.');
         });
-      }
+      };
+      refreshHistory();
+      const active = AppState.addEventListener('change', state => { if (state === 'active') refreshHistory(); });
       setPhase('asking');
-      return () => { live = false; };
+      return () => { live = false; active.remove(); };
     }
-    storeLines('onboarding', []);
-    moneyApi.forecast().then((f) => rememberLikely(f.projected_p50)).catch(() => {});
+    storeLines('onboarding', [], sessionEpoch);
+    moneyApi.forecast().then((f) => rememberLikely(f.projected_p50, sessionEpoch)).catch(() => {});
     (async () => {
       try {
         const q = await moneyApi.questions();

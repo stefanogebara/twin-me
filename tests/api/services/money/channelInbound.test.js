@@ -110,7 +110,7 @@ describe('offers on the channel', () => {
     deps.takeOffer.mockResolvedValue(null);
     await handleMoneyInbound({ phone: '34600000000', text: 'x', replyId: `mo:${OFFER}`, messageId: 'wamid.8' }, { userId: 'u1', send, deps });
     expect(deps.act).not.toHaveBeenCalled();
-    expect(send).toHaveBeenCalledWith('34600000000', 'That was already done.');
+    expect(send).toHaveBeenCalledWith('34600000000', 'That confirmation has expired or was already used.');
   });
   it('reads a bare number as the offer in that place, while the offers are fresh', async () => {
     deps.recentOffers.mockResolvedValue([{ id: OFFER, position: 0, action }]);
@@ -197,6 +197,18 @@ describe('a reaction on the message that carried the offers', () => {
     expect(deps.offersOfMessage).toHaveBeenCalledWith('u1', 'wamid.buttons');
     expect(deps.takeOffer).toHaveBeenCalledWith('u1', OFFER);
     expect(send).toHaveBeenCalledWith('34600000000', 'Marked as not yours.');
+  });
+  it.each([null, '2026-09-24T12:00:00Z'])('never guesses which of several offers a reaction approves (first taken: %s)', async (taken_at) => {
+    deps.offersOfMessage.mockResolvedValue([
+      { id: OFFER, position: 0, action, taken_at },
+      { id: '22222222-2222-4222-8222-222222222222', position: 1, action: { ...action, transaction_id: 't2' } },
+    ]);
+    deps.takeOffer.mockResolvedValue({ id: OFFER, action });
+    const r = await handleMoneyInbound({ phone: '34600000000', messageId: 'wamid.ambiguous', reaction: { messageId: 'wamid.buttons', emoji: '\u{1F44D}' } }, { userId: 'u1', send, deps });
+    expect(r.kind).toBe('money_reaction_ambiguous');
+    expect(deps.takeOffer).not.toHaveBeenCalled();
+    expect(deps.act).not.toHaveBeenCalled();
+    expect(send).toHaveBeenCalledWith('34600000000', 'Tap the specific action you want to confirm.');
   });
   it('a thumbs-down leaves the offers, and a heart is nothing', async () => {
     deps.offersOfMessage.mockResolvedValue([{ id: OFFER, position: 0, action }]);

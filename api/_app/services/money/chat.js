@@ -47,6 +47,7 @@ import { CATEGORIES } from './places.js';
 import { markCounted, personRoles, roleOf } from './spending.js';
 import { calendarLines } from './calendar.js';
 import { safeToSpend, allowanceLine } from './allowance.js';
+import { affordabilityAnswer } from './affordability.js';
 import { partsIn, weekdayIn, dayIn } from './zone.js';
 import { quietly } from './quietly.js';
 import { selectTransactions } from './transactionRepository.js';
@@ -259,8 +260,8 @@ export function euroGlyphs(text) {
 /* ------------------------------------------------------------------------ gather */
 
 /**
- * Everything the chat can know, read once per question. Each read is settled on its own so a
- * failing one leaves a gap in the context rather than no context at all.
+ * Financial rows and classification facts are required. Optional enrichment may be absent,
+ * but a failed ledger read must never become onboarding or an invented zero.
  */
 export async function gather(userId, now = new Date()) {
   const settled = async (p, fallback) => { try { return await p; } catch (e) { log.warn(`chat gather: ${e.message}`); return fallback; } };
@@ -272,18 +273,18 @@ export async function gather(userId, now = new Date()) {
      with the calendar's own rows filtered out, calendarLines had nothing to say and Ask
      answered as though no diary existed. The lens keeps them out of what is shown; here they
      are working memory the answer needs (2026-09-16). */
-  const ledgerRead = settled(listTransactions(userId, { limit: 20000, includeRejected: true }), null);
-  const factsRead = settled(listFacts(userId, { includeInternal: true }), null);
+  const ledgerRead = listTransactions(userId, { limit: 20000, includeRejected: true });
+  const factsRead = listFacts(userId, { includeInternal: true });
   const readingsRead = settled(listReadings(userId), []);
   const questionsRead = settled(questionsFor(userId, now), { opening: [], fromLedger: [], answered: 0 });
   const placesRead = settled(listPlaces(userId), []);
-  const accountsRead = settled(Promise.resolve().then(() => listBankAccounts(userId)), []);
+  const accountsRead = Promise.resolve().then(() => listBankAccounts(userId));
   const languageRead = settled(Promise.resolve().then(() => userLanguage(userId)), null);
   const returnsRead = settled(listReturnsClosing(userId, now, { within: 14 }), []);
   /* The rows the derived reads stand on; each starts the moment they are in. */
   const givenRead = Promise.all([ledgerRead, factsRead]).then(([transactions, facts]) => ({ ...(transactions ? { transactions } : {}), ...(facts ? { facts } : {}) }));
-  const segmentsRead = givenRead.then((given) => settled(months(userId, now, given), []));
-  const castRead = givenRead.then((given) => settled(forecast(userId, now, given), null));
+  const segmentsRead = givenRead.then((given) => months(userId, now, given));
+  const castRead = givenRead.then((given) => forecast(userId, now, given));
   const recurringRead = givenRead.then((given) => settled(refreshRecurring(userId, now, given), []));
   /* what each subscription is used for, against what it costs: "least worth it" was answered by size (2026-09-23) */
   const usageRead = ledgerRead.then((rows) => settled(Promise.resolve().then(() => subscriptionUsage(userId, now, { transactions: rows || undefined })), null));
@@ -586,6 +587,13 @@ function usageLine(f) {
   return null;
 }
 
+/** Match Today's eight-day reconciliation window, including balances and pending payments. */
+export function chatAllowance(ctx) {
+  const since = new Date(ctx.now.getTime() - 8 * 86400000).toISOString();
+  return safeToSpend({ cast: ctx.forecast, segments: ctx.segments, facts: ctx.facts,
+    accounts: ctx.accounts, transactions: selectTransactions(ctx.transactions, { since, limit: 5000 }), now: ctx.now });
+}
+
 export function contextText(ctx) {
   const lines = [];
   const today = ctx.now;
@@ -741,7 +749,7 @@ export function contextText(ctx) {
   lines.push(...calendarLines(ctx.facts, { now: ctx.now }));
   /* What today can carry, worked out from what is already here: no extra query, and the twin
      answers "can I afford tonight?" with the same number the month page shows. */
-  const allowance = safeToSpend({ cast: ctx.forecast, segments: ctx.segments, facts: ctx.facts, now: ctx.now });
+  const allowance = chatAllowance(ctx);
   const todayLine = allowanceLine(allowance);
   if (todayLine) lines.push(todayLine);
   /* "How much do I have left this month" is one number, the same the day rests on: the budget
@@ -1224,6 +1232,8 @@ export function shortCircuit(message, ctx) {
   const m = String(message || '').toLowerCase();
   const small = smalltalkReply(message, ctx.language);
   if (small) return { text: small, figures: [], actions: [], receipts: [] };
+  const purchase = affordabilityAnswer(message, () => chatAllowance(ctx), ctx.language);
+  if (purchase) return purchase;
   const byKind = kindAnswer(message, ctx);
   if (byKind) return byKind;
   const plainSum = plainSums(message, ctx);
@@ -2081,6 +2091,7 @@ export async function answerStream(userId, message, history = [], { now = new Da
   send({ phase: 'reading' });
 
   const asked = String(message || '').trim();
+  let ctx = { language: languageOf(asked) === 'pt' ? 'pt-BR' : (languageOf(asked) || 'en') };
   const whole = (text) => { if (text) send({ phase: 'text', delta: text }); };
   const closeWith = async (reply) => {
     send({ phase: 'figures', figures: reply.figures || [] });
@@ -2099,9 +2110,8 @@ export async function answerStream(userId, message, history = [], { now = new Da
 
   if (!asked) return closeWith({ text: (whole(NO_ANSWER), NO_ANSWER), figures: [], actions: [], receipts: [] });
 
-  const early = smalltalkReply(asked, languageOf(asked) === 'pt' ? 'pt-BR' : (languageOf(asked) || 'en'));
+  const early = smalltalkReply(asked, ctx.language);
   if (early) { whole(early); return closeWith({ text: early, figures: [], actions: [], receipts: [] }); }
-  let ctx;
   try {
     ctx = await gather(userId, now);
   } catch (error) {
@@ -2321,7 +2331,19 @@ export async function answerStream(userId, message, history = [], { now = new Da
 /** Every amount a text holds, as numbers: "12,50" -> 12.5, "1.011,02" -> 1011.02. Pure. */
 export function amountsInText(text) {
   const out = [];
-  for (const m of String(text || '').matchAll(/(\d{1,3}(?:\.\d{3})+|\d+),(\d{2})\b/g)) out.push(Number(`${m[1].replace(/\./g, '')}.${m[2]}`));
+  const currency = String.raw`(?:€|EUR\b|euros?\b)`;
+  const number = String.raw`\d+(?:[.,]\d+)*`;
+  const token = new RegExp(String.raw`${currency}\s*(${number})|(${number})(?=\s*${currency})|\b(\d{1,3}(?:\.\d{3})+|\d+),(\d{2})\b`, 'gi');
+  for (const match of String(text || '').matchAll(token)) {
+    const raw = match[1] ?? match[2] ?? `${match[3]},${match[4]}`;
+    const last = Math.max(raw.lastIndexOf(','), raw.lastIndexOf('.'));
+    // One or two final digits are cents; groups of three are thousands. Invalid
+    // punctuation yields NaN, which deliberately fails the downstream grounding check.
+    const decimal = last >= 0 && raw.length - last - 1 <= 2;
+    const whole = decimal ? raw.slice(0, last) : raw;
+    const grouping = /^\d+$|^\d{1,3}([.,])\d{3}(?:\1\d{3})*$/.test(whole);
+    out.push(grouping ? Number(`${whole.replace(/[.,]/g, '')}.${decimal ? raw.slice(last + 1) : '00'}`) : NaN);
+  }
   return out;
 }
 

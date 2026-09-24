@@ -30,6 +30,24 @@ vi.mock('../../../../api/_app/services/money/store.js', async (importOriginal) =
 
 const { answerStream, textStreamer, completeSentences } = await import('../../../../api/_app/services/money/chat.js');
 
+it.each(['Hello', ''])('completes and persists an early response to %j', async (message) => {
+  const events = [];
+  await answerStream('u1', message, [], { onEvent: event => events.push(event) });
+  expect(events.map(event => event.phase)).toEqual(['reading', 'text', 'figures', 'actions', 'done']);
+  expect(store.saveChatTurn).toHaveBeenCalledTimes(2);
+  expect(store.listTransactions).not.toHaveBeenCalled();
+});
+
+it.each(['listTransactions', 'listFacts', 'listBankAccounts', 'forecast', 'months'])('reports a failed %s read instead of an empty ledger', async (read) => {
+  store[read].mockRejectedValueOnce(new Error('database unavailable'));
+  const events = [];
+  await answerStream('u1', 'What did I spend this week?', [], { onEvent: event => events.push(event) });
+  expect(events.map(event => event.phase)).toEqual(['reading', 'failed']);
+  expect(events.at(-1).detail).toMatch(/could not be read/i);
+  expect(store.saveChatTurn).not.toHaveBeenCalled();
+  expect(streamCall).not.toHaveBeenCalled();
+});
+
 const NOW = new Date('2026-09-08T12:00:00Z');
 const t = (id, occurred_at, amount, merchant_key, merchant_raw, extra = {}) => ({ id, occurred_at, amount, merchant_key, merchant_raw, channel: 'card', currency: 'EUR', ...extra });
 

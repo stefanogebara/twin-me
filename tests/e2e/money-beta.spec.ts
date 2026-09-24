@@ -201,3 +201,21 @@ for (const path of ['/money', '/money/chat']) {
     await frame.screenshot({path:test.info().outputPath('composer-focus.png')});
   });
 }
+
+
+test('Ask keeps supporting payments behind a keyboard-accessible disclosure', async ({page}) => {
+  await moneyFixture(page);
+  await page.route('**/api/money/chat/history', route => route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({success:true,data:[
+    {id:'question',role:'user',text:'Where did it go?'},
+    {id:'answer',role:'twin',text:'Nine supporting payments are available.',receipts:Array.from({length:9},(_,i)=>({id:`source-${i}`,merchant:`Evidence shop ${i+1}`,occurred_at:'2026-09-20T12:00:00Z',amount:10,currency:'EUR'}))},
+  ]})}));
+  await page.goto('/money/chat');
+  const summary=page.locator('summary').filter({hasText:'Supporting payments (9)'});
+  await expect(summary).toBeVisible();
+  await expect(page.getByText('Evidence shop 1',{exact:true})).not.toBeVisible();
+  await summary.focus(); await page.keyboard.press('Enter');
+  await expect(page.getByText('Evidence shop 9',{exact:true})).toBeVisible();
+  await summary.focus(); await page.keyboard.press('Enter');
+  await expect(page.getByText('Evidence shop 9',{exact:true})).not.toBeVisible();
+  await expect(page.getByText('Nine supporting payments are available.',{exact:true})).toBeVisible();
+});

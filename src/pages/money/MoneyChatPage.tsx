@@ -118,7 +118,7 @@ function MoneyConversation() {
   const c = useConversation();
   const { openQuestions, lines, traceOpen, setTraceOpen, asking, text, setText, historyFailed, locale, t, boxRef, fileRef, trace, stillMotion, offers, offersShown, toggleHow, ask, attach, take, rise } = c;
   return (
-    <main className="mv mc">
+    <main className="mv mc mc--ask">
       <div className="mv-shell">
         <MoneyNav links={NAV} />
         <div className="mv-col">
@@ -131,7 +131,7 @@ function MoneyConversation() {
               <div className={`mc-scroll${lines.length ? '' : ' is-empty'}`}>
                 <div className="mc-turn">
                   <h1>{t('Ask.')}</h1>
-                  <p className="mv-sub">{t('Any month, any shop, anything that leaves your account. Answers come from your own payments, with the payments underneath.')}</p>
+                  <p className="mv-sub">{t(lines.length ? 'Your spending, explained.' : 'Any month, any shop, anything that leaves your account. Answers come from your own payments, with the payments underneath.')}</p>
                   {openQuestions > 0 ? (
                     <div className="mc-actions">
                       <Link to="/money/setup" className="mv-pill mv-pill--ghost">
@@ -179,10 +179,10 @@ function MoneyConversation() {
                       </div>
                     ) : null}
                     {l.receipts && l.receipts.length ? (
-                      <div className="mc-receipts">
-                        <span className="mv-quiet">{l.receipts.length === 1 ? t('Read from one payment') : t('Read from {n} payments', { n: l.receipts.length })}</span>
+                      <details className="mc-receipts">
+                        <summary>{t('Supporting payments ({n})', { n: l.receipts.length })}</summary>
                         <ul className="mv-list">
-                          {l.receipts.slice(0, 8).map((r) => (
+                          {l.receipts.map((r) => (
                             <li key={r.id} className="mv-item mv-item--tight">
                               <span className="mv-item-text">
                                 <span className="mv-item-title">{r.merchant}</span>
@@ -192,7 +192,7 @@ function MoneyConversation() {
                             </li>
                           ))}
                         </ul>
-                      </div>
+                      </details>
                     ) : null}
                   </motion.div>
                 ))}
@@ -259,4 +259,3 @@ function MoneyConversation() {
     </main>
   );
 }
-

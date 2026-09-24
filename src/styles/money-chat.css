@@ -30,6 +30,26 @@
 .mc .mc-trace-toggle:hover, .mc .mc-trace-toggle[aria-expanded="true"] { color: var(--ink); }
 .mc-end { height: 1px; }
 
+/* Ask is a reading surface: the answer leads, and a short exchange keeps its input
+   nearby. Setup retains its existing full-height conversational layout. */
+.mc--ask .mv-col { display: block; }
+.mc--ask .mc-columns { max-width: 760px; align-items: start; }
+.mc--ask .mc-thread { grid-template-rows: auto auto; align-content: start; }
+.mc--ask .mc-scroll { gap: 32px; padding-bottom: 0; }
+.mc--ask .mc-turn { margin-bottom: 24px; }
+.mc--ask .mc-line--you { padding-left: 0; gap: 6px; }
+.mc--ask .mc-line--you .mc-line-text { font-size: 16px; line-height: 1.6; }
+.mc--ask .mc-line:not(.mc-line--you) .mc-line-text { font-size: 22px; line-height: 1.5; font-weight: 400; color: var(--ink); letter-spacing: -0.02em; }
+.mc--ask .mc-composer { margin-top: 32px; padding-top: 12px; }
+.mc--ask .mc-composer-inner { min-height: 56px; padding: 10px; }
+.mc--ask .mc-composer textarea { font-size: 16px; line-height: 24px; }
+.mc--ask .mc-offers { gap: 12px 24px; }
+.mc--ask .mc-offers .mc-offer { padding: 0; border: 0; background: none; color: var(--ink-2); text-decoration: underline; text-underline-offset: 4px; }
+.mc--ask .mc-offers .mc-offer:hover { color: var(--ink); }
+@media (max-width: 767px) {
+  .mc--ask .mc-line:not(.mc-line--you) .mc-line-text { font-size: 20px; }
+}
+
 /* The transcript: it asks, you answered, both stay */
 .mc-turn { display: grid; justify-items: start; }
 .mc-turn > .mv-list { width: 100%; }
@@ -166,7 +186,10 @@
 .mc-band-spent { background: var(--ink); }
 .mc .mc-band-labels { display: flex; justify-content: space-between; color: var(--ink-2); font-weight: 350; }
 
-.mc-receipts { display: grid; gap: 4px; max-width: 40rem; }
+.mc-receipts { max-width: 40rem; }
+.mc-receipts > summary { width: fit-content; min-height: 32px; display: list-item; align-content: center; color: var(--ink-2); cursor: pointer; }
+.mc-receipts > summary:hover { color: var(--ink); }
+.mc-receipts > summary:focus-visible { outline: 2px solid var(--ink); outline-offset: 4px; border-radius: 2px; }
 .mc .mc-receipts > .mv-list { margin-top: 4px; }
 
 /* The offers under an answer, and the sentence the ledger says once one is taken. */

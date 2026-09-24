@@ -8,15 +8,15 @@ import { NUMBERED_REPLY_WINDOW_MS, MAX_BUTTONS } from './channel.js';
 
 const log = createLogger('MoneyChannelStore');
 
-/** True the first time a provider message id is seen. A message with no id is always new. */
+/** True the first time a provider message id is seen. A missing identity or failed receipt prevents effects. */
 export async function claimInbound(messageId, userId) {
-  if (!messageId) return true;
+  if (!messageId) throw new Error('A provider message id is required.');
   const { error } = await supabaseAdmin.from('money_channel_inbound').insert({ message_id: String(messageId).slice(0, 200), user_id: userId });
   if (!error) return true;
   if (error.code === '23505') return false;
-  /* A database that is down must not make a person repeat themselves. */
+  /* Never execute an edit when durable duplicate protection is unavailable. */
   log.warn(`inbound not recorded: ${error.message}`);
-  return true;
+  throw new Error('Could not record the incoming message.');
 }
 
 /** When the person agreed to answers on WhatsApp. Kept once. */
@@ -47,28 +47,29 @@ export async function noteOfferMessage(userId, offerIds, messageId) {
   if (error) log.warn(`offer message not noted: ${error.message}`);
 }
 
-/** The untaken offers that rode in one message, in the order shown; a reaction finds them by it. */
+/** All offers that rode in one message, including consumed ones: a reaction must never change meaning. */
 export async function offersOfMessage(userId, messageId) {
   if (!messageId) return [];
   const { data, error } = await supabaseAdmin.from('money_channel_offers').select('id, position, action')
-    .eq('user_id', userId).eq('message_id', String(messageId)).is('taken_at', null).order('position', { ascending: true }).limit(MAX_BUTTONS);
+    .eq('user_id', userId).eq('message_id', String(messageId)).order('position', { ascending: true }).limit(MAX_BUTTONS);
   if (error) { log.warn(`offers of message not read: ${error.message}`); return []; }
   return data || [];
 }
 
-/** Takes an offer once. Null when it was taken already or is not this person's. */
-export async function takeOffer(userId, offerId) {
-  const { data, error } = await supabaseAdmin.from('money_channel_offers').update({ taken_at: new Date().toISOString() })
-    .eq('user_id', userId).eq('id', offerId).is('taken_at', null).select('id, action').maybeSingle();
+/** Takes an offer once. Null when consumed, expired, or not this person's. */
+export async function takeOffer(userId, offerId, now = new Date()) {
+  const since = new Date(now.getTime() - NUMBERED_REPLY_WINDOW_MS).toISOString();
+  const { data, error } = await supabaseAdmin.from('money_channel_offers').update({ taken_at: now.toISOString() })
+    .eq('user_id', userId).eq('id', offerId).is('taken_at', null).gte('created_at', since).select('id, action').maybeSingle();
   if (error) throw new Error(error.message);
   return data || null;
 }
 
-/** The untaken offers of the newest reply, in the order shown, while a bare number can still mean them. */
+/** The original offers of the newest reply, in the order shown, while a bare number can still mean them. */
 export async function recentOffers(userId, now = new Date()) {
   const since = new Date(now.getTime() - NUMBERED_REPLY_WINDOW_MS).toISOString();
   const { data } = await supabaseAdmin.from('money_channel_offers').select('id, position, action, created_at')
-    .eq('user_id', userId).is('taken_at', null).gte('created_at', since).order('created_at', { ascending: false }).limit(MAX_BUTTONS * 2);
+    .eq('user_id', userId).gte('created_at', since).order('created_at', { ascending: false }).limit(MAX_BUTTONS * 2);
   const rows = data || [];
   if (!rows.length) return [];
   const newest = rows[0].created_at;

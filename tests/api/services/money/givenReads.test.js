@@ -72,6 +72,29 @@ describe('every part takes what it is given and reads nothing of its own', () =>
     expect(f.listTransactions).not.toHaveBeenCalled();
     expect(f.listFacts).not.toHaveBeenCalled();
   });
+  it.each(['failure', 'deadline'])('keeps issued uncertainty when score reconciliation cannot finish: %s', async (mode) => {
+    if (mode === 'deadline') vi.useFakeTimers();
+    f.figures.mockImplementation(() => mode === 'deadline' ? new Promise(() => {}) : Promise.reject(new Error('score unavailable')));
+    const issued = [{ kind: 'day_total', predicted_on: '2026-09-21', predicted_for: '2026-09-22', high: 50, issued_high: 100.19, low: 0, issued_low: 0, scored_at: '2026-09-21', actual: 1 }];
+    f.from.mockImplementation((table) => {
+      const q = new Proxy({}, { get: (_t, k) => k === 'then' ? (res, rej) => Promise.resolve({ data: table === 'money_figure_scores' ? issued : [], error: null }).then(res, rej) : () => q });
+      return q;
+    });
+    try {
+      const result = forecast(owner, now, given);
+      if (mode === 'deadline') await vi.advanceTimersByTimeAsync(2501);
+      const cast = await result;
+      expect(cast.band_calibration).toMatchObject({ widen: 50.19, days: 0, carried_from: '2026-09-21', reconciliation_pending: true });
+    } finally { vi.useRealTimers(); }
+  });
+  it('withholds a forecast when both reconciliation and issued uncertainty cannot be read', async () => {
+    f.figures.mockRejectedValue(new Error('score unavailable'));
+    f.from.mockImplementation((table) => {
+      const q = new Proxy({}, { get: (_t, k) => k === 'then' ? (res, rej) => Promise.resolve({ data: [], error: table === 'money_figure_scores' ? { message: 'unavailable' } : null }).then(res, rej) : () => q });
+      return q;
+    });
+    await expect(forecast(owner, now, given)).rejects.toThrow(/uncertainty/i);
+  });
   it('months', async () => {
     const segments = await months(owner, now, given);
     expect(Array.isArray(segments)).toBe(true);

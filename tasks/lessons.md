@@ -611,3 +611,5 @@ edited file, and the commit carried only its test. Its green checks read as proo
   uncommitted work in the tree.
 - Mocking the module under a change hides the change. When a module's exports move, one test
   must import it for real.
+
+- 2026-09-25 — When reviewing Money across web and native, label each screenshot by surface and build. Open the owner's actual `twinme.me/money` session before design judgments; the iOS Month screen is not evidence of the current web Today design. Preserve the current warm, spacious web register when closing native parity gaps.

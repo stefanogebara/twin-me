@@ -57,7 +57,8 @@ const WORDS = {
   es: {
     'I cannot hear voice notes yet. Type it and I will answer.': 'Todav\u00eda no oigo notas de voz. Escr\u00edbelo y te contesto.',
     'I could not make out that voice note. Type it and I will answer.': 'No entend\u00ed esa nota de voz. Escr\u00edbelo y te contesto.',
-    'That was already done.': 'Eso ya estaba hecho.',
+    'That confirmation has expired or was already used.': 'Esa confirmación ha caducado o ya se utilizó.',
+    'Tap the specific action you want to confirm.': 'Toca la acción concreta que quieres confirmar.',
     'That could not be done right now.': 'Eso no se pudo hacer ahora.',
     'That took too long to answer. Ask it again.': 'Eso tardó demasiado en responder. Pregunta de nuevo.',
     'Something went wrong on my side. Ask again in a moment.': 'Algo falló por mi parte. Pregunta de nuevo en un momento.',
@@ -70,7 +71,8 @@ const WORDS = {
   'pt-BR': {
     'I cannot hear voice notes yet. Type it and I will answer.': 'Ainda n\u00e3o ou\u00e7o notas de voz. Escreva e eu respondo.',
     'I could not make out that voice note. Type it and I will answer.': 'N\u00e3o entendi essa nota de voz. Escreva e eu respondo.',
-    'That was already done.': 'Isso já estava feito.',
+    'That confirmation has expired or was already used.': 'Essa confirmação expirou ou já foi utilizada.',
+    'Tap the specific action you want to confirm.': 'Toque na ação específica que deseja confirmar.',
     'That could not be done right now.': 'Não deu para fazer isso agora.',
     'That took too long to answer. Ask it again.': 'Isso demorou demais para responder. Pergunte de novo.',
     'Something went wrong on my side. Ask again in a moment.': 'Algo falhou do meu lado. Pergunte de novo em instantes.',
