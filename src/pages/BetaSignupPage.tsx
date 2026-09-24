@@ -8,21 +8,31 @@ import '../styles/auth.css';
 
 /**
  * /beta, in the sign-in frame of /auth (auth.css inside money-v2's .mv): the
- * title and one grey line, a label over each field, the platforms as 32/4
+ * title and one grey line, a label over each field, the sources as 32/4
  * choices (white with a hairline; pressed is the field with an ink line), and
- * Apply as the one 48/12 call to action. The application itself is unchanged.
+ * Apply as the one 48/12 call to action.
+ *
+ * Until 2026-09-25 it asked which OAuth platforms a person used -- Spotify,
+ * Google Calendar, YouTube, Whoop, Discord, Gmail, GitHub -- under a line
+ * promising an AI twin that acts for you. All seven have answered 410 since the
+ * twin was parked and were deleted with it, so the first thing a person invited
+ * to the money pilot met was a form collecting interest in things nobody could
+ * connect. It asks what the ledger can actually read, and which phone, because
+ * that decides how a payment reaches it at all.
  */
 
-const PLATFORMS = [
-  { id: 'spotify', label: 'Spotify' },
-  { id: 'calendar', label: 'Google Calendar' },
-  { id: 'youtube', label: 'YouTube' },
-  { id: 'whoop', label: 'Whoop' },
-  { id: 'discord', label: 'Discord' },
-  // linkedin removed (replan-2026-06-10 Track C): OAuth stack retired,
-  // backend /api/beta no longer accepts it.
-  { id: 'gmail', label: 'Gmail' },
-  { id: 'github', label: 'GitHub' },
+const SOURCES = [
+  { id: 'bank', label: 'Your bank' },
+  { id: 'phone_alerts', label: 'Payment alerts on your phone' },
+  { id: 'receipts', label: 'Receipts by email' },
+  { id: 'statements', label: 'Bank statements' },
+  { id: 'calendar', label: 'Your class calendar' },
+  { id: 'whatsapp', label: 'WhatsApp' },
+] as const;
+
+const PHONES = [
+  { id: 'ios', label: 'iPhone' },
+  { id: 'android', label: 'Android' },
 ] as const;
 
 interface SuccessState {
@@ -63,6 +73,7 @@ function BetaSignupPage() {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>([]);
+  const [phone, setPhone] = useState<string>('');
   const [reason, setReason] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -92,6 +103,7 @@ function BetaSignupPage() {
           name: name.trim(),
           email: email.trim(),
           platforms: selectedPlatforms,
+          phone: phone || undefined,
           reason: reason.trim() || undefined,
         }),
       });
@@ -112,7 +124,7 @@ function BetaSignupPage() {
     } finally {
       setLoading(false);
     }
-  }, [name, email, selectedPlatforms, reason]);
+  }, [name, email, selectedPlatforms, phone, reason]);
 
   return (
     <main className="mv au" id="main-content">
@@ -155,7 +167,7 @@ function BetaSignupPage() {
           <>
             <section className="au-room">
               <h1 className="au-enter" style={{ '--i': 0 } as React.CSSProperties}>Join the beta.</h1>
-              <p className="mv-sub au-enter" style={{ '--i': 1 } as React.CSSProperties}>Your AI twin that acts for you.</p>
+              <p className="mv-sub au-enter" style={{ '--i': 1 } as React.CSSProperties}>Your money, read to you. For students in Spain.</p>
             </section>
 
             <form onSubmit={handleSubmit} className="au-form au-form--long au-enter" style={{ '--i': 2 } as React.CSSProperties}>
@@ -185,9 +197,9 @@ function BetaSignupPage() {
               </label>
 
               <fieldset className="au-field">
-                <legend className="mv-label">Which platforms do you use?</legend>
+                <legend className="mv-label">What could you connect?</legend>
                 <div className="au-choices">
-                  {PLATFORMS.map(p => {
+                  {SOURCES.map(p => {
                     const isSelected = selectedPlatforms.includes(p.id);
                     return (
                       <button
@@ -204,13 +216,30 @@ function BetaSignupPage() {
                 </div>
               </fieldset>
 
+              <fieldset className="au-field">
+                <legend className="mv-label">Which phone?</legend>
+                <div className="au-choices">
+                  {PHONES.map(p => (
+                    <button
+                      key={p.id}
+                      type="button"
+                      onClick={() => setPhone(phone === p.id ? '' : p.id)}
+                      aria-pressed={phone === p.id}
+                      className="mv-pill mv-pill--ghost"
+                    >
+                      {p.label}
+                    </button>
+                  ))}
+                </div>
+              </fieldset>
+
               <label className="au-field">
-                <span className="mv-label">Why do you want a personal AI?</span>
+                <span className="mv-label">Anything else?</span>
                 <textarea
                   className="mv-field mv-field--area"
                   value={reason}
                   onChange={e => setReason(e.target.value)}
-                  placeholder="I want to understand my patterns, automate decisions, get personalized insights..."
+                  placeholder="Which bank, what you are studying, anything that helps."
                   rows={3}
                 />
               </label>
