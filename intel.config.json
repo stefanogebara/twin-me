@@ -49,7 +49,8 @@
     "a IA do produto está colapsada em cinco superfícies: Today, Twin, You, Connect, Settings (c2aefd1f, 2026-08-10)",
     "o número público de fidelidade fica, mas honesto: /p/:userId publica o normalizado quando existe, com n, wave e data, sob \"Not a clinical measure\" — e a query ordena battery_version, wave, created_at (2026-08-25, PR #266). Opções (b) tirar o número e (c) aceitar o risco seguem disponíveis; (a) foi a escolhida porque torna a afirmação verdadeira sem virar decisão de negócio",
     "\"digital twin\" sai da UI (11 strings -> \"your twin\" / \"soul signature\") mas FICA em Terms/Privacy, onde é definição legal do serviço, e nos prompts de LLM, onde mudar texto é mudar comportamento e deve ao eval uma rodada (2026-08-25)",
-    "o funil de aquisição é um sistema só: landing, auth e onboarding fixam ClassicBackground e usam .claura-glass + --claura-bone. Uma quarta paleta no funil é regressão (2026-08-25, PRs #259/#261/#263/#264/#265)"
+    "o funil de aquisição é um sistema só: landing, auth e onboarding fixam ClassicBackground e usam .claura-glass + --claura-bone. Uma quarta paleta no funil é regressão (2026-08-25, PRs #259/#261/#263/#264/#265)",
+    "money first é fato em produção, não intenção: /, /home, /dashboard, pós-sign-in e pós-OAuth levam a /money (pinado por money-first.goal.test.js); o gêmeo legado está estacionado em produção desde 2026-09-20 (LEGACY_TWIN_ENABLED=false, decisão D1 do Stefano em docs/roadmap/PROGRESS.md)"
   ],
   "deprecated": [
     "temporal spine — deletado em a8b3314e (2026-08-11) após 14 dias de vida, porque o eval reprovou",
