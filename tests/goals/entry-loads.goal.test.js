@@ -28,25 +28,31 @@ const STUBS = {
   SUPABASE_SERVICE_ROLE_KEY: 'entry-loads-service-role-key',
 };
 
-/** Loads one module in its own Node process and returns what it said, or throws with the reason. */
+/**
+ * Loads one module in its own Node process and returns its verdict. The child always exits 0 and
+ * answers between markers, because everything here writes to the console on the way up: dotenv
+ * prints a banner to stdout, Redis and Sentry warn on stderr, and neither an exit code nor the
+ * first line of either stream can tell a warning from a broken link.
+ */
 function loadInNode(file) {
-  const code = `import(${JSON.stringify(path.join(ROOT, file))}).then(() => { console.log('LOADED'); process.exit(0); }).catch((e) => { console.error(e && e.message ? e.message : String(e)); process.exit(1); });`;
-  try {
-    return execFileSync(process.execPath, ['--input-type=module', '-e', code], {
-      cwd: ROOT, encoding: 'utf8', timeout: 60000, stdio: ['ignore', 'pipe', 'pipe'],
-      env: { ...process.env, ...Object.fromEntries(Object.entries(STUBS).filter(([k]) => !process.env[k])), DISABLE_BACKGROUND_JOBS: 'true', NODE_ENV: 'test' },
-    });
-  } catch (e) {
-    throw new Error(`${file} does not load in Node: ${String(e.stderr || e.message).split('\n').slice(0, 3).join(' ').slice(0, 300)}`);
-  }
+  const code = `import(${JSON.stringify(path.join(ROOT, file))})
+    .then(() => { process.stdout.write('@@LOADED@@'); })
+    .catch((e) => { process.stdout.write('@@LOADERROR ' + (e && e.message ? e.message : String(e)).split('\\n')[0] + '@@'); })
+    .finally(() => process.exit(0));`;
+  const out = execFileSync(process.execPath, ['--input-type=module', '-e', code], {
+    cwd: ROOT, encoding: 'utf8', timeout: 90000, stdio: ['ignore', 'pipe', 'pipe'],
+    env: { ...process.env, ...Object.fromEntries(Object.entries(STUBS).filter(([k]) => !process.env[k])), DISABLE_BACKGROUND_JOBS: 'true', NODE_ENV: 'test' },
+  });
+  const said = /@@(LOADED|LOADERROR[^@]*)@@/.exec(out);
+  return said ? said[1] : `the child said nothing: ${out.trim().slice(-200)}`;
 }
 
 describe('the deployed entry loads', () => {
   it('api/index.js, the file Vercel runs, and every module it reaches', () => {
-    expect(loadInNode('api/index.js')).toContain('LOADED');
+    expect(loadInNode('api/index.js')).toBe('LOADED');
   }, 90000);
 
   it('api/_app/routes/money.js, the product itself', () => {
-    expect(loadInNode('api/_app/routes/money.js')).toContain('LOADED');
+    expect(loadInNode('api/_app/routes/money.js')).toBe('LOADED');
   }, 90000);
 });
