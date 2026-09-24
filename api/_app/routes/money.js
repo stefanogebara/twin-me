@@ -51,6 +51,8 @@ import { validate } from '../middleware/validate.js';
 import * as S from './moneySchemas.js';
 import { inboxSummary, isInboxConfigured, verifySvix, ingestReceivedEmail } from '../services/money/inbox.js';
 import { MAIL_ATTACHMENT_DEPS } from '../services/money/mailAttachments.js';
+import { monthSheet } from '../services/money/sheet.js';
+import { refreshRecurring as recurringOf } from '../services/money/store.js';
 import { readAttachment, acceptsAttachment, MAX_ATTACHMENT_BYTES } from '../services/money/attachments.js';
 import { ATTACHMENT_DEPS } from '../services/money/attachmentDeps.js';
 import { accuracy } from '../services/money/predictions.js';
@@ -420,6 +422,17 @@ router.post('/statement', upload.single('file'), async (req, res) => {
   } catch (error) {
     statementFailure(res, error);
   }
+});
+
+/** The month as a file: a row per payment, in the person's language and zone. GET /money/sheet?month=YYYY-MM */
+router.get('/sheet', async (req, res) => {
+  try {
+    const out = await monthSheet(req.user.id, { month: typeof req.query.month === 'string' ? req.query.month : null, deps: { recurringFor: (userId) => recurringOf(userId) } });
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', `attachment; filename="${out.filename}"`);
+    res.setHeader('X-Rows', String(out.rows));
+    res.send(out.buffer);
+  } catch (error) { log.error('sheet failed', { error: error.message }); res.status(500).json({ success: false, error: 'Internal server error' }); }
 });
 
 /** Where a month went, by kind of place. */

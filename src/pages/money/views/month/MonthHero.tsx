@@ -4,7 +4,8 @@
  * useMoneyAccount and each view is its own file. The words on the page did not move.
  */
 
-import { ownCurrency, ledgerCurrency, euro } from '../../../../services/api/moneyAPI';
+import { useState } from 'react';
+import { ownCurrency, ledgerCurrency, euro, moneyAPI } from '../../../../services/api/moneyAPI';
 import { orbFor } from '../../orbFor';
 import Wait from '../../../../components/Wait';
 import MonthOrbits from '../../figures/MonthOrbits';
@@ -13,6 +14,18 @@ import type { MoneyAccount } from '../../useMoneyAccount';
 
 export default function MonthHero({ m }: { m: MoneyAccount }) {
   const { t, locale, forecast, today, ledger, months, categories, recurring, loaded, monthKey, monthRows, incomeEdge, todayDay, pairMax, last, monthLabel, zone } = m;
+  /* The month as a file, on request: a row per payment, the way the page names things. */
+  const [sheet, setSheet] = useState<'idle' | 'busy' | 'failed'>('idle');
+  const downloadSheet = async () => {
+    setSheet('busy');
+    try {
+      const { blob, filename } = await moneyAPI.monthSheet(monthKey);
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a'); a.href = url; a.download = filename; document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 4000);
+      setSheet('idle');
+    } catch { setSheet('failed'); }
+  };
   return (
           <section className="mv-hero mv-hero--orb" id="month-title">
             <p className="mv-eyebrow">{t('Month')}</p>
@@ -57,6 +70,12 @@ export default function MonthHero({ m }: { m: MoneyAccount }) {
                   ))}
                 </div>
               </>
+            ) : null}
+            {loaded && monthRows.length ? (
+              <p className="mv-sub">
+                <button type="button" className="mv-pill mv-pill--ghost" onClick={() => void downloadSheet()} disabled={sheet === 'busy'}>{sheet === 'busy' ? t('Making the sheet…') : t('Download as a sheet')}</button>
+                {sheet === 'failed' ? <span className="mv-quiet"> {t('The sheet could not be made. Try again.')}</span> : null}
+              </p>
             ) : null}
           </section>
   );
