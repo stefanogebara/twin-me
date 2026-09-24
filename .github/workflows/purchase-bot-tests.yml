@@ -1,11 +1,11 @@
 name: Purchase Bot Unit Tests
 
 # Catches regressions on the WhatsApp pre-purchase reflection bot before
-# they merge. Two suites, both deterministic and offline:
-#   1. tests/unit/extractor-upsert-regression.test.js — source-text checks
-#      that the 4 extractors fixed in 6aad5fb1 stay fixed.
-#   2. tests/unit/purchase-bot-logic.test.js — pure-function tests for
-#      timezone/moment classification, intent regex, language detection.
+# they merge. One suite, deterministic and offline:
+#   tests/unit/purchase-bot-logic.test.js — pure-function tests for
+#   timezone/moment classification, intent regex, language detection.
+# The upsert regression suite went with the four platform readers it guarded
+# when the parked API was deleted (M2-B, 2026-09-24).
 #
 # E2E coverage of this flow used to live in purchase-bot-e2e + purchase-bot-c8-*
 # specs, which hit the Meta-direct webhook. That webhook was removed 2026-09-22
@@ -19,26 +19,14 @@ on:
     paths:
       - 'api/_app/services/purchaseContextBuilder.js'
       - 'api/_app/services/purchaseReflection.js'
-      - 'api/_app/services/spotifyExtraction.js'
-      - 'api/_app/services/discordExtraction.js'
-      - 'api/_app/services/githubExtraction.js'
-      - 'api/_app/services/observationFetchers/calendar.js'
-      - 'api/_app/services/extractionOrchestrator.js'
       - 'api/_app/services/whatsappInboundPipeline.js'
-      - 'tests/unit/extractor-upsert-regression.test.js'
       - 'tests/unit/purchase-bot-logic.test.js'
       - '.github/workflows/purchase-bot-tests.yml'
   pull_request:
     paths:
       - 'api/_app/services/purchaseContextBuilder.js'
       - 'api/_app/services/purchaseReflection.js'
-      - 'api/_app/services/spotifyExtraction.js'
-      - 'api/_app/services/discordExtraction.js'
-      - 'api/_app/services/githubExtraction.js'
-      - 'api/_app/services/observationFetchers/calendar.js'
-      - 'api/_app/services/extractionOrchestrator.js'
       - 'api/_app/services/whatsappInboundPipeline.js'
-      - 'tests/unit/extractor-upsert-regression.test.js'
       - 'tests/unit/purchase-bot-logic.test.js'
   workflow_dispatch:
 
@@ -60,9 +48,6 @@ jobs:
 
       - name: Install dependencies (no peer warnings)
         run: npm ci --legacy-peer-deps
-
-      - name: Run extractor regression suite
-        run: npx vitest run tests/unit/extractor-upsert-regression.test.js
 
       - name: Run purchase-bot logic suite
         run: npx vitest run tests/unit/purchase-bot-logic.test.js

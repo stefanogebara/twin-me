@@ -23,14 +23,15 @@ describe('the legacy twin gate', () => {
     expect(r.statusCode).toBe(200);
     expect(r.body).toMatchObject({ success: true, skipped: expect.stringContaining('parked') });
   });
-  it('stands in front of every twin cron the schedule runs, and no money cron', () => {
+  it('keeps every twin cron unscheduled and unmounted, and no money cron behind the gate', () => {
     const server = readFileSync(new URL('../../../api/_app/server.js', import.meta.url), 'utf8');
     const crons = JSON.parse(readFileSync(new URL('../../../vercel.json', import.meta.url), 'utf8')).crons.map((c) => c.path);
     /* Since 2026-09-22 a parked cron is not scheduled at all: ten wake-ups a day for a
        200 { skipped } were ten lines to delete. The gate stays in front of the route. */
     for (const path of LEGACY_TWIN_CRONS) {
       expect(crons, `${path} is no longer scheduled`).not.toContain(path);
-      expect(server, `${path} is gated`).toMatch(new RegExp(`app\\.(use|all)\\('${path}', legacyTwinGate, `));
+      /* Since 2026-09-24 the parked cron's router is deleted (M2-B api): nothing mounts the path, the route gate answers it. */
+      expect(server, `${path} is not mounted`).not.toMatch(new RegExp(`'${path}'`));
     }
     for (const path of ['/api/cron/money-pull', '/api/cron/money-learn', '/api/cron/presence-calls']) expect(server).not.toMatch(new RegExp(`'${path}', legacyTwinGate`));
   });
