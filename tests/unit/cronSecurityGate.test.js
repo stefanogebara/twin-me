@@ -29,8 +29,9 @@ function listCronFiles() {
 describe('cron route security gates', () => {
   const files = listCronFiles();
 
-  it('finds at least 10 cron routes (sanity check)', () => {
-    expect(files.length).toBeGreaterThanOrEqual(10);
+  /* Nine stay since the parked twin's crons were deleted (M2-B api, 2026-09-24). */
+  it('finds at least 8 cron routes (sanity check)', () => {
+    expect(files.length).toBeGreaterThanOrEqual(8);
   });
 
   it.each(files)('$name imports verifyCronSecret', ({ src }) => {

@@ -37,10 +37,12 @@ describe('the product and the parked twin, complete against each other', () => {
     expect(parked, 'reachable from the product but caught by the gate').toEqual([]);
   });
 
-  it('keeps the parked list free of entries nothing mounts', () => {
+  /* Since 2026-09-24 the parked routers are deleted (M2-B): the list is the map of addresses the
+     route gate answers with 410, and nothing may mount one of them again. */
+  it('mounts none of the parked addresses: the gate alone answers them', () => {
     const mounted = new Set(all.map((m) => m.path));
-    const orphans = LEGACY_TWIN_ROUTES.filter((prefix) => ![...mounted].some((p) => p === prefix || p.startsWith(`${prefix}/`)));
-    expect(orphans, 'in LEGACY_TWIN_ROUTES but no such mount').toEqual([]);
+    const remounted = LEGACY_TWIN_ROUTES.filter((prefix) => [...mounted].some((p) => p === prefix || p.startsWith(`${prefix}/`)));
+    expect(remounted, 'in LEGACY_TWIN_ROUTES and mounted again').toEqual([]);
   });
 
   it('installs the gate ahead of every mount', () => {

@@ -45,3 +45,11 @@ api/_app/routes/cron-stripe-webhook-events-cleanup.js
 api/_app/routes/cron-llm-usage-log-cleanup.js
 api/_app/routes/cron-agent-actions-cleanup.js
 api/_app/routes/cron-nango-orphan-cleanup.js
+# what server.js itself needs on every request and at start (not reached from a route)
+api/_app/config/requestTimeouts.js
+api/_app/middleware/sanitization.js
+api/_app/middleware/errors.js
+api/_app/middleware/circuitBreaker.js
+api/_app/middleware/oauthRateLimiter.js
+api/_app/services/websocketService.js
+api/_app/middleware/legacyTwin.js
