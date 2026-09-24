@@ -465,6 +465,36 @@ describe('computed answers about people, repeats and months ahead', () => {
   });
 });
 
+describe('a message that only asks for a language', () => {
+  it('names the language asked, in any of the three', async () => {
+    const { languageAsk } = await import('../../../../api/_app/services/money/chat.js');
+    expect(languageAsk('en espa\u00f1ol, por favor')).toBe('es');
+    expect(languageAsk('en espanol')).toBe('es');
+    expect(languageAsk('spanish please')).toBe('es');
+    expect(languageAsk('em portugu\u00eas, por favor')).toBe('pt-BR');
+    expect(languageAsk('in english please')).toBe('en');
+    expect(languageAsk('responde en ingl\u00e9s')).toBe('en');
+  });
+  it('is nothing when the message asks something of its own', async () => {
+    const { languageAsk } = await import('../../../../api/_app/services/money/chat.js');
+    for (const m of ['how much did I spend on spanish lessons?', 'quanto gastei em portugal?', 'what did the english class cost', 'where did the money go?', '', null]) {
+      expect(languageAsk(m), String(m)).toBeNull();
+    }
+  });
+  it('carries the question before it, never another language request', async () => {
+    const { questionBefore } = await import('../../../../api/_app/services/money/chat.js');
+    const history = [
+      { role: 'user', text: 'Where did the money go?' },
+      { role: 'twin', text: 'Mostly groceries.' },
+      { role: 'user', text: 'en espa\u00f1ol, por favor' },
+      { role: 'twin', text: 'Sobre todo la compra.' },
+    ];
+    expect(questionBefore(history)).toBe('Where did the money go?');
+    expect(questionBefore([{ role: 'twin', text: 'Mostly groceries.' }])).toBeNull();
+    expect(questionBefore([])).toBeNull();
+  });
+});
+
 describe('contextText', () => {
   it('writes each subscription against its use from the numbers, ASCII, cost only for the unmeasurable', () => {
     const usage = {

@@ -1464,7 +1464,7 @@ export function kindAnswer(message, ctx) {
   if ([...(ctx.placeByKey?.keys() || [])].some((k) => String(k).length >= 4 && m.includes(String(k).toLowerCase()))) return null;
   /* In the language written, as the model would: a Spanish question on an English account
      came back in English (2026-09-23). */
-  const written = languageOf(message);
+  const written = ctx.forceLanguage || languageOf(message);
   const L = written === 'pt' ? 'pt-BR' : (written || ctx.language);
   const named = monthInMessage(message);
   const month = resolveMonth(ctx, named && named !== 'last' ? named : undefined);
@@ -1538,6 +1538,37 @@ const LANGUAGE_WORDS = {
   /* no one-letter or English-looking words ('a', 'as', 'no'): "a refund" once tied English with Portuguese (2026-09-21) */
   pt: ['quanto', 'gastei', 'ontem', 'hoje', 'noite', 'esta', 'este', 'semana', 'mes', 'm\u00eas', 'os', 'do', 'da', 'na', 'que', 'meu', 'minha', 'fim', 'passado', 'tenho', 'posso', 'quando', 'qual', 'n\u00e3o', 'nao', 'em', 'bares', 'voc\u00ea', 'voce', 'foi', 'com', 'para', 'pra'],
 };
+/**
+ * "en espanol, por favor", "in english please", "em portugues": a message that asks only for a
+ * language is not a question of its own. Asked one, the model paraphrased the conversation and
+ * repeated a figure the ledger no longer held, so the grounding gate dropped every sentence and
+ * the answer became "the ledger has no total for that" in the language it came in (2026-09-24).
+ * The previous question is re-answered instead, computed again, in the language asked. Pure.
+ */
+const LANGUAGE_NAMES = [
+  ['es', /\b(espa(?:n|\u00f1)ol|castellano|spanish)\b/i],
+  /* Spanish writes portugu\u00e9s and ingl\u00e9s with an acute, Portuguese portugu\u00eas and ingl\u00eas with a circumflex. */
+  ['pt-BR', /\b(portugu(?:e|\u00e9|\u00ea)s|portuguese)\b/i],
+  ['en', /\b(ingl(?:e|\u00e9|\u00ea)s|english)\b/i],
+];
+/* Only the words a language request is made of may be in the message; anything else is a question. */
+const LANGUAGE_ASK_REST = /^(?:in|en|em|na|no|a|ao|por|please|favor|porfa|pf|the|language|idioma|l(?:i|\u00ed)ngua|lengua|say|di|diga|dime|fala|fale|habla|speak|switch|change|muda|mude|cambia|it|that|again|de|novo|nuevo|otra|vez|translate|traduce|traduz|traduza|responde|responda|answer|reply|me|my|meu|minha|mi|por favor|thanks|gracias|obrigado|obrigada)$/i;
+export function languageAsk(message) {
+  const text = String(message || '').trim();
+  if (!text || text.split(/\s+/).length > 6) return null;
+  const hit = LANGUAGE_NAMES.find(([, re]) => re.test(text));
+  if (!hit) return null;
+  const rest = text.replace(hit[1], ' ').replace(/[^\p{L}\s]/gu, ' ').split(/\s+/).filter(Boolean);
+  return rest.every((w) => LANGUAGE_ASK_REST.test(w)) ? hit[0] : null;
+}
+
+/** The question a language request is about: the last one the person asked in their own words. */
+export function questionBefore(history) {
+  const prev = [...(Array.isArray(history) ? history : [])].reverse()
+    .find((h) => h && h.role !== 'twin' && typeof h.text === 'string' && h.text.trim() && !languageAsk(h.text));
+  return prev ? prev.text.trim() : null;
+}
+
 export function languageOf(message) {
   const words = String(message || '').toLowerCase().replace(/[^\p{L}\s]/gu, ' ').split(/\s+/).filter(Boolean);
   if (!words.length) return null;
@@ -1844,6 +1875,11 @@ export async function answer(userId, message, history = [], { now = new Date() }
     return reply;
   }
   const ctx = await gather(userId, now);
+  /* A message that only asks for a language re-answers the question before it, in that language. */
+  const wanted = languageAsk(text);
+  const before = wanted ? questionBefore(history) : null;
+  const asking = before || text;
+  if (wanted && before) { ctx.language = wanted; ctx.forceLanguage = wanted; }
   const keep = async (reply) => {
     await saveChatTurn(userId, { role: 'user', text }).catch(quietly('chat/save-user-turn', null));
     await saveChatTurn(userId, { role: 'twin', text: reply.text, figures: reply.figures || null, actions: reply.actions || null, basis: reply.basis || null, receipts: reply.receipts || null }).catch(quietly('chat/save-twin-turn', null));
@@ -1851,18 +1887,19 @@ export async function answer(userId, message, history = [], { now = new Date() }
   };
   if (!ctx.transactions.length) return keep({ text: say(ctx.language, EMPTY_LEDGER), figures: [], actions: [setupOffer(text, ctx)].filter(Boolean), receipts: [] });
 
-  const quick = shortCircuit(text, ctx);
-  if (quick) return keep({ ...quick, computed: true, basis: quick.basis || basisOf(quick.text, ctx), next: nextAsks(message, quick, ctx) });
+  const quick = shortCircuit(asking, ctx);
+  if (quick) return keep({ ...quick, computed: true, basis: quick.basis || basisOf(quick.text, ctx), next: nextAsks(asking, quick, ctx) });
 
-  ctx.asked = askedText(text, history);
-  const plain = plainReplyFor(text, ctx, now);
-  if (plain) return keep({ ...plain, computed: true, basis: plain.basis || basisOf(plain.text, ctx), next: nextAsks(message, plain, ctx) });
-  const hint = LANGUAGE_HINT[languageOf(text)] || '';
+  ctx.asked = askedText(asking, history);
+  const plain = plainReplyFor(asking, ctx, now);
+  if (plain) return keep({ ...plain, computed: true, basis: plain.basis || basisOf(plain.text, ctx), next: nextAsks(asking, plain, ctx) });
+  const hint = LANGUAGE_HINT[ctx.forceLanguage === 'pt-BR' ? 'pt' : (ctx.forceLanguage || languageOf(asking))] || '';
   const system = `${RULES}\n\nWhat the ledger knows:\n${contextText(ctx)}${hint ? `\n\n${hint}` : ''}`;
-  const turns = (Array.isArray(history) ? history : []).slice(-MAX_HISTORY_TURNS)
+  const said_before = (wanted && before) ? [] : (Array.isArray(history) ? history : []);
+  const turns = said_before.slice(-MAX_HISTORY_TURNS)
     .filter((h) => h && typeof h.text === 'string' && h.text.trim())
     .map((h) => ({ role: h.role === 'twin' ? 'assistant' : 'user', content: h.text.trim() }));
-  const messages = [...turns, { role: 'user', content: text }];
+  const messages = [...turns, { role: 'user', content: asking }];
 
   let raw = '';
   try {
@@ -2073,29 +2110,36 @@ export async function answerStream(userId, message, history = [], { now = new Da
     return null;
   }
 
+  /* A message that only asks for a language re-answers the question before it, in that language. */
+  const wanted = languageAsk(asked);
+  const before = wanted ? questionBefore(history) : null;
+  const asking = before || asked;
+  if (wanted && before) { ctx.language = wanted; ctx.forceLanguage = wanted; }
+
   if (!ctx.transactions.length) {
     whole(say(ctx.language, EMPTY_LEDGER));
     return closeWith({ text: say(ctx.language, EMPTY_LEDGER), figures: [], actions: [setupOffer(asked, ctx)].filter(Boolean), receipts: [] });
   }
 
-  const quick = shortCircuit(asked, ctx);
+  const quick = shortCircuit(asking, ctx);
   if (quick) {
     whole(quick.text);
     return closeWith({ ...quick, computed: true, basis: quick.basis || basisOf(quick.text, ctx) });
   }
 
-  ctx.asked = askedText(asked, history);
-  const plain = plainReplyFor(asked, ctx, now);
+  ctx.asked = askedText(asking, history);
+  const plain = plainReplyFor(asking, ctx, now);
   if (plain) {
     whole(plain.text);
     return closeWith({ ...plain, computed: true, basis: plain.basis || basisOf(plain.text, ctx) });
   }
-  const hint = LANGUAGE_HINT[languageOf(asked)] || '';
+  const hint = LANGUAGE_HINT[ctx.forceLanguage === 'pt-BR' ? 'pt' : (ctx.forceLanguage || languageOf(asking))] || '';
   const system = `${RULES}\n\nWhat the ledger knows:\n${contextText(ctx)}${hint ? `\n\n${hint}` : ''}`;
-  const turns = (Array.isArray(history) ? history : []).slice(-MAX_HISTORY_TURNS)
+  const said_before = (wanted && before) ? [] : (Array.isArray(history) ? history : []);
+  const turns = said_before.slice(-MAX_HISTORY_TURNS)
     .filter((h) => h && typeof h.text === 'string' && h.text.trim())
     .map((h) => ({ role: h.role === 'twin' ? 'assistant' : 'user', content: h.text.trim() }));
-  const messages = [...turns, { role: 'user', content: asked }];
+  const messages = [...turns, { role: 'user', content: asking }];
 
   const reader = textStreamer();
   const said = new Set(sentencesOf(previousTwinText(history)).map(shapeOf).filter(Boolean));
