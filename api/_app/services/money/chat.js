@@ -264,40 +264,44 @@ export function euroGlyphs(text) {
  */
 export async function gather(userId, now = new Date()) {
   const settled = async (p, fallback) => { try { return await p; } catch (e) { log.warn(`chat gather: ${e.message}`); return fallback; } };
-  /* The ledger and the facts once, then every derived part from those rows: before this each
-     of months, forecast, recurring and the two category reads walked the ledger and read
-     money_facts again (M2-A, 2026-09-22). With the calendar's own rows filtered out,
-     calendarLines below had nothing to say and Ask answered as though no diary existed. The
-     lens keeps them out of what is shown; here they are working memory the answer needs
-     (2026-09-16). */
-  const [allTransactions, facts] = await Promise.all([
-    settled(listTransactions(userId, { limit: 20000, includeRejected: true }), null),
-    settled(listFacts(userId, { includeInternal: true }), null),
-  ]);
-  const given = { ...(allTransactions ? { transactions: allTransactions } : {}), ...(facts ? { facts } : {}) };
-  const [segments, cast, recurring, readings, questions, places] = await Promise.all([
-    settled(months(userId, now, given), []),
-    settled(forecast(userId, now, given), null),
-    settled(refreshRecurring(userId, now, given), []),
-    settled(listReadings(userId), []),
-    settled(questionsFor(userId, now), { opening: [], fromLedger: [], answered: 0 }),
-    settled(listPlaces(userId), []),
+  /* Every read starts as early as its own rows allow, and the answer waits for all of them at
+     once. Before this they went in five waves, each waiting on the one before, so a turn paid
+     1.9 s for reads that cost 0.8 s of their own (measured 2026-09-24); a computed answer, which
+     needs no model at all, took three and a half seconds to say a sentence it already knew.
+     The ledger and the facts once, then every derived part from those rows (M2-A, 2026-09-22):
+     with the calendar's own rows filtered out, calendarLines had nothing to say and Ask
+     answered as though no diary existed. The lens keeps them out of what is shown; here they
+     are working memory the answer needs (2026-09-16). */
+  const ledgerRead = settled(listTransactions(userId, { limit: 20000, includeRejected: true }), null);
+  const factsRead = settled(listFacts(userId, { includeInternal: true }), null);
+  const readingsRead = settled(listReadings(userId), []);
+  const questionsRead = settled(questionsFor(userId, now), { opening: [], fromLedger: [], answered: 0 });
+  const placesRead = settled(listPlaces(userId), []);
+  const accountsRead = settled(Promise.resolve().then(() => listBankAccounts(userId)), []);
+  const languageRead = settled(Promise.resolve().then(() => userLanguage(userId)), null);
+  const returnsRead = settled(listReturnsClosing(userId, now, { within: 14 }), []);
+  /* The rows the derived reads stand on; each starts the moment they are in. */
+  const givenRead = Promise.all([ledgerRead, factsRead]).then(([transactions, facts]) => ({ ...(transactions ? { transactions } : {}), ...(facts ? { facts } : {}) }));
+  const segmentsRead = givenRead.then((given) => settled(months(userId, now, given), []));
+  const castRead = givenRead.then((given) => settled(forecast(userId, now, given), null));
+  const recurringRead = givenRead.then((given) => settled(refreshRecurring(userId, now, given), []));
+  /* what each subscription is used for, against what it costs: "least worth it" was answered by size (2026-09-23) */
+  const usageRead = ledgerRead.then((rows) => settled(Promise.resolve().then(() => subscriptionUsage(userId, now, { transactions: rows || undefined })), null));
+  /* Last month's kinds of place go in beside this month's: asked "and last month?" the model
+     attributed September's groceries to August, because August had no line of its own. The
+     month comes from the forecast, so these two wait for it and for nothing else. */
+  const kindsRead = Promise.all([castRead, factsRead]).then(([cast, facts]) => {
+    const thisMonth = cast?.month || `${now.toISOString().slice(0, 7)}-01`;
+    const lastMonth = (() => { const d = new Date(`${thisMonth}T12:00:00Z`); d.setUTCMonth(d.getUTCMonth() - 1); return d.toISOString().slice(0, 8) + '01'; })();
+    return Promise.all([
+      settled(categorySpend(userId, { month: thisMonth, facts }), { month: thisMonth, total: 0, read: 0, groups: [] }),
+      settled(categorySpend(userId, { month: lastMonth, facts }), { month: lastMonth, total: 0, read: 0, groups: [] }),
+    ]);
+  });
+  const [allTransactions, facts, segments, cast, recurring, readings, questions, places, accounts, language, returns, usage, [categories, lastCategories]] = await Promise.all([
+    ledgerRead, factsRead, segmentsRead, castRead, recurringRead, readingsRead, questionsRead, placesRead, accountsRead, languageRead, returnsRead, usageRead, kindsRead,
   ]);
   const transactions = allTransactions ? selectTransactions(allTransactions, { currency: ledgerCurrency(), limit: 5000 }) : [];
-  const [accounts, language] = await Promise.all([settled(Promise.resolve().then(() => listBankAccounts(userId)), []), settled(Promise.resolve().then(() => userLanguage(userId)), null)]);
-  const thisMonth = cast?.month || `${now.toISOString().slice(0, 7)}-01`;
-  const lastMonth = (() => { const d = new Date(`${thisMonth}T12:00:00Z`); d.setUTCMonth(d.getUTCMonth() - 1); return d.toISOString().slice(0, 8) + '01'; })();
-  /* Last month's kinds of place go in beside this month's: asked "and last month?" the model
-     attributed September's groceries to August, because August had no line of its own. */
-  const [categories, lastCategories] = await Promise.all([
-    settled(categorySpend(userId, { month: thisMonth, facts }), { month: thisMonth, total: 0, read: 0, groups: [] }),
-    settled(categorySpend(userId, { month: lastMonth, facts }), { month: lastMonth, total: 0, read: 0, groups: [] }),
-  ]);
-  const [returns, usage] = await Promise.all([
-    settled(listReturnsClosing(userId, now, { within: 14 }), []),
-    /* what each subscription is used for, against what it costs: "least worth it" was answered by size (2026-09-23) */
-    settled(Promise.resolve().then(() => subscriptionUsage(userId, now, { transactions: allTransactions || undefined })), null),
-  ]);
   return assemble({ transactions, segments, forecast: cast, recurring, readings, facts: facts || [], questions, places, categories, lastCategories, accounts, language, now, returns, usage });
 }
 
