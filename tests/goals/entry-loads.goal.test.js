@@ -10,6 +10,17 @@
  * real, with no mocks. A router has no listener, so nothing is started; what is proved is that
  * every import in the reachable graph resolves and every named export exists.
  */
+/* What a module demands of its configuration at load is not what this proves: the auth route
+   throws without a JWT secret, and CI's test step sets none. Placeholders only where the
+   environment is silent, so a real one always wins. */
+process.env.JWT_SECRET ||= 'entry-loads-goal-test-secret-of-at-least-32-chars';
+process.env.ENCRYPTION_KEY ||= '0'.repeat(64);
+process.env.SUPABASE_URL ||= 'https://entry-loads.supabase.co';
+process.env.VITE_SUPABASE_URL ||= process.env.SUPABASE_URL;
+process.env.SUPABASE_ANON_KEY ||= 'entry-loads-anon-key';
+process.env.VITE_SUPABASE_ANON_KEY ||= process.env.SUPABASE_ANON_KEY;
+process.env.SUPABASE_SERVICE_ROLE_KEY ||= 'entry-loads-service-role-key';
+
 import { describe, it, expect } from 'vitest';
 import path from 'node:path';
 import { readRoots } from '../../scripts/ci/reach.mjs';
