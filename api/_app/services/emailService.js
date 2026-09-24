@@ -343,29 +343,29 @@ export async function sendWelcomeEmail({ toEmail, firstName }) {
 
   const body = `
   <p style="${S.heading}">Welcome, ${safeName}</p>
-  <p style="${S.body}">You're one of the first people to try TwinMe. Your digital twin is now live and learning about you.</p>
+  <p style="${S.body}">You're one of the first people to try TwinMe Money. It reads your spending and says what the month is doing: what you have spent, what is still coming, what is left. It can never move money.</p>
 
   <div style="${S.divider}"></div>
 
-  <p style="${S.subheading}">Get the most out of it</p>
+  <p style="${S.subheading}">Where to start</p>
 
-  <p style="${S.listItem}"><span style="${S.listStrong}">Connect platforms</span> &mdash; Spotify, YouTube, Gmail give your twin real context</p>
-  <p style="${S.listItem}"><span style="${S.listStrong}">Chat with your twin</span> &mdash; the more you talk, the better it knows you</p>
-  <p style="${S.listItem}"><span style="${S.listStrong}">Give feedback</span> &mdash; use the feedback button anytime</p>
+  <p style="${S.listItem}"><span style="${S.listStrong}">Give it something to read</span> &mdash; a bank statement, or receipts forwarded to the address on your Sources page</p>
+  <p style="${S.listItem}"><span style="${S.listStrong}">Catch payments as they happen</span> &mdash; the Android app reads your bank's notifications; on iPhone it is a Shortcut, for Apple Pay</p>
+  <p style="${S.listItem}"><span style="${S.listStrong}">Ask it anything</span> &mdash; every answer is your own payments, with the payments underneath</p>
 
   <div style="margin-top:28px;">
-    <a href="${APP_URL}/dashboard" style="${S.cta}">Open your dashboard</a>
+    <a href="${APP_URL}/money" style="${S.cta}">Open TwinMe Money</a>
   </div>
 
   <div style="${S.footer}">
-    <p style="margin:0 0 4px;">You're part of a small group shaping what TwinMe becomes. We read every piece of feedback.</p>
-    <p style="margin:0;color:#2A2624;">TwinMe &mdash; discover what makes you, you.</p>
+    <p style="margin:0 0 4px;">You're part of a small group shaping what this becomes. We read every piece of feedback.</p>
+    <p style="margin:0;color:#2A2624;">TwinMe Money &mdash; your money, read to you.</p>
   </div>`;
 
   return deliver('Welcome email', {
     from: FROM,
     to: toEmail,
-    subject: `Welcome to TwinMe, ${safeName}`,
+    subject: `Welcome to TwinMe Money, ${safeName}`,
     html: emailShell(body),
   }, { email: toEmail });
 }
@@ -383,7 +383,7 @@ export async function sendBetaInvite({ toEmail, firstName, inviteCode }) {
 
   const body = `
   <p style="${S.heading}">${safeName}, you're invited</p>
-  <p style="${S.body}">You've been selected for early access to TwinMe &mdash; an AI twin that actually knows you. We're starting small, just a handful of people, so we can get this right.</p>
+  <p style="${S.body}">You have early access to TwinMe Money. It reads your bank and says what the month is doing: what you have spent, what is still coming, what is left. It can never move money. We are starting with a handful of people so we can get this right.</p>
 
   <div style="${S.codeCard}">
     <p style="${S.codeLabel}">Your invite code</p>
@@ -393,7 +393,7 @@ export async function sendBetaInvite({ toEmail, firstName, inviteCode }) {
   <p style="${S.body}">Click below to get started. Your code will be applied automatically.</p>
 
   <div style="margin-top:28px;">
-    <a href="${inviteUrl}" style="${S.cta}">Start your twin journey</a>
+    <a href="${inviteUrl}" style="${S.cta}">Open TwinMe Money</a>
   </div>
 
   <div style="${S.footer}">

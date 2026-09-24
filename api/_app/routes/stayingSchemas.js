@@ -76,7 +76,7 @@ export const PRESENCE_CALL_COMPLETE = loose({
 export const BILLING_CHECKOUT = loose({ plan: text(32) });
 
 /* The beta programme (beta.js, beta-public.js, beta-feedback.js, beta-admin.js). */
-export const BETA_SIGNUP = loose({ name: text(120), email: text(254), platforms: z.array(z.string().max(64)).max(50).optional().nullable(), reason: text(2000) });
+export const BETA_SIGNUP = loose({ name: text(120), email: text(254), platforms: z.array(z.string().max(64)).max(50).optional().nullable(), phone: text(16), reason: text(2000) });
 export const BETA_ACTIVATE = loose({ email: text(254) });
 export const BETA_VALIDATE = loose({ code: text(64) });
 export const BETA_WAITLIST = loose({ email: text(254), name: text(120) });

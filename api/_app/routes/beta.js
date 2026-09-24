@@ -20,17 +20,23 @@ import { quietly } from '../services/quietly.js';
 const log = createLogger('BetaSignup');
 const router = Router();
 
-// linkedin, reddit and twitch removed (replan-2026-06-10 Track C portfolio
-// cut) — do not collect beta interest for platforms we no longer connect.
+/* What the ledger reads from, and nothing else (2026-09-25). The eight OAuth platforms this
+   list used to hold -- Spotify, Google Calendar, YouTube, Whoop, Discord, Gmail, GitHub --
+   have answered 410 since the twin was parked (D20) and were deleted with it, so the form
+   was collecting interest in things nobody could connect. These six are the money product's
+   own sources, in the order the Sources page names them. */
 const VALID_PLATFORMS = [
-  'spotify',
+  'bank',
+  'phone_alerts',
+  'receipts',
+  'statements',
   'calendar',
-  'youtube',
-  'whoop',
-  'discord',
-  'gmail',
-  'github',
+  'whatsapp',
 ];
+
+/* Which phone, because it decides how a payment reaches the ledger at all: Android reads the
+   bank's notifications, an iPhone runs a Wallet Shortcut and only for Apple Pay. */
+const VALID_PHONES = ['ios', 'android'];
 
 const signupLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
@@ -45,7 +51,7 @@ const signupLimiter = rateLimit({
  */
 router.post('/signup', signupLimiter, validate({ body: V.BETA_SIGNUP }), async (req, res) => {
   try {
-    const { name, email, platforms, reason } = req.body;
+    const { name, email, platforms, phone, reason } = req.body;
 
     // --- Input validation ---
     if (!name || typeof name !== 'string' || name.trim().length < 1) {
@@ -63,6 +69,10 @@ router.post('/signup', signupLimiter, validate({ body: V.BETA_SIGNUP }), async (
     const safePlatforms = platforms
       .filter(p => typeof p === 'string' && VALID_PLATFORMS.includes(p.toLowerCase()))
       .map(p => p.toLowerCase());
+    /* Unanswered stays null rather than becoming a default: which phone a person carries is
+       not something to guess on their behalf. */
+    const safePhone = typeof phone === 'string' && VALID_PHONES.includes(phone.toLowerCase())
+      ? phone.toLowerCase() : null;
 
     if (reason && typeof reason === 'string' && reason.length > 2000) {
       return res.status(400).json({ success: false, error: 'Reason is too long (max 2000 characters)' });
@@ -104,6 +114,7 @@ router.post('/signup', signupLimiter, validate({ body: V.BETA_SIGNUP }), async (
         name: trimmedName,
         email: normalizedEmail,
         platforms: safePlatforms,
+        phone: safePhone,
         reason: safeReason,
         status: 'approved',
         invite_code: invite.code,
@@ -156,6 +167,7 @@ router.post('/signup', signupLimiter, validate({ body: V.BETA_SIGNUP }), async (
       email: normalizedEmail,
       code: invite.code,
       platforms: safePlatforms,
+      phone: safePhone,
     });
 
     res.json({
