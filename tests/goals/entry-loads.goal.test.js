@@ -22,6 +22,8 @@ const STUBS = {
   JWT_SECRET: 'entry-loads-goal-test-secret-of-at-least-32-chars',
   ENCRYPTION_KEY: '0'.repeat(64),
   TOKEN_ENCRYPTION_KEY: '0'.repeat(64),
+  /* server.js exits on REQUIRED_ENV_VARS before anything can report; the list is four long. */
+  OPENROUTER_API_KEY: 'entry-loads-openrouter-key',
   SUPABASE_URL: 'https://entry-loads.supabase.co',
   VITE_SUPABASE_URL: 'https://entry-loads.supabase.co',
   SUPABASE_ANON_KEY: 'entry-loads-anon-key',
@@ -40,10 +42,17 @@ function loadInNode(file) {
     .then(() => { process.stdout.write('@@LOADED@@'); })
     .catch((e) => { process.stdout.write('@@LOADERROR ' + (e && e.message ? e.message : String(e)).split('\\n')[0] + '@@'); })
     .finally(() => process.exit(0));`;
-  const out = execFileSync(process.execPath, ['--input-type=module', '-e', code], {
-    cwd: ROOT, encoding: 'utf8', timeout: 90000, stdio: ['ignore', 'pipe', 'pipe'],
-    env: { ...process.env, ...Object.fromEntries(Object.entries(STUBS).filter(([k]) => !process.env[k])), DISABLE_BACKGROUND_JOBS: 'true', NODE_ENV: 'test' },
-  });
+  const run = { cwd: ROOT, encoding: 'utf8', timeout: 90000, stdio: ['ignore', 'pipe', 'pipe'],
+    env: { ...process.env, ...Object.fromEntries(Object.entries(STUBS).filter(([k]) => !process.env[k])), DISABLE_BACKGROUND_JOBS: 'true', NODE_ENV: 'test' } };
+  let out;
+  try {
+    out = execFileSync(process.execPath, ['--input-type=module', '-e', code], run);
+  } catch (e) {
+    /* A module that calls process.exit on the way up never reaches the marker, and its own last
+       words are the reason: they sit at the end of stderr, under every warning. */
+    const why = String(e.stderr || e.stdout || e.message).split('\n').map((l) => l.trim()).filter(Boolean).slice(-3).join(' | ');
+    return `the child died: ${why.slice(0, 300)}`;
+  }
   const said = /@@(LOADED|LOADERROR[^@]*)@@/.exec(out);
   return said ? said[1] : `the child said nothing: ${out.trim().slice(-200)}`;
 }
