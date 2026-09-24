@@ -34,6 +34,9 @@ function sameMerchant(a, b) {
   return a.startsWith(b + ' ') || b.startsWith(a + ' ');
 }
 
+/** A sighting that names no shop: the bank's own alert mail, "movimiento de -10,93 EUR". */
+function nameless(key) { return !key || key === 'unknown'; }
+
 /**
  * Find the transaction a sighting belongs to, if any.
  * @param {object} sighting  { amount, direction, merchant_key, occurred_at }
@@ -46,17 +49,32 @@ export function findMatch(sighting, transactions, opts = {}) {
      row is one payment, and two identical bank rows in a day are two payments, however
      alike. The phone and the bank still meet on one line. */
   const exclude = opts.exclude || null;
-  let best = null; let bestDt = Infinity;
+  /* A shared name is the strong evidence and is taken first; a figure on the same account
+     with a name on one side only is the weak evidence, and is taken only when no named line
+     of that figure is in the window. */
+  let best = null; let bestDt = Infinity; let bestNamed = false;
   for (const t of transactions) {
     if (exclude && exclude.has(t.id)) continue;
     if ((t.currency || 'EUR') !== (sighting.currency || 'EUR')) continue;
     if (t.account_id && sighting.account_id && t.account_id !== sighting.account_id) continue;
     if (t.card_last4 && sighting.card_last4 && t.card_last4 !== sighting.card_last4) continue;
     if (!closeEnough(Number(t.amount), signed) || Math.sign(Number(t.amount)) !== Math.sign(signed)) continue;
-    // An unknown shop is not evidence that two payments are the same.
-    if (t.merchant_key === 'unknown' || sighting.merchant_key === 'unknown' || !sameMerchant(t.merchant_key, sighting.merchant_key)) continue;
+    const blankSide = nameless(t.merchant_key); const blankSighting = nameless(sighting.merchant_key);
+    /* Two unknown shops are not evidence that two payments are the same: the same coffee
+       twice is two coffees, and neither line can tell them apart. */
+    if (blankSide && blankSighting) continue;
+    /* One side without a shop is the bank announcing a figure it has already booked under a
+       name, or about to. Ten such alerts each opened a line of their own beside the row they
+       announced (2026-09-24): 80,99 EUR of spending and a 500,00 EUR arrival that never
+       happened twice. Joining the wrong line of an identical figure still leaves the day's
+       total right; opening a second line never does. */
+    const named = !blankSide && !blankSighting;
+    if (named && !sameMerchant(t.merchant_key, sighting.merchant_key)) continue;
     const dt = Math.abs(new Date(t.occurred_at).getTime() - t0);
-    if (dt <= MATCH_WINDOW_MS && dt < bestDt) { best = t; bestDt = dt; }
+    if (dt > MATCH_WINDOW_MS) continue;
+    if (bestNamed && !named) continue;
+    if (named && !bestNamed) { best = t; bestDt = dt; bestNamed = true; continue; }
+    if (dt < bestDt) { best = t; bestDt = dt; bestNamed = named; }
   }
   return best;
 }

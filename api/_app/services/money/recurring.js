@@ -66,6 +66,14 @@ function cv(xs) {
   return Math.sqrt(v) / Math.abs(m);
 }
 
+/* A calendar beat of a month or longer is something signed up for; a weekly or biweekly
+   rhythm at a steady figure is a habit - the commute, the Friday shop - and is not.
+   is_subscription was Boolean(platforms[key]) alone, and money_merchants has never held a
+   row, so every series in production read false and no subscription finding could fire
+   (2026-09-24). The catalogue was the retired twin's platform list; the beat is evidence
+   the ledger holds by itself. */
+export const SUBSCRIPTION_CADENCES = new Set(['monthly', 'quarterly', 'yearly']);
+
 export function cadenceOf(medianDays) {
   if (medianDays >= 5 && medianDays <= 9) return 'weekly';
   if (medianDays >= 12 && medianDays <= 16) return 'biweekly';
@@ -134,7 +142,7 @@ export function detectRecurring(transactions, opts = {}) {
       /* Rolled forward past today: a biweekly last seen on 22 August is next due in the
          future, not "around 5 September" said on the 15th. */
       next_expected: dayIn(nextAfter(last, Math.round(med) * DAY, now)),
-      is_subscription: Boolean(platforms[key]),
+      is_subscription: Boolean(platforms[key]) || SUBSCRIPTION_CADENCES.has(cadence),
       platform: platforms[key] || null,
       transaction_ids: rows.map((r) => r.id).filter(Boolean),
       /* The charges at this merchant that are not the series: their count and their

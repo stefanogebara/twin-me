@@ -127,3 +127,64 @@ describe('one bank row is one payment', () => {
     expect(reconcile(phone, [line], 'bankfeed', { exclude: new Set() }).action).toBe('attach');
   });
 });
+
+/**
+ * The bank's own alert mail says only "movimiento de -10,93 EUR en tu cuenta acabada en
+ * 7516": an amount, no shop. It carried merchant_key 'unknown', findMatch refused every
+ * candidate on that alone, and each alert opened a second line beside the bank row it was
+ * announcing. Ten of them stood in the ledger on 2026-09-24, 80,99 EUR of spending and a
+ * 500,00 EUR arrival that never happened twice, and the week's review read them as the
+ * payments that weighed most. A nameless alert is not a second payment: it is the same
+ * account saying the same figure again.
+ */
+describe('a bank alert with no shop in it', () => {
+  const alert = { id: 'e1', source: 'email', amount: 10.93, direction: 'out', merchant_key: 'unknown', merchant_raw: null, occurred_at: '2026-09-21T16:54:46Z', parse_confidence: 0.6 };
+  const cabify = { id: 't1', amount: -10.93, merchant_key: 'cabify', merchant_raw: 'Cabify', occurred_at: '2026-09-19T12:00:00Z', posted_at: '2026-09-19T12:00:00Z', primary_sighting_id: 's9' };
+
+  it('attaches to the named line the bank already booked, rather than opening a second one', () => {
+    const d = reconcile(alert, [cabify], 'bankfeed');
+    expect(d.action).toBe('attach');
+    expect(d.transaction.id).toBe('t1');
+  });
+
+  it('takes nothing from the line it joins: the bank keeps the name, the key and the amount', () => {
+    const d = reconcile(alert, [cabify], 'bankfeed');
+    expect(d.transaction.merchant_raw).toBeUndefined();
+    expect(d.transaction.merchant_key).toBeUndefined();
+    expect(d.transaction.amount).toBeUndefined();
+    expect(d.transaction.primary_sighting_id).toBeUndefined();
+  });
+
+  it('is named by the bank row when the alert was seen first', () => {
+    const nameless = { id: 't2', amount: -10.93, merchant_key: 'unknown', merchant_raw: null, occurred_at: alert.occurred_at, posted_at: null, primary_sighting_id: 'e1' };
+    const feedRow = { id: 's9', source: 'bankfeed', amount: 10.93, direction: 'out', merchant_key: 'cabify', merchant_raw: 'Cabify', occurred_at: '2026-09-19T12:00:00Z' };
+    const d = reconcile(feedRow, [nameless], 'email');
+    expect(d.action).toBe('attach');
+    expect(d.transaction.merchant_raw).toBe('Cabify');
+    expect(d.transaction.merchant_key).toBe('cabify');
+  });
+
+  it('still opens a line when the bank has booked nothing of that figure', () => {
+    expect(reconcile(alert, [{ ...cabify, amount: -4.55 }], 'bankfeed').action).toBe('create');
+    expect(reconcile(alert, [], 'bankfeed').action).toBe('create');
+  });
+
+  it('never joins two nameless lines: two anonymous coffees are two coffees', () => {
+    const otherAlert = { ...cabify, merchant_key: 'unknown', merchant_raw: null, primary_sighting_id: 'e0' };
+    expect(findMatch(alert, [otherAlert])).toBeNull();
+  });
+
+  it('prefers a line that shares the shop over a nameless one of the same figure', () => {
+    const named = { id: 't3', amount: -10.93, merchant_key: 'cabify', merchant_raw: 'Cabify', occurred_at: '2026-09-21T10:00:00Z' };
+    const blank = { id: 't4', amount: -10.93, merchant_key: 'unknown', merchant_raw: null, occurred_at: '2026-09-21T16:00:00Z' };
+    const named_sighting = { ...alert, id: 'e2', merchant_key: 'cabify', merchant_raw: 'Cabify' };
+    expect(findMatch(named_sighting, [blank, named])?.id).toBe('t3');
+  });
+
+  it('will not cross accounts or cards on a figure alone', () => {
+    const onCard = { ...cabify, card_last4: '9999' };
+    expect(findMatch({ ...alert, card_last4: '7516' }, [onCard])).toBeNull();
+    const onAccount = { ...cabify, account_id: 'acc-a' };
+    expect(findMatch({ ...alert, account_id: 'acc-b' }, [onAccount])).toBeNull();
+  });
+});

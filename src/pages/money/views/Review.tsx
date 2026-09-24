@@ -18,12 +18,16 @@ export default function Review({ m }: { m: MoneyAccount }) {
   if (!payments.length) return null;
   const rows = groupReviewRows(payments);
   /* "Ninety seconds" named a ritual and not what was on the screen; Stefano flagged it on the
-     21st and a second reader did on the 22nd. The heading says what the list is. */
+     21st and a second reader did on the 22nd. The heading says what the list is.
+     It still did not say all of it: a payment with a verdict leaves this list, so on the
+     24th the week's two largest, 103,00 EUR and 101,39 EUR, were both answered and gone,
+     and the line called 30,00 EUR the largest payment of the week. The list is a queue,
+     and the line now says so. */
   return (
     <section className="mv-section" id="review">
       <h2>{t('What weighed most.')}</h2>
       {/* No count: five payments in four rows read as an error to anyone who did not add them up. */}
-      <p className="mv-sub">{t(payments.length === 1 ? 'The largest payment of the week.' : 'The largest payments of the week.')}</p>
+      <p className="mv-sub">{t(payments.length === 1 ? 'The largest of the week you have not answered.' : 'The largest payments of the week you have not answered.')}</p>
       <ul className="mv-list">
         {rows.map((row) => {
           const isOpen = open === row.id;

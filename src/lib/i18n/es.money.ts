@@ -877,6 +877,8 @@ export const ES_MONEY: Record<string, string> = {
   "{names} land {when}, {amount} together, already off today's number.": "{names} se cobran {when}, {amount} en total, ya descontados del número de hoy.",
   "today and tomorrow": "hoy y mañana",
   "Spent {amount} in {month}": "Gastados {amount} en {month}",
+  "The largest of the week you have not answered.": "El mayor pago de la semana sin responder.",
+  "The largest payments of the week you have not answered.": "Los mayores pagos de la semana sin responder.",
   "The largest payments of the week.": "Los pagos m\u00e1s grandes de la semana.",
   "One payment while you were away is not counted.": "Un pago mientras estabas fuera no se cuenta.",
   "{away} payments while you were away are not counted.": "{away} pagos mientras estabas fuera no se cuentan.",
