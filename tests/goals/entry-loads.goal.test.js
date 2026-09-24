@@ -21,6 +21,7 @@ const ROOT = path.resolve(__dirname, '../..');
 const STUBS = {
   JWT_SECRET: 'entry-loads-goal-test-secret-of-at-least-32-chars',
   ENCRYPTION_KEY: '0'.repeat(64),
+  TOKEN_ENCRYPTION_KEY: '0'.repeat(64),
   SUPABASE_URL: 'https://entry-loads.supabase.co',
   VITE_SUPABASE_URL: 'https://entry-loads.supabase.co',
   SUPABASE_ANON_KEY: 'entry-loads-anon-key',
