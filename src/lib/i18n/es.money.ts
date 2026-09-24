@@ -142,6 +142,8 @@ export const ES_MONEY: Record<string, string> = {
   "Not me": "No fui yo",
   "What comes back on its own.": "Lo que vuelve solo.",
   "A charge counts once it has come back three times at the same rhythm.": "Un cargo cuenta cuando ha vuelto tres veces con el mismo ritmo.",
+  "{amount} leaves every month.": "{amount} sale cada mes.",
+  "{n} of these leave every month, {amount} together.": "{n} de estos salen cada mes, {amount} en total.",
   "{amount} of it leaves every month.": "{amount} de eso sale cada mes.",
   "Lands on the {day}.": "Cae el {day}.",
   "next around {day}": "el siguiente hacia el {day}",

@@ -21,7 +21,13 @@ export default function Recurring({ m }: { m: MoneyAccount }) {
               <div className="mv-list"><p className="mv-empty">{t('A charge counts once it has come back three times at the same rhythm.')}</p></div>
             ) : (
               <>
-                {monthlyLoad ? <p className="mv-sub">{t('{amount} of it leaves every month.', { amount: euro(monthlyLoad) })}</p> : null}
+                {monthlyLoad.amount ? (
+                  <p className="mv-sub">
+                    {monthlyLoad.all
+                      ? t('{amount} leaves every month.', { amount: euro(monthlyLoad.amount) })
+                      : t('{n} of these leave every month, {amount} together.', { n: monthlyLoad.monthly, amount: euro(monthlyLoad.amount) })}
+                  </p>
+                ) : null}
                 <ul className="mv-list">
                   {[...subscriptions, ...bills].map((r) => {
                     const isOpen = openSeries === r.merchant_key;

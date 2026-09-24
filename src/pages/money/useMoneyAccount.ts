@@ -5,6 +5,7 @@
  */
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { monthlyLoad as loadOfRecurring } from './recurringLoad';
 import { dayPartsIn, browserZone } from './readingHelpers';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLocale, useT } from '@/lib/i18n';
@@ -449,10 +450,9 @@ export function useMoneyAccount(view: MoneyView, userId: string | null) {
   /* One purchase makes p10, p50 and p90 the same euro, and reading the same number three
      times looks broken rather than honest. Say nothing about the month until the band opens. */
   const projectable = Boolean(forecast && forecast.projected_p90 - forecast.projected_p10 > 0.5);
-  const monthlyLoad = useMemo(
-    () => Math.round(recurring.filter((r) => r.cadence === 'monthly').reduce((s, r) => s + Math.abs(Number(r.typical_amount) || 0), 0) * 100) / 100,
-    [recurring],
-  );
+  /* The figure and how many of the rows it covers: a card of six adding to 134,12 EUR under
+     a line reading 114,12 EUR was telling a person two things at once (2026-09-24). */
+  const monthlyLoad = useMemo(() => loadOfRecurring(recurring), [recurring]);
   const subscriptions = recurring.filter((r) => r.is_subscription);
   const bills = recurring.filter((r) => !r.is_subscription);
 

@@ -407,3 +407,50 @@ describe('the charge before it lands', () => {
     expect(today.charges_soon).toEqual([{ name: 'Spotify', amount: 9.99, when: 'tomorrow' }]);
   });
 });
+
+/**
+ * A receipt from a card this ledger does not read.
+ * ================================================
+ * OpenAI charged 103,00 EUR on 17 September 2026 and the receipt reached the inbox. The bank
+ * was read every hour for the seven days after and never booked it, because it was never
+ * paid from that bank. It came off the Santander balance all the same, so the day's number
+ * was 103,00 EUR short of the truth, and then stopped being short on the eighth day because
+ * the caller only passes eight days of payments. Right by accident, having been wrong by
+ * rule. The bank books a card payment inside the window reconciliation already waits out,
+ * and a payment it has read past for longer than that, with no bank evidence of its own, was
+ * paid from something else. It is not this account's money and never was.
+ */
+describe('a payment the bank was never going to hold', () => {
+  const now = new Date('2026-09-24T16:00:00Z');
+  const account = {
+    id: 'a', currency: 'EUR', balance: 371.41, balance_type: 'CLBD',
+    balance_at: '2026-09-24T00:00:00Z', balance_observed_at: '2026-09-24T15:00:00Z',
+    last_pulled_at: '2026-09-24T15:00:00Z', bank_name: 'Santander',
+  };
+  const receipt = (at) => ({ amount: -103, currency: 'EUR', occurred_at: at, posted_at: null, account_id: null });
+
+  it('is left on the balance once the booking window has passed', () => {
+    const b = freshBalance([account], now, [], [receipt('2026-09-17T17:41:00Z')]);
+    expect(b).toMatchObject({ amount: 371.41, reported: 371.41, adjustment: 0 });
+  });
+
+  it('still comes off while the bank could yet book it', () => {
+    const b = freshBalance([account], now, [], [receipt('2026-09-22T17:41:00Z')]);
+    expect(b).toMatchObject({ amount: 268.41, adjustment: 103 });
+  });
+
+  it('comes off whatever its age once the bank has booked it on this account', () => {
+    const booked = { amount: -103, currency: 'EUR', occurred_at: '2026-09-17T17:41:00Z', posted_at: null, account_id: 'a' };
+    expect(freshBalance([account], now, [], [booked])).toMatchObject({ adjustment: 103 });
+  });
+
+  it('is still withheld when the bank has not been read since the payment', () => {
+    const unread = { ...account, last_pulled_at: '2026-09-17T10:00:00Z' };
+    expect(freshBalance([unread], now, [], [receipt('2026-09-17T17:41:00Z')])).toBeNull();
+  });
+
+  it('the two together: today comes off, the old receipt does not', () => {
+    const rows = [receipt('2026-09-17T17:41:00Z'), { amount: -1.7, currency: 'EUR', occurred_at: '2026-09-24T09:51:00Z', posted_at: null, account_id: null }];
+    expect(freshBalance([account], now, [], rows)).toMatchObject({ amount: 369.71, adjustment: 1.7 });
+  });
+});
