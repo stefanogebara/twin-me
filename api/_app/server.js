@@ -419,13 +419,6 @@ import betaPublicRoutes from './routes/beta-public.js';
 import betaSignupRoutes from './routes/beta.js';
 import { betaAdminRouter } from './routes/beta-admin.js';
 import betaFeedbackRouter from './routes/beta-feedback.js';
-// OG image routes loaded lazily to prevent font-loading crashes from taking down the whole server
-let ogImageRoutes = null;
-try {
-  ogImageRoutes = (await import('./routes/og-image.js')).default;
-} catch (err) {
-  log.warn('Failed to load OG image routes', { error: err });
-}
 // Phase 1 Agentic Foundation routes
 import cronStatementNagRoutes from './routes/cron-statement-nag.js';
 import cronAgentActionsCleanupRoutes from './routes/cron-agent-actions-cleanup.js';
@@ -506,22 +499,10 @@ app.patch('/api/users/preferences', authenticateUser, async (req, res) => {
   }
 });
 app.use('/api/webhooks', webhookRoutes); // Real-time webhook receivers (GitHub, Gmail)
-// Test/debug routes — only loaded + mounted in development. audit-2026-05-08
-// code-quality HIGH: dynamic imports keep these out of the production bundle.
-if (process.env.NODE_ENV === 'development') {
-  const { default: testExtractionRoutes } = await import('./routes/test-extraction.js');
-  app.use('/api/test-extraction', testExtractionRoutes);
-}
 app.use('/api/oauth/calendar', calendarOAuthRoutes); // Google Calendar OAuth connect endpoint
 app.use('/api/calendar', calendarOAuthRoutes); // Calendar events and sync endpoints
-if (process.env.NODE_ENV === 'development') {
-  const { default: testPatternLearningRoutes } = await import('./routes/test-pattern-learning.js');
-  app.use('/api/test-pattern-learning', testPatternLearningRoutes);
-}
 app.use('/api/account', accountRoutes); // Account deletion + data export
 app.use('/api/consent', consentRoutes); // User consent management (GDPR/privacy)
-if (ogImageRoutes) app.use('/api', ogImageRoutes); // OG image cards (/api/og/soul-card, /api/s/:userId)
-app.use('/api/costs', (await import('./routes/cost-dashboard.js')).default); // AI cost dashboard
 app.use('/api/presence', presenceRoutes); // Presence family relay (plan 2026-09-15-presence-forward)
 app.use('/api/presence-call', presenceCallRoutes); // Presence elder channel: public, token-authed
 app.use('/api/money', bankCallback); // the bank's redirect arrives without a session
@@ -558,17 +539,9 @@ app.use('/api/email', emailUnsubscribeRoutes); // One-click unsubscribe for dige
 // Vercel Cron Job endpoints (production automation)
 // These are called by Vercel Cron Jobs on schedule (configured in vercel.json)
 // Token refresh is on-demand only (no cron) — see tokenRefreshService.js
-if (process.env.NODE_ENV === 'development') {
-  const { default: debugPlatformFetchHandler } = await import('./routes/debug-platform-fetch.js');
-  app.use('/api/debug/platform-fetch', debugPlatformFetchHandler);
-}
 
 // /api/finetuning routes removed — DPO/fine-tuning training stack deleted (replan-2026-06-10 cycle 4)
 app.use('/api/health', healthRoutes); // Health check (non-blocking with timeout)
-if (process.env.NODE_ENV === 'development') {
-  const { default: testEvidencePipelineRoutes } = await import('./routes/test-evidence-pipeline.js');
-  app.use('/api/test-evidence-pipeline', testEvidencePipelineRoutes);
-}
 
 // Sentry error handler (after routes, before our own error handlers).
 // v10 replacement for the removed Sentry.Handlers.errorHandler().

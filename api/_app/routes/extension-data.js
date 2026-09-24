@@ -911,14 +911,7 @@ async function pushBrowsingToIntegrations(userId, analysis) {
     log.warn('Mem0 integration error:', err.message);
   }
 
-  // 3. Trigger soul signature rebuild
-  try {
-    const { default: soulBuilder } = await import('../services/soulSignatureBuilder.js');
-    await soulBuilder.buildSoulSignature(userId);
-    log.info('Soul Signature: Rebuild triggered with browsing data');
-  } catch (err) {
-    log.warn('Soul Signature rebuild error:', err.message);
-  }
+  /* The soul signature went with the parked API (M2-B, 2026-09-24); browsing data is kept, nothing is rebuilt from it. */
 }
 
 export default router;
