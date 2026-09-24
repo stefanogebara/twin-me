@@ -36,7 +36,7 @@ import { withPerson } from './scope.js';
 import { dayIn, dayOfMonthIn } from './zone.js';
 
 import { listOwnTransactions, selectTransactions } from './transactionRepository.js';
-export { listTransactions, transactionPage } from './transactionRepository.js';
+export { listTransactions, listOwnTransactions, transactionPage } from './transactionRepository.js';
 /* Pure reads and the forecast live in their own modules since 2026-09-19 (the two import
    cycles); store.js keeps their names so no caller had to move. */
 import { INTERNAL_FACT_KINDS, listFacts, publicFacts, categoriesFor } from './factsRepository.js';
