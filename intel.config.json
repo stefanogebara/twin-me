@@ -16,7 +16,8 @@
     "app mobile Expo / React Native (mobile/)",
     "Bull + Redis + Inngest para fila; ~15 crons na Vercel",
     "canais de conversa: WhatsApp (5 webhooks), Telegram (grammy), voz (ElevenLabs + Vapi)",
-    "Stripe, Sentry, PostHog, Resend, Nango"
+    "Stripe, Sentry, PostHog, Resend, Nango",
+    "money twin (api/services/money/, desde 2026-08/09) — Enable Banking como agregador Open Banking (Santander em produção, Revolut somado 2026-09-14), Bizum, endereço de e-mail por usuário para recibos e alertas de banco, calibração de banda por controlador PID sobre o erro de previsão"
   ],
   "bets": [
     "auto-referente vence hetero-referente: o valor é o usuário se entender, não outra pessoa consumir o gêmeo",
@@ -96,7 +97,8 @@
     "Chrome Web Store (extensão MV3)",
     "APIs de Spotify / YouTube / GitHub / Discord / Google Calendar / Gmail / Whoop",
     "WhatsApp, Telegram, ElevenLabs, Vapi",
-    "Vercel, Stripe, Sentry, PostHog, Resend, Nango"
+    "Vercel, Stripe, Sentry, PostHog, Resend, Nango",
+    "Enable Banking (agregador Open Banking — Santander em produção, Revolut somado)"
   ],
   "verdict_note": "Anthropic NÃO é dependência direta deste produto — todo LLM passa por OpenRouter e o padrão é DeepSeek V3.2. Item sobre preço/limite/modelo da Anthropic só importa por via do OpenRouter. Atenção especial: itens que atacam proveniência de traço têm âncora forte e barata aqui, porque behavioral_evidence já existe e só falta o caminho de leitura.",
   "feed_url": "https://claude.ai/code/artifact/53796b2d-d805-48eb-85d9-6f0a7f086be5"

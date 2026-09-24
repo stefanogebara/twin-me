@@ -131,7 +131,7 @@ grafo não é o gargalo, a geração do traço é.
 
 **Toca:**
 - Escrita da evidência hoje: `api/services/evidenceGeneratorService.js` (grava em `behavioral_evidence`), `api/services/behavioralEvidencePipeline.js`
-- Geração do traço: `api/services/bigFiveAssessmentService.js`, `api/services/soulSignatureService.js`, `api/services/reflectionEngine.js`, `api/services/twinEvolutionService.js`
+- Geração do traço: `api/services/bigFiveAssessmentService.js`, `api/services/soulSignatureService.js`, `api/services/reflectionEngine.js`, ~~`api/services/twinEvolutionService.js`~~ (**âncora órfã, 2026-09-14**: arquivo deletado em `f22ba2f`/#314, 13/09 — pipeline de formação do twin retirado por falta de cliente; ver `STATE.md`)
 - Schema já existente: `database/supabase/migrations/20260114_behavioral_evidence.sql` (é a `trait_evidence` do spike, só que ligada a *feature* e não a *evento*), `database/supabase/migrations/20250124_soul_signature_schema.sql`, `database/supabase/migrations/20260222_add_memory_stream_vector_search.sql`
 - Leitura que falta criar: `api/routes/soul-signature.js` e `api/routes/twin-portrait.js` leem `personality_scores` e **nunca** `behavioral_evidence`
 - Render: `src/pages/components/soul-signature/BigFivePanel.tsx` (hoje sem uma única menção a evidência ou fonte)
@@ -313,7 +313,7 @@ que eram frágeis. Sucesso: concordância ≥70%.
 quebra a promessa de revelar sem interrogar.
 
 **Toca:**
-- Os escritores de persona a interceptar: `api/services/evidenceGeneratorService.js` (upsert em `behavioral_evidence`), `api/services/behavioralEvidencePipeline.js`, `api/services/reflectionEngine.js`, `api/services/twinEvolutionService.js`, `api/services/soulSignatureService.js`, `api/services/bigFiveAssessmentService.js`, `api/services/personalityProfileService.js`
+- Os escritores de persona a interceptar: `api/services/evidenceGeneratorService.js` (upsert em `behavioral_evidence`), `api/services/behavioralEvidencePipeline.js`, `api/services/reflectionEngine.js`, ~~`api/services/twinEvolutionService.js`~~ (**âncora órfã, 2026-09-14**: deletado em `f22ba2f`/#314, 13/09), `api/services/soulSignatureService.js`, `api/services/bigFiveAssessmentService.js`, `api/services/personalityProfileService.js`
 - Entrada genérica de memória: `addMemory` em `api/services/memoryStreamService.js`
 - **O caminho `ask` já está construído — para diretivas de chat, não para traços:** `database/migrations/20260527_create_twin_directives.sql` (`twin_directives` com `status`, `reinforcement_count`, `user_edited` e proveniência por `source_message_id`; mais `twin_corrections` como trilha de auditoria) e `api/routes/twin-directives.js`
 - Precedente de TTL/expiração: `database/supabase/migrations/20260728110058_add_memory_supersession.sql` e `api/routes/cron-memory-forgetting.js`
