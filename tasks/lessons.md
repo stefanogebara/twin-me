@@ -593,3 +593,21 @@ development-only conditions, waiting for whoever next ran the server locally.
   `scripts/ci/dead-imports.mjs` prints them.
 - A route nobody tests is a route nobody imports, so the suite cannot see it. Only resolution
   against the disk can.
+## 2026-09-24: a green suite over an API that could not start
+
+`sheet.js` imported `listOwnTransactions` from `store.js`, which re-exported every
+neighbouring name but that one. Production answered FUNCTION_INVOCATION_FAILED for twelve
+hours. Nothing caught it: every unit test mocks `store.js`, and vitest resolves modules
+through Vite's transform, where a missing named export is `undefined` rather than a link
+error. The type check, the lint, the 5,500 tests and the chat benchmark were all green.
+
+Then the fix itself did not ship: a `git checkout -- .` run before staging reverted the
+edited file, and the commit carried only its test. Its green checks read as proof.
+
+- A change is proved by the thing running, not by the suite: `node api/index.js` and a
+  request against it. `tests/goals/entry-loads.goal.test.js` does exactly that in a child
+  process now, and it fails on the broken tree with production's own words.
+- Read `git diff --cached` before committing a fix. Never `git checkout -- .` with
+  uncommitted work in the tree.
+- Mocking the module under a change hides the change. When a module's exports move, one test
+  must import it for real.
