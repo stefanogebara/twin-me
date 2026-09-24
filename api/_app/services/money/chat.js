@@ -26,6 +26,7 @@
  */
 
 import { ledgerCurrency, ours, currencyWord } from './currency.js';
+import { nextAsks } from './next.js';
 import { complete, stream as streamComplete, TIER_CHAT } from '../llmGateway.js';
 import { stretchLine, windowLines, weekAverageLine, costliestDayLine, cheapestDayLine, monthPaceLine, weekdayLine, spendWindows, breakdown, eur, NO_NAME } from './windows.js';
 import { askedLines, askedDays, askedWindows, askedAhead } from './asked.js';
@@ -228,7 +229,7 @@ const out = (t) => Number(t.amount) < 0 && t.counts !== false;
 const abs = (t) => Math.abs(Number(t.amount) || 0);
 const at = (t) => new Date(t.occurred_at).getTime();
 /** An amount as the prompt reads it: es-ES digits and the currency spelled, ASCII throughout. */
-const amountText = (n) => `${DECIMAL.format(Math.abs(Number(n) || 0))} ${ledgerCurrency()}`;
+export const amountText = (n) => `${DECIMAL.format(Math.abs(Number(n) || 0))} ${ledgerCurrency()}`;
 const dayMonth = (iso, language = null) => {
   const d = new Date(iso);
   const p = partsIn(d);
@@ -932,7 +933,25 @@ const PHRASES = {
     '{month} {amount} so far': '{month} {amount} hasta ahora',
     '{month} {amount}': '{month} {amount}',
     '{total} together, this month still open.': '{total} en total, este mes sigue abierto.',
-    '{total} together.': '{total} en total.',
+    'The ledger keeps no total across months.': 'El libro no guarda un total entre meses.',
+    'And {kind} last month?': '¿Y {kind} el mes pasado?',
+    'Which place took the most?': '¿Qué lugar se llevó más?',
+    'And last month?': '¿Y el mes pasado?',
+    'What comes back every month?': '¿Qué vuelve cada mes?',
+    'Which subscription is the least worth it?': '¿Qué suscripción merece menos la pena?',
+    'What is due before the month ends?': '¿Qué vence antes de que acabe el mes?',
+    'Where did the money go?': '¿A dónde se fue el dinero?',
+    'What can I spend today?': '¿Qué puedo gastar hoy?',
+    'Which day of the week costs the most?': '¿Qué día de la semana cuesta más?',
+    'Who sent me money this month?': '¿Quién me ha mandado dinero este mes?',
+    'How much came in this month?': '¿Cuánto ha entrado este mes?',
+    'What changed this week?': '¿Qué cambió esta semana?',
+    'How does this month compare?': '¿Cómo va este mes comparado?',
+    '{amount} in {month} so far': '{amount} en {month} hasta ahora',
+    '{amount}, one charge': '{amount}, un cargo',
+    '{amount} in {n} charges': '{amount} en {n} cargos',
+    '{month} closed at {amount}': '{month} cerró en {amount}',
+    'likely {amount} by the end of the month': 'probablemente {amount} al cierre del mes',
     'Nothing from {name} in the ledger.': 'Nada de {name} en el libro.',
     'Nothing to {name} in the ledger.': 'Nada para {name} en el libro.',
     'From {name}: {amount} on {day}, the one transfer in the ledger.': 'De {name}: {amount} el {day}, la \u00fanica transferencia en el libro.',
@@ -1077,7 +1096,25 @@ const PHRASES = {
     '{month} {amount} so far': '{month} {amount} at\u00e9 agora',
     '{month} {amount}': '{month} {amount}',
     '{total} together, this month still open.': '{total} no total, este m\u00eas ainda aberto.',
-    '{total} together.': '{total} no total.',
+    'The ledger keeps no total across months.': 'O livro n\u00e3o guarda um total entre meses.',
+    'And {kind} last month?': 'E {kind} no mês passado?',
+    'Which place took the most?': 'Qual lugar levou mais?',
+    'And last month?': 'E no mês passado?',
+    'What comes back every month?': 'O que volta todo mês?',
+    'Which subscription is the least worth it?': 'Qual assinatura vale menos a pena?',
+    'What is due before the month ends?': 'O que vence antes do fim do mês?',
+    'Where did the money go?': 'Para onde foi o dinheiro?',
+    'What can I spend today?': 'O que posso gastar hoje?',
+    'Which day of the week costs the most?': 'Qual dia da semana custa mais?',
+    'Who sent me money this month?': 'Quem me mandou dinheiro este mês?',
+    'How much came in this month?': 'Quanto entrou este mês?',
+    'What changed this week?': 'O que mudou esta semana?',
+    'How does this month compare?': 'Como vai este mês em comparação?',
+    '{amount} in {month} so far': '{amount} em {month} até agora',
+    '{amount}, one charge': '{amount}, uma cobrança',
+    '{amount} in {n} charges': '{amount} em {n} cobranças',
+    '{month} closed at {amount}': '{month} fechou em {amount}',
+    'likely {amount} by the end of the month': 'provavelmente {amount} no fim do mês',
     'Nothing from {name} in the ledger.': 'Nada de {name} no livro.',
     'Nothing to {name} in the ledger.': 'Nada para {name} no livro.',
     'From {name}: {amount} on {day}, the one transfer in the ledger.': 'De {name}: {amount} em {day}, a \u00fanica transfer\u00eancia no livro.',
@@ -1538,7 +1575,7 @@ export function asksWhereItWent(message) {
 }
 
 /** The month a message names in words, if any; used when the model attached nothing. */
-function monthInMessage(message) {
+export function monthInMessage(message) {
   const m = String(message || '').toLowerCase();
   if (/\b(last month|previous month|mes pasado)\b/.test(m)) return 'last';
   const idx = MONTHS.findIndex((x) => new RegExp(`\\b${x.toLowerCase()}`).test(m));
@@ -1811,11 +1848,11 @@ export async function answer(userId, message, history = [], { now = new Date() }
   if (!ctx.transactions.length) return keep({ text: say(ctx.language, EMPTY_LEDGER), figures: [], actions: [setupOffer(text, ctx)].filter(Boolean), receipts: [] });
 
   const quick = shortCircuit(text, ctx);
-  if (quick) return keep({ ...quick, computed: true, basis: quick.basis || basisOf(quick.text, ctx) });
+  if (quick) return keep({ ...quick, computed: true, basis: quick.basis || basisOf(quick.text, ctx), next: nextAsks(message, quick, ctx) });
 
   ctx.asked = askedText(text, history);
   const plain = plainReplyFor(text, ctx, now);
-  if (plain) return keep({ ...plain, computed: true, basis: plain.basis || basisOf(plain.text, ctx) });
+  if (plain) return keep({ ...plain, computed: true, basis: plain.basis || basisOf(plain.text, ctx), next: nextAsks(message, plain, ctx) });
   const hint = LANGUAGE_HINT[languageOf(text)] || '';
   const system = `${RULES}\n\nWhat the ledger knows:\n${contextText(ctx)}${hint ? `\n\n${hint}` : ''}`;
   const turns = (Array.isArray(history) ? history : []).slice(-MAX_HISTORY_TURNS)
@@ -2006,7 +2043,7 @@ export async function answerStream(userId, message, history = [], { now = new Da
   const whole = (text) => { if (text) send({ phase: 'text', delta: text }); };
   const closeWith = async (reply) => {
     send({ phase: 'figures', figures: reply.figures || [] });
-    send({ phase: 'actions', actions: reply.actions || [], receipts: reply.receipts || [], basis: reply.basis || [], computed: Boolean(reply.computed) });
+    send({ phase: 'actions', actions: reply.actions || [], receipts: reply.receipts || [], basis: reply.basis || [], computed: Boolean(reply.computed), next: reply.next || nextAsks(message, reply, ctx) });
     try {
       // The route must await both writes before ending a serverless invocation.
       await saveChatTurn(userId, { role: 'user', text: asked });

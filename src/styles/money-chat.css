@@ -133,6 +133,9 @@
 /* The picture of what was sent, under your line, small: the ledger read it, you already saw it. */
 .mc .mc-file { display: block; max-height: 120px; max-width: 200px; border-radius: 4px; border: 1px solid var(--rule); }
 .mc-offers { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 4px; }
+/* An offer with the figure the ledger would answer it with: the question in ink, the number quiet beside it. */
+.mc-offer { height: auto; min-height: 32px; padding-block: 5px; gap: 8px; }
+.mc-offer-figure { color: var(--ink-3, #6c6867); font-weight: 350; font-variant-numeric: tabular-nums; white-space: nowrap; }
 
 .mc-figure { margin: 8px 0 0; display: grid; gap: 8px; max-width: 40rem; }
 .mc-figure > figcaption { margin: 0; }

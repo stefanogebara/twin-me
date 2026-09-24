@@ -12,7 +12,12 @@ export type AskLine = {
   actions?: ChatAction[]; thinking?: string; basis?: string[]; acted?: string; howOpen?: boolean;
   /** Still being written: the caret sits at the end. A file you sent, with its picture when it has one. */
   writing?: boolean; error?: string; file?: { name: string; url?: string };
+  /** What the ledger suggests asking next, computed from this answer (next.js on the server). */
+  next?: string[];
 };
+
+/** A question offered under the conversation, with the figure the ledger would answer it with. */
+export type Offer = { ask: string; figure: string | null };
 
 /** Vercel takes 4 MB of body; a photo bigger than this is shrunk before it goes. */
 export const MAX_UPLOAD = 4 * 1024 * 1024;
