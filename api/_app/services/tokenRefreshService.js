@@ -19,6 +19,7 @@ import { supabaseAdmin } from './database.js';
 import axios from 'axios';
 import { encryptToken, decryptToken } from './encryption.js';
 import { createLogger } from './logger.js';
+import { quietly } from './quietly.js';
 
 const log = createLogger('TokenRefreshService');
 
@@ -103,9 +104,37 @@ function getPlatformRefreshConfig(platform) {
 // Encryption/decryption functions now imported from encryption.js service
 
 /**
- * Refresh access token using refresh token
+ * Whether the provider refused the grant itself, so that only a new consent brings the
+ * connection back (2026-09-26). RFC 6749 section 5.2: `invalid_grant` is a refresh token
+ * revoked, expired, cut off by a password change, or issued to another client; Google answers
+ * `unauthorized_client` for a token that belongs to another OAuth client. Anything else is not
+ * the grant being gone: a timeout, a network error or a 5xx passes, and a refusal of our own
+ * client (`invalid_client`) or of our request (`invalid_request`) is ours to fix, which no
+ * reconnect would change.
+ */
+export function grantRefused(error) {
+  const status = error?.response?.status;
+  const code = error?.response?.data?.error;
+  return (status === 400 || status === 401) && (code === 'invalid_grant' || code === 'unauthorized_client');
+}
+
+/**
+ * Refresh access token using refresh token. Null on failure, the background sweep's contract;
+ * the reason is already logged and written on the connection by refreshAtProvider.
  */
 async function refreshAccessToken(platform, refreshToken, userId) {
+  try {
+    return await refreshAtProvider(platform, refreshToken, userId);
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * One refresh at the provider: the new tokens, null for a platform with nothing to refresh, or
+ * a throw carrying `requiresReauth` when the provider refused the grant itself (grantRefused).
+ */
+async function refreshAtProvider(platform, refreshToken, userId) {
   const config = getPlatformRefreshConfig(platform);
 
   if (!config || !config.tokenUrl) {
@@ -229,7 +258,7 @@ async function refreshAccessToken(platform, refreshToken, userId) {
       log.warn('Failed to enqueue reauth nudge', { userId, platform, error: err?.message })
     );
 
-    return null;
+    throw Object.assign(new Error('Token refresh failed'), { requiresReauth: grantRefused(error) });
   }
 }
 
@@ -488,15 +517,30 @@ async function ensureFreshToken(userId, platform) {
       });
       refreshLocks.set(lockKey, refreshPromise);
       lockTimestamps.set(lockKey, Date.now());
+      /* A waiter awaits this and handles a failure itself. Without a handler of its own, a
+         failed refresh nobody was waiting on was an unhandled rejection, and in production no
+         process handler is installed (server.js sets one outside production only), so it could
+         end the instance mid-request (2026-09-26). The caller still gets the error below. */
+      refreshPromise.catch(quietly('token-refresh/unawaited-lock', undefined));
 
       try {
-        const decryptedRefreshToken = decryptToken(connection.refresh_token);
-
-        if (!decryptedRefreshToken) {
-          throw new Error('Could not decrypt refresh token');
+        /* No refresh token, or one that cannot be read, cannot be refreshed however often it is
+           tried: only a new consent brings the connection back. */
+        if (!connection.refresh_token) {
+          throw Object.assign(new Error('No refresh token held'), { requiresReauth: true });
+        }
+        let decryptedRefreshToken;
+        try {
+          decryptedRefreshToken = decryptToken(connection.refresh_token);
+        } catch (decryptError) {
+          throw Object.assign(new Error(`Could not decrypt refresh token: ${decryptError.message}`), { requiresReauth: true });
         }
 
-        const newTokens = await refreshAccessToken(platform, decryptedRefreshToken, userId);
+        if (!decryptedRefreshToken) {
+          throw Object.assign(new Error('Could not decrypt refresh token'), { requiresReauth: true });
+        }
+
+        const newTokens = await refreshAtProvider(platform, decryptedRefreshToken, userId);
 
         if (!newTokens) {
           throw new Error('Token refresh failed');
@@ -634,7 +678,14 @@ export async function getValidAccessToken(userId, provider) {
       const freshToken = await ensureFreshToken(userId, provider);
       return { success: true, accessToken: freshToken };
     } catch (refreshError) {
-      return { success: false, error: `Token refresh failed: ${refreshError.message}. User may need to reconnect.` };
+      /* A grant the provider refused, or a refresh token that is not there to try, is not
+         retried back to life: the caller is told, and the money page offers a reconnect (#587).
+         A timeout or an outage at the provider stays a plain failure, which is a retry. */
+      return {
+        success: false,
+        error: `Token refresh failed: ${refreshError.message}. User may need to reconnect.`,
+        ...(refreshError.requiresReauth === true ? { requiresReauth: true } : {}),
+      };
     }
 
   } catch (error) {

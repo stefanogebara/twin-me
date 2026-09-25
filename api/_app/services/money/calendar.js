@@ -561,14 +561,17 @@ export function publicFeeds(feeds) {
   return (feeds || []).map(({ url, ...f }) => f);
 }
 
-export async function listFeeds(userId) {
-  const facts = await listFacts(userId, { includeInternal: true });
+/** Every saved link, decrypted, or a throw: a registered link that cannot be decrypted is an unread source, not an absent one. */
+function readableFeeds(facts) {
   const feeds = feedsFromFacts(facts);
-  /* A registered link that cannot be decrypted is an unread source, not an absent one. */
   if (feeds.length !== facts.filter((f) => f.kind === FEED_KIND).length) {
     throw Object.assign(new Error('A saved calendar link could not be read.'), { code: 'calendar_read_incomplete' });
   }
   return feeds;
+}
+
+export async function listFeeds(userId) {
+  return readableFeeds(await listFacts(userId, { includeInternal: true }));
 }
 
 /** The two things a person is told about a link that did not read; the rest stays in the log. */
@@ -694,35 +697,55 @@ export async function fetchFeed(url, { fetchImpl = fetch, lookupImpl = (h, o) =>
   return { kind, events: parseIcs(text, { source: kind }) };
 }
 
-/** Add a link: fetched once to prove it reads, then kept as one fact. */
+/** A link's id: the start of its hash, so the same link pasted twice is one row. */
+const feedId = (url) => crypto.createHash('sha256').update(String(url)).digest('hex').slice(0, 16);
+
+/**
+ * Add a link: judged by reading it and nothing else, then kept as one fact.
+ *
+ * Until 2026-09-26 the other sources were read first, so an older link or Google failing
+ * answered a good new link with "That link could not be read" (or a 500). Now the saved rows
+ * are counted without decrypting them (the id is the link's hash, so a repeat is known by it),
+ * the new link is fetched, and it is kept. The others are read afterwards for learning only.
+ */
 export async function addFeed(userId, url, { fetchImpl = fetch, now = new Date(), learn = true } = {}) {
-  const existing = await listFeeds(userId);
-  if (existing.some((f) => f.url === url)) return { ...publicFeeds([existing.find((f) => f.url === url)])[0], events: null, already: true };
-  if (existing.length >= MAX_FEEDS) throw Object.assign(new Error('Four links is the most; remove one first.'), { code: 'feed_limit' });
-  const { kind, events } = await fetchFeed(url, { fetchImpl });
-  let learningEvents = null;
-  if (learn) {
-    const from = now.getTime() - LEARN_DAYS * DAY_MS; const to = now.getTime() + SNAPSHOT_DAYS * DAY_MS;
-    const mine = events.filter((e) => ms(e.end || e.start) >= from && ms(e.start) <= to);
-    /* Read the other sources before saving the new link. An incomplete aggregate must not
-       overwrite the diary, or report a failed add after the link was already kept. */
-    const others = await eventsFor(userId, new Date(from).toISOString(), new Date(to).toISOString(), { feeds: existing });
-    learningEvents = others.concat(mine);
+  const id = feedId(url);
+  const rows = (await listFacts(userId, { includeInternal: true })).filter((f) => f.kind === FEED_KIND);
+  const same = rows.find((f) => f.subject === id);
+  if (same) {
+    const kind = same.subject_label || feedKind(url);
+    return { id, kind, label: FEED_LABELS[kind] || FEED_LABELS.ics, added_at: same.answered_at || null, events: null, already: true };
   }
-  const id = crypto.createHash('sha256').update(String(url)).digest('hex').slice(0, 16);
+  if (rows.length >= MAX_FEEDS) throw Object.assign(new Error('Four links is the most; remove one first.'), { code: 'feed_limit' });
+  const { kind, events } = await fetchFeed(url, { fetchImpl });
   const nowIso = now.toISOString();
   const { error } = await supabaseAdmin.from('money_facts').upsert(
     { user_id: userId, kind: FEED_KIND, subject: id, subject_label: kind, value: sealFeedUrl(url), amount: null, source: 'asked', answered_at: nowIso },
     { onConflict: 'user_id,kind,subject' },
   );
   if (error) throw new Error(error.message);
-  /* Learned now, with the events this read already holds: the other sources are read once
-     and the new link is not fetched a second time. On Vercel this must finish before the
-     answer, so the caller awaits it. */
-  if (learn) {
-    await learnEventSpend(userId, { now, events: learningEvents }).catch((e) => log.warn(`calendar learn after feed failed: ${e.message}`));
-  }
+  /* Learned now, before the answer (on Vercel the function ends with the response), with the
+     events this read already holds: the new link is not fetched a second time. */
+  if (learn) await learnWithNewFeed(userId, rows, events, now);
   return { id, kind, label: FEED_LABELS[kind], added_at: nowIso, events: events.length, already: false };
+}
+
+/**
+ * Learn from every source once a new link is kept. The other sources are read here; when one
+ * of them cannot be, nothing is learned: a partial read must not replace the diary (#587), and
+ * it is no reason to refuse a link that read. The next complete read learns.
+ */
+async function learnWithNewFeed(userId, rows, events, now) {
+  const from = now.getTime() - LEARN_DAYS * DAY_MS; const to = now.getTime() + SNAPSHOT_DAYS * DAY_MS;
+  const mine = events.filter((e) => ms(e.end || e.start) >= from && ms(e.start) <= to);
+  let others;
+  try {
+    others = await eventsFor(userId, new Date(from).toISOString(), new Date(to).toISOString(), { feeds: readableFeeds(rows) });
+  } catch (e) {
+    log.warn(`calendar learn after feed skipped, another source was not read: ${e.message}`);
+    return;
+  }
+  await learnEventSpend(userId, { now, events: others.concat(mine) }).catch((e) => log.warn(`calendar learn after feed failed: ${e.message}`));
 }
 
 export async function removeFeed(userId, id) {
