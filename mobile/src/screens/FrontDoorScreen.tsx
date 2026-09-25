@@ -10,7 +10,7 @@
  */
 
 import React, { useCallback, useState } from 'react';
-import { KeyboardAvoidingView, Platform, StyleSheet, TextInput, View } from 'react-native';
+import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { cosmos } from '../constants/cosmos';
 import { Display, Enter, Micro, Page, Pill, Small } from '../ui/primitives';
@@ -67,10 +67,14 @@ export default function FrontDoorScreen({ onGoogle, onRequestLink }: FrontDoorSc
     <Page>
       <KeyboardAvoidingView
         style={s.fill}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         keyboardVerticalOffset={insets.top}
       >
-        <View style={[s.column, { paddingTop: insets.top + cosmos.space.xxl, paddingBottom: insets.bottom + cosmos.space.lg }]}>
+        <ScrollView
+          style={s.fill}
+          contentContainerStyle={[s.column, { paddingTop: insets.top + cosmos.space.xxl, paddingBottom: insets.bottom + cosmos.space.lg }]}
+          keyboardShouldPersistTaps="handled"
+        >
           <View style={s.headline}>
             <Enter index={0}>
               <Display accessibilityRole="header">{'Your money,\nread to you.'}</Display>
@@ -125,9 +129,9 @@ export default function FrontDoorScreen({ onGoogle, onRequestLink }: FrontDoorSc
           </View>
 
           <Enter index={5} style={s.footer}>
-            <Micro quiet>Private beta. No card details are ever stored.</Micro>
+            <Micro quiet>Private beta. Your money stays in your bank.</Micro>
           </Enter>
-        </View>
+        </ScrollView>
       </KeyboardAvoidingView>
     </Page>
   );
@@ -135,7 +139,7 @@ export default function FrontDoorScreen({ onGoogle, onRequestLink }: FrontDoorSc
 
 const s = StyleSheet.create({
   fill: { flex: 1 },
-  column: { flex: 1, paddingHorizontal: cosmos.space.lg },
+  column: { flexGrow: 1, paddingHorizontal: cosmos.space.lg },
   /* The headline rests in the room above the controls rather than clinging to the top edge:
      centred in what is left, then lifted a little, so the paper around it reads as chosen. */
   headline: { flex: 1, justifyContent: 'center', gap: cosmos.space.md, paddingBottom: cosmos.space.xl },

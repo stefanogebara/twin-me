@@ -300,3 +300,30 @@ test('payment evidence failure stays distinct from empty and retries without reo
   await expect(page.getByRole('alert').filter({hasText:'Could not read these receipts.'})).toHaveCount(0);
   expect(reads).toBe(2);
 });
+
+
+test('Ask waits for saved history while preserving an editable draft', async ({ page }) => {
+  await moneyFixture(page);
+  let finishHistory!: () => void;
+  const held = new Promise<void>((resolve) => { finishHistory = resolve; });
+  await page.route('**/api/money/chat/history', async route => {
+    await held;
+    await route.fulfill({ json: { success: true, data: [
+      { id: 'earlier-user', role: 'user', text: 'An earlier question' },
+      { id: 'earlier-answer', role: 'twin', text: 'An earlier saved answer' },
+    ] } });
+  });
+  await page.goto('/money/chat');
+  await expect(page.getByRole('status').filter({ hasText: 'Loading your conversation' })).toBeVisible();
+  const input = page.getByRole('textbox', { name: 'Ask about your money', exact: true });
+  await input.fill('My unsent follow-up');
+  await expect(page.getByRole('button', { name: 'Ask', exact: true })).toBeDisabled();
+  await expect(page.getByRole('button', { name: 'Add a photo or a file', exact: true })).toBeDisabled();
+  await input.press('Enter');
+  await expect(input).toHaveValue('My unsent follow-up');
+  finishHistory();
+  await expect(page.getByText('An earlier saved answer', { exact: true })).toBeVisible();
+  await expect(page.getByRole('status').filter({ hasText: 'Loading your conversation' })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'Ask', exact: true })).toBeEnabled();
+  await expect(input).toHaveValue('My unsent follow-up');
+});

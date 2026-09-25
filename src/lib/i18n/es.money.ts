@@ -1,5 +1,6 @@
 /** Spanish for the money pages (MoneyV2Page, MoneySetupPage). Keys are the English source strings. */
 export const ES_MONEY: Record<string, string> = {
+  "Loading your conversation…": "Cargando tu conversación…",
   "Ledger activity": "Actividad del registro",
   "Add a file": "Añadir un archivo",
   "Ask a follow-up": "Haz otra pregunta",
@@ -603,8 +604,8 @@ export const ES_MONEY: Record<string, string> = {
   "after {spent} spent": "despu\u00e9s de {spent} gastados",
   " and ": " y ",
   "From {basis}, {after}, over {days}.": "De {basis}, {after}, repartido en {days}.",
-  "{weekday} usually costs you more, so today has a bigger share.": "Los {weekday} sueles gastar m\u00e1s, as\u00ed que hoy le toca una parte mayor.",
-  "{weekday} is usually quieter, so today has a smaller share.": "Los {weekday} sueles gastar menos, as\u00ed que hoy le toca una parte menor.",
+  "{weekday} gets a larger share than an even daily split.": "Al {weekday} le corresponde una parte mayor que con un reparto diario uniforme.",
+  "{weekday} gets a smaller share than an even daily split.": "Al {weekday} le corresponde una parte menor que con un reparto diario uniforme.",
   "There is no month to read yet.": "Todav\u00eda no hay un mes que leer.",
   "It does not know what a month of yours looks like yet. Tell it what comes in, or give it one more full month.": "A\u00fan no sabe c\u00f3mo es un mes tuyo. Dile qu\u00e9 entra, o dale un mes completo m\u00e1s.",
   "No amount to check against.": "No hay importe con el que comprobarlo.",
