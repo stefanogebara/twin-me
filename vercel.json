@@ -1,4 +1,5 @@
 {
+  "regions": ["cdg1"],
   "version": 2,
   "buildCommand": "npm run build",
   "ignoreCommand": "bash scripts/ci/vercel-ignore.sh",

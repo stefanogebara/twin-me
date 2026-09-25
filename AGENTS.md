@@ -32,6 +32,14 @@ to this repository:
   token-refresh cron was removed), and an LLM call in a cron checks its cooldown first.
   Runtime cost $4 in September; builds were the bill.
 - **One deploy per push;** batch commits. The GitHub Action duplicate deploy is disabled.
+- **The function runs in `cdg1` (Paris), beside the database** (`regions` in `vercel.json`,
+  2026-09-25). With no region set it ran in `iad1`, Washington DC, while Supabase is
+  `eu-west-3` in Paris and the people are in Spain, so every query crossed the Atlantic and
+  came back. Measured on the same warm function: `/api/health` 237 ms with no database,
+  `/api/health/deep` 902-1 863 ms for one round trip, and `/money/page` 7 249 ms on a first
+  load because it makes several in sequence. It reads as a cold start and is not one: a cold
+  `/api/health` answers in 629 ms against 307 ms warm. If the database moves, move this with
+  it; `tests/goals/function-region.goal.test.js` holds the two together.
 
 ## Workflow & Task Management
 
