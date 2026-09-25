@@ -196,6 +196,39 @@ export type MoneyInbox = { address: string; receiving: boolean; forwarding?: For
 export type MoneyCapabilities = { bank: boolean; capture: boolean; whatsapp?: boolean; why?: 'unconfigured' | 'linked' | 'listed' | 'restricted' | 'country' | 'open' | 'unread' };
 export type MoneyProfile = { timezone: string; country: string; currency: string; language: string | null };
 
+export type StatementQuestion = { id: 'sign' | 'year' | 'dateOrder' | 'currency'; asks: string; choices: { value: string; label: string }[] };
+export type StatementPreviewRow = { day: string; name: string | null; amount: number; currency: string; direction: 'in' | 'out' };
+export type StatementNeeds = { plan: Record<string, unknown>; questions: StatementQuestion[]; preview: StatementPreviewRow[]; read: number; skipped: number; reviewRequired: true };
+export type StatementImportResult =
+  | { kind: 'needs'; needs: StatementNeeds }
+  | { kind: 'imported'; read: number; created: number; attached: number; skipped: number };
+const statementObject = (value: unknown): value is Record<string, unknown> => !!value && typeof value === 'object' && !Array.isArray(value);
+
+/** A successful read may still need the person's interpretation; it is not a ledger edit. */
+function statementResult(data: unknown): StatementImportResult {
+  if (statementObject(data)) {
+    if (statementObject(data.needs)) {
+      const { plan, questions, preview, read, skipped, reviewRequired } = data.needs;
+      if (statementObject(plan) && reviewRequired === true
+        && Number.isSafeInteger(read) && Number(read) >= 0 && Number.isSafeInteger(skipped) && Number(skipped) >= 0
+        && Array.isArray(preview) && preview.length <= 5 && preview.every(row => statementObject(row)
+          && typeof row.day === 'string' && (row.name === null || typeof row.name === 'string')
+          && typeof row.amount === 'number' && Number.isFinite(row.amount) && row.amount >= 0
+          && typeof row.currency === 'string' && ['in', 'out'].includes(String(row.direction)))
+        && Array.isArray(questions) && questions.length <= 4
+        && new Set(questions.map(q => q?.id)).size === questions.length
+        && questions.every(q => statementObject(q) && ['sign', 'year', 'dateOrder', 'currency'].includes(String(q.id))
+          && typeof q.asks === 'string' && Array.isArray(q.choices) && q.choices.length > 0 && q.choices.length <= 10
+          && q.choices.every(c => statementObject(c) && typeof c.value === 'string' && typeof c.label === 'string'))) {
+        return { kind: 'needs', needs: data.needs as unknown as StatementNeeds };
+      }
+    } else if (!('needs' in data) && ['read', 'created', 'attached', 'skipped'].every(key => Number.isSafeInteger(data[key]) && Number(data[key]) >= 0)) {
+      return { kind: 'imported', read: Number(data.read), created: Number(data.created), attached: Number(data.attached), skipped: Number(data.skipped) };
+    }
+  }
+  throw new Error('That statement could not be read.');
+}
+
 export type MoneyPage = {
   forecast: MoneyForecast | null; today: MoneyToday | null; ledger: MoneyTransaction[] | null; recurring: MoneyRecurring[] | null;
   accounts: MoneyAccount[] | null; months: MoneyMonth[] | null; readings: MoneyReading[] | null; categories: MoneyCategories | null;
@@ -262,18 +295,24 @@ export const moneyAPI = {
     if (!res.ok) throw new Error('The sheet could not be made.');
     return { blob: await res.blob(), filename: `twinme-${month}.xlsx`, rows: Number(res.headers.get('X-Rows')) || 0 };
   },
-  importStatement: async (file: File, accountId: string) => {
+  importStatement: async (file: File, accountId: string, clarification?: { plan: Record<string, unknown>; answers: Record<string, string>; confirm?: boolean }): Promise<StatementImportResult> => {
     const body = new FormData();
     body.append('file', file);
     body.append('accountId', accountId);
+    if (clarification) {
+      body.append('plan', JSON.stringify(clarification.plan));
+      body.append('answers', JSON.stringify(clarification.answers));
+      if (clarification.confirm === true) body.append('confirm', 'true');
+    }
     const auth = getAuthHeaders() as unknown as Record<string, string>;
     const headers: Record<string, string> = {};
     if (auth.Authorization) headers.Authorization = auth.Authorization;
     const res = await fetch(`${API_URL}/money/statement`, { method: 'POST', headers, body, credentials: 'include' });
     const payload = await res.json().catch(() => ({}));
-    if (!res.ok || payload?.success === false) throw new Error(payload?.error || 'That statement could not be read.');
-    moneyChanged(undefined);
-    return payload.data as { read: number; created: number; attached: number; skipped: number };
+    if (!res.ok || payload?.success !== true) throw new Error(payload?.error || 'That statement could not be read.');
+    const result = statementResult(payload.data);
+    if (result.kind === 'imported') moneyChanged(undefined);
+    return result;
   },
   questions: () => moneyFetch('/money/questions').then((r) => json<MoneyQuestions>(r)),
   /** Places to live in, by name (districts, towns), and where a person studies or works (campuses, offices). */

@@ -21,6 +21,13 @@ describe('shapePrompt', () => {
     expect(p).toContain('[2] Cuánto');
   });
 
+  it('keeps the complete formatted prompt within its byte budget', () => {
+    const rows = Array.from({ length: 12 }, () => Array(64).fill('界'));
+    const prompt = shapePrompt(rows, { sample: 1000 });
+    expect(typeof prompt).toBe('string');
+    expect(Buffer.byteLength(prompt, 'utf8')).toBeLessThanOrEqual(16 * 1024);
+  });
+
   it('sends a sample, never the whole file', () => {
     const big = [sheet[1], ...Array.from({ length: 900 }, (_, i) => [`0${(i % 9) + 1}/04`, `Shop ${i}`, '1,00'])];
     const p = shapePrompt(big, { sample: 5 });
@@ -32,7 +39,7 @@ describe('shapePrompt', () => {
 
 describe('planFromReply', () => {
   it('reads the object', () => {
-    expect(planFromReply(good, sheet)).toMatchObject({ index: 1, columns: { date: 0, concept: 1, amount: 2 }, sign: 'all_out' });
+    expect(planFromReply(good, sheet)).toMatchObject({ index: 1, columns: { date: 0, concept: 1, amount: 2 }, sign: 'signed' });
   });
 
   it('reads it out of a code fence or a sentence, because models add both', () => {
@@ -58,10 +65,20 @@ describe('planFromReply', () => {
 });
 
 describe('readShape', () => {
+  it.each([
+    { name: 'a late wide row', rows: [...sheet, Array(10000).fill('')] },
+    { name: 'oversized UTF-8 sample', rows: Array.from({ length: 12 }, () => Array(64).fill('界'.repeat(80))) },
+  ])('refuses $name without calling the model', async ({ rows }) => {
+    const complete = vi.fn().mockResolvedValue({ content: good });
+    expect(shapePrompt(rows)).toBeNull();
+    await expect(readShape(rows, { complete })).resolves.toBeNull();
+    expect(complete).not.toHaveBeenCalled();
+  });
+
   it('asks once, at temperature zero, and marks the content sensitive', async () => {
     const complete = vi.fn().mockResolvedValue({ content: good });
     const plan = await readShape(sheet, { complete, userId: 'u1' });
-    expect(plan).toMatchObject({ index: 1, sign: 'all_out' });
+    expect(plan).toMatchObject({ index: 1, sign: 'signed' });
     expect(complete).toHaveBeenCalledTimes(1);
     const args = complete.mock.calls[0][0];
     expect(args.temperature).toBe(0);

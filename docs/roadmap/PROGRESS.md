@@ -29,6 +29,12 @@ Status words: `todo` · `doing (who, date)` · `done (#PR, date)` · `blocked (w
 
 ## Now
 
+### Statement interpretation follow-through — 2026-09-25
+
+- **doing (Codex, 2026-09-25):** #582 review found unsigned model direction can bypass confirmation, the web importer has no `needs` response flow, mixed missing-year dates skip rows, and model sample width is unbounded. Reproduce first, require explicit answers, preserve file/account while clarifying, cap shape input, and test the browser journey without a live financial import. Work on `codex/money-statement-clarification`; keep Claude's importer capability and known-bank path. Decision: replace three assertions that trusted model-selected `all_out`; the same unsigned 25.00 row currently becomes income or spending without a question. Model intent is not user confirmation; preserve parser arithmetic while asking explicitly.
+- **Measured locally:** 4,642 tests passed / 11 skipped with disposable PostgreSQL; 66 desktop/phone browser checks; strict Money types and build pass. Independent review found a collapse/reopen draft bug, reproduced and repaired; follow-up review passed. One earlier suite run had an unrelated webhook-test socket hang-up; isolated seven-case recheck and complete suite rerun passed. Unfamiliar sheets now require a separate preview confirmation, including model-mapped debit/credit columns. Draft/file survive collapse and errors; changing file/account resets interpretation. No live statement imported. Provider no-training settings remain unverified; `sensitiveContent` changes model routing, not provider retention policy.
+- **done (#583, Codex, 2026-09-25):** Git deployment READY as `cb3d1b67`, preserving #582. All CI gates passed. Integrated tests: 4,619 passed / 11 skipped. Live Today retains 37.13 EUR with corrected weekday copy; Ask holds sends while 30 real saved turns load, preserves draft and restores controls; focus has only the input underline. Android source repair included, native distribution still separate. F03 classifier remains preparatory; visual studies remain local.
+
 ### Current bounded follow-through — 2026-09-25, 10:31 UTC
 
 - **Release candidate measured:** 4,570 root tests passed/11 skipped including disposable PostgreSQL;19 native handler tests;62 desktop/phone browser tests; app/Money/mobile type checks and web build pass. Focused lint has no errors (two existing hook warnings).

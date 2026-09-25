@@ -262,6 +262,11 @@
 /* The pasted calendar link: a label, the field with its one button, one quiet line. */
 .mv .mv-feed { display: grid; gap: 8px; width: 100%; padding: 4px 0 8px; }
 .mv .mv-statement-file { width: 100%; min-width: 0; max-width: 100%; font: inherit; }
+.mv #statement-import-form[hidden] { display: none; }
+.mv fieldset.mv-feed { border: 0; padding: 0; margin: 0; min-width: 0; }
+.mv .mv-statement-preview { list-style: none; margin: 0; padding: 0; }
+.mv .mv-statement-preview li { display: grid; gap: 4px; padding: 12px 0; border-bottom: 1px solid var(--rule); overflow-wrap: anywhere; }
+.mv .mv-statement-preview li span + span { color: var(--ink-2); font-variant-numeric: tabular-nums; }
 .mv .mv-feed-row { display: flex; gap: 8px; align-items: center; }
 .mv .mv-feed-row .mv-field { flex: 1 1 auto; min-width: 0; }
 /* The phone key and the steps that use it */

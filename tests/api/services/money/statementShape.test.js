@@ -30,7 +30,7 @@ describe('sanitisePlan', () => {
   const ok = { index: 2, columns: { date: 0, concept: 1, amount: 2 }, dateOrder: 'dmy', decimal: ',', sign: 'all_out' };
 
   it('keeps a plan that fits the grid', () => {
-    expect(sanitisePlan(ok, budget)).toMatchObject({ index: 2, columns: { date: 0, concept: 1, amount: 2 }, sign: 'all_out' });
+    expect(sanitisePlan(ok, budget)).toMatchObject({ index: 2, columns: { date: 0, concept: 1, amount: 2 }, sign: 'signed' });
   });
 
   it('drops a column the grid does not have, rather than reading past the row', () => {
@@ -68,6 +68,51 @@ describe('sanitisePlan', () => {
     expect(p.dateOrder).toBe('dmy');
     expect(p.decimal).toBe(',');
     expect(p.sign).toBe('signed');
+  });
+});
+
+describe('untrusted shape safety', () => {
+  it.each(['all_out', 'all_in', 'debit_credit'])('does not let model direction %s settle unsigned money', (sign) => {
+    const p = sanitisePlan({ index: 2, columns: { date: 0, amount: 2 }, sign, currency: 'EUR', answered: ['sign', 'currency'] }, budget);
+    expect(p.sign).toBe('signed');
+    expect(p.currency).toBeNull();
+    expect(planQuestions(budget, p).map((q) => q.id)).toEqual(expect.arrayContaining(['sign', 'currency']));
+    const confirmed = answeredPlan(p, { sign: 'all_out', currency: 'EUR' });
+    const remaining = planQuestions(budget, confirmed).map((q) => q.id);
+    expect(remaining).not.toContain('sign');
+    expect(remaining).not.toContain('currency');
+  });
+
+  it('asks about the missing year among fully dated payments, then imports both', () => {
+    const rows = [['When', 'What', 'How much'], ['2026-09-20', 'A', '-10'], ['21/09', 'B', '-20']];
+    const p = sanitisePlan({ index: 0, columns: { date: 0, concept: 1, amount: 2 } }, rows);
+    expect(planQuestions(rows, p, { accountCurrency: 'EUR' }).map((q) => q.id)).toContain('year');
+    const result = toSightings(rows, { accountId: 'acc-1', plan: answeredPlan(p, { year: '2026' }) });
+    expect(result.sightings.map((r) => r.occurred_at.slice(0, 10))).toEqual(['2026-09-20', '2026-09-21']);
+  });
+
+  it('still asks ambiguous day order when an ISO date is also present', () => {
+    const rows = [['When', 'Amount'], ['2026-09-20', '-10'], ['03/04', '-20']];
+    const p = sanitisePlan({ index: 0, columns: { date: 0, amount: 1 } }, rows);
+    expect(planQuestions(rows, p).map((q) => q.id)).toContain('dateOrder');
+  });
+
+  it('refuses a late very wide row before padding the sample or accepting a plan', () => {
+    const rows = [...budget, Array(10000).fill('')];
+    expect(describeGrid(rows)).toBeNull();
+    expect(sanitisePlan({ index: 2, columns: { date: 0, amount: 2 } }, rows)).toBeNull();
+  });
+
+  it('refuses an oversized sample in UTF-8 bytes, including cell labels', () => {
+    const rows = Array.from({ length: 12 }, () => Array(64).fill('界'.repeat(80)));
+    expect(describeGrid(rows)).toBeNull();
+  });
+
+  it('caller options cannot remove the row and cell limits', () => {
+    const rows = Array.from({ length: 50 }, () => ['x'.repeat(500)]);
+    const grid = describeGrid(rows, { sample: 500, cellLimit: 500 });
+    expect(grid.sample).toHaveLength(12);
+    expect(grid.sample[0][0]).toHaveLength(80);
   });
 });
 
