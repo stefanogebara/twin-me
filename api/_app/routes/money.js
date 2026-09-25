@@ -66,7 +66,7 @@ const bankClosed = (c) => ({ unconfigured: 'Live bank connections are not set up
 import { holdUndatedCapture } from '../services/money/legacyCapture.js';
 import { recordOptIn } from '../services/money/channelStore.js';
 import { isMoneyChannelUser } from '../services/money/channel.js';
-import { removeBankAccount, inPersonScope, personProfileCached, personProfile, ingestSighting, ingestSightings, listTransactions, transactionPage, sightingsFor, refreshRecurring, forecast, setVerdict, userForCaptureKey, saveBankAccounts, listBankAccounts, pullBankFeed, refreshReadings, listReadings, setReadingVerdict, months, feedBudget, categorySpend, listPlaces, setPlaceCategory, enrichPlaces, subscriptionUsage, questionsFor, answerQuestion, skipQuestion, listFacts, deleteFact, recordCallbackFailure, listChatTurns, saveChatTurn, learn, userLanguage, patternsFor } from '../services/money/store.js';
+import { removeBankAccount, inPersonScope, personProfileCached, personProfile, ingestSighting, ingestSightings, listTransactions, transactionPage, sightingsFor, refreshRecurring, forecast, setVerdict, userForCaptureKey, createCaptureKey, saveBankAccounts, listBankAccounts, pullBankFeed, refreshReadings, listReadings, setReadingVerdict, months, feedBudget, categorySpend, listPlaces, setPlaceCategory, enrichPlaces, subscriptionUsage, questionsFor, answerQuestion, skipQuestion, listFacts, deleteFact, recordCallbackFailure, listChatTurns, saveChatTurn, learn, userLanguage, patternsFor } from '../services/money/store.js';
 import { parseDelimited, parseWorkbook, toSightings } from '../services/money/statements/importer.js';
 import { planQuestions, answeredPlan, sanitisePlan, textGrid } from '../services/money/statements/shape.js';
 import { extractDocumentText } from '../services/documentExtractionService.js';
@@ -93,21 +93,23 @@ const router = Router();
 
 /**
  * The phone cannot hold a session. A Shortcut or a listener sends `X-TwinMe-Key: twm_...`,
- * one of the user's API keys (api_keys, SHA-256 hashed, created at POST /api/api-keys).
- * Everything else on this router uses the normal session.
+ * one of the user's capture keys (api_keys, SHA-256 hashed, made at POST /api/money/capture-key,
+ * or at POST /api/api-keys by the Android builds already installed). A key that cannot be
+ * checked answers 503, never 401: an old Android build counts any answer under 500 as delivered
+ * and would never send that payment again. Everything else on this router uses the normal session.
  */
 async function authenticateUserOrKey(req, res, next) {
   const key = req.get('x-twinme-key') || (typeof req.query.key === 'string' ? req.query.key : null);
   if (!key) return authenticateUser(req, res, next);
-  try {
-    const userId = await userForCaptureKey(crypto.createHash('sha256').update(key).digest('hex'));
-    if (!userId) return res.status(401).json({ success: false, error: 'Invalid capture key' });
-    req.user = { id: userId };
-    return next();
-  } catch (error) {
+  let userId;
+  try { userId = await userForCaptureKey(crypto.createHash('sha256').update(key).digest('hex')); }
+  catch (error) {
     log.error('capture key check failed', { error: error.message });
-    return res.status(500).json({ success: false, error: 'Internal server error' });
+    return res.status(503).set('Retry-After', '60').json({ success: false, error: 'Try again in a moment.' });
   }
+  if (!userId) return res.status(401).json({ success: false, error: 'Invalid capture key' });
+  req.user = { id: userId };
+  return next();
 }
 
 router.post('/capture', authenticateUserOrKey, validate({ body: S.CAPTURE }), async (req, res) => {
@@ -164,6 +166,13 @@ router.use((req, res, next) => { inPersonScope(req.user.id, () => new Promise((r
 router.get('/capabilities', async (req, res) => {
   try { res.json({ success: true, data: await capabilitiesFor(req.user.id) }); }
   catch (error) { log.error('capabilities failed', { error: error.message }); res.status(500).json({ success: false, error: 'Internal server error' }); }
+});
+
+/* A key for the phone (the Shortcut, the Android listener), for the signed-in person and shown
+   once: only its hash is kept. It replaces POST /api/api-keys, which left with the twin. */
+router.post('/capture-key', validate({ body: S.CAPTURE_KEY }), async (req, res) => {
+  try { const { key } = await createCaptureKey(req.user.id, req.body.name); res.json({ success: true, data: { key } }); }
+  catch (error) { log.error('capture key failed', { error: error.message }); res.status(500).json({ success: false, error: 'Internal server error' }); }
 });
 
 /**

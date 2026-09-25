@@ -19,6 +19,7 @@ export const CAPTURE = loose({
   merchant: z.string().max(200).optional(), amount: z.union([z.number(), z.string().max(32)]).optional(),
   card: z.string().max(8).optional(), direction: z.string().max(16).optional(), eventId: z.string().max(200).optional(), ownerId: z.string().max(64).optional(),
 });
+export const CAPTURE_KEY = loose({ name: z.string().trim().max(80).optional() });
 export const BANK_CONNECT = loose({ bank: z.string().max(80).optional(), country: z.string().length(2).optional(), back: z.string().max(200).optional() });
 export const CARD_TYPE_PARAMS = z.object({ accountId: uuid, last4: z.string().regex(/^\d{4}$/) });
 export const CARD_TYPE = loose({ type: z.string().min(1).max(20) });

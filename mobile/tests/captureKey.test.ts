@@ -14,9 +14,25 @@ vi.mock('../src/native/NotificationListenerModule', () => ({ NotificationListene
 } }));
 beforeEach(() => { vi.resetModules(); vi.clearAllMocks(); f.secrets.clear(); f.supported=true; vi.stubGlobal('fetch', f.request); });
 const load = async () => ({ ...await import('../src/services/captureSession'), ...await import('../src/services/captureKey') });
-const response = (key: string) => ({ ok: true, json: async () => ({ key }) });
+const response = (key: string) => ({ ok: true, json: async () => ({ success: true, data: { key } }) });
 
 describe('capture account lifecycle', () => {
+  it('makes the key at the money route; /api-keys left with the twin', async () => {
+    const m = await load();
+    f.request.mockResolvedValueOnce(response('twm_A'));
+    m.activateCaptureSession('A','jwt-A');
+    expect(await m.ensureCaptureKey('A')).toBe('twm_A');
+    expect(f.request).toHaveBeenCalledWith('https://example.invalid/api/money/capture-key', expect.objectContaining({
+      method: 'POST', headers: expect.objectContaining({ Authorization: 'Bearer jwt-A' }),
+    }));
+  });
+  it('refuses an answer without a key in the money shape', async () => {
+    const m = await load();
+    f.request.mockResolvedValueOnce({ ok: true, json: async () => ({ success: true, key: 'twm_A' }) });
+    m.activateCaptureSession('A','jwt-A');
+    expect(await m.ensureCaptureKey('A')).toBeNull();
+    expect(f.setKey).not.toHaveBeenCalled();
+  });
   it('never hands A’s saved key to B and removes the unowned legacy credential', async () => {
     const m = await load();
     f.request.mockResolvedValueOnce(response('twm_A')).mockResolvedValueOnce(response('twm_B'));

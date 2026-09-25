@@ -376,12 +376,11 @@ export const moneyAPI = {
   /** Opening the page spends the read the schedule leaves for it, but only when one is due. */
   refreshIfStale: () => moneyFetch('/money/bank/refresh-if-stale', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' }).then((r) => json<{ pulled: boolean; created?: number; reason?: string; needs_reconnect?: boolean }>(r)),
   pull: () => moneyFetch('/money/bank/pull', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' }).then((r) => json<{ account: string; seen: number; created: number }[]>(r)),
-  /** A key for the phone: one of the user's API keys, shown once. */
+  /** A key for the phone, shown once: the server keeps only its hash. */
   createCaptureKey: async () => {
-    const res = await moneyFetch('/api-keys', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: 'Phone capture (Shortcut)' }) });
-    const body = await res.json().catch(() => ({}));
-    if (!res.ok || !body?.key) throw new Error(body?.error || 'Could not create a key');
-    return body.key as string;
+    const key = (await moneyFetch('/money/capture-key', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: 'Phone capture (Shortcut)' }) }).then((r) => json<{ key?: unknown } | null>(r)))?.key;
+    if (typeof key !== 'string' || !key) throw new Error('Could not create a key');
+    return key;
   },
 };
 
