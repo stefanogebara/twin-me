@@ -1,5 +1,18 @@
 /** Brazilian Portuguese for the money pages (MoneyV2Page, MoneySetupPage). Keys are the English source strings. */
 export const PT_BR_MONEY: Record<string, string> = {
+  "Ledger activity": "Atividade do registro",
+  "Add a file": "Adicionar um arquivo",
+  "Ask a follow-up": "Faça outra pergunta",
+
+  "over today’s estimate": "Acima da estimativa de hoje",
+  "left from today’s estimate": "Restantes da estimativa de hoje",
+
+
+  "Your purchase": "Sua compra",
+  "Today’s estimate": "Estimativa de hoje",
+  "An estimate, not a guarantee of what you can spend.": "Uma estimativa, não uma garantia do que você pode gastar.",
+  "Calculation details": "Detalhes do cálculo",
+
   "Your spending, explained.": "Seus gastos, explicados.",
   "It gives your answers local context. It does not track your phone.": "Dá contexto local às respostas. Não rastreia seu telefone.",
   "It gives your answers study context. Payments are not automatically labelled as a commute.": "Dá contexto dos seus estudos. Não classifica pagamentos automaticamente como deslocamentos.",

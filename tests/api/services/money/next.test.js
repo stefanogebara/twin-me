@@ -52,3 +52,13 @@ describe('nextAsks', () => {
     expect(nextAsks('Spotify is a subscription', { computed: true, actions: [{ kind: 'fact' }] }, ctx())).toEqual(['What changed this week?']);
   });
 });
+
+
+it('follows a purchase comparison with commitments and context, not the estimate already answered', () => {
+  expect(nextAsks('Can I afford €25 for dinner today?', { figures: [{ kind: 'purchase' }] }, ctx())).toEqual([
+    'What is due before the month ends?', 'How does this month compare?',
+  ]);
+  expect(nextAsks('¿Puedo gastar 25 euros hoy?', { figures: [{ kind: 'purchase' }] }, ctx({ language: 'es' }))).toEqual([
+    '¿Qué vence antes de que acabe el mes?', '¿Cómo va este mes comparado?',
+  ]);
+});

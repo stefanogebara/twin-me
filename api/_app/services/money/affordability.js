@@ -1,5 +1,6 @@
 /** A deliberately narrow, read-only scenario. Future dates and multiple prices need clarification. */
-export function affordabilityAnswer(message, readAllowance, language = 'en') {
+export function affordabilityAnswer(message, readAllowance, language = 'en', currency = 'EUR') {
+  if (currency !== 'EUR') return null;
   const text = String(message || '').toLowerCase();
   const es = /^\s*[¿]?puedo (gastar|permitirme|pagar)\b/.test(text);
   const pt = /^\s*posso (gastar|pagar)\b/.test(text);
@@ -16,7 +17,7 @@ export function affordabilityAnswer(message, readAllowance, language = 'en') {
   const locale = es ? 'es' : pt ? 'pt-BR' : language;
   const money = n => `${Number(n).toFixed(2).replace('.', ',')} €`;
   const empty = { figures: [], actions: [], receipts: [] };
-  if (allowance?.amount == null) {
+  if (!Number.isFinite(allowance?.amount)) {
     const missing = locale === 'es' ? 'No puedo comparar ese gasto todavía: falta una estimación de lo disponible hoy.'
       : locale === 'pt-BR' ? 'Ainda não posso comparar esse gasto: falta uma estimativa do disponível hoje.'
         : 'I cannot compare that purchase yet: today’s spending estimate is unavailable.';
@@ -33,5 +34,5 @@ export function affordabilityAnswer(message, readAllowance, language = 'en') {
         : `${amount} está dentro da estimativa de hoje, ${estimate}; sobrariam ${gap}. É uma estimativa, não uma garantia.`
       : above ? `${amount} is ${gap} above today’s estimate of ${estimate}.`
         : `${amount} is within today’s estimate of ${estimate}, leaving ${gap}. That is an estimate, not a guarantee.`;
-  return { ...empty, text: result };
+  return { ...empty, text: result, figures: [{ kind: 'purchase', cost, allowance: allowance.amount, difference, currency }] };
 }

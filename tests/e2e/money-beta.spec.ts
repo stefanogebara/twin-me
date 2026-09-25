@@ -182,7 +182,7 @@ test('Today exposes its figure and conversation without a decorative globe', asy
 
 
 for (const path of ['/money', '/money/chat']) {
-  test(`composer focus stays on its container on ${path}`, async ({page}) => {
+  test(`composer retains a visible focus indicator on ${path}`, async ({page}) => {
     await moneyFixture(page);
     await page.goto(path);
     const input = page.getByRole('textbox', {name:'Ask about your money'});
@@ -190,12 +190,18 @@ for (const path of ['/money', '/money/chat']) {
     await expect(input).toBeFocused();
     await expect(input).toHaveCSS('outline-style','none');
     const frame = path === '/money' ? page.locator('.mv-home-ask') : page.locator('.mc-composer-inner');
-    await expect(frame).toHaveCSS('outline-style','solid');
-    await expect(frame).toHaveCSS('outline-width','2px');
+    if (path === '/money') {
+      await expect(frame).toHaveCSS('outline-style','solid');
+      await expect(frame).toHaveCSS('outline-width','2px');
+    } else {
+      await expect(frame).toHaveCSS('outline-style','none');
+      await expect(input).toHaveCSS('box-shadow', 'rgb(37, 31, 33) 0px 2px 0px 0px');
+    }
     await input.press('Tab');
     await page.keyboard.press('Shift+Tab');
     await expect(input).toBeFocused();
-    await expect(frame).toHaveCSS('outline-style','solid');
+    if (path === '/money') await expect(frame).toHaveCSS('outline-style','solid');
+    else await expect(input).toHaveCSS('box-shadow', 'rgb(37, 31, 33) 0px 2px 0px 0px');
     await input.fill('An editable question');
     await expect(input).toHaveValue('An editable question');
     await frame.screenshot({path:test.info().outputPath('composer-focus.png')});
@@ -218,4 +224,36 @@ test('Ask keeps supporting payments behind a keyboard-accessible disclosure', as
   await summary.focus(); await page.keyboard.press('Enter');
   await expect(page.getByText('Evidence shop 9',{exact:true})).not.toBeVisible();
   await expect(page.getByText('Nine supporting payments are available.',{exact:true})).toBeVisible();
+});
+
+test('Ask presents a purchase comparison and keeps its evidence keyboard accessible', async ({ page }) => {
+  await moneyFixture(page);
+  await page.route('**/api/money/chat/history', route => route.fulfill({ contentType: 'application/json', body: JSON.stringify({ success: true, data: [
+    { id: 'q', role: 'user', text: 'Can I spend 25 euros on dinner today?' },
+    { id: 'a', role: 'twin', text: '25,00 € is 8,57 € above today’s estimate of 16,43 €.',
+      figures: [{ kind: 'purchase', cost: 25, allowance: 16.43, difference: 8.57, currency: 'EUR' }],
+      basis: ['Available balance and upcoming charges.'] },
+  ] }) }));
+  await page.goto('/money/chat');
+  await expect(page.locator('.mc-purchase-amount')).toHaveText(/8,57\s*€/);
+  await expect(page.locator('.mc-purchase-label')).toHaveText('over today’s estimate');
+  const details = page.getByRole('button', { name: 'Calculation details', exact: true });
+  await details.focus(); await page.keyboard.press('Enter');
+  await expect(page.getByText('Available balance and upcoming charges.', { exact: true })).toBeVisible();
+  await page.locator('.mc-ledger-activity > summary').click();
+  await expect(page.locator('.mc-trace')).toBeVisible();
+  const input = page.getByRole('textbox', { name: 'Ask about your money', exact: true });
+  await input.fill('A follow-up');
+  await expect(page.getByRole('button', { name: 'Ask', exact: true })).toBeEnabled();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
+});
+
+test('Ask keeps the complete text when a stored comparison is malformed', async ({ page }) => {
+  await moneyFixture(page);
+  await page.route('**/api/money/chat/history', route => route.fulfill({ contentType: 'application/json', body: JSON.stringify({ success: true, data: [
+    { id: 'a', role: 'twin', text: 'The estimate is unavailable.', figures: [{ kind: 'purchase', cost: 25, allowance: null, difference: null, currency: 'EUR' }] },
+  ] }) }));
+  await page.goto('/money/chat');
+  await expect(page.getByText('The estimate is unavailable.', { exact: true })).toBeVisible();
+  await expect(page.locator('.mc-purchase')).toHaveCount(0);
 });

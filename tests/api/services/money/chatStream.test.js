@@ -489,3 +489,16 @@ it('reports a history write failure instead of promising the answer was saved', 
   expect(phases(r.events)).not.toContain('done');
   expect(phases(r.events).at(-1)).toBe('failed');
 });
+
+it('streams and persists the computed purchase comparison with complete text for older clients', async () => {
+  store.listBankAccounts.mockResolvedValue([{ id: 'bank', currency: 'EUR', balance: 500, balance_type: 'ITAV', balance_at: NOW.toISOString(), balance_observed_at: NOW.toISOString(), last_pulled_at: NOW.toISOString() }]);
+  const r = recorder();
+  await answerStream('u1', 'Can I spend €25 today?', [], { now: NOW, onEvent: r.onEvent });
+  const comparison = r.events.find(e => e.phase === 'figures')?.figures?.find(f => f.kind === 'purchase');
+  expect(comparison).toMatchObject({ kind: 'purchase', cost: 25, currency: 'EUR' });
+  expect(comparison.difference).toBe(Math.round((25 - comparison.allowance) * 100) / 100);
+  expect(textOf(r.events)).toContain('today’s estimate');
+  expect(phases(r.events).at(-1)).toBe('done');
+  expect(store.saveChatTurn).toHaveBeenCalledWith('u1', expect.objectContaining({ role: 'twin', text: textOf(r.events), figures: [comparison] }));
+  expect(streamCall).not.toHaveBeenCalled();
+});

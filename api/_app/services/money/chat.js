@@ -55,6 +55,8 @@ import { selectTransactions } from './transactionRepository.js';
 const log = createLogger('money-chat');
 
 export const FIGURE_KINDS = Object.freeze(['months', 'shares', 'weekdays', 'recurring', 'band', 'history', 'week']);
+/** Purchase comparisons come only from the deterministic scenario, never a model proposal. */
+export const REPLY_FIGURE_KINDS = Object.freeze([...FIGURE_KINDS, 'purchase']);
 export const ACTION_KINDS = Object.freeze(['not_me', 'recategorise', 'answer', 'split', 'person', 'remember', 'forget', 'setup', 'fact']);
 
 /* ------------------------------------------------------------------ what they told it, as a fact
@@ -1232,7 +1234,7 @@ export function shortCircuit(message, ctx) {
   const m = String(message || '').toLowerCase();
   const small = smalltalkReply(message, ctx.language);
   if (small) return { text: small, figures: [], actions: [], receipts: [] };
-  const purchase = affordabilityAnswer(message, () => chatAllowance(ctx), ctx.language);
+  const purchase = affordabilityAnswer(message, () => chatAllowance(ctx), ctx.language, ledgerCurrency());
   if (purchase) return purchase;
   const byKind = kindAnswer(message, ctx);
   if (byKind) return byKind;

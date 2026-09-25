@@ -30,24 +30,53 @@
 .mc .mc-trace-toggle:hover, .mc .mc-trace-toggle[aria-expanded="true"] { color: var(--ink); }
 .mc-end { height: 1px; }
 
-/* Ask is a reading surface: the answer leads, and a short exchange keeps its input
-   nearby. Setup retains its existing full-height conversational layout. */
+/* Ask is a conversation in the live register. Group the answer and its evidence,
+   then group the next questions and input. No independent scrolling regions. */
 .mc--ask .mv-col { display: block; }
-.mc--ask .mc-columns { max-width: 760px; align-items: start; }
-.mc--ask .mc-thread { grid-template-rows: auto auto; align-content: start; }
-.mc--ask .mc-scroll { gap: 32px; padding-bottom: 0; }
+.mc--ask .mc-columns { max-width: 680px; display: block; }
+.mc--ask .mc-thread { grid-template-rows: auto auto; }
+.mc--ask .mc-scroll { gap: 24px; padding-bottom: 16px; }
 .mc--ask .mc-turn { margin-bottom: 24px; }
-.mc--ask .mc-line--you { padding-left: 0; gap: 6px; }
-.mc--ask .mc-line--you .mc-line-text { font-size: 16px; line-height: 1.6; }
-.mc--ask .mc-line:not(.mc-line--you) .mc-line-text { font-size: 22px; line-height: 1.5; font-weight: 400; color: var(--ink); letter-spacing: -0.02em; }
-.mc--ask .mc-composer { margin-top: 32px; padding-top: 12px; }
-.mc--ask .mc-composer-inner { min-height: 56px; padding: 10px; }
-.mc--ask .mc-composer textarea { font-size: 16px; line-height: 24px; }
-.mc--ask .mc-offers { gap: 12px 24px; }
-.mc--ask .mc-offers .mc-offer { padding: 0; border: 0; background: none; color: var(--ink-2); text-decoration: underline; text-underline-offset: 4px; }
-.mc--ask .mc-offers .mc-offer:hover { color: var(--ink); }
+.mc--ask .mc-line--you { padding-left: 0; gap: 0; }
+.mc--ask .mc-line--you .mc-line-text { font-size: 18px; line-height: 1.6; color: var(--ink); }
+.mc--ask .mc-line:not(.mc-line--you) .mc-line-text { font-size: 18px; line-height: 1.6; font-weight: 400; color: var(--ink); letter-spacing: -0.015em; }
+.mc--ask .mc-composer { padding-top: 0; position: static; }
+.mc--ask .mc-composer-inner { grid-template-columns: 1fr auto; gap: 16px; min-height: 112px; padding: 16px; border: 1px solid var(--rule); border-radius: 8px; background: var(--field); }
+.mc--ask .mc-composer textarea { grid-column: 1 / -1; grid-row: 1; font-size: 18px; line-height: 27px; padding: 4px 0; }
+.mc--ask .mc-composer-inner:has(.mc-say:focus-visible) { outline: none; }
+.mc--ask .mc-composer .mc-say:focus-visible { box-shadow: 0 2px var(--ink); }
+.mc--ask .mc-composer .mc-attach { gap: 8px; width: auto; justify-self: start; padding-right: 8px; color: var(--ink-2); }
+.mc--ask .mc-composer .mc-send { gap: 10px; width: auto; height: 36px; padding: 0 14px; border-radius: 4px; }
+.mc--ask .mc-offers { gap: 0; display: grid; justify-items: stretch; margin-top: 8px; }
+.mc--ask .mc-offers .mc-offer { font-size: 14px; display: flex; justify-content: space-between; min-height: 44px; padding: 12px 0; gap: 16px; border: 0; border-bottom: 1px solid var(--rule); border-radius: 0; background: none; color: var(--ink); text-decoration: none; }
+.mc--ask .mc-offers .mc-offer:hover { background: var(--hover); }
+.mc--ask .mc-offer-arrow { margin-left: auto; }
+.mc-purchase { display: grid; grid-template-columns: minmax(0, 260px) minmax(0, 1fr); align-items: start; gap: 20px 32px; padding: 12px 0 0; }
+.mc .mc-purchase-verdict { display: grid; gap: 8px; }
+.mc .mc-purchase-label { font-size: 20px; line-height: 1.5; }
+.mc .mc-purchase-amount { font-size: 64px; line-height: 1; letter-spacing: -0.055em; font-weight: 350; }
+.mc .mc-purchase-details { display: grid; gap: 0; margin: 0; padding-top: 8px; }
+.mc-purchase-details > div { display: flex; justify-content: space-between; align-items: baseline; gap: 16px; padding: 15px 0; border-bottom: 1px solid var(--rule); }
+.mc .mc-purchase-details dt { color: var(--ink-2); font-size: 13px; }
+.mc .mc-purchase-details dd { margin: 0; font-size: 20px; line-height: 1.3; letter-spacing: -0.03em; }
+.mc .mc-purchase-note { grid-column: 1 / -1; color: var(--ink-2); font-size: 13px; line-height: 1.5; }
+.mc--ask .mc-how { margin-top: 0; }
+.mc--ask .mc-line:has(.mc-purchase) { gap: 4px; }
+.mc-ledger-activity { margin-top: 8px; }
+.mc-ledger-activity > summary { cursor: pointer; padding: 8px 0; }
+@media (min-width: 768px) {
+  .mc--ask .mv-side { padding-top: 56px; }
+  .mc--ask .mv-side-links a { font-size: 14px; min-height: 36px; }
+}
 @media (max-width: 767px) {
-  .mc--ask .mc-line:not(.mc-line--you) .mc-line-text { font-size: 20px; }
+  .mc-purchase { grid-template-columns: 1fr; gap: 24px; }
+  .mc .mc-purchase-details { grid-template-columns: 1fr 1fr; gap: 24px; padding-top: 16px; }
+  .mc-purchase-details > div { display: grid; border: 0; padding: 0; gap: 6px; }
+  .mc .mc-purchase-amount { font-size: 52px; }
+  .mc--ask .mc-turn { margin-bottom: 8px; }
+  .mc--ask .mc-scroll { gap: 24px; }
+  .mc--ask .mc-composer .mc-send { min-height: 44px; }
+  .mc--ask .mc-composer .mc-attach { min-height: 44px; }
 }
 
 /* The transcript: it asks, you answered, both stay */

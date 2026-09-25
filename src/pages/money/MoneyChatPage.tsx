@@ -23,7 +23,7 @@ import '../../styles/money-v2.css';
 import '../../styles/money-chat.css';
 import MoneyNav, { type MoneyNavLink } from './MoneyNav';
 import { MONEY_NAV } from './navLinks';
-import { euro, shortDay } from '../../services/api/moneyAPI';
+import { isPurchaseFigure, euro, shortDay } from '../../services/api/moneyAPI';
 import { ACCEPT } from './chat/askLine';
 import { useConversation } from './chat/useConversation';
 import { type TraceStep } from './chat/useLedgerTrace';
@@ -84,7 +84,7 @@ function TracePanel({ steps, reading }: { steps: TraceStep[]; reading: boolean }
      nothing in it. Until something has been read, the panel is one quiet line. */
   const idle = steps.length > 0 && steps.every((s) => !s.count);
   return (
-    <aside className="mc-trace" aria-label={t('What it is doing')}>
+    <aside className="mc-trace" aria-label={t('Ledger activity')}>
       {/* One orb for the whole panel, at its head. One per unfinished row meant three or four
           canvases turning at once, and on a long read they never stopped (2026-09-16). */}
       {reading && steps.length ? <p className="mc-trace-head"><LedgerOrb state={orbFor('trace')} size={20} label="" /><span className="mv-sub">{t('Reading the ledger.')}</span></p> : null}
@@ -116,7 +116,7 @@ export default function MoneyChatPage() {
 
 function MoneyConversation() {
   const c = useConversation();
-  const { openQuestions, lines, traceOpen, setTraceOpen, asking, text, setText, historyFailed, locale, t, boxRef, fileRef, trace, stillMotion, offers, offersShown, toggleHow, ask, attach, take, rise } = c;
+  const { openQuestions, lines, asking, text, setText, historyFailed, locale, t, boxRef, fileRef, trace, stillMotion, offers, offersShown, toggleHow, ask, attach, take, rise } = c;
   return (
     <main className="mv mc mc--ask">
       <div className="mv-shell">
@@ -146,11 +146,11 @@ function MoneyConversation() {
                     stood under all eleven turns (2026-09-21). */}
                 {lines.map((l, li) => (
                   <motion.div key={l.id} className={`mc-line ${l.who === 'you' ? 'mc-line--you' : ''}`} {...rise}>
-                    {l.who === 'you' ? <span className="mc-line-who">{t('You')}</span> : null}
+                    {l.who === 'you' ? <span className="mv-sr">{t('You')}</span> : null}
                     {l.pending ? (
                       <Pending status={l.text} thinking={l.thinking} still={Boolean(stillMotion)} />
                     ) : (
-                      <p className="mc-line-text">{l.text}{l.writing ? <LedgerOrb state={orbFor('writing')} size={16} className="mc-writing" label={t('Writing')} /> : null}</p>
+                      l.figures?.some(isPurchaseFigure) && !l.writing ? null : <p className="mc-line-text">{l.text}{l.writing ? <LedgerOrb state={orbFor('writing')} size={16} className="mc-writing" label={t('Writing')} /> : null}</p>
                     )}
                     {l.error ? <p role="alert" className="mv-note">{l.error}</p> : null}
                     {l.file?.url ? <img className="mc-file" src={l.file.url} alt="" /> : null}
@@ -165,7 +165,7 @@ function MoneyConversation() {
                     {l.acted ? <p className="mc-acted">{l.acted}</p> : null}
                     {l.who === 'twin' && !l.pending && li === lines.length - 1 && ((l.thinking && l.thinking.trim()) || (l.basis && l.basis.length)) ? (
                       <div className="mc-how">
-                        <button type="button" className="mc-how-toggle" aria-expanded={Boolean(l.howOpen)} onClick={() => toggleHow(l.id)}>{t('How it got there')}</button>
+                        <button type="button" className="mc-how-toggle" aria-expanded={Boolean(l.howOpen)} onClick={() => toggleHow(l.id)}>{t(l.figures?.some(isPurchaseFigure) ? 'Calculation details' : 'How it got there')}</button>
                         {l.howOpen ? (
                           <div className="mc-how-body">
                             {l.thinking && l.thinking.trim() ? <p className="mc-how-thought">{l.thinking.trim()}</p> : null}
@@ -174,6 +174,10 @@ function MoneyConversation() {
                                 {l.basis.map((b, k) => <li key={k}>{b}</li>)}
                               </ul>
                             ) : null}
+                            <details className="mc-ledger-activity">
+                              <summary>{t('Ledger activity')}</summary>
+                              <TracePanel steps={trace.steps} reading={trace.reading} />
+                            </details>
                           </div>
                         ) : null}
                       </div>
@@ -201,7 +205,7 @@ function MoneyConversation() {
                   <div className="mc-offers" role="group" aria-label={t('Things to ask')}>
                     {offers.map((o) => (
                       <button key={o.ask} type="button" className="mv-pill mv-pill--ghost mc-offer" onClick={() => ask(o.ask)}>
-                        <span>{o.ask}</span>
+                        <span>{o.ask}</span><span aria-hidden="true" className="mc-offer-arrow">→</span>
                         {o.figure ? <span className="mc-offer-figure">{o.figure}</span> : null}
                       </button>
                     ))}
@@ -222,9 +226,6 @@ function MoneyConversation() {
                     aria-hidden="true"
                     onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ''; if (f) void attach(f); }}
                   />
-                  <button type="button" className="mc-attach" aria-label={t('Add a photo or a file')} disabled={asking} onClick={() => fileRef.current?.click()}>
-                    <Paperclip size={16} strokeWidth={1.75} aria-hidden="true" />
-                  </button>
                   <label className="mv-sr" htmlFor="mc-say">{t('Ask about your money')}</label>
                   <textarea
                     id="mc-say"
@@ -233,7 +234,7 @@ function MoneyConversation() {
                     rows={1}
                     maxLength={2000}
                     value={text}
-                    placeholder={t('Ask about your money')}
+                    placeholder={t(lines.length ? 'Ask a follow-up' : 'Ask about your money')}
                     disabled={asking}
                     onChange={(e) => setText(e.target.value)}
                     onPaste={(e) => { const f = e.clipboardData.files?.[0]; if (f) { e.preventDefault(); void attach(f); } }}
@@ -241,18 +242,15 @@ function MoneyConversation() {
                       if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); ask(text); }
                     }}
                   />
+                  <button type="button" className="mc-attach" aria-label={t('Add a photo or a file')} disabled={asking} onClick={() => fileRef.current?.click()}>
+                    <Paperclip size={16} strokeWidth={1.75} aria-hidden="true" /><span>{t('Add a file')}</span>
+                  </button>
                   <button type="submit" className="mv-pill mc-send" disabled={asking || !text.trim()} aria-label={t('Ask')}>
-                    <ArrowUp size={16} strokeWidth={2} aria-hidden="true" />
+                    <span>{t('Ask')}</span><ArrowUp size={16} strokeWidth={2} aria-hidden="true" />
                   </button>
                 </form>
               </div>
             </section>
-
-            {/* The ledger's own progress is for the curious, not the default: one link opens it. */}
-            <aside className="mc-side">
-              <button type="button" className="mc-trace-toggle" aria-expanded={traceOpen} onClick={() => setTraceOpen((o) => !o)}>{t('What it is doing')}</button>
-              {traceOpen ? <TracePanel steps={trace.steps} reading={trace.reading} /> : null}
-            </aside>
           </div>
         </div>
       </div>

@@ -1,14 +1,14 @@
 /**
  * The figures the conversation draws, on the web.
  *
- * The same eight kinds the phone draws, in the money-v2 register: ink bars on a grey
+ * The shared figures and a computed purchase comparison, in the money-v2 register: ink bars on a grey
  * track, hairline rows, the euro at the end of the line. Every number here was computed by
  * the server from the ledger; nothing is drawn that the rows do not say. A figure it does
  * not know how to draw renders nothing, so a new kind on the server costs the page no
  * broken picture.
  */
 import { useLocale, useT } from '@/lib/i18n';
-import { euro, shortDay, type ChatFigure, type FigurePoint, type FigureShare } from '../../services/api/moneyAPI';
+import { euro, shortDay, isPurchaseFigure, type ChatFigure, type PurchaseFigure, type FigurePoint, type FigureShare } from '../../services/api/moneyAPI';
 
 /* A cadence is a phrase, not a word: the server sends weekly, biweekly, monthly. */
 const CADENCE_WORD: Record<string, string> = {
@@ -46,11 +46,32 @@ function Shares({ items }: { items: FigureShare[] }) {
   );
 }
 
+function Purchase({ figure }: { figure: PurchaseFigure }) {
+  const t = useT();
+  const above = figure.difference > 0;
+  const money = (n: number) => euro(n, figure.currency);
+  return (
+    <div className="mc-purchase">
+      <div className="mc-purchase-verdict">
+        <span className="mc-purchase-amount">{money(Math.abs(figure.difference))}</span>
+        <span className="mc-purchase-label">{t(above ? 'over today’s estimate' : 'left from today’s estimate')}</span>
+      </div>
+      <dl className="mc-purchase-details">
+        <div><dt>{t('Your purchase')}</dt><dd>{money(figure.cost)}</dd></div>
+        <div><dt>{t('Today’s estimate')}</dt><dd>{money(figure.allowance)}</dd></div>
+      </dl>
+      <p className="mc-purchase-note">{t('An estimate, not a guarantee of what you can spend.')}</p>
+    </div>
+  );
+}
+
 export function Figure({ figure }: { figure: ChatFigure }) {
   const t = useT();
   const locale = useLocale();
   let body: React.ReactNode = null;
   switch (figure.kind) {
+    case 'purchase':
+      return isPurchaseFigure(figure) ? <Purchase figure={figure} /> : null;
     case 'week':
       body = figure.days.length ? <Bars points={figure.days.map((d) => ({ label: d.label, value: d.value, current: d.today }))} /> : null;
       break;

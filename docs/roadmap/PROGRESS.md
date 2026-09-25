@@ -38,7 +38,7 @@ Stefano authorized implementation, research, design iterations and native-device
 | T01/T03: regressions, streamed greeting completion, mandatory financial reads | doing (Codex, 2026-09-25) |
 | T08: reconcile production anonymous Money privileges | done (live migration `20260924230642`, 2026-09-25) — anonymous grants 119 → 0, service-role grants 189 unchanged, 27 Money tables retain RLS; ledger row count unchanged; permission catalog saved |
 | T04: monetary claim guard and shared allowance evidence | doing (Codex, 2026-09-25) — integer-currency bypass reproduced; semantic grounding remains a separate larger slice |
-| T03/T16 native session and transcript synchronization | doing (Codex, 2026-09-25) — three failing regressions now pass: session clear, delayed old-session write, refresh during a reply; iOS now displays the web turn; pending release |
+| T03/T16 native session and transcript synchronization | doing (Codex, 2026-09-25) — three failing regressions now pass: session clear, delayed old-session write, refresh during a reply; iOS displays the web turn; keyboard clearance and supporting-payment expansion verified; pending release |
 | T07: preserve issued uncertainty through scoring timeouts | doing (Codex, 2026-09-25) |
 | T10: durable channel boundary and unambiguous approvals | doing (Codex, 2026-09-25) |
 | T04–T12: grounding, matching, purpose, coverage, uncertainty, privileges, deletion, durable channels, refresh, series | todo |
@@ -46,7 +46,7 @@ Stefano authorized implementation, research, design iterations and native-device
 | T13–T19: scoped chat, exports, prediction evaluation, approved design, pages, dependencies, documentation | todo |
 | Canvas/Blackboard data path, Instinct/Muse research, iOS/Android and page QA | doing (Codex, 2026-09-25) — iOS 26.5 Ask/Plan inspected; Android 35 audit build compiled and launched; full native QA blocked by locked Mac, not certified |
 
-Decisions under the owner's explicit delegation: source removal must remove derived financial copies while preserving user-authored messages with unsupported answers retired; credit limits are not spendable cash; initial friend pilots use complete statements with visible coverage; calendars provide schedule context, never payment evidence or causal claims; WhatsApp starts with reliable consultation and individually confirmed edits, without unsolicited broadcasts or third-party purchases. Channel safety decision: a reaction cannot identify one of multiple offers, and consumed siblings must not change that meaning or renumber numbered replies. Expire all approval routes after the existing ten-minute window and fail closed if an inbound receipt cannot be stored; this does not claim durable completion is solved. The current live warm/spacious web register is the baseline; native screenshots are a separate surface. Ask refinements scored 4.5 then 5.5 in fresh screenshot-only critiques; its independent 9/10 gate remains open. Local verification: 4,471 full-suite tests pass, 1,306 Money tests pass (73.71% lines / 60.30% branches), 45 PostgreSQL persistence tests and 52 desktop/phone browser tests pass; web/mobile type checks and web build pass. Application changes await release; only T08 is live.
+Decisions under the owner's explicit delegation: source removal must remove derived financial copies while preserving user-authored messages with unsupported answers retired; credit limits are not spendable cash; initial friend pilots use complete statements with visible coverage; calendars provide schedule context, never payment evidence or causal claims; WhatsApp starts with reliable consultation and individually confirmed edits, without unsolicited broadcasts or third-party purchases. Channel safety decision: a reaction cannot identify one of multiple offers, and consumed siblings must not change that meaning or renumber numbered replies. Expire all approval routes after the existing ten-minute window and fail closed if an inbound receipt cannot be stored; this does not claim durable completion is solved. The current live warm/spacious web register is the baseline; native screenshots are a separate surface. Ask screenshot-only critiques now reach 7.5 desktop and 7.3 phone after nine iterations; the independent 9/10 gate remains open. The purchase comparison is computed, currency-scoped, and preserved in streamed/history responses; generic follow-ups now reflect the comparison. Local verification: 4,479 full-suite tests pass, 1,306 Money tests pass (73.71% lines / 60.30% branches), 45 PostgreSQL persistence tests and 56 desktop/phone browser tests pass; web/mobile type checks and web build pass. Application changes await release; only T08 is live.
 
 | # | Task | Status |
 |---|---|---|
@@ -169,6 +169,12 @@ Not there yet, honestly: no web access (the chat says only what the ledger compu
 | Repository audit | artifact above |
 
 ## Decisions
+
+### 2026-09-25 — Ask comparison hierarchy (Codex, doing)
+
+The fresh screenshot critic rated the current Ask 5.5/10: three equal-weight monetary values bury the conclusion. Add a server-computed purchase comparison figure, keeping the full text for older clients and WhatsApp. Update the affordability scenario's empty-figure assertion to require only this relevant comparison; unrelated month charts and receipt lists remain excluded. Preserve the live web palette and Today layout. The narrow euro route must also reject a non-euro ledger and non-finite allowance rather than silently compare currencies. Verify these boundaries before changing the calculation, then test keyboard access, narrow screens and long history.
+
+Focus decision: the owner reported a rectangle on clicking the chat input. Ask now uses a visible two-pixel ink underline on the editable area instead of an outline around the entire composer. Update the browser focus assertion for Ask to verify the replacement on both click and keyboard return; keep Today's existing container outline assertion. The ledger activity remains accessible inside answer details, and its existing background read is preserved.
 
 ### 2026-09-25 — affordability routing (Codex)
 

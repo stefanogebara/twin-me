@@ -1,5 +1,18 @@
 /** Spanish for the money pages (MoneyV2Page, MoneySetupPage). Keys are the English source strings. */
 export const ES_MONEY: Record<string, string> = {
+  "Ledger activity": "Actividad del registro",
+  "Add a file": "Añadir un archivo",
+  "Ask a follow-up": "Haz otra pregunta",
+
+  "over today’s estimate": "Por encima de la estimación de hoy",
+  "left from today’s estimate": "Restantes de la estimación de hoy",
+
+
+  "Your purchase": "Tu compra",
+  "Today’s estimate": "Estimación de hoy",
+  "An estimate, not a guarantee of what you can spend.": "Una estimación, no una garantía de lo que puedes gastar.",
+  "Calculation details": "Detalles del cálculo",
+
   "Your spending, explained.": "Tus gastos, explicados.",
   "It gives your answers local context. It does not track your phone.": "Da contexto local a las respuestas. No rastrea tu teléfono.",
   "It gives your answers study context. Payments are not automatically labelled as a commute.": "Da contexto de tus estudios. No clasifica automáticamente los pagos como desplazamientos.",

@@ -67,6 +67,9 @@ export function nextAsks(message, reply, ctx) {
      the entertainment kind's word "show", and the week figure settles it. */
   if (noted) {
     push('What changed this week?');
+  } else if (kinds.has('purchase')) {
+    push('What is due before the month ends?');
+    push('How does this month compare?');
   } else if (kinds.has('recurring') || /subscri|suscri|assinatura|comes? back/.test(m)) {
     push('Which subscription is the least worth it?');
     push('What is due before the month ends?');
