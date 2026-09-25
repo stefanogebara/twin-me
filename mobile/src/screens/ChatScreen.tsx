@@ -25,7 +25,7 @@ import { Prompt, Shimmer } from '../ui/prompt';
 import { Orb } from '../ui/Orb';
 import { useReducedMotion } from '../ui/motion';
 import {
-  moneyApi, readLedgerStream, chatStream,
+  usableForecast, moneyApi, readLedgerStream, chatStream,
   type ChatAction, type ChatReceipt, type ChatTurn, type HomePlace, type HomeSaved, type LedgerStreamEvent, type MoneyQuestion,
 } from '../services/moneyApi';
 import {
@@ -240,6 +240,7 @@ export default function ChatScreen({ mode, onDone, onClose, active = true }: { a
   const noteForecastMove = useCallback(async () => {
     try {
       const f = await moneyApi.forecast();
+      if (!usableForecast(f)) { rememberLikely(null, sessionEpoch); return; }
       const before = recallLikely();
       rememberLikely(f.projected_p50, sessionEpoch);
       if (before === null || !Number.isFinite(before)) return;
@@ -260,7 +261,7 @@ export default function ChatScreen({ mode, onDone, onClose, active = true }: { a
       ]);
       if (!live) return;
       const out: string[] = [];
-      if (fc.status === 'fulfilled') rememberLikely(fc.value.projected_p50, sessionEpoch);
+      if (fc.status === 'fulfilled') rememberLikely(usableForecast(fc.value) ? fc.value.projected_p50 : null, sessionEpoch);
       if (rec.status === 'fulfilled' && rec.value.length > 0) out.push('What comes back every month?');
       if (months.status === 'fulfilled' && months.value.length >= 2) out.push('How does this month compare?');
       if (cats.status === 'fulfilled' && cats.value.groups.length > 0) out.push('Where did the money go?');

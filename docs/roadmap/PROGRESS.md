@@ -29,6 +29,19 @@ Status words: `todo` · `doing (who, date)` · `done (#PR, date)` · `blocked (w
 
 ## Now
 
+### Deferred evidence release — 2026-09-25
+
+- **Production incident fixed (13:32 UTC):** Business revision conflicts raised SQLSTATE `40001`, which PostgREST 14 retries internally with the same stale arguments. Logs confirmed millions of scoring retries. The two installed RPCs now raise `PT409`, preserving their bodies, owner, grants and invoker security; no ledger rows changed. Fresh activity showed no remaining scoring loops, so no sessions were terminated. The 13:32:30–13:35 UTC log window contained zero PostgreSQL errors. The application accepts both codes during rollout and retries only after a fresh snapshot, at most three times. Real PostgreSQL tests exercise the returned code through a bounded model of PostgREST's retry behavior; this is not a locally hosted PostgREST test.
+- **Recovery verified:** A single production snapshot at 13:30:10 UTC restored all 27 Money tables / 6,101 rows with 69 constraints and complete-row fingerprints matching. A second native dump/restore passed the repository rehearsal (27 counts + five ledger hashes). Hosted physical backup dated 25 September 01:27 UTC also confirmed. Private artifacts stay outside git. This proves Money recovery, not restoration of Supabase Auth, Storage or the entire project.
+- **Deployment drift found:** Production lacked repository merchant-key promotion and account-mask fallback. This slice includes the former through the new ingestion function. Account-mask fallback remains separately unshipped and needs collision review before application; no historical account merging is authorized by this finding.
+- **Native truth states:** Unavailable or mismatched financial revisions now show a retry state, not a claim that payment review exists. Pending evidence has an explicit review action. Native handler/state tests retain real module helpers; they do not certify a distributed binary.
+
+- **Contract fixtures:** Page/client mocks now carry explicit clear reconciliation status; unknown/missing status withholds guidance. Existing cache owner-isolation and single-read assertions remain unchanged; new failure-refresh test proves cached guidance disappears when completeness becomes unavailable. Incomplete financial schemas do not get coerced into zero. Page-read and one-read goal tests add the shared reconciliation read while preserving ledger/facts read counts.
+
+- **Decision (Codex):** Replace the preparatory classifier test that deliberately pinned the old ambiguous attachment with a deferred/null expectation now that persistence/review/gates are being implemented together. Preserve all unambiguous/named/provider identity assertions. Design calculation disclosure tests may open the native details element before asserting the same exact server values; no financial value assertion is removed.
+
+- **doing (Codex, 2026-09-25):** User authorized continuing and releasing remaining fixes. Implement F03 as a coordinated deferred-evidence slice: atomic storage and explicit review, conservative financial guidance and scoring, web/native recovery. Preserve existing financial assertions; no historical repair. Run local restore rehearsal and verify a fresh recoverable production backup before schema rollout. Design continues independently with fresh screenshot-only critics; the 9/10 gate remains open.
+
 ### Verified release checkpoint — 2026-09-25, 12:36 UTC
 
 - **done (#585, Codex):** unfamiliar statement clarification and preview confirmation, retained upload drafts, bounded model samples and strict numeric column indices. Production `5a5ac318`, Git deployment `dpl_22koQ2v9e6BuNRH8614VA59u36WE` READY. Deployed phone flow verified with browser-intercepted requests only; no live import.

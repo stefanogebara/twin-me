@@ -1,3 +1,4 @@
+import { financialEvidenceBlocked, financialEvidenceReason } from './financialCompleteness.js';
 /**
  * Safe to spend today.
  * ====================
@@ -221,13 +222,14 @@ export function eventsToday(items = [], now = new Date()) {
  * The number and the words for it. Pure: everything it needs is passed in, so the rules can
  * be read in one place and tested without a database.
  */
-export function safeToSpend({ cast = null, segments = [], facts = [], accounts = [], transactions = [], now = new Date() } = {}) {
+export function safeToSpend({ cast = null, segments = [], facts = [], accounts = [], transactions = [], reconciliation = cast?.reconciliation, now = new Date() } = {}) {
   const none = (why) => ({
     amount: null, basis: null, base: null, income: statedIncome(facts), keep: null, budget: null, free: null, over: false,
     days_left: cast ? cast.days_left : null, horizon: null, balance: null, spent: null, committed: null, calendar_ahead: null, shape: null,
     basis_label: null, today_events: [], sentence: null, why,
   });
 
+  if (cast?.withheld || (reconciliation !== undefined && financialEvidenceBlocked(reconciliation))) return { ...none(financialEvidenceReason(reconciliation)), income: null, withheld: true, reconciliation };
   if (!cast) return none('There is no month to read yet.');
   /* Money that is not this ledger's is refused rather than converted: a figure that quietly
      adds dollars to euros is worse than one that says it cannot. */

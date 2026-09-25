@@ -1,3 +1,5 @@
+import { beginReconciliationRead, finishReconciliationRead } from './reconciliationRead.js';
+import { financialEvidenceBlocked, financialEvidenceReason } from './financialCompleteness.js';
 /**
  * The month as a sheet.
  * =====================
@@ -78,6 +80,9 @@ export function sheetFile({ header, rows }, month) {
 
 /** One read of the ledger, the places and what comes back; the file for the month asked. */
 export async function monthSheet(userId, { month = null, now = new Date(), deps = {} } = {}) {
+  const reconciliationRead = await beginReconciliationRead(userId);
+  const requireComplete = status => { if (financialEvidenceBlocked(status)) throw Object.assign(new Error(financialEvidenceReason(status)), { code: 'PAYMENT_REVIEW_REQUIRED' }); };
+  requireComplete(reconciliationRead.initial);
   const read = { listOwnTransactions, listPlaces, userLanguage, personProfileCached, listFacts, recurringFor: async () => [], ...deps };
   const profile = await read.personProfileCached(userId).catch(quietly('sheet/profile', null));
   const zone = profile?.timezone || null;
@@ -90,6 +95,7 @@ export async function monthSheet(userId, { month = null, now = new Date(), deps 
     read.recurringFor(userId).catch(quietly('sheet/recurring', [])),
     read.listFacts(userId).catch(quietly('sheet/facts', [])),
   ]);
+  requireComplete(await finishReconciliationRead(reconciliationRead));
   const table = sheetRows(transactions, { month: key, places, recurring, facts, language: language || 'en', zone });
   return { month: key, rows: table.rows.length, filename: `twinme-${key}.xlsx`, buffer: sheetFile(table, key) };
 }

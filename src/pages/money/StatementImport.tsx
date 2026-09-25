@@ -46,7 +46,7 @@ export default function StatementImport({ onImported }: { onImported: () => Prom
       const r = await moneyAPI.importStatement(file, selected, needs ? { plan: needs.plan, answers, confirm: needs.questions.length === 0 } : undefined);
       if (!active.current) return;
       if (r.kind === 'needs') { setNeeds(r.needs); return; }
-      setResult(t('{read} read, {created} added, {skipped} skipped.', r));
+      setResult(t('{read} read, {created} added, {skipped} skipped.', r) + (r.deferred ? ' ' + t('{n} observations need review before they can count as spending.', { n: r.deferred }) : '') + (r.ignored_deleted ? ' ' + t('{n} previously removed payments were not added again.', { n: r.ignored_deleted }) : ''));
       setNeeds(null); setAnswers({});
       setFile(null); if (input.current) input.current.value = '';
       await onImported();

@@ -53,7 +53,14 @@ export function planIngestion(inputs, snapshot) {
           || ((s.currency || 'EUR') === input.currency && Number(s.amount) === input.amount
             && s.direction === input.direction && Date.parse(s.occurred_at) === Date.parse(input.occurred_at))));
     if (old) claimed.add(old.id);
-    const s = { ...input, id: old?.id || randomUUID() };
+    // A resolved observation whose transaction was removed retains that deletion. A
+    // provider retry must neither resurrect it nor reinterpret it against other payments.
+    // Leave the original source evidence and resolution history byte-for-byte intact.
+    if (old?.reconciliation?.state === 'resolved' && !old.transaction_id) {
+      results.push({ sighting: old, transaction: null, action: 'ignored_deleted' });
+      continue;
+    }
+    const s = { ...input, id: old?.id || randomUUID(), ...(old?.reconciliation ? { reconciliation: old.reconciliation } : {}) };
     const existing = old?.transaction_id ? pool.find((t) => t.id === old.transaction_id) : null;
     const excluded = new Set(pool.filter((t) => {
       const same = t.backings.filter((b) => b.source === s.source && b.id !== s.id);
@@ -62,6 +69,15 @@ export function planIngestion(inputs, snapshot) {
       return !(s.source === 'bankfeed' && (booked(s) ? !t.posted_at && same.every((b) => b.status === 'PDNG') : same.every((b) => b.status !== 'PDNG')));
     }).map((t) => t.id));
     const decision = reconcile(s, pool, null, { exclude: excluded, existing });
+    if (decision.action === 'deferred') {
+      const deferred = decision.sighting;
+      saved.push(deferred);
+      links.push({ sighting_id: deferred.id, transaction_id: null });
+      const linked = { ...deferred, transaction_id: null };
+      prior.set(key(deferred), linked);
+      results.push({ sighting: linked, transaction: null, action: 'deferred' });
+      continue;
+    }
     let transaction;
     if (decision.action === 'create') {
       transaction = { id: randomUUID(), account_id: s.account_id || null, primary_sighting_id: s.id, ...decision.transaction, backings: [] };
@@ -89,12 +105,16 @@ async function ingestChunk(userId, inputs) {
     const { data: snapshot, error } = await supabaseAdmin.rpc('prepare_money_ingestion', { p_user_id: userId, p_sightings: inputs });
     if (error) throw new Error(`Cannot read payment evidence: ${error.message}`);
     const plan = planIngestion(inputs, snapshot);
-    const { error: commitError } = await supabaseAdmin.rpc('commit_money_ingestion', {
+    if (!plan.sightings.length) return { ...plan, revision: snapshot.revision };
+    if (plan.results.some((r) => r.action === 'deferred') && snapshot.protocol !== 2) {
+      throw new Error('Payment review is temporarily unavailable. Please retry this import.');
+    }
+    const { data: committed, error: commitError } = await supabaseAdmin.rpc('commit_money_ingestion', {
       p_user_id: userId, p_revision: snapshot.revision, p_sightings: plan.sightings,
       p_creates: plan.creates, p_updates: plan.updates, p_links: plan.links,
     });
-    if (!commitError) return plan;
-    if (commitError.code !== '40001') throw new Error(`Payment import rolled back: ${commitError.message}`);
+    if (!commitError) return { ...plan, revision: committed?.revision ?? snapshot.revision + 1 };
+    if (!['PT409', '40001'].includes(commitError.code)) throw new Error(`Payment import rolled back: ${commitError.message}`);
   }
   throw new Error('Payments are being updated. Please retry this import.');
 }
@@ -104,11 +124,14 @@ export async function ingestSightings(userId, sightings, { single = false } = {}
   const validated = z.array(sightingSchema).max(20000).parse(sightings);
   // Last provider revision wins within one response; prevents duplicate SQL target rows.
   const inputs = [...new Map(validated.map((s) => [key(s), s])).values()];
-  const result = { seen: inputs.length, created: 0, attached: 0 };
+  const result = { seen: inputs.length, created: 0, attached: 0, deferred: 0, ignored_deleted: 0, revision: null };
   for (let at = 0; at < inputs.length; at += 250) {
     const plan = await ingestChunk(userId, inputs.slice(at, at + 250));
     if (single) return plan.results[0];
     result.created += plan.creates.length;
+    result.deferred += plan.results.filter((r) => r.action === 'deferred').length;
+    result.ignored_deleted += plan.results.filter((r) => r.action === 'ignored_deleted').length;
+    result.revision = plan.revision;
     result.attached += plan.results.filter((r) => r.action === 'attach').length;
   }
   return result;

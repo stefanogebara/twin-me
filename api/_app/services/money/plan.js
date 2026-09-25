@@ -1,3 +1,4 @@
+import { financialEvidenceBlocked, financialEvidenceReason } from './financialCompleteness.js';
 /**
  * The plan: a month as days, what each one cost and what the coming ones are expected to.
  * =======================================================================================
@@ -48,6 +49,9 @@ function monthStart(month, now) {
  * @param isSpending which rows count as spending; by default money out
  */
 export function monthPlan({ forecast = null, transactions = [], facts = [], month = null, now = new Date(), isSpending = null } = {}) {
+  const reconciliation = forecast?.reconciliation;
+  const withheld = Boolean(forecast?.withheld || (reconciliation !== undefined && financialEvidenceBlocked(reconciliation)));
+  if (withheld) forecast = null;
   const spending = isSpending || ((t) => Number(t.amount) < 0);
   const start = monthStart(month, now);
   const monthKey = iso(start).slice(0, 7);
@@ -161,12 +165,13 @@ export function monthPlan({ forecast = null, transactions = [], facts = [], mont
   const daysAhead = list.filter((c) => !c.past && c.items.some((i) => i.kind !== 'income')).length;
   const peak = list.reduce((m, c) => (c.spent > (m ? m.spent : 0) ? c : m), null);
   return {
+    withheld, reconciliation,
     month: `${monthKey}-01`,
     days_in_month: daysInMonth,
     first_weekday: firstWeekday,
     today: cells.has(today) ? today : null,
     cells: list,
-    totals: { spent_to_day: spentToDay, expected_rest: expectedRest, income_ahead: incomeAhead, days_ahead: daysAhead },
+    totals: { spent_to_day: spentToDay, expected_rest: withheld ? null : expectedRest, income_ahead: withheld ? null : incomeAhead, days_ahead: withheld ? null : daysAhead },
     peak: peak && peak.spent > 0 ? { day: peak.day, amount: peak.spent } : null,
   };
 }
@@ -174,6 +179,7 @@ export function monthPlan({ forecast = null, transactions = [], facts = [], mont
 /** One computed sentence for the month: what it has cost and what is still expected. Pure. */
 export function planLine(plan, { now = new Date() } = {}) {
   if (!plan) return '';
+  if (plan.withheld) return financialEvidenceReason(plan.reconciliation);
   const label = new Date(`${plan.month}T12:00:00Z`).toLocaleDateString('en-GB', { month: 'long' });
   const t = plan.totals;
   const current = plan.month.slice(0, 7) === now.toISOString().slice(0, 7);

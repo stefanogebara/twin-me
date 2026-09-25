@@ -65,20 +65,45 @@ export type MoneyCommitment = {
   next_expected?: string;
 };
 
+export type MoneyReconciliation = {
+  state: 'clear' | 'pending' | 'unavailable'; unresolvedCount: number | null;
+  bySource?: Record<string, number>; oldestOccurredAt?: string | null;
+  newestOccurredAt?: string | null; checkedAt?: string; revision: number | null; financialRevision?: number | null;
+};
+export type MoneyReviewCandidate = {
+  id: string; merchant: string | null; amount: number; currency: string;
+  occurred_at: string; accountLabel: string | null;
+};
+export type MoneyReviewItem = {
+  id: string; source: string; merchant: string | null; amount: number; currency: string;
+  occurred_at: string; candidates: MoneyReviewCandidate[];
+};
+export type MoneyReview = { revision: number; items: MoneyReviewItem[]; remaining: number; nextOffset: number | null };
+
+/** Native reads arrive independently; never pair guidance from two ledger revisions. */
+export function consistentGuidance(a: { reconciliation?: MoneyReconciliation } | null, b: { reconciliation?: MoneyReconciliation } | null): boolean {
+  const x = a?.reconciliation; const y = b?.reconciliation;
+  return Boolean(x?.state === 'clear' && y?.state === 'clear' && x.revision != null && x.financialRevision != null && x.revision === y.revision && x.financialRevision === y.financialRevision);
+}
+type ForecastAmounts = 'spent' | 'committed' | 'projected_p10' | 'projected_p50' | 'projected_p90';
+export function usableForecast(f: MoneyForecast | null): f is MoneyForecast & Record<ForecastAmounts, number> {
+  return Boolean(f && !f.withheld && ['spent', 'committed', 'projected_p10', 'projected_p50', 'projected_p90'].every(k => typeof f[k as ForecastAmounts] === 'number' && Number.isFinite(f[k as ForecastAmounts])));
+}
 export type MoneyForecast = {
+  withheld?: boolean; why?: string; reconciliation?: MoneyReconciliation;
   month: string;
   as_of?: string;
   days_left: number;
-  spent: number;
-  committed: number;
-  expected: number;
-  baseline_rest?: number;
-  projected_p10: number;
-  projected_p50: number;
-  projected_p90: number;
+  spent: number | null;
+  committed: number | null;
+  expected: number | null;
+  baseline_rest?: number | null;
+  projected_p10: number | null;
+  projected_p50: number | null;
+  projected_p90: number | null;
   history_days?: number;
-  received?: number;
-  income_ahead?: number;
+  received?: number | null;
+  income_ahead?: number | null;
   committed_items?: MoneyCommitment[];
   commitment_items?: MoneyCommitment[];
   /** What the calendar says is coming this month and what such things have cost before. */
@@ -393,6 +418,7 @@ export function currentMonthStart(): string {
 
 /** What today can carry, and the words for how it was worked out. */
 export type MoneyToday = {
+  reconciliation?: MoneyReconciliation;
   amount: number | null;
   basis: 'income' | 'typical' | null;
   budget: number | null;
@@ -413,8 +439,9 @@ export type MoneyPlanCell = {
   note: { id: string | null; text: string } | null;
 };
 export type MoneyPlan = {
+  withheld?: boolean; why?: string; reconciliation?: MoneyReconciliation;
   month: string; days_in_month: number; first_weekday: number; today: string | null; cells: MoneyPlanCell[];
-  totals: { spent_to_day: number; expected_rest: number; income_ahead: number; days_ahead: number };
+  totals: { spent_to_day: number; expected_rest: number | null; income_ahead: number | null; days_ahead: number | null };
   peak: { day: string; amount: number } | null; line: string;
 };
 
@@ -439,6 +466,7 @@ async function completeLedger(since?: string): Promise<MoneyTransaction[]> {
 }
 
 export const moneyApi = {
+  reconciliation: () => authFetch('/money/reconciliation').then(r => json<MoneyReconciliation>(r)),
   forecast: () => authFetch('/money/forecast').then((r) => json<MoneyForecast>(r)),
   /** The month as a calendar; no month means the current one. */
   plan: (month?: string | null) =>

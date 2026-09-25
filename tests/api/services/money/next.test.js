@@ -62,3 +62,12 @@ it('follows a purchase comparison with commitments and context, not the estimate
     '¿Qué vence antes de que acabe el mes?', '¿Cómo va este mes comparado?',
   ]);
 });
+
+describe('opening suggestions respect financial completeness', () => {
+  it.each(['pending', 'unavailable'])('does not publish cached financial figures when evidence is %s', state => {
+    expect(openers({language:'en',reconciliation:{state},forecast:{spent:100,projected_p50:200,month:'2026-09-01'},recurring:[{cadence:'monthly',typical_amount:20}],segments:[{month:'2026-09-01',spent:100},{month:'2026-08-01',spent:90}]})).toEqual([]);
+  });
+  it('does not publish partial figures from a withheld forecast', () => {
+    expect(openers({language:'en',forecast:{withheld:true},segments:[{month:'2026-09-01',spent:100},{month:'2026-08-01',spent:90}]})).toEqual([]);
+  });
+});

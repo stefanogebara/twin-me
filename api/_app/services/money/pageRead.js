@@ -1,3 +1,6 @@
+import { beginReconciliationRead, finishReconciliationRead } from './reconciliationRead.js';
+import { financialEvidenceBlocked, withheldForecast } from './financialCompleteness.js';
+import { safeToSpend } from './allowance.js';
 /**
  * The page in one read.
  *
@@ -45,12 +48,13 @@ export async function accountsView(userId, given = {}) {
 export async function readPage(userId, { view = 'today', now = new Date() } = {}) {
   if (!userId) throw new Error('userId required');
   if (!PAGE_VIEWS.has(view)) throw new Error(`Unknown view: ${view}`);
+  const reconciliationRead = await beginReconciliationRead(userId);
   /* The ledger and the facts are read once each and handed to every part; before this the
      page read money_facts six times and walked the ledger five times for one screen (M2-A,
      2026-09-22). The day rests on the month's forecast and its segments, also read once. */
   const facts = listFacts(userId, { includeInternal: true });
   const ledger = listTransactions(userId, { limit: LEDGER_LIMIT, includeRejected: true });
-  const given = Promise.all([facts, ledger]).then(([f, t]) => ({ facts: f, transactions: t }));
+  const given = Promise.all([facts, ledger]).then(([f, t]) => ({ facts: f, transactions: t, reconciliationRead }));
   const cast = given.then((g) => forecast(userId, now, g));
   const segments = given.then((g) => months(userId, now, g));
   const reads = {
@@ -60,7 +64,7 @@ export async function readPage(userId, { view = 'today', now = new Date() } = {}
     ledger: ledger.then((rows) => selectTransactions(rows, { limit: LEDGER_LIMIT })),
     recurring: given.then((g) => refreshRecurring(userId, now, g)),
     accounts: given.then((g) => accountsView(userId, g)),
-    readings: listReadings(userId),
+    readings: listReadings(userId, { reconciliationRead }),
     facts: facts.then(publicFacts),
     seen: seenBy(userId),
     sources: sourceCounts(userId, { now }),
@@ -78,5 +82,13 @@ export async function readPage(userId, { view = 'today', now = new Date() } = {}
     if (r.status === 'fulfilled') data[names[i]] = r.value;
     else { data[names[i]] = null; failed.push(names[i]); }
   });
+  data.reconciliation = await finishReconciliationRead(reconciliationRead);
+  if (financialEvidenceBlocked(data.reconciliation)) {
+    data.forecast = withheldForecast(data.reconciliation, now);
+    data.today = safeToSpend({ cast: data.forecast, now });
+    data.readings = [];
+    data.recurring = [];
+    data.usage = null;
+  }
   return { data, failed };
 }

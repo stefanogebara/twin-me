@@ -1,3 +1,4 @@
+import { usableForecast } from '../../services/api/moneyAPI';
 /**
  * The words and sums the money page shares: what is still to come, a merchant as a name, a day as an ordinal.
  * The page was one 1,200-line component; since 2026-09-19 (M2-2) the reads and actions live in
@@ -80,6 +81,7 @@ export function lastDay(iso: string) { const d = new Date(iso); return new Date(
 
 /** Where a euro amount falls on the band, 0..100, with the projected p90 as the right edge. */
 export function pct(v: number, f: MoneyForecast, edge: number | null = null) {
+  if (!usableForecast(f)) return 0;
   const max = edge ? Math.max(edge, f.spent + f.committed, 1) : Math.max(f.projected_p90, f.spent + f.committed, 1) * 1.08;
   return Math.max(0, Math.min(100, (v / max) * 100));
 }

@@ -22,7 +22,7 @@ const data={
 };
 
 export async function moneyFixture(page: Page, { firstVisit = false } = {}) {
-  const state = { failing: false, empty: false, paginated: false, advanced: true, capabilitiesFailed: false, statementFailed: false, changed: false, offer: false, interrupted: false, cards: false, cardTypes: {} as Record<string,string>, imports: [] as string[], accountCreations: 0 };
+  const state = { reconciliationPending: false, failing: false, empty: false, paginated: false, advanced: true, capabilitiesFailed: false, statementFailed: false, changed: false, offer: false, interrupted: false, cards: false, cardTypes: {} as Record<string,string>, imports: [] as string[], accountCreations: 0 };
   await page.addInitScript(({ user, firstVisit }) => {
     sessionStorage.setItem('oauth_bootstrap_token','audit.synthetic.token');
     sessionStorage.setItem('twinme_new_user_check_done_v1','1');
@@ -59,7 +59,7 @@ export async function moneyFixture(page: Page, { firstVisit = false } = {}) {
     if (path==='/money/bank/accounts' && state.cards) return json({success:true,data:accountsNow()});
     /* The page in one read (M2-3): the same parts the single routes serve, under the same states. */
     if(path==='/money/page') return json({success:true,data:{
-      forecast, today: state.changed ? {...today,amount:29.99} : today,
+      reconciliation:{state:state.reconciliationPending?'pending':'clear',unresolvedCount:state.reconciliationPending?1:0,revision:1}, forecast, today: state.changed ? {...today,amount:29.99} : today,
       ledger: state.empty ? [] : state.paginated ? [...Array.from({length:200},(_,i)=>({...ledger[0],id:`tx${i}`})),{...ledger[0],id:'tx201',merchant_raw:'Last page cafe',merchant_name:'Last page cafe'}] : ledger,
       recurring: [], accounts: accountsNow(), months: data['/money/months'], readings: data['/money/readings'], categories: data['/money/categories'], usage: data['/money/usage'],
       capabilities: state.capabilitiesFailed ? null : {why:state.advanced?'listed':'restricted',bank:state.advanced,capture:state.advanced}, inbox: data['/money/inbox'], facts: data['/money/facts'], seen: { tx1: ['bankfeed'] }, failed: state.capabilitiesFailed ? ['capabilities'] : [],

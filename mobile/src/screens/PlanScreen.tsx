@@ -14,7 +14,7 @@
  */
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Alert, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
+import { Alert, Linking, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { useActiveRead } from '../hooks/useActiveRead';
 import { cosmos, euro } from '../constants/cosmos';
 import { moneyApi, type MoneyPlan, type MoneyPlanCell, type MoneyPlanItem } from '../services/moneyApi';
@@ -44,7 +44,9 @@ function itemWords(i: MoneyPlanItem): string {
 }
 
 /** The one grey line for a day. Computed from the cell, nothing guessed. */
-function dayLine(c: MoneyPlanCell): string {
+function dayLine(c: MoneyPlanCell, withheld = false): string {
+  if (withheld && !c.past && !c.today) return 'Spending guidance waits until the evidence is clear.';
+  if (withheld && !c.count && !c.received) return 'No recorded payments.';
   if (c.past || c.today) {
     const base = c.count
       ? `${euro(c.spent)}${c.today ? ' so far' : ''}, ${c.count} ${c.count === 1 ? 'payment' : 'payments'}${c.received ? `; ${euro(c.received)} came in` : ''}.`
@@ -64,8 +66,8 @@ function dayLine(c: MoneyPlanCell): string {
 // -- Pieces ------------------------------------------------------------------
 
 /** One day of the grid. The bar and the band sit at the bottom, behind the number and marks. */
-function DayCell({ c, picked, figure, px, onPress }: {
-  c: MoneyPlanCell; picked: boolean; figure: boolean; px: (v: number) => number; onPress: () => void;
+function DayCell({ c, picked, figure, px, onPress, withheld }: {
+  withheld?: boolean; c: MoneyPlanCell; picked: boolean; figure: boolean; px: (v: number) => number; onPress: () => void;
 }) {
   const ahead = !c.past && !c.today;
   const v = ahead ? c.expected : c.spent;
@@ -73,7 +75,7 @@ function DayCell({ c, picked, figure, px, onPress }: {
     <Pressable
       onPress={onPress}
       accessibilityRole="button"
-      accessibilityLabel={`${dayName(c.day)}: ${dayLine(c)}`}
+      accessibilityLabel={`${dayName(c.day)}: ${dayLine(c, withheld)}`}
       accessibilityState={{ selected: picked }}
       style={[s.cell, picked && s.cellPicked]}
     >
@@ -127,7 +129,7 @@ export default function PlanScreen({ active = true }: { active?: boolean } = {})
       setFailed(false);
       setPicked((was) => (was && p.cells.some((c) => c.day === was) ? was : p.today));
     } catch {
-      if (isCurrent()) setFailed(true);
+      if (isCurrent()) { setFailed(true); setPlan(null); setPicked(null); }
     }
   }, [current, month]);
   const refresh = useActiveRead(load, active);
@@ -183,12 +185,15 @@ export default function PlanScreen({ active = true }: { active?: boolean } = {})
 
   const before = shiftMonth(month, -1);
   const after = shiftMonth(month, 1);
+  const needsEvidenceReview = plan?.withheld && plan.reconciliation?.state === 'pending';
+  const evidenceUnavailable = plan?.withheld && !needsEvidenceReview;
 
   return (
     <Page>
       <ScrollView contentContainerStyle={s.content} keyboardShouldPersistTaps="handled" automaticallyAdjustKeyboardInsets>
         <Title>{`${monthName(month)}, day by day.`}</Title>
-        <Small style={s.after}>{failed ? 'The plan could not be read right now.' : plan ? glyphs(plan.line) : ''}</Small>
+        <Small style={s.after}>{needsEvidenceReview ? 'Recorded payments exclude observations awaiting review. Spending guidance waits until review in Account on twinme.me.' : evidenceUnavailable ? 'The payment evidence could not be confirmed. Spending guidance is unavailable. Try again.' : failed ? 'The plan could not be read right now.' : plan ? glyphs(plan.line) : ''}</Small>
+        {needsEvidenceReview ? <Pill label="Review on twinme.me" onPress={() => { void Linking.openURL('https://twinme.me/money/account#sources'); }} /> : evidenceUnavailable || failed ? <Pill label="Try again" onPress={() => { void refresh(true); }} /> : null}
         <View style={s.months}>
           <Pressable onPress={() => setMonth(before)} accessibilityRole="button" style={s.link}>
             <Small muted style={s.linkText}>{monthName(before)}</Small>
@@ -211,6 +216,7 @@ export default function PlanScreen({ active = true }: { active?: boolean } = {})
                   <DayCell
                     key={c.day}
                     c={c}
+                    withheld={plan.withheld}
                     picked={picked === c.day}
                     figure={(plan.peak !== null && c.day === plan.peak.day) || (c.today && c.spent > 0)}
                     px={px}
@@ -228,7 +234,7 @@ export default function PlanScreen({ active = true }: { active?: boolean } = {})
         {cell ? (
           <View style={s.day}>
             <Heading>{`${dayName(cell.day)}${cell.today ? ', today' : ''}.`}</Heading>
-            <Small style={s.afterSmall}>{dayLine(cell)}</Small>
+            <Small style={s.afterSmall}>{dayLine(cell, plan?.withheld)}</Small>
             {(cell.past || cell.today) && cell.rows.length ? (
               <View style={s.rows}>
                 <Hairline />

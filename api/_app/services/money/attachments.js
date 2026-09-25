@@ -31,6 +31,7 @@ import crypto from 'node:crypto';
 import { say } from './chat.js';
 import { LEDGER_TZ } from './zone.js';
 import { money } from './currency.js';
+import { financialEvidenceReason } from './financialCompleteness.js';
 import { quietly } from './quietly.js';
 
 /** Vercel caps a request body at 4.5 MB; a photo shrinks on the client before it comes. */
@@ -161,6 +162,8 @@ export async function readAttachment(userId, { buffer, filename = '', mimeType =
        timeout. The daily run recomputes every reading with this row in it. */
     const result = await ingestSighting(userId, sighting);
     const tx = result && result.transaction ? result.transaction : null;
+    if (result?.action === 'ignored_deleted') return said('receipt', language === 'es' ? 'Este pago se eliminó anteriormente. No se ha vuelto a añadir.' : language === 'pt-BR' ? 'Este pagamento foi removido anteriormente. Não foi adicionado novamente.' : 'This payment was previously removed. It has not been added again.', { action: 'ignored_deleted', receipts: [] });
+    if (result?.action === 'deferred') return said('receipt', financialEvidenceReason({ state: 'pending' }, language), { action: 'deferred', deferred: 1, receipts: [] });
     const when = receipt.date ? new Date(receipt.date).toLocaleDateString(LOCALES[language] || 'en-GB', { day: 'numeric', month: 'short', timeZone: LEDGER_TZ }) : w('today');
     const items = receipt.items && receipt.items.length
       ? ` ${receipt.items.length === 1 ? w('{n} item on it.', { n: 1 }) : w('{n} items on it.', { n: receipt.items.length })}`

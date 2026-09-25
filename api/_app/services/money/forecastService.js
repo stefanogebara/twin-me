@@ -1,3 +1,5 @@
+import { financialEvidenceBlocked, withheldForecast } from './financialCompleteness.js';
+import { beginReconciliationRead, finishReconciliationRead } from './reconciliationRead.js';
 /**
  * The month, forecast; the months, segmented; the twin's charges, scored.
  * =======================================================================
@@ -35,6 +37,8 @@ const log = createLogger('money-forecast');
 const SCORING_DEADLINE_MS = Number(process.env.MONEY_SCORING_DEADLINE_MS || 2500);
 
 export async function forecast(userId, now = new Date(), given = {}) {
+  const reconciliationRead = await beginReconciliationRead(userId, given);
+  if (financialEvidenceBlocked(reconciliationRead.initial)) return withheldForecast(reconciliationRead.initial, now);
   const since = new Date(now.getTime() - 100 * 86400000).toISOString();
   const [rows, rec, facts] = await Promise.all([
     given.transactions ? selectTransactions(given.transactions, { since, limit: 5000, currency: ledgerCurrency() }) : listOwnTransactions(userId, { since, limit: 5000 }),
@@ -131,6 +135,10 @@ export async function forecast(userId, now = new Date(), given = {}) {
   result.committed_items = (result.committed_items || []).map((c) => ({ ...c, merchant_name: names.get(c.merchant_key) || null }));
   result.expected_items = (result.expected_items || []).map((c) => ({ ...c, merchant_name: names.get(c.merchant_key) || null }));
   Object.assign(result, cal);
+  const reconciliation = given.reconciliationRead ? reconciliationRead.initial : await finishReconciliationRead(reconciliationRead);
+  if (financialEvidenceBlocked(reconciliation)) return withheldForecast(reconciliation, now);
+  result.reconciliation = reconciliation;
+  result.withheld = false;
   await supabaseAdmin.from('money_forecasts').insert({
     user_id: userId, as_of: result.as_of, month: result.month, spent: result.spent, committed: result.committed,
     projected_p10: result.projected_p10, projected_p50: result.projected_p50, projected_p90: result.projected_p90,
@@ -147,6 +155,8 @@ export async function months(userId, now = new Date(), given = {}) {
 }
 
 export async function scorePredictions(userId, now = new Date()) {
+  const reconciliationRead = await beginReconciliationRead(userId);
+  if (financialEvidenceBlocked(reconciliationRead.initial)) return { scored: 0, hit: 0, reconciliation: reconciliationRead.initial };
   const { data: open } = await supabaseAdmin
     .from('money_predictions')
     .select('id, merchant_key, expected_on, typical_amount')
@@ -154,7 +164,10 @@ export async function scorePredictions(userId, now = new Date()) {
   if (!open?.length) return { scored: 0, hit: 0 };
 
   const transactions = await listOwnTransactions(userId, { limit: 5000 });
+  const reconciliation = await finishReconciliationRead(reconciliationRead);
+  if (financialEvidenceBlocked(reconciliation)) return { scored: 0, hit: 0, reconciliation };
   let hit = 0;
+  const changes = [];
   for (const p of open) {
     const target = new Date(`${p.expected_on}T12:00:00Z`).getTime();
     const match = transactions.find((t) => t.merchant_key === p.merchant_key
@@ -165,7 +178,10 @@ export async function scorePredictions(userId, now = new Date()) {
       ? { happened: true, happened_on: dayIn(match.occurred_at), happened_amount: Math.abs(Number(match.amount)), scored_at: now.toISOString() }
       : { happened: false, scored_at: now.toISOString() };
     if (match) hit += 1;
-    await supabaseAdmin.from('money_predictions').update(update).eq('id', p.id);
+    changes.push({ id: p.id, ...update });
   }
-  return { scored: open.length, hit };
+  const { error } = await supabaseAdmin.rpc('commit_money_charge_scores', { p_user_id: userId, p_revision: reconciliation.revision, p_financial_revision: reconciliation.financialRevision, p_changes: changes });
+  if (['PT409', '40001'].includes(error?.code)) return { scored: 0, hit: 0, withheld: true };
+  if (error) throw new Error(`Could not score expected charges: ${error.message}`);
+  return { scored: changes.length, hit };
 }

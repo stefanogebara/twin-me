@@ -1,3 +1,5 @@
+import { financialEvidenceBlocked } from './financialCompleteness.js';
+import { beginReconciliationRead, finishReconciliationRead } from './reconciliationRead.js';
 /**
  * The twin grades its own homework.
  * =================================
@@ -55,6 +57,7 @@ const isAmount = (v) => v !== null && v !== undefined && Number.isFinite(Number(
  * @param {Date} p.now
  */
 export function predictionsFrom({ cast = null, allowance = null, day: dayCast = null, now = new Date() } = {}) {
+  if ([cast, allowance, dayCast].some(part => part?.withheld || (part?.reconciliation !== undefined && financialEvidenceBlocked(part.reconciliation)))) return [];
   const madeOn = day(now);
   const rows = [];
   if (cast && isAmount(cast.projected_p50)) {
@@ -179,6 +182,8 @@ const missing = (error) => {
 /** Write today's figures for one person. Idempotent per day. */
 export async function recordPredictions(userId, { cast, allowance, day = null, now = new Date() }) {
   if (tableGone()) return { recorded: 0 };
+  const reconciliationRead = await beginReconciliationRead(userId);
+  if (financialEvidenceBlocked(reconciliationRead.initial) || (cast?.reconciliation && (String(cast.reconciliation.revision) !== String(reconciliationRead.initial.revision) || String(cast.reconciliation.financialRevision) !== String(reconciliationRead.initial.financialRevision)))) return { recorded: 0 };
   const rows = predictionsFrom({ cast, allowance, day, now });
   if (!rows.length) return { recorded: 0 };
   const widen = cast?.band_calibration?.widen || 0;
@@ -188,11 +193,10 @@ export async function recordPredictions(userId, { cast, allowance, day = null, n
       issued_low: Math.max(0, r.low - widen), issued_high: r.high + widen,
     } : {}),
   }));
-  const { error } = await supabaseAdmin
-    .from('money_figure_scores')
-    .upsert(recorded, { onConflict: 'user_id,kind,predicted_for,predicted_on', ignoreDuplicates: true });
+  const { data: committed, error } = await supabaseAdmin.rpc('commit_money_prediction_issue', { p_user_id: userId, p_revision: reconciliationRead.initial.revision, p_financial_revision: reconciliationRead.initial.financialRevision, p_rows: recorded });
+  if (['PT409', '40001'].includes(error?.code)) return { recorded: 0, withheld: true };
   if (error) { if (missing(error)) return { recorded: 0 }; throw new Error(`figure scores upsert failed: ${error.message}`); }
-  return { recorded: rows.length };
+  return { recorded: committed?.recorded ?? 0 };
 }
 
 /** Reconcile mature outcomes, including ones scored before their evidence changed. */
@@ -203,6 +207,8 @@ export async function scoreFigures(userId, { now = new Date() } = {}) {
 
 /** The scored record, summarised, for a sentence on the page. Null until something is scored. */
 export async function accuracy(userId) {
+  const reconciliationRead = await beginReconciliationRead(userId);
+  if (financialEvidenceBlocked(reconciliationRead.initial)) return null;
   const { data: charges } = await supabaseAdmin
     .from('money_predictions')
     .select('expected_on, typical_amount, confidence, happened, happened_on, happened_amount')
@@ -210,6 +216,7 @@ export async function accuracy(userId) {
     .order('expected_on', { ascending: false }).limit(200);
   const { figures } = await currentFigureScores(userId);
   if (!(charges || []).length && !figures.length) return null;
+  if (financialEvidenceBlocked(await finishReconciliationRead(reconciliationRead))) return null;
   return summarise(figures, charges || []);
 }
 
@@ -221,12 +228,16 @@ export async function accuracy(userId) {
 export async function learnFromLedger(userId, now = new Date()) {
   const charges = await scoreCharges(userId, now).catch((e) => { log.warn('charge scoring failed', { error: e.message }); return { scored: 0, hit: 0 }; });
   if (tableGone()) return { recorded: 0, scored: 0, charges };
+  const reconciliationRead = await beginReconciliationRead(userId);
   const [cast, transactions, facts, segments] = await Promise.all([
-    forecast(userId, now),
+    forecast(userId, now, { reconciliationRead }),
     listTransactions(userId, { currency: ledgerCurrency(), limit: 5000 }),
     listFacts(userId),
     months(userId, now),
   ]);
+  const reconciliation = await finishReconciliationRead(reconciliationRead);
+  if (financialEvidenceBlocked(reconciliation) || cast?.withheld) { const scored = await scoreFigures(userId, { now }); return { recorded: 0, scored: scored.scored, charges, reconciliation }; }
+  if (cast) cast.reconciliation = reconciliation;
   const allowance = cast ? safeToSpend({ cast, segments, facts, now }) : null;
   const tomorrow = new Date(now.getTime() + 86400000);
   const dayCast = dayForecast(transactions, tomorrow, { isSpending: spendingRule(facts) });

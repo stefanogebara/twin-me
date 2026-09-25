@@ -27,9 +27,29 @@ export type MoneyRecurring = {
   platform?: string | null; uses?: number | null; cost_per_use?: number | null;
   charges?: MoneyCharge[]; total_paid?: number; day_of_month?: number | null;
 };
+export type MoneyReconciliation = {
+  state: 'clear' | 'pending' | 'unavailable'; unresolvedCount: number | null;
+  bySource?: Record<string, number>; oldestOccurredAt?: string | null;
+  newestOccurredAt?: string | null; checkedAt?: string; revision: number | null; financialRevision?: number | null;
+};
+export type MoneyReviewCandidate = {
+  id: string; merchant: string | null; amount: number; currency: string;
+  occurred_at: string; accountLabel: string | null;
+};
+export type MoneyReviewItem = {
+  id: string; source: string; merchant: string | null; amount: number; currency: string;
+  occurred_at: string; candidates: MoneyReviewCandidate[]; candidateOverflow?: boolean;
+};
+export type MoneyReview = { revision: number; items: MoneyReviewItem[]; remaining: number; nextOffset: number | null };
+
+type ForecastAmounts = 'spent' | 'committed' | 'projected_p10' | 'projected_p50' | 'projected_p90';
+export function usableForecast(f: MoneyForecast | null): f is MoneyForecast & Record<ForecastAmounts, number> {
+  return Boolean(f && !f.withheld && ['spent', 'committed', 'projected_p10', 'projected_p50', 'projected_p90'].every(k => typeof f[k as ForecastAmounts] === 'number' && Number.isFinite(f[k as ForecastAmounts])));
+}
 export type MoneyForecast = {
-  month: string; as_of: string; days_left: number; spent: number; committed: number; expected: number; baseline_rest: number;
-  projected_p10: number; projected_p50: number; projected_p90: number; history_days: number;
+  withheld?: boolean; why?: string; reconciliation?: MoneyReconciliation;
+  month: string; as_of: string; days_left: number; spent: number | null; committed: number | null; expected: number | null; baseline_rest: number | null;
+  projected_p10: number | null; projected_p50: number | null; projected_p90: number | null; history_days: number;
   committed_items: { merchant_key: string; merchant_name?: string | null; typical_amount: number | string; next_expected: string; cadence?: string; occurrences?: number; last_seen?: string }[];
   commitment_items?: { subject?: string | null; amount: number | string; due_on: string; check_status?: string | null }[];
   income_items?: { subject?: string | null; source?: string | null; amount: number | string; due_on: string; basis?: string | null; confidence?: number | null; said?: boolean; times?: number | null; day?: number | null }[];
@@ -63,8 +83,9 @@ export type MoneyTerm = {
   this_week: MoneyTermWeek | null; next_week: MoneyTermWeek | null; read_from: string; read_to: string;
 };
 export type MoneyPlan = {
+  withheld?: boolean; why?: string; reconciliation?: MoneyReconciliation;
   month: string; days_in_month: number; first_weekday: number; today: string | null; cells: MoneyPlanCell[];
-  totals: { spent_to_day: number; expected_rest: number; income_ahead: number; days_ahead: number };
+  totals: { spent_to_day: number; expected_rest: number | null; income_ahead: number | null; days_ahead: number | null };
   peak: { day: string; amount: number } | null; line: string; term?: MoneyTerm | null;
 };
 export type MoneyMonth = {
@@ -79,6 +100,7 @@ export type MoneyReading = {
 export type MoneyBudget = { used: number; left: number; resets_at: string | null };
 /** Safe to spend today, with the basis it rests on; amount null until a month can be read. */
 export type MoneyToday = {
+  reconciliation?: MoneyReconciliation;
   amount: number | null; basis: 'balance' | 'income' | 'typical' | 'student_prior' | null; base?: number | null; income?: number | null; keep?: number | null; budget: number | null; free: number | null; over: boolean;
   horizon?: { day: string | null; days: number; source: string | null } | null; balance?: { amount: number; banks: string[]; at: string } | null;
   days_left: number | null; today_events: { title: string; amount: number }[]; sentence: string | null; why: string | null;
@@ -204,7 +226,7 @@ export type StatementPreviewRow = { day: string; name: string | null; amount: nu
 export type StatementNeeds = { plan: Record<string, unknown>; questions: StatementQuestion[]; preview: StatementPreviewRow[]; read: number; skipped: number; reviewRequired: true };
 export type StatementImportResult =
   | { kind: 'needs'; needs: StatementNeeds }
-  | { kind: 'imported'; read: number; created: number; attached: number; skipped: number };
+  | { kind: 'imported'; read: number; created: number; attached: number; skipped: number; deferred: number; ignored_deleted: number };
 const statementObject = (value: unknown): value is Record<string, unknown> => !!value && typeof value === 'object' && !Array.isArray(value);
 
 /** A successful read may still need the person's interpretation; it is not a ledger edit. */
@@ -226,13 +248,14 @@ function statementResult(data: unknown): StatementImportResult {
         return { kind: 'needs', needs: data.needs as unknown as StatementNeeds };
       }
     } else if (!('needs' in data) && ['read', 'created', 'attached', 'skipped'].every(key => Number.isSafeInteger(data[key]) && Number(data[key]) >= 0)) {
-      return { kind: 'imported', read: Number(data.read), created: Number(data.created), attached: Number(data.attached), skipped: Number(data.skipped) };
+      return { kind: 'imported', read: Number(data.read), created: Number(data.created), attached: Number(data.attached), skipped: Number(data.skipped), deferred: Number.isSafeInteger(data.deferred) && Number(data.deferred) >= 0 ? Number(data.deferred) : 0, ignored_deleted: Number.isSafeInteger(data.ignored_deleted) && Number(data.ignored_deleted) >= 0 ? Number(data.ignored_deleted) : 0 };
     }
   }
   throw new Error('That statement could not be read.');
 }
 
 export type MoneyPage = {
+  reconciliation?: MoneyReconciliation;
   forecast: MoneyForecast | null; today: MoneyToday | null; ledger: MoneyTransaction[] | null; recurring: MoneyRecurring[] | null;
   accounts: MoneyAccount[] | null; months: MoneyMonth[] | null; readings: MoneyReading[] | null; categories: MoneyCategories | null;
   usage: MoneyUsage | null; capabilities: MoneyCapabilities | null; inbox: MoneyInbox | null;
@@ -247,6 +270,9 @@ export type MoneyPage = {
 };
 
 export const moneyAPI = {
+  reconciliationReview: (offset = 0) => moneyFetch(`/money/reconciliation/review?offset=${offset}`).then(r => json<MoneyReview>(r)),
+  resolveEvidence: (id: string, resolution: { revision: number; action: 'match' | 'separate'; transactionId?: string }) =>
+    moneyFetch(`/money/reconciliation/${encodeURIComponent(id)}/resolve`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(resolution) }).then(r => json<unknown>(r)).then(moneyChanged),
   /* The page in one read: every part Today, Month and You share, and which could not be read. */
   chatOpeners: () => moneyFetch('/money/chat/openers').then((r) => json<ChatOpener[]>(r)),
   page: (view: 'today' | 'month' | 'you') => moneyFetch(`/money/page?view=${view}`).then((r) => json<MoneyPage>(r)),

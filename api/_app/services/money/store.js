@@ -1,3 +1,5 @@
+import { beginReconciliationRead, finishReconciliationRead } from './reconciliationRead.js';
+import { financialEvidenceBlocked, financialEvidenceReason } from './financialCompleteness.js';
 /**
  * Money store: the only file in the module that talks to Supabase.
  * The pure files decide; this file applies.
@@ -60,6 +62,8 @@ export async function sightingsFor(userId, transactionId) {
  *   ones) and the ledger (with its rejected rows) when the caller already read them (M2-A).
  */
 export async function refreshRecurring(userId, now = new Date(), given = {}) {
+  const reconciliationRead = await beginReconciliationRead(userId, given);
+  if (financialEvidenceBlocked(reconciliationRead.initial)) return [];
   const since = new Date(now.getTime() - 400 * 86400000).toISOString();
   const evidence = given.transactions
     ? selectTransactions(given.transactions, { since, limit: 5000, currency: ledgerCurrency(), includeRejected: true })
@@ -74,6 +78,7 @@ export async function refreshRecurring(userId, now = new Date(), given = {}) {
   for (const t of rows) if (t.merchant_raw && !names.has(t.merchant_key)) names.set(t.merchant_key, t.merchant_raw);
   const { data: previous, error: readError } = await supabaseAdmin.from('money_recurring').select('merchant_key').eq('user_id', userId);
   if (readError) throw new Error('Could not read recurring charges');
+  if (!given.reconciliationRead && financialEvidenceBlocked(await finishReconciliationRead(reconciliationRead))) return [];
   if (series.length) {
     const { error } = await supabaseAdmin.from('money_recurring').upsert(series.map(({ platform, transaction_ids, variants, variant_amounts, ...item }) => ({ user_id: userId, ...item, updated_at: now.toISOString() })), { onConflict: 'user_id,merchant_key' });
     if (error) throw new Error('Could not save recurring charges');
@@ -422,6 +427,8 @@ export async function pullBankFeed(userId, { since, attended = false, psu = null
  * A verdict the person already gave is kept.
  */
 export async function refreshReadings(userId, now = new Date()) {
+  const reconciliationRead = await beginReconciliationRead(userId);
+  if (financialEvidenceBlocked(reconciliationRead.initial)) return { segments: [], findings: [], told: 0, reconciliation: reconciliationRead.initial };
   const [transactions, recurring, facts] = await Promise.all([
     listOwnTransactions(userId, { limit: 5000 }),
     supabaseAdmin.from('money_recurring').select('*').eq('user_id', userId).then((r) => {
@@ -467,6 +474,8 @@ export async function refreshReadings(userId, now = new Date()) {
      the verdict the person already gave. */
   const { data: existing } = await supabaseAdmin.from('money_readings').select('id, kind, month, verdict, numbers').eq('user_id', userId);
   const keyOf = (kind, month) => `${kind}|${month || ''}`;
+  const reconciliation = await finishReconciliationRead(reconciliationRead);
+  if (financialEvidenceBlocked(reconciliation)) return { segments, findings: [], told: 0, reconciliation };
   const byKey = new Map((existing || []).map((r) => [keyOf(r.kind, r.month), r.id]));
   /* A kind this person has muted more than acted on, over thirty deliveries, is not
      computed again. The rows that retired it are kept: they are the reason. */
@@ -507,7 +516,9 @@ export async function refreshReadings(userId, now = new Date()) {
 }
 
 /** The stored readings with their receipts resolved, newest computation first. */
-export async function listReadings(userId, { includeRejected = false } = {}) {
+export async function listReadings(userId, { includeRejected = false, reconciliationRead: suppliedRead } = {}) {
+  const reconciliationRead = await beginReconciliationRead(userId, { reconciliationRead: suppliedRead });
+  if (financialEvidenceBlocked(reconciliationRead.initial)) return [];
   const { data } = await supabaseAdmin.from('money_readings').select('*').eq('user_id', userId).order('computed_at', { ascending: false });
   /* A reading the person marked as not theirs is not shown again and is never cited: saying
      "not me" has to mean something, or it is a poll rather than a control. The row is kept,
@@ -515,6 +526,7 @@ export async function listReadings(userId, { includeRejected = false } = {}) {
   /* A dated nudge whose day has passed stays in the table for the retirement tally and off the page (nudges.js). */
   const readings = (data || []).filter((r) => includeRejected || r.verdict !== 'not_me').filter((r) => !expiredNudge(r, new Date()));
   const ids = [...new Set(readings.flatMap((r) => r.receipt_ids || []))];
+  if (!suppliedRead && financialEvidenceBlocked(await finishReconciliationRead(reconciliationRead))) return [];
   if (!ids.length) return readings.map((r) => ({ ...r, receipts: [] }));
   const { data: rows } = await supabaseAdmin
     .from('money_transactions')
@@ -540,6 +552,8 @@ export async function setReadingVerdict(userId, readingId, verdict) {
  * Returns null when there is no ledger, so the twin says nothing rather than guessing.
  */
 export async function moneyContext(userId, now = new Date()) {
+  const reconciliationRead = await beginReconciliationRead(userId);
+  if (financialEvidenceBlocked(reconciliationRead.initial)) return { withheld: true, reconciliation: reconciliationRead.initial, why: financialEvidenceReason(reconciliationRead.initial), readings: [] };
   const [transactions, readings] = await Promise.all([
     listOwnTransactions(userId, { limit: 2000 }),
     supabaseAdmin.from('money_readings').select('kind, sentence, detail, computed_at').eq('user_id', userId)
@@ -579,7 +593,10 @@ export async function moneyContext(userId, now = new Date()) {
     .gte('confidence', TWIN_PREDICTION_CONFIDENCE)
     .order('expected_on').limit(5);
 
+  const reconciliation = await finishReconciliationRead(reconciliationRead);
+  if (financialEvidenceBlocked(reconciliation)) return { withheld: true, reconciliation, why: financialEvidenceReason(reconciliation), readings: [] };
   return {
+    reconciliation,
     month: here?.month || null,
     spent: here?.spent ?? 0,
     said,
@@ -871,6 +888,8 @@ export async function enrichPlaces(userId, { limit = 12 } = {}) {
  */
 /** @param {{ transactions?: object[] }} given the ledger (with its rejected rows) when the caller already read it (M2-A). */
 export async function subscriptionUsage(userId, now = new Date(), given = {}) {
+  const reconciliationRead = await beginReconciliationRead(userId, given);
+  if (financialEvidenceBlocked(reconciliationRead.initial)) return { findings: [], unmeasurable: [], measured: [], reconciliation: reconciliationRead.initial };
   const [series, transactions] = await Promise.all([
     supabaseAdmin.from('money_recurring').select('*').eq('user_id', userId).then((r) => {
       if (r.error) throw new Error(`Cannot read recurring commitments: ${r.error.message}`);
@@ -923,6 +942,8 @@ export async function subscriptionUsage(userId, now = new Date(), given = {}) {
     .in('status', ['connected', 'token_refreshed', 'pending']);
   const connected = [...new Set((conns || []).map((c) => c.platform).filter(Boolean))];
 
+  const reconciliation = given.reconciliationRead ? reconciliationRead.initial : await finishReconciliationRead(reconciliationRead);
+  if (financialEvidenceBlocked(reconciliation)) return { findings: [], unmeasurable: [], measured: [], reconciliation };
   const findings = readUsage({ recurring: withCharges, eventsByPlatform, connected, now });
   return {
     findings,
@@ -949,16 +970,21 @@ export async function subscriptionUsage(userId, now = new Date(), given = {}) {
  * (Stefano, 2026-09-16).
  */
 export async function patternsFor(userId, now = new Date()) {
+  const reconciliationRead = await beginReconciliationRead(userId);
+  if (financialEvidenceBlocked(reconciliationRead.initial)) return [];
   const transactions = await listOwnTransactions(userId, { limit: 5000 });
   if (!transactions.length) return [];
   const keys = [...new Set(transactions.map((t) => t.merchant_key))];
   const categories = await categoriesFor(userId, keys);
   const categoryOf = (t) => categories.get(t.merchant_key) || CHANNEL_CATEGORY[t.channel] || null;
   const profiles = learnMerchants(transactions, { now, categoryOf });
+  if (financialEvidenceBlocked(await finishReconciliationRead(reconciliationRead))) return [];
   return learnPatterns({ transactions, profiles, categoryOf, now });
 }
 
 export async function learn(userId, now = new Date()) {
+  const reconciliationRead = await beginReconciliationRead(userId);
+  if (financialEvidenceBlocked(reconciliationRead.initial)) return { profiles: [], patterns: [], predictions: [], summary: null, reconciliation: reconciliationRead.initial };
   const transactions = await listOwnTransactions(userId, { limit: 5000 });
   if (!transactions.length) return { profiles: [], patterns: [], predictions: [], summary: null };
 
@@ -979,6 +1005,8 @@ export async function learn(userId, now = new Date()) {
   const predictions = predictNext(profiles, { now, away });
   const patterns = learnPatterns({ transactions, profiles, categoryOf, now });
   const summary = describeForTwin({ profiles, patterns, predictions, now });
+  const reconciliation = await finishReconciliationRead(reconciliationRead);
+  if (financialEvidenceBlocked(reconciliation)) return { profiles: [], patterns: [], predictions: [], summary: null, reconciliation };
   /* The patterns reached a prompt and nothing else. In the stream they are retrievable by
      anything the person asks the twin, money or not (2026-09-16). */
   await tellTwinPatterns(userId, patterns).catch((e) => log.warn(`twin patterns failed: ${e.message}`));

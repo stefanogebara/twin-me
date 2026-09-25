@@ -1,3 +1,6 @@
+import reconciliationRouter from './moneyReconciliation.js';
+import { beginReconciliationRead, finishReconciliationRead } from '../services/money/reconciliationRead.js';
+import { financialEvidenceBlocked, withheldForecast } from '../services/money/financialCompleteness.js';
 /**
  * Money API (v2, from zero)
  * =========================
@@ -152,6 +155,7 @@ router.post('/inbox/resend', async (req, res) => {
 });
 
 router.use(authenticateUser);
+router.use('/reconciliation', reconciliationRouter);
 /* Every read and write below runs in the person's own zone (profile.js): the day a payment
    falls on, the day that is "today", the start of the month, all where they are. */
 router.use((req, res, next) => { inPersonScope(req.user.id, () => new Promise((resolve) => { res.on('finish', resolve); res.on('close', resolve); next(); })).catch((error) => { log.warn('zone scope failed', { error: error.message }); next(); }); });
@@ -250,7 +254,10 @@ router.get('/plan', async (req, res) => {
        of them. The dots for events on a past day (#487) and the term strip (#490) were both
        dead in production from the day they shipped, for this one missing argument
        (2026-09-22). `forecast()` already reads its facts this way. */
-    const [cast, rows, facts] = await Promise.all([forecast(req.user.id), listTransactions(req.user.id, { since: start, limit: 5000, currency: ledgerCurrency() }), listFacts(req.user.id, { includeInternal: true })]);
+    const reconciliationRead = await beginReconciliationRead(req.user.id);
+    const [readCast, rows, facts] = await Promise.all([forecast(req.user.id, now, { reconciliationRead }), listTransactions(req.user.id, { since: start, limit: 5000, currency: ledgerCurrency() }), listFacts(req.user.id, { includeInternal: true })]);
+    const reconciliation = await finishReconciliationRead(reconciliationRead);
+    const cast = financialEvidenceBlocked(reconciliation) ? withheldForecast(reconciliation, now) : readCast;
     const plan = monthPlan({ forecast: cast, transactions: rows, facts, month, now, isSpending: spendingRule(facts) });
     /* The term either side of this week: the same facts, no second read (2026-09-21). */
     res.json({ success: true, data: { ...plan, line: planLine(plan, { now }), term: termWeeks(facts, { now }) } });
@@ -459,7 +466,7 @@ router.post('/statement', upload.single('file'), async (req, res) => {
     await refreshRecurring(req.user.id).catch((e) => log.warn('recurring after statement failed', { error: e.message }));
     await refreshReadings(req.user.id).catch((e) => log.warn('readings after statement failed', { error: e.message }));
     log.info('statement imported', { userId: req.user.id, rows: sightings.length, created: result.created });
-    res.json({ success: true, data: { read: sightings.length, created: result.created, attached: result.attached, skipped: skipped.length } });
+    res.json({ success: true, data: { read: sightings.length, created: result.created, attached: result.attached, deferred: result.deferred || 0, ignored_deleted: result.ignored_deleted || 0, skipped: skipped.length } });
   } catch (error) {
     statementFailure(res, error);
   }
@@ -473,7 +480,7 @@ router.get('/sheet', async (req, res) => {
     res.setHeader('Content-Disposition', `attachment; filename="${out.filename}"`);
     res.setHeader('X-Rows', String(out.rows));
     res.send(out.buffer);
-  } catch (error) { log.error('sheet failed', { error: error.message }); res.status(500).json({ success: false, error: 'Internal server error' }); }
+  } catch (error) { if (error.code === 'PAYMENT_REVIEW_REQUIRED') return res.status(503).json({ success: false, error: error.message }); log.error('sheet failed', { error: error.message }); res.status(500).json({ success: false, error: 'Internal server error' }); }
 });
 
 /** Where a month went, by kind of place. */

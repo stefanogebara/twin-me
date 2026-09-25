@@ -81,7 +81,7 @@ function legacyMatch(candidates) {
  * candidateIds contains the preferred evidence tier, sorted independently of pool order.
  * A named result preserves the existing nearest/tie policy; it is not a uniqueness claim.
  * An ambiguous weak result recommends no transaction. Callers must not interpret that null
- * as permission to create another payment: evidence-only deferral is not implemented yet.
+ * as permission to create another payment: the planner must persist explicit evidence-only deferral.
  * @returns {{ kind: 'none'|'unique_weak'|'ambiguous_weak'|'named', match: object|null, candidateIds: string[] }}
  */
 export function classifyMatch(sighting, transactions, opts = {}) {
@@ -96,7 +96,7 @@ export function classifyMatch(sighting, transactions, opts = {}) {
 }
 
 /**
- * Existing attachment policy, kept until ingestion can persist deferred evidence atomically.
+ * Legacy compatibility matcher. Ingestion uses classifyMatch through reconcile instead.
  * This still selects the nearest weak candidate even when classifyMatch reports ambiguity.
  * @param {object} sighting  { amount, direction, merchant_key, occurred_at }
  * @param {object[]} transactions  candidate rows { id, amount, merchant_key, occurred_at }
@@ -107,7 +107,7 @@ export function findMatch(sighting, transactions, opts = {}) {
 
 /**
  * Decide what a sighting does to the ledger.
- * @returns {{ action: 'create'|'attach', transaction: object, sighting: object }}
+ * @returns {{ action: 'create'|'attach'|'deferred', transaction: object|null, sighting: object }}
  *   create: transaction is a new row to insert; attach: transaction is the existing row with the fields to update.
  */
 /** A bank row the bank has actually booked. A pending one is seen, not yet settled. */
@@ -118,8 +118,19 @@ export function booked(sighting) {
 }
 
 export function reconcile(sighting, transactions, primarySightingSource = null, opts = {}) {
-  // A replay of a provider's stable reference may correct its amount/date.
-  const match = opts.existing || findMatch(sighting, transactions, opts);
+  // A stable linked reference wins; an unresolved observation never turns into spending
+  // just because its candidate set shrinks. Only the explicit review boundary resolves it.
+  const classified = classifyMatch(sighting, transactions, opts);
+  if (!opts.existing && (sighting.reconciliation?.state === 'deferred' || classified.kind === 'ambiguous_weak')) {
+    return { action: 'deferred', transaction: null, sighting: {
+      ...sighting,
+      reconciliation: sighting.reconciliation || {
+        version: 1, state: 'deferred', reason: 'ambiguous_weak_match',
+        first_deferred_at: new Date().toISOString(), candidate_ids: classified.candidateIds.slice(0, 50),
+      },
+    } };
+  }
+  const match = opts.existing || classified.match;
   if (!match) {
     return {
       action: 'create',
