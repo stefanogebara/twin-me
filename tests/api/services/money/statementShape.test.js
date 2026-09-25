@@ -368,3 +368,38 @@ describe('a budget sheet becomes sightings', () => {
     expect(skipped.filter((s) => s.reason === 'no_date')).toHaveLength(3);
   });
 });
+
+/**
+ * A budget is not a ledger.
+ * "Madrid Budget.xlsx", a real one sent on WhatsApp (2026-09-25): a column per category with
+ * the amounts stacked under each, eighteen headings, and not one date in the whole file.
+ * Every figure in it is true and none of it can enter a ledger that places each payment on
+ * the day it happened. The plan must refuse it rather than invent a date column, and the
+ * upload must say which of those two things went wrong.
+ */
+describe('a budget with no dates in it', () => {
+  const madrid = [
+    ['Money', 'Groceries', 'Club', 'Taxi o metro o bici', 'Comida Afuera', 'Betway', 'Winnings'],
+    ['800.00', '', '', '', '', '', ''],
+    ['824.05', '20.26', '37.50', '136.11', '28.00', '45.00', '66.10'],
+    ['', '35.56', '45.00', '6.80', '13.71', '25.00', '9.48'],
+    ['', '45.00', '130.00', '7.65', '24.30', '50.00', '50.00'],
+    ['Total Spend living', '119.78', '212.50', '150.56', '235.55', '680.00', '742.91'],
+  ];
+
+  it('has no plan, because there is no day to put anything on', () => {
+    /* Even handed the likeliest reading a model could offer, there is no date column to
+       name, and a plan without one is not a ledger. */
+    expect(sanitisePlan({ index: 0, columns: { concept: 0, amount: 1 } }, madrid)).toBeNull();
+    expect(sanitisePlan({ index: 0, columns: { amount: 1 } }, madrid)).toBeNull();
+  });
+
+  it('will not be rescued by pointing date at a column of money', () => {
+    /* A plan that calls Groceries the date parses no row: the guard is that every row is
+       skipped for want of a date, not that the import half works. */
+    const forced = sanitisePlan({ index: 0, columns: { date: 1, amount: 2 }, dateOrder: 'dmy', decimal: '.' }, madrid);
+    const { sightings, skipped } = toSightings(madrid, { plan: forced });
+    expect(sightings).toHaveLength(0);
+    expect(skipped.every((s) => s.reason === 'no_date' || s.reason === 'empty_row')).toBe(true);
+  });
+});
