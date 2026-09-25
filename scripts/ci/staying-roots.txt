@@ -5,6 +5,7 @@
 
 # money
 api/_app/routes/money.js
+api/_app/routes/capture-key-legacy.js
 api/_app/routes/cron-money-pull.js
 api/_app/routes/cron-money-learn.js
 api/_app/routes/cron-statement-nag.js

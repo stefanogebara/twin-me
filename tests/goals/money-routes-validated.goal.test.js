@@ -12,6 +12,7 @@ import { readFileSync } from 'node:fs';
    the provider's contract and whose door is a signature. */
 const FILES = {
   'money.js': new Set(['/inbox/resend', '/chat/attach', '/bank/refresh-if-stale', '/calendar/learn', '/statement']),
+  'capture-key-legacy.js': new Set(),
   'auth-simple.js': new Set(['/desktop-handoff']),
   'extension-data.js': new Set(),
   'purchase-notification.js': new Set(),

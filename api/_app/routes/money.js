@@ -32,6 +32,7 @@ import { financialEvidenceBlocked, withheldForecast } from '../services/money/fi
  * GET  /api/money/bank/accounts            connected accounts and when consent expires
  * POST /api/money/calendar/feed { url }    a Canvas, Blackboard or .ics link, read with the calendar
  * DELETE /api/money/calendar/feed/:id      forget a link
+ * POST /api/money/calendar/callback { code, state }  Google's consent, finished for the person who began it
  * POST /api/money/bank/pull                pull the feed now (PSD2: four unattended pulls a day)
  * POST /api/money/chat { message, history? } a question or a correction, answered with figures and receipts
  * POST /api/money/chat/act { action }      run an action the person confirmed from a chat reply
@@ -66,7 +67,7 @@ const bankClosed = (c) => ({ unconfigured: 'Live bank connections are not set up
 import { holdUndatedCapture } from '../services/money/legacyCapture.js';
 import { recordOptIn } from '../services/money/channelStore.js';
 import { isMoneyChannelUser } from '../services/money/channel.js';
-import { removeBankAccount, inPersonScope, personProfileCached, personProfile, ingestSighting, ingestSightings, listTransactions, transactionPage, sightingsFor, refreshRecurring, forecast, setVerdict, userForCaptureKey, saveBankAccounts, listBankAccounts, pullBankFeed, refreshReadings, listReadings, setReadingVerdict, months, feedBudget, categorySpend, listPlaces, setPlaceCategory, enrichPlaces, subscriptionUsage, questionsFor, answerQuestion, skipQuestion, listFacts, deleteFact, recordCallbackFailure, listChatTurns, saveChatTurn, learn, userLanguage, patternsFor } from '../services/money/store.js';
+import { removeBankAccount, inPersonScope, personProfileCached, personProfile, ingestSighting, ingestSightings, listTransactions, transactionPage, sightingsFor, refreshRecurring, forecast, setVerdict, userForCaptureKey, createCaptureKey, saveBankAccounts, listBankAccounts, pullBankFeed, refreshReadings, listReadings, setReadingVerdict, months, feedBudget, categorySpend, listPlaces, setPlaceCategory, enrichPlaces, subscriptionUsage, questionsFor, answerQuestion, skipQuestion, listFacts, deleteFact, recordCallbackFailure, listChatTurns, saveChatTurn, learn, userLanguage, patternsFor } from '../services/money/store.js';
 import { parseDelimited, parseWorkbook, toSightings } from '../services/money/statements/importer.js';
 import { planQuestions, answeredPlan, sanitisePlan, textGrid } from '../services/money/statements/shape.js';
 import { extractDocumentText } from '../services/documentExtractionService.js';
@@ -85,7 +86,7 @@ import { guessHome, savedHome, searchAreas, searchPlaces, staticMap, saveHome, p
 import { encryptState } from '../services/encryption.js';
 import { signState, readState } from '../services/money/bankState.js';
 import { getAppUrl } from '../utils/oauthUtils.js';
-import { getGoogleWorkspaceScopes } from '../config/googleWorkspaceScopes.js';
+import { CALENDAR_SCOPE, readConnectState, connectGoogleCalendar } from '../services/money/calendarConnection.js';
 import { quietly } from '../services/money/quietly.js';
 
 const log = createLogger('MoneyRoute');
@@ -93,21 +94,23 @@ const router = Router();
 
 /**
  * The phone cannot hold a session. A Shortcut or a listener sends `X-TwinMe-Key: twm_...`,
- * one of the user's API keys (api_keys, SHA-256 hashed, created at POST /api/api-keys).
- * Everything else on this router uses the normal session.
+ * one of the user's capture keys (api_keys, SHA-256 hashed, made at POST /api/money/capture-key,
+ * or at POST /api/api-keys by the Android builds already installed). A key that cannot be
+ * checked answers 503, never 401: an old Android build counts any answer under 500 as delivered
+ * and would never send that payment again. Everything else on this router uses the normal session.
  */
 async function authenticateUserOrKey(req, res, next) {
   const key = req.get('x-twinme-key') || (typeof req.query.key === 'string' ? req.query.key : null);
   if (!key) return authenticateUser(req, res, next);
-  try {
-    const userId = await userForCaptureKey(crypto.createHash('sha256').update(key).digest('hex'));
-    if (!userId) return res.status(401).json({ success: false, error: 'Invalid capture key' });
-    req.user = { id: userId };
-    return next();
-  } catch (error) {
+  let userId;
+  try { userId = await userForCaptureKey(crypto.createHash('sha256').update(key).digest('hex')); }
+  catch (error) {
     log.error('capture key check failed', { error: error.message });
-    return res.status(500).json({ success: false, error: 'Internal server error' });
+    return res.status(503).set('Retry-After', '60').json({ success: false, error: 'Try again in a moment.' });
   }
+  if (!userId) return res.status(401).json({ success: false, error: 'Invalid capture key' });
+  req.user = { id: userId };
+  return next();
 }
 
 router.post('/capture', authenticateUserOrKey, validate({ body: S.CAPTURE }), async (req, res) => {
@@ -164,6 +167,13 @@ router.use((req, res, next) => { inPersonScope(req.user.id, () => new Promise((r
 router.get('/capabilities', async (req, res) => {
   try { res.json({ success: true, data: await capabilitiesFor(req.user.id) }); }
   catch (error) { log.error('capabilities failed', { error: error.message }); res.status(500).json({ success: false, error: 'Internal server error' }); }
+});
+
+/* A key for the phone (the Shortcut, the Android listener), for the signed-in person and shown
+   once: only its hash is kept. It replaces POST /api/api-keys, which left with the twin. */
+router.post('/capture-key', validate({ body: S.CAPTURE_KEY }), async (req, res) => {
+  try { const { key } = await createCaptureKey(req.user.id, req.body.name); res.json({ success: true, data: { key } }); }
+  catch (error) { log.error('capture key failed', { error: error.message }); res.status(500).json({ success: false, error: 'Internal server error' }); }
 });
 
 /**
@@ -909,7 +919,9 @@ router.get('/calendar', async (req, res) => {
 });
 
 /* Where to send the person to connect Google Calendar. The state carries a path back to the
-   money page, which the OAuth callback honours for paths on this site. */
+   money page, which the OAuth callback honours for paths on this site. The consent asks for
+   the calendar, read only: it asked for Gmail, Drive and the contacts too until 2026-09-26,
+   and the money calendar only ever lists the primary calendar's events. */
 router.get('/calendar/connect', async (req, res) => {
   try {
     if (!process.env.GOOGLE_CLIENT_ID) return res.status(503).json({ success: false, error: 'Calendar connection not configured' });
@@ -918,13 +930,36 @@ router.get('/calendar/connect', async (req, res) => {
     const url = 'https://accounts.google.com/o/oauth2/v2/auth?'
       + `client_id=${encodeURIComponent(process.env.GOOGLE_CLIENT_ID)}&`
       + `redirect_uri=${encodeURIComponent(redirectUri)}&`
-      + `scope=${encodeURIComponent(getGoogleWorkspaceScopes().join(' '))}&`
+      + `scope=${encodeURIComponent(CALENDAR_SCOPE)}&`
       + 'response_type=code&access_type=offline&prompt=consent&'
       + `state=${state}`;
     res.json({ success: true, data: { url } });
   } catch (error) {
     log.error('calendar connect failed', { error: error.message });
     res.status(500).json({ success: false, error: 'Could not start the calendar connection' });
+  }
+});
+
+/* Google sends the person back to /oauth/callback on the site, and that page posts the code and
+   the state here under the person's session. The state was sealed by /calendar/connect: it must
+   be a calendar consent, under fifteen minutes old, begun by this same person, or the code is
+   never spent. The exchange uses the redirect the consent was given. Until 2026-09-26 the page
+   posted to /connectors/callback, which left with the twin and answers 410. */
+router.post('/calendar/callback', validate({ body: S.CALENDAR_CALLBACK }), async (req, res) => {
+  const state = readConnectState(req.body.state, req.user.id);
+  if (!state.ok) {
+    log.warn('calendar callback refused', { why: state.why });
+    return res.status(state.status).json({ success: false, error: state.error });
+  }
+  try {
+    await connectGoogleCalendar(req.user.id, { code: req.body.code, redirectUri: `${getAppUrl(req)}/oauth/callback` });
+    res.json({ success: true, data: { returnUrl: state.returnUrl } });
+  } catch (error) {
+    log.error('calendar callback failed', { error: error.message });
+    if (error.code === 'calendar_exchange_failed') {
+      return res.status(502).json({ success: false, error: 'Google did not finish connecting the calendar. Try connecting it again.' });
+    }
+    res.status(500).json({ success: false, error: 'Internal server error' });
   }
 });
 

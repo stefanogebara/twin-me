@@ -19,6 +19,7 @@ export const CAPTURE = loose({
   merchant: z.string().max(200).optional(), amount: z.union([z.number(), z.string().max(32)]).optional(),
   card: z.string().max(8).optional(), direction: z.string().max(16).optional(), eventId: z.string().max(200).optional(), ownerId: z.string().max(64).optional(),
 });
+export const CAPTURE_KEY = loose({ name: z.string().trim().max(80).optional() });
 export const BANK_CONNECT = loose({ bank: z.string().max(80).optional(), country: z.string().length(2).optional(), back: z.string().max(200).optional() });
 export const CARD_TYPE_PARAMS = z.object({ accountId: uuid, last4: z.string().regex(/^\d{4}$/) });
 export const CARD_TYPE = loose({ type: z.string().min(1).max(20) });
@@ -42,6 +43,7 @@ export const CHAT = loose({
 });
 export const CHAT_ACT = loose({ action: loose({ kind: z.string().min(1).max(40) }) });
 export const CALENDAR_FEED = loose({ url: z.string().trim().min(1).max(2000) });
+export const CALENDAR_CALLBACK = loose({ code: z.string().min(1).max(2048), state: z.string().min(1).max(4096) });
 export const CHANNEL_OPT_IN = z.object({}).strict();
 export const HOME = loose({
   district: short.nullable().optional(), city: short.nullable().optional(),

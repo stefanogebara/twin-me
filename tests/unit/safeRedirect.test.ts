@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { safeRedirect } from '../../src/lib/safeRedirect';
+import { safeRedirect, isSafeRedirectPath } from '../../src/lib/safeRedirect';
 
 /**
  * Characterization tests for the SECURITY-CRITICAL open-redirect guard.
@@ -249,6 +249,19 @@ describe('safeRedirect — backslash and whitespace tricks', () => {
     expect(hrefWrites).toEqual([]);
   });
 
+  it('rejects a raw tab smuggled right after the leading slash (control-character bypass)', () => {
+    // SECURITY: neither raw character at position 0 ("/") nor position 1
+    // (a literal tab) is "/" or "\\", so a guard that only checked those two
+    // positions would treat "/\t/evil.com" as a safe relative path. But the
+    // WHATWG URL parser strips every ASCII tab/CR/LF from the whole input
+    // before resolving, so it becomes "//evil.com" and leaves the site.
+    // Verified: new URL('/\t/evil.com', 'https://twinme.me').host === 'evil.com'.
+    // isSafeRedirectPath rejects every ASCII control character anywhere in
+    // the value, closing this bypass too.
+    expect(safeRedirect('/\t/evil.com')).toBe(false);
+    expect(hrefWrites).toEqual([]);
+  });
+
   it('rejects an https URL with a leading space (scheme no longer parses)', () => {
     // " https://github.com" — leading space means it neither starts with "/"
     // nor parses as a URL (WHATWG trims leading C0/space then parses, but the
@@ -288,6 +301,56 @@ describe('safeRedirect — encoded variants', () => {
     const url = 'https://github.com/login/oauth/authorize?redirect_uri=%2Fapp%2Fcallback';
     expect(safeRedirect(url)).toBe(true);
     expect(hrefWrites).toEqual([url]);
+  });
+
+  it('DOCUMENTED DECISION: a percent-encoded tab in a relative path is kept — it cannot leave the site', () => {
+    // "/%09/evil" is the three printable characters %, 0, 9, not a raw tab
+    // byte, so the URL parser's tab-stripping step never touches it and the
+    // value stays same-origin. Verified:
+    // new URL('/%09/evil', 'https://twinme.me').host === 'twinme.me'.
+    // Contrast with the raw-tab case above, which DOES leave the site and is
+    // rejected.
+    expect(safeRedirect('/%09/evil')).toBe(true);
+    expect(hrefWrites).toEqual(['/%09/evil']);
+  });
+});
+
+describe('isSafeRedirectPath — the shared same-origin-path rule', () => {
+  /* This is the pure predicate safeRedirect() delegates to for its relative-
+     path branch (above), and the one CustomAuth.tsx and OAuthCallback.tsx
+     import directly for navigate()/redirectAfterAuth checks. Same rule as
+     the server's api/_app/utils/safeRedirect.js (tests/api/utils/safeRedirect.test.js). */
+
+  describe('kept: same-origin paths', () => {
+    it.each(['/money', '/money?calendar=connected', '/money/you', '/auth?view=public', '/'])(
+      'keeps %s',
+      (path) => {
+        expect(isSafeRedirectPath(path)).toBe(true);
+      },
+    );
+  });
+
+  describe('refused: leaves the site, or is anomalous enough to treat as if it might', () => {
+    it.each([
+      '/\\evil.example', // backslash right after the leading slash
+      '/money\\evil.example', // backslash later in the value
+      '//evil.example', // protocol-relative
+      'https://evil.example', // absolute URL
+      '\t/evil', // does not even start with a literal slash
+      '/\t/evil.example', // raw tab smuggled past a positional check
+    ])('refuses %j', (path) => {
+      expect(isSafeRedirectPath(path)).toBe(false);
+    });
+  });
+
+  it('keeps a percent-encoded tab — verified same-origin, see safeRedirect() test above', () => {
+    expect(isSafeRedirectPath('/%09/evil')).toBe(true);
+  });
+
+  it('rejects non-string and empty input', () => {
+    expect(isSafeRedirectPath(null)).toBe(false);
+    expect(isSafeRedirectPath(undefined)).toBe(false);
+    expect(isSafeRedirectPath('')).toBe(false);
   });
 });
 

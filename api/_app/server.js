@@ -427,6 +427,7 @@ import cronStripeWebhookEventsCleanupRoutes from './routes/cron-stripe-webhook-e
 import cronLlmUsageLogCleanupRoutes from './routes/cron-llm-usage-log-cleanup.js';
 import cronHealthMonitorRoutes from './routes/cron-health-monitor.js';
 import moneyRoutes, { bankCallback } from './routes/money.js';
+import captureKeyLegacyRoutes from './routes/capture-key-legacy.js';
 import purchaseNotificationRoutes from './routes/purchase-notification.js';
 import whatsappKapsoWebhookRoutes from './routes/whatsapp-kapso-webhook.js';
 import whatsappLinkRoutes from './routes/whatsapp-link.js';
@@ -507,6 +508,7 @@ app.use('/api/presence', presenceRoutes); // Presence family relay (plan 2026-09
 app.use('/api/presence-call', presenceCallRoutes); // Presence elder channel: public, token-authed
 app.use('/api/money', bankCallback); // the bank's redirect arrives without a session
 app.use('/api/money', moneyRoutes); // Money Twin v2, from zero: sightings → ledger, recurring, forecast (spec 2026-09-07)
+app.use('/api/api-keys', captureKeyLegacyRoutes); // POST only: installed Android builds make their capture key here (the product: /api/money/capture-key)
 app.use('/api/desktop-download', desktopDownloadRoutes); // Same-origin installer proxy (forces correct .exe/.dmg filename)
 app.use('/api/cron/money-pull', cronMoneyPullRoutes); // Three bank reads a day, leaving one of the four for the person
 app.use('/api/cron/money-learn', cronMoneyLearnRoutes); // Once a day: the day written down and scored, for everyone with a ledger

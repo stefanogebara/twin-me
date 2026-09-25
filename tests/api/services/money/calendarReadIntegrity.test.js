@@ -43,8 +43,9 @@ vi.mock('../../../../api/_app/services/money/factsRepository.js', () => ({
   categoriesFor: (...args) => mocks.categories(...args),
 }));
 
-const { addFeed, ahead, calendarStatus, eventsFor, feedEvents, learnEventSpend, listFeeds, refreshIfStale } =
+const { addFeed, ahead, calendarStatus, eventsFor, feedEvents, learnEventSpend, listFeeds, refreshIfStale, FEED_NOT_CALENDAR, FEED_UNREADABLE } =
   await import('../../../../api/_app/services/money/calendar.js');
+const crypto = await import('node:crypto');
 
 const now = new Date('2026-09-25T10:00:00Z');
 const lastSuccess = '2026-09-23T10:00:00Z';
@@ -63,6 +64,8 @@ const ics = 'BEGIN:VCALENDAR\nBEGIN:VEVENT\nUID:a\nDTSTART:20260926T090000Z\nSUM
 const response = (body) => ({ ok: true, headers: { get: () => null }, text: async () => body });
 const derivedWrites = () => mocks.upsert.mock.calls.flatMap(([rows]) => Array.isArray(rows) ? rows : [rows])
   .filter((row) => ['event_spend', 'event_spend_meta'].includes(row.kind));
+const savedLinks = () => mocks.upsert.mock.calls.flatMap(([rows]) => Array.isArray(rows) ? rows : [rows])
+  .filter((row) => row.kind === 'calendar_feed');
 
 beforeEach(() => {
   vi.resetAllMocks();
@@ -129,11 +132,53 @@ describe('calendar reads must be complete before replacing learned state', () =>
     await expect(listFeeds('user')).rejects.toThrow();
   });
 
-  it('does not keep a new link or replace history when an existing source cannot be read', async () => {
+  /* Changed 2026-09-26 (Claude): this asserted that a failing existing source refuses the new
+     link, which answered a valid Canvas link with "That link could not be read" whenever an
+     older link or Google failed. A new link is judged by reading it alone. The #587 half is
+     kept: a partial aggregate still never replaces the learned history. */
+  it('keeps a valid new link when an existing source cannot be read, without replacing history', async () => {
     globalThis.fetch.mockRejectedValue(new Error('other source offline'));
     await expect(addFeed('user', feed('new').value, {
       now, fetchImpl: async () => response(ics),
-    })).rejects.toThrow();
+    })).resolves.toMatchObject({ already: false, events: 1 });
+    expect(savedLinks()).toHaveLength(1);
+    expect(derivedWrites()).toEqual([]);
+  });
+
+  it.each([
+    ['Google wants a reconnect', () => mocks.token.mockResolvedValue({ success: false, error: 'Token refresh failed', requiresReauth: true })],
+    ['Google cannot be read', () => { mocks.token.mockResolvedValue({ success: true, accessToken: 'token' }); mocks.get.mockRejectedValue(new Error('Google 503')); }],
+    ['a saved link cannot be decrypted', () => mocks.facts.mockResolvedValue([{ ...feed('first'), value: 'corrupt-sealed-link' }, meta])],
+  ])('keeps a valid new link when %s, without replacing history', async (_why, arrange) => {
+    arrange();
+    await expect(addFeed('user', feed('new').value, {
+      now, fetchImpl: async () => response(ics),
+    })).resolves.toMatchObject({ already: false, events: 1 });
+    expect(savedLinks()).toHaveLength(1);
+    expect(derivedWrites()).toEqual([]);
+  });
+
+  it.each([
+    ['answers a login page', async () => response('<html>Sign in</html>'), FEED_NOT_CALENDAR],
+    ['does not answer', async () => { throw new Error('offline'); }, FEED_UNREADABLE],
+  ])('still refuses a new link that %s, and keeps nothing', async (_why, fetchImpl, message) => {
+    await expect(addFeed('user', feed('new').value, { now, fetchImpl })).rejects.toThrow(message);
+    expect(mocks.upsert).not.toHaveBeenCalled();
+  });
+
+  it('knows a link already saved without reading any other, even one that cannot be decrypted', async () => {
+    const url = feed('new').value;
+    const id = crypto.createHash('sha256').update(url).digest('hex').slice(0, 16);
+    mocks.facts.mockResolvedValue([{ kind: 'calendar_feed', subject: id, subject_label: 'canvas', value: 'sealed', answered_at: lastSuccess }, { ...feed('first'), value: 'corrupt-sealed-link' }, meta]);
+    const fetchNew = vi.fn(async () => response(ics));
+    await expect(addFeed('user', url, { now, fetchImpl: fetchNew })).resolves.toEqual({ id, kind: 'canvas', label: 'Canvas', added_at: lastSuccess, events: null, already: true });
+    expect(fetchNew).not.toHaveBeenCalled();
+    expect(mocks.upsert).not.toHaveBeenCalled();
+  });
+
+  it('counts every saved link toward the four, readable or not', async () => {
+    mocks.facts.mockResolvedValue([feed('a'), feed('b'), feed('c'), { ...feed('d'), value: 'corrupt-sealed-link' }, meta]);
+    await expect(addFeed('user', feed('new').value, { now, fetchImpl: async () => response(ics) })).rejects.toMatchObject({ code: 'feed_limit' });
     expect(mocks.upsert).not.toHaveBeenCalled();
   });
 

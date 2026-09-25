@@ -27,14 +27,15 @@ export function ensureCaptureKey(userId: string, { shortcut = false, refresh = f
       let key = refresh ? null : await SecureStore.getItemAsync(storageKey);
       if (!current()) return null;
       if (!key) {
-        const res = await fetch(`${API_URL}/api-keys`, {
+        /* The money route; /api-keys left with the twin and answers POST only for builds already installed. */
+        const res = await fetch(`${API_URL}/money/capture-key`, {
           method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.accessToken}` },
           body: JSON.stringify({ name: shortcut ? 'Phone capture (iOS Shortcut)' : 'Phone capture (Android)' }),
         });
         if (!res.ok || !current()) return null;
-        const body = await res.json();
-        if (typeof body?.key !== 'string' || !body.key.startsWith('twm_') || !current()) return null;
-        key = String(body.key);
+        const minted = (await res.json())?.data?.key;
+        if (typeof minted !== 'string' || !minted.startsWith('twm_') || !current()) return null;
+        key = minted;
         await SecureStore.setItemAsync(storageKey, key, { keychainAccessible: SecureStore.WHEN_UNLOCKED_THIS_DEVICE_ONLY });
       }
       if (!current() || !key) return null;

@@ -12,7 +12,7 @@
  * from. Pure: bytes in, sightings out. No Supabase, no network, no Express.
  *
  * The narrative in a statement is the same sentence the feed carries
- * ("PAGO MOVIL EN EL CORTE INGLES, MADRID ES, TARJ. :*741245"), so the reading of
+ * ("PAGO MOVIL EN EL CORTE INGLES, MADRID ES, TARJ. :*554444"), so the reading of
  * who/how/which-card is delegated to ../narrative.js rather than re-derived here.
  *
  * A statement is truth about the amount and the day, but it has lost the minute of

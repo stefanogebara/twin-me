@@ -35,7 +35,7 @@ export const LEGACY_TWIN_CRONS = [
  * from the reach walk; the goal test regenerates it and fails on any drift.
  */
 export const LEGACY_TWIN_ROUTES = Object.freeze([
-  '/api/actions', '/api/agent-actions', '/api/ai', '/api/analytics', '/api/api-keys',
+  '/api/actions', '/api/agent-actions', '/api/ai', '/api/analytics',
   '/api/autonomy', '/api/big-five', '/api/chat', '/api/checkin', '/api/claude-sync',
   '/api/connect', '/api/connectors', '/api/conversations', '/api/correlations',
   '/api/cron/action-reflection', '/api/cron/calendar-optimization', '/api/cron/claude-sync',

@@ -131,12 +131,31 @@ export async function setVerdict(userId, transactionId, verdict) {
   return data;
 }
 
-/** The user behind a capture key (one of api_keys, SHA-256 hashed), or null. Touches last_used_at. */
+/**
+ * The user behind a capture key (one of api_keys, SHA-256 hashed), or null when no active key has
+ * that hash. A failed read throws rather than reading as "no such key": the phone is told 401 for
+ * a missing key, and an old Android build counts any answer under 500 as delivered. Touches last_used_at.
+ */
 export async function userForCaptureKey(keyHash) {
-  const { data } = await supabaseAdmin.from('api_keys').select('id, user_id, is_active, expires_at').eq('key_hash', keyHash).maybeSingle();
+  const { data, error } = await supabaseAdmin.from('api_keys').select('id, user_id, is_active, expires_at').eq('key_hash', keyHash).maybeSingle();
+  if (error) throw new Error(`Cannot read capture key: ${error.message}`);
   if (!data || !data.is_active || (data.expires_at && new Date(data.expires_at) < new Date())) return null;
   supabaseAdmin.from('api_keys').update({ last_used_at: new Date().toISOString() }).eq('id', data.id).then(() => {}, () => {});
   return data.user_id;
+}
+
+/**
+ * A new capture key: `twm_` and 24 random bytes in base64url, the format the twin's key route
+ * made, so a key made here reads like every key already on a phone. Only its SHA-256 is stored;
+ * the key comes back once, with the row's id, name and created_at, and is never kept.
+ */
+export async function createCaptureKey(userId, name) {
+  if (!userId) throw new Error('userId required');
+  const key = `twm_${crypto.randomBytes(24).toString('base64url')}`;
+  const keyHash = crypto.createHash('sha256').update(key).digest('hex');
+  const { data, error } = await supabaseAdmin.from('api_keys').insert({ user_id: userId, key_hash: keyHash, name: name || 'Phone capture', is_active: true }).select('id, name, created_at').single();
+  if (error) throw new Error(`Cannot save capture key: ${error.message}`);
+  return { key, id: data.id, name: data.name, created_at: data.created_at };
 }
 
 /** Persist the accounts a bank authorisation returned. */

@@ -1,9 +1,6 @@
-import { useEffect, useState, type FormEvent } from 'react';
+import { useState, type FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { discoveryScan, type QuickEnrichmentData } from '../../services/enrichmentService';
 import { useAnalytics } from '../../contexts/AnalyticsContext';
-import RevealStory from '../../components/landing/RevealStory';
-import LedgerOrb, { type OrbState } from '../../components/LedgerOrb';
 import { Section, List, Row } from '@/components/register';
 import '../../styles/nocturne.css';
 import '../../styles/register-public.css';
@@ -13,22 +10,13 @@ import '../../styles/front-door.css';
  * NocturneLanding — the production landing (/), still browsable at /nocturne.
  * The name is Nocturne's; the page is the register's (src/styles/front-door.css).
  *
- * Carries the real acquisition flow: email -> discoveryScan -> RevealStory
- * -> /auth with the reading in sessionStorage.
+ * The email field leads to /auth with the address filled in. It used to run a public
+ * scan and a reading, whose API left with the twin (410 since 2026-09-24).
  *
  * A marketing page keeps its photography and film: the hero plate and clip and
  * the five photo tiles. The rest is sections of a heading, one grey line and
  * rows under a 1px ink rule; one 48/12 call to action.
  */
-
-const SCAN_STATUS_LINES = [
-  'Scanning your public footprint...',
-  'Reading what you build and publish...',
-  'Piecing together your story...',
-  'Writing your first portrait...',
-];
-/* The orb over the plate while the reading runs: it searches, then works it out, then writes. */
-const SCAN_ORB_STATES: OrbState[] = ['searching', 'searching', 'solving', 'composing'];
 
 const SIGNATURES = [
   { tint: 'ember', plate: '/images/nocturne/sig-ember.jpg', glyph: 'M', domain: 'Motivation and drive', line: 'What pulls you, and when it lets go.' },
@@ -67,50 +55,18 @@ const NocturneLanding = () => {
   const navigate = useNavigate();
   const { trackFunnel } = useAnalytics();
   const [email, setEmail] = useState('');
-  const [phase, setPhase] = useState<'idle' | 'scanning' | 'revealed'>('idle');
-  const [statusIdx, setStatusIdx] = useState(0);
-  const [data, setData] = useState<QuickEnrichmentData | null>(null);
-  const [scanError, setScanError] = useState('');
+  const [emailError, setEmailError] = useState('');
 
-  useEffect(() => {
-    if (phase !== 'scanning') return;
-    setStatusIdx(0);
-    const timer = setInterval(
-      () => setStatusIdx((index) => Math.min(index + 1, SCAN_STATUS_LINES.length - 1)),
-      2600,
-    );
-    return () => clearInterval(timer);
-  }, [phase]);
-
-  const handleScan = async (event: FormEvent) => {
+  const handleEmail = (event: FormEvent) => {
     event.preventDefault();
     const trimmed = email.trim();
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed)) {
-      setScanError('Enter a valid email address.');
+      setEmailError('Enter a valid email address.');
       return;
     }
-    setScanError('');
-    setPhase('scanning');
-    trackFunnel('landing_scan_started');
-    const result = await discoveryScan(trimmed);
-    if (result.success && result.discovered?.persona_summary) {
-      setData(result.discovered);
-      sessionStorage.setItem('twinme_discovery_data', JSON.stringify(result.discovered));
-      sessionStorage.setItem('twinme_discovery_email', trimmed);
-      setPhase('revealed');
-      trackFunnel('landing_scan_revealed');
-      return;
-    }
-    setScanError(result.error || "We couldn't read enough from that email. Try another address.");
-    setPhase('idle');
-    trackFunnel('landing_scan_empty');
-  };
-
-  const handleNotMe = () => {
-    sessionStorage.removeItem('twinme_discovery_data');
-    setData(null);
-    setPhase('idle');
-    setScanError('');
+    setEmailError('');
+    trackFunnel('landing_email_to_sign_in');
+    navigate(`/auth?email=${encodeURIComponent(trimmed)}`);
   };
 
   return (
@@ -153,40 +109,22 @@ const NocturneLanding = () => {
           <a className="n-btn n-btn--primary pb-cta" href="/auth">Get your signature</a>
         </div>
 
-        {phase !== 'revealed' && (
-          <form className="n-prompt n-rise n-rise--2 fd-prompt" onSubmit={handleScan}>
-            <input
-              type="email"
-              value={email}
-              onChange={(event) => setEmail(event.target.value)}
-              placeholder="Your email, for a first reading"
-              aria-label="Email address for a public reading"
-              disabled={phase === 'scanning'}
-            />
-            <button type="submit" aria-label="Run the reading" disabled={!email.trim() || phase === 'scanning'}>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                <path d="M12 19V5M6 11l6-6 6 6" />
-              </svg>
-            </button>
-          </form>
-        )}
-        {phase === 'revealed' && data && (
-          <div className="fd-reveal">
-            <RevealStory
-              data={data}
-              onCreateTwin={() => navigate('/auth')}
-              onNotMe={handleNotMe}
-              trackFunnel={trackFunnel}
-            />
-          </div>
-        )}
-        {phase === 'scanning' && (
-          <LedgerOrb state={SCAN_ORB_STATES[statusIdx] || 'searching'} size={96} label="" className="fd-orb" />
-        )}
+        <form className="n-prompt n-rise n-rise--2 fd-prompt" onSubmit={handleEmail}>
+          <input
+            type="email"
+            value={email}
+            onChange={(event) => setEmail(event.target.value)}
+            placeholder="Your email"
+            aria-label="Email address"
+          />
+          <button type="submit" aria-label="Continue with this email" disabled={!email.trim()}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M12 19V5M6 11l6-6 6 6" />
+            </svg>
+          </button>
+        </form>
         <p className="n-micro n-rise n-rise--3 fd-status" aria-live="polite">
-          {phase === 'scanning'
-            ? SCAN_STATUS_LINES[statusIdx]
-            : scanError || 'Read-only. Delete anything, any time.'}
+          {emailError || 'Read-only. Delete anything, any time.'}
         </p>
       </header>
 

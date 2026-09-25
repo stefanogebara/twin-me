@@ -17,6 +17,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useAnalytics } from '../contexts/AnalyticsContext';
 import { API_URL } from '@/services/api/apiBase';
+import { isSafeRedirectPath } from '@/lib/safeRedirect';
 import '../styles/money-v2.css';
 import '../styles/auth.css';
 import LedgerOrb from '../components/LedgerOrb';
@@ -25,7 +26,7 @@ const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 /** Only same-origin relative paths may be redirected to, so ?redirect= cannot leave the site. */
 function safeRedirect(raw: string | null): string {
-  return raw && raw.startsWith('/') && !raw.startsWith('//') ? raw : '/money';
+  return raw && isSafeRedirectPath(raw) ? raw : '/money';
 }
 
 const CustomAuth = () => {
@@ -36,7 +37,12 @@ const CustomAuth = () => {
 
   const [busy, setBusy] = useState<'google' | 'link' | null>(null);
   const [error, setError] = useState('');
-  const [email, setEmail] = useState('');
+  /* The front door's email field hands the address over as ?email=; anything that is not an
+     email is ignored rather than shown back. */
+  const [email, setEmail] = useState(() => {
+    const given = (searchParams.get('email') || '').trim();
+    return EMAIL.test(given) ? given : '';
+  });
   const [sentTo, setSentTo] = useState<string | null>(null);
   const [inviteCode, setInviteCode] = useState('');
 
