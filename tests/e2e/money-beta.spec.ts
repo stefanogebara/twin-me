@@ -257,3 +257,22 @@ test('Ask keeps the complete text when a stored comparison is malformed', async 
   await expect(page.getByText('The estimate is unavailable.', { exact: true })).toBeVisible();
   await expect(page.locator('.mc-purchase')).toHaveCount(0);
 });
+
+test('beta signup submits the chosen phone and Money sources', async ({ page }) => {
+  await moneyFixture(page);
+  let submitted: Record<string, unknown> | undefined;
+  await page.route('**/api/beta/signup', route => {
+    submitted = route.request().postDataJSON();
+    return route.fulfill({ status: 400, contentType: 'application/json', body: JSON.stringify({ success: false, error: 'Preview validation only' }) });
+  });
+  await page.goto('/beta');
+  await page.getByLabel('Your name', { exact: true }).fill('Synthetic Student');
+  await page.getByLabel('Email', { exact: true }).fill('synthetic@example.invalid');
+  await page.getByRole('button', { name: 'Bank statements', exact: true }).click();
+  await page.getByRole('button', { name: 'iPhone', exact: true }).click();
+  await page.getByRole('button', { name: 'Apply for the beta', exact: true }).click();
+  await expect(page.getByRole('alert')).toHaveText('Preview validation only');
+  expect(submitted).toMatchObject({ name: 'Synthetic Student', email: 'synthetic@example.invalid', phone: 'ios', platforms: ['statements'] });
+  await expect(page.getByRole('button', { name: 'Spotify', exact: true })).toHaveCount(0);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
+});
