@@ -6,7 +6,7 @@
  * "How much", and findHeader returns null, so the upload answered "That file has no
  * statement header this reads yet" and the file was a dead end.
  *
- * A model can read the shape of such a sheet. It must never read the figures: it returns
+ * A model sees a bounded sample to identify the shape of the sheet. It returns
  * which column is which and how the dates and amounts are written, and the same
  * deterministic parser that reads a bank export applies it. So these tests are about the
  * plan, not about any number, and about the questions a plan cannot answer from the file
@@ -31,6 +31,17 @@ describe('sanitisePlan', () => {
 
   it('keeps a plan that fits the grid', () => {
     expect(sanitisePlan(ok, budget)).toMatchObject({ index: 2, columns: { date: 0, concept: 1, amount: 2 }, sign: 'signed' });
+  });
+
+  it.each([null, false, true, '', '0', [], [0]])('rejects a nonnumeric header index %j', (index) => {
+    expect(sanitisePlan({ ...ok, index }, budget)).toBeNull();
+  });
+
+  it.each([null, false, true, '', '0', [], [0]])('does not turn an absent or malformed column %j into the first column', (value) => {
+    const p = sanitisePlan({ ...ok, columns: { ...ok.columns, valueDate: value, currency: value } }, budget);
+    expect(p.columns).toEqual(ok.columns);
+    expect(planQuestions(budget, p).map((q) => q.id)).toContain('currency');
+    expect(sanitisePlan({ ...ok, columns: { date: 0, amount: value } }, budget)).toBeNull();
   });
 
   it('drops a column the grid does not have, rather than reading past the row', () => {

@@ -50,14 +50,15 @@ export function sanitisePlan(raw, rows) {
   const grid = Array.isArray(rows) ? rows.filter((r) => Array.isArray(r)) : [];
   const width = grid.reduce((w, r) => Math.max(w, r.length), 0);
   if (width > MAX_COLUMNS) return null;
-  const index = Number(raw.index);
+  // JSON null, booleans and strings must not silently select column/header zero.
+  const index = raw.index;
   /* A header row past the end reads a file with no rows in it, silently and for ever. */
   if (!Number.isInteger(index) || index < 0 || index >= grid.length) return null;
 
   const columns = {};
   const from = raw.columns && typeof raw.columns === 'object' ? raw.columns : {};
   for (const field of FIELDS) {
-    const at = Number(from[field]);
+    const at = from[field];
     /* An index past the last column would read undefined out of every row, quietly, for the
        whole file. */
     if (Number.isInteger(at) && at >= 0 && at < width) columns[field] = at;
