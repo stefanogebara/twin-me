@@ -226,7 +226,7 @@ const century = (n) => (n < 100 ? 2000 + n : n);
  * @returns {string|null} YYYY-MM-DD
  */
 export function readDate(value, { dateOrder = 'dmy', year = null } = {}) {
-  const t = text(value).replace(/ /g, ' ');
+  const t = text(value).replace(/\u00a0/g, ' ');
   if (!t) return null;
 
   const three = t.match(/^(\d{1,4})\D(\d{1,2})\D(\d{2,4})$/);
@@ -258,7 +258,7 @@ export function readDate(value, { dateOrder = 'dmy', year = null } = {}) {
  */
 export function readAmount(value, { decimal = ',', sign = 'signed' } = {}) {
   if (value === null || value === undefined) return null;
-  let t = text(value).replace(/ /g, ' ');
+  let t = text(value).replace(/\u00a0/g, ' ');
   if (!t) return null;
 
   /* Accountants' parentheses, and a trailing minus, both mean money leaving. */
