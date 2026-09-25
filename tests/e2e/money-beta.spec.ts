@@ -59,6 +59,90 @@ test('a statement requires an account and submits the chosen account with its fi
   await page.locator('#statement-import-form').screenshot({path:test.info().outputPath('statement-form.png')});
 });
 
+test('statement clarification keeps the file, asks explicitly, and imports only after answers', async ({page}) => {
+  await moneyFixture(page);
+  const requests: string[] = [];
+  let failConfirmation = true;
+  await page.route('**/api/money/statement', async route => {
+    const body = route.request().postData() || ''; requests.push(body);
+    if (!body.includes('name="answers"')) return route.fulfill({json:{success:true,data:{needs:{
+      plan:{index:0,columns:{date:0,concept:1,amount:2},sign:'signed'},
+      questions:[{id:'sign',asks:'Is this column what you spent, or what came in?',choices:[{value:'all_out',label:'Money out'},{value:'all_in',label:'Money in'}]}],preview:[],read:1,skipped:0,reviewRequired:true,
+    }}}});
+    if (!body.includes('name="confirm"')) return route.fulfill({json:{success:true,data:{needs:{
+      plan:{index:0,columns:{date:0,concept:1,amount:2},sign:'all_out'}, questions:[],
+      preview:[{day:'2026-09-20',name:'Dinner',amount:25,currency:'EUR',direction:'out'}],read:1,skipped:0,reviewRequired:true,
+    }}}});
+    if (failConfirmation) return route.fulfill({status:503,json:{success:false,error:'Please retry the import.'}});
+    return route.fulfill({json:{success:true,data:{read:1,created:1,attached:0,skipped:0}}});
+  });
+  await page.goto('/money/account');
+  await page.getByRole('button',{name:/Add a statement/}).click();
+  await page.getByLabel('Statement account',{exact:true}).selectOption('acc2');
+  await page.getByLabel('Statement file').setInputFiles({name:'budget.csv',mimeType:'text/csv',buffer:Buffer.from('When;What;How much\n2026-09-20;Dinner;25.00')});
+  await page.getByRole('button',{name:'Import statement',exact:true}).click();
+  await expect(page.getByText('Nothing has been imported yet.',{exact:true})).toBeVisible();
+  await expect(page.getByRole('button',{name:'Review import',exact:true})).toBeDisabled();
+  await expect(page.getByLabel('Statement file')).not.toHaveValue('');
+  await page.getByLabel('Is this money out or money in?',{exact:true}).selectOption('all_out');
+  await page.getByRole('button',{name:/Add a statement/}).click();
+  await page.getByRole('button',{name:/Add a statement/}).click();
+  await expect(page.getByLabel('Statement file')).not.toHaveValue('');
+  await expect(page.getByLabel('Is this money out or money in?',{exact:true})).toHaveValue('all_out');
+  await page.getByRole('button',{name:'Review import',exact:true}).click();
+  await expect(page.getByText('1 ready to import, 0 skipped.',{exact:true})).toBeVisible();
+  await expect(page.getByText('Money out · 25,00 EUR',{exact:true})).toBeVisible();
+  await page.getByRole('button',{name:/Add a statement/}).click();
+  await page.getByRole('button',{name:/Add a statement/}).click();
+  await expect(page.getByLabel('Statement file')).not.toHaveValue('');
+  await page.locator('#statement-import-form').screenshot({path:test.info().outputPath('statement-review.png')});
+  await page.getByRole('button',{name:'Confirm and import',exact:true}).click();
+  await expect(page.getByRole('alert').filter({hasText:'Please retry the import.'})).toBeVisible();
+  await expect(page.getByText('Money out · 25,00 EUR',{exact:true})).toBeVisible();
+  failConfirmation = false;
+  await page.getByRole('button',{name:'Confirm and import',exact:true}).click();
+  await expect(page.getByRole('status').filter({hasText:'1 read, 1 added'})).toBeVisible();
+  expect(requests).toHaveLength(4);
+  expect(requests[1]).toContain('name="accountId"\r\n\r\nacc2');
+  expect(requests[1]).toContain('Dinner;25.00');
+  expect(requests[1]).toContain('"sign":"all_out"');
+  expect(requests[1]).toContain('name="plan"');
+  expect(requests[1]).not.toContain('name="confirm"');
+  expect(requests[2]).toContain('name="confirm"\r\n\r\ntrue');
+  expect(requests[3]).toContain('"sign":"all_out"');
+  await expect(page.getByLabel('Statement file')).toHaveValue('');
+});
+
+test('a different statement file or account discards its prior interpretation', async ({page}) => {
+  await moneyFixture(page);
+  const bodies: string[] = [];
+  await page.route('**/api/money/statement', route => {
+    bodies.push(route.request().postData() || '');
+    return route.fulfill({json:{success:true,data:{needs:{
+      plan:{index:0,columns:{date:0,amount:1}}, questions:[], preview:[], read:0, skipped:1, reviewRequired:true,
+    }}}});
+  });
+  await page.goto('/money/account');
+  await page.getByRole('button',{name:/Add a statement/}).click();
+  await page.getByLabel('Statement account',{exact:true}).selectOption('acc1');
+  await page.getByLabel('Statement file').setInputFiles({name:'first.csv',mimeType:'text/csv',buffer:Buffer.from('When;Cost\nmissing;5')});
+  await page.getByRole('button',{name:'Import statement',exact:true}).click();
+  await expect(page.getByRole('button',{name:'Confirm and import',exact:true})).toBeDisabled();
+  await expect(page.getByText('Some rows could not be read. Check your file before importing.',{exact:true})).toBeVisible();
+  await page.getByLabel('Statement account',{exact:true}).selectOption('acc2');
+  await expect(page.getByText('Nothing has been imported yet.',{exact:true})).not.toBeVisible();
+  await page.getByRole('button',{name:'Import statement',exact:true}).click();
+  await expect(page.getByRole('button',{name:'Confirm and import',exact:true})).toBeDisabled();
+  await page.getByLabel('Statement file').setInputFiles({name:'second.csv',mimeType:'text/csv',buffer:Buffer.from('When;Cost\n2026-09-21;8')});
+  await expect(page.getByText('Nothing has been imported yet.',{exact:true})).not.toBeVisible();
+  await page.getByRole('button',{name:'Import statement',exact:true}).click();
+  await expect(page.getByRole('button',{name:'Confirm and import',exact:true})).toBeDisabled();
+  expect(bodies).toHaveLength(3);
+  for (const body of bodies) { expect(body).not.toContain('name="plan"'); expect(body).not.toContain('name="confirm"'); }
+  expect(bodies[1]).toContain('name="accountId"\r\n\r\nacc2');
+  expect(bodies[2]).toContain('second.csv');
+});
+
 test('statement-only account and selected file survive a failed import for retry', async ({page}) => {
   const state = await moneyFixture(page); state.statementFailed=true;
   await page.goto('/money/account');

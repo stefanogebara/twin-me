@@ -6,7 +6,7 @@
  * "Cuánto", or "What", "How much", and findHeader returns null, so the upload answered
  * "That file has no statement header this reads yet" and the file was a dead end.
  *
- * A model can read the shape of such a sheet. It must never read the figures. It is asked
+ * A model identifies the shape from a bounded sample containing source values. It is asked
  * which column is which and how the dates and amounts are written, and the same
  * deterministic parser that reads a bank export applies that plan, so every number in the
  * ledger is still one this code computed from the file. The model's answer is untrusted
@@ -30,6 +30,11 @@ const SIGNS = ['signed', 'all_out', 'all_in', 'debit_credit'];
 const EARLIEST_YEAR = 2000;
 const LATEST_YEAR = 2100;
 const CURRENCY = /^[A-Z]{3}$/;
+// These are hard limits, including when a caller supplies larger sampling options.
+const MAX_COLUMNS = 64;
+const MAX_SAMPLE_ROWS = 12;
+const MAX_CELL_CHARS = 80;
+const MAX_SAMPLE_BYTES = 16 * 1024;
 
 const text = (v) => String(v ?? '').trim();
 const cell = (row, at) => (at === undefined || !Array.isArray(row) ? '' : text(row[at]));
@@ -44,14 +49,16 @@ export function sanitisePlan(raw, rows) {
   if (!raw || typeof raw !== 'object') return null;
   const grid = Array.isArray(rows) ? rows.filter((r) => Array.isArray(r)) : [];
   const width = grid.reduce((w, r) => Math.max(w, r.length), 0);
-  const index = Number(raw.index);
+  if (width > MAX_COLUMNS) return null;
+  // JSON null, booleans and strings must not silently select column/header zero.
+  const index = raw.index;
   /* A header row past the end reads a file with no rows in it, silently and for ever. */
   if (!Number.isInteger(index) || index < 0 || index >= grid.length) return null;
 
   const columns = {};
   const from = raw.columns && typeof raw.columns === 'object' ? raw.columns : {};
   for (const field of FIELDS) {
-    const at = Number(from[field]);
+    const at = from[field];
     /* An index past the last column would read undefined out of every row, quietly, for the
        whole file. */
     if (Number.isInteger(at) && at >= 0 && at < width) columns[field] = at;
@@ -67,8 +74,10 @@ export function sanitisePlan(raw, rows) {
     columns,
     dateOrder: DATE_ORDERS.includes(raw.dateOrder) ? raw.dateOrder : 'dmy',
     decimal: DECIMALS.includes(raw.decimal) ? raw.decimal : ',',
-    sign: split ? 'debit_credit' : (SIGNS.includes(raw.sign) ? raw.sign : 'signed'),
-    currency: CURRENCY.test(text(raw.currency)) ? text(raw.currency) : null,
+    // A model may identify columns, but it cannot confirm an unsigned column's
+    // direction or invent its currency. Only answeredPlan can settle those.
+    sign: split ? 'debit_credit' : 'signed',
+    currency: null,
     year: null,
     /* What the person has already settled. A question answered is not asked again, and
        "day first" answered looks exactly like "day first" defaulted without this. */
@@ -124,23 +133,24 @@ export function planQuestions(rows, plan, { accountCurrency = null } = {}) {
   const read = dates.map(parts).filter(Boolean);
 
   /* The year. "03/04" is a day and a month and nothing else. */
-  if (!settled.has('year') && read.length && read.every((p) => p[2] === null) && !text(plan.year)) {
+  if (!settled.has('year') && read.length && read.some((p) => p[2] === null) && !text(plan.year)) {
     const now = new Date().getFullYear();
     out.push({
       id: 'year',
-      asks: 'These dates carry no year. Which year is this?',
+      asks: 'Some dates carry no year. Which year should those use?',
       choices: [now, now - 1, now - 2].map((y) => ({ value: String(y), label: String(y) })),
     });
   }
 
   /* Day first or month first, while both readings still fit every row. */
-  if (!settled.has('dateOrder') && read.length) {
-    const dmy = read.every((p) => p[0] >= 1 && p[0] <= 31 && p[1] >= 1 && p[1] <= 12);
-    const mdy = read.every((p) => p[0] >= 1 && p[0] <= 12 && p[1] >= 1 && p[1] <= 31);
+  const ordered = read.filter((p) => p[0] < 100); // ISO dates already identify their order.
+  if (!settled.has('dateOrder') && ordered.length) {
+    const dmy = ordered.every((p) => p[0] >= 1 && p[0] <= 31 && p[1] >= 1 && p[1] <= 12);
+    const mdy = ordered.every((p) => p[0] >= 1 && p[0] <= 12 && p[1] >= 1 && p[1] <= 31);
     if (dmy && mdy) {
       out.push({
         id: 'dateOrder',
-        asks: `In ${dates[0]}, is ${read[0][0]} the day and ${read[0][1]} the month, or the other way round?`,
+        asks: `Is ${ordered[0][0]} the day and ${ordered[0][1]} the month, or the other way round?`,
         choices: [
           { value: 'dmy', label: 'Day first' },
           { value: 'mdy', label: 'Month first' },
@@ -194,16 +204,32 @@ export function answeredPlan(plan, answers) {
 /**
  * The grid as a model sees it: its size, and a few rows with short cells. The whole file is
  * never sent -- a thousand rows say nothing more about the shape than ten do, and one long
- * note in a cell should not be able to carry the file out with it.
+ * note in a cell should not be able to carry the file out with it. Returns null when
+ * the grid is too wide or its bounded sample exceeds the prompt's byte budget.
  */
 export function describeGrid(rows, { sample = 12, cellLimit = 80 } = {}) {
   const all = Array.isArray(rows) ? rows.filter((r) => Array.isArray(r)) : [];
   const width = all.reduce((w, r) => Math.max(w, r.length), 0);
-  return {
-    rows: all.length,
-    width,
-    sample: all.slice(0, sample).map((r) => Array.from({ length: width }, (_, c) => text(r[c]).slice(0, cellLimit))),
-  };
+  // Refuse, never crop columns: a later payment could live in the omitted part.
+  // Check before allocating width-sized arrays, even when the wide row is not sampled.
+  if (width > MAX_COLUMNS) return null;
+  const bounded = (value, max) => Number.isInteger(value) && value > 0 ? Math.min(value, max) : max;
+  const count = Math.min(all.length, bounded(sample, MAX_SAMPLE_ROWS));
+  const chars = bounded(cellLimit, MAX_CELL_CHARS);
+  const sampled = [];
+  let bytes = Buffer.byteLength(`A spreadsheet of ${all.length} rows and ${width} columns. The first ${count}:`, 'utf8');
+  for (let i = 0; i < count; i += 1) {
+    const row = [];
+    bytes += Buffer.byteLength(`\n${i}: `, 'utf8');
+    for (let c = 0; c < width; c += 1) {
+      const value = text(all[i][c]).slice(0, chars);
+      bytes += Buffer.byteLength(`${c ? '  ' : ''}[${c}] ${value}`, 'utf8');
+      if (bytes > MAX_SAMPLE_BYTES) return null;
+      row.push(value);
+    }
+    sampled.push(row);
+  }
+  return { rows: all.length, width, sample: sampled };
 }
 
 /* ------------------------------------------------------- applying the plan */

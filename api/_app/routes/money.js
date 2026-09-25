@@ -67,6 +67,7 @@ import { removeBankAccount, inPersonScope, personProfileCached, personProfile, i
 import { parseDelimited, parseWorkbook, toSightings } from '../services/money/statements/importer.js';
 import { planQuestions, answeredPlan, sanitisePlan } from '../services/money/statements/shape.js';
 import { readShape } from '../services/money/statements/shapeReader.js';
+import { maskEvidenceCards } from '../services/money/evidencePrivacy.js';
 import { complete as llmComplete, TIER_EXTRACTION } from '../services/llmGateway.js';
 import { statementAccounts, createStatementAccount, ownedStatementAccount, checkStatementEvidence, StatementInputError } from '../services/money/statements/accounts.js';
 import { isConfigured, listBanks, startAuthorisation, createSession, getSession, applicationInfo, deleteSession } from '../services/money/feeds/enableBanking.js';
@@ -406,7 +407,7 @@ function jsonField(value) {
   try { const v = JSON.parse(value); return v && typeof v === 'object' ? v : null; } catch { return null; }
 }
 /** A row as the person will see it before they agree to it. */
-const previewRow = (s) => ({ day: s.occurred_at.slice(0, 10), name: s.merchant_raw, amount: s.amount, currency: s.currency, direction: s.direction });
+const previewRow = (s) => ({ day: s.occurred_at.slice(0, 10), name: maskEvidenceCards(s.merchant_raw), amount: s.amount, currency: s.currency, direction: s.direction });
 
 router.post('/statement', upload.single('file'), async (req, res) => {
   if (!req.file?.buffer?.length) return res.status(400).json({ success: false, error: 'No file received' });
@@ -432,11 +433,17 @@ router.post('/statement', upload.single('file'), async (req, res) => {
       if (plan) {
         plan = answeredPlan(plan, jsonField(req.body?.answers) || {});
         const questions = planQuestions(rows, plan, { accountCurrency: account.currency });
-        if (questions.length) {
-          const preview = toSightings(rows, { accountId: account.id, defaultCurrency: account.currency, plan }).sightings.slice(0, 5);
-          return res.json({ success: true, data: { needs: { plan, questions, preview: preview.map(previewRow) } } });
-        }
         ({ sightings, skipped, header } = toSightings(rows, { accountId: account.id, defaultCurrency: account.currency, plan }));
+        // Column identification is still a model interpretation, even when the sheet
+        // needs no date/direction answers. Always show it before accepting a separate
+        // confirmation carrying the reviewed plan. While questions remain, this preview
+        // is tentative and may contain fewer rows than the answered interpretation.
+        if (questions.length || !given || req.body?.confirm !== 'true') {
+          return res.json({ success: true, data: { needs: {
+            plan, questions, preview: sightings.slice(0, 5).map(previewRow),
+            read: sightings.length, skipped: skipped.length, reviewRequired: true,
+          } } });
+        }
       }
     }
 
