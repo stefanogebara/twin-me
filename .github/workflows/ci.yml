@@ -130,7 +130,10 @@ jobs:
           SUPABASE_URL: https://ci-stub.supabase.co
           SUPABASE_ANON_KEY: ci-stub-anon
           SUPABASE_SERVICE_ROLE_KEY: ci-stub-service
-        run: npx vitest run tests/api/services/money/persistence.integration.test.js
+        run: |
+          npx vitest run tests/api/services/money/persistence.integration.test.js
+          npx vitest run tests/api/services/money/deferredPersistence.integration.test.js
+          npx vitest run tests/api/services/money/revisionConflicts.integration.test.js
 
   money-browser:
     name: Money browser

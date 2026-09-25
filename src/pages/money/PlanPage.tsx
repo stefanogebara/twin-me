@@ -62,6 +62,7 @@ function monthOnly(month: string, locale: string): string {
 /* The month's own line. The server composes one too, in English, with an English month
    name; the page has the same four numbers and says it in the reader's language. */
 function planLine(plan: MoneyPlan, t: T, locale: string, current: boolean): string {
+  if (plan.withheld) return t('Spending guidance waits until the evidence is clear.');
   const month = monthOnly(plan.month, locale);
   const n = plan.totals.days_ahead;
   const head = current
@@ -89,7 +90,9 @@ const CADENCE_WORD: Record<string, string> = {
   quarterly: 'Every three months', yearly: 'Every year',
 };
 
-function dayLine(c: MoneyPlanCell, t: T): string {
+function dayLine(c: MoneyPlanCell, t: T, withheld = false): string {
+  if (withheld && !c.past && !c.today) return t('Spending guidance waits until the evidence is clear.');
+  if (withheld && !c.count && !c.received) return t('No recorded payments.');
   if (c.past || c.today) {
     const base = c.count
       ? `${euro(c.spent)}${c.today ? t(' so far') : ''}, ${c.count === 1 ? t('{n} payment', { n: 1 }) : t('{n} payments', { n: c.count })}${c.received ? t('; {amount} came in', { amount: euro(c.received) }) : ''}.`
@@ -169,6 +172,7 @@ export default function PlanPage() {
           <section className="mv-section mv-plan-top">
             <h1>{t('{month}, day by day.', { month: monthOnly(month, locale) })}</h1>
             <p className="mv-sub">{failed ? t('The plan could not be read right now.') : plan ? glyphs(planLine(plan, t, locale, month === current)) : ''}</p>
+            {plan?.withheld ? <p role="status" className="mv-sub">{t('Recorded payments below exclude observations awaiting review. Spending guidance is unavailable.')} <a href="/money/account#sources">{t('Review')}</a></p> : null}
             <div className="mv-plan-months">
               <button type="button" className="mv-link" onClick={() => setMonth(shiftMonth(month, -1))}>{monthOnly(shiftMonth(month, -1), locale)}</button>
               {month !== current ? <button type="button" className="mv-link" onClick={() => setMonth(shiftMonth(month, 1))}>{monthOnly(shiftMonth(month, 1), locale)}</button> : null}
@@ -188,7 +192,7 @@ export default function PlanPage() {
                     key={c.day}
                     role="gridcell"
                     className={`mv-plan-day${c.today ? ' is-today' : c.past ? ' is-past' : ' is-ahead'}${c.hit === false ? ' is-miss' : ''}${picked === c.day ? ' is-picked' : ''}`}
-                    aria-label={`${dayName(c.day, locale)}: ${dayLine(c, t)}`}
+                    aria-label={`${dayName(c.day, locale)}: ${dayLine(c, t, plan.withheld)}`}
                     aria-selected={picked === c.day}
                     onClick={() => setPicked(c.day)}
                   >
@@ -255,7 +259,7 @@ export default function PlanPage() {
           {cell ? (
             <section className="mv-section" aria-live="polite">
               <h2>{dayName(cell.day, locale)}{cell.today ? t(', today') : ''}.</h2>
-              <p className="mv-sub">{dayLine(cell, t)}</p>
+              <p className="mv-sub">{dayLine(cell, t, plan?.withheld)}</p>
               {(cell.past || cell.today) && cell.rows.length ? (
                 <ul className="mv-list">
                   {cell.rows.map((r) => (

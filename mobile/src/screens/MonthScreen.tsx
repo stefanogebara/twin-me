@@ -17,11 +17,11 @@
  */
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
+import { Linking, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 import { useActiveRead } from '../hooks/useActiveRead';
 import { cosmos, dayMonth, euro } from '../constants/cosmos';
 import {
-  moneyApi, currentMonthStart, bankLabel,
+  consistentGuidance, usableForecast, moneyApi, currentMonthStart, bankLabel,
   type MoneyAccount, type MoneyCategories, type MoneyForecast, type MoneyMonth, type MoneyReading, type MoneyRecurring, type MoneyToday,
 } from '../services/moneyApi';
 import { Body, Counting, Display, Enter, Hairline, Micro, Page, Pill, Row, Section, Small, Title } from '../ui/primitives';
@@ -161,12 +161,12 @@ export default function MonthScreen({ onOpenQuestions, questionCount, onOpenLedg
     ]);
     if (!isCurrent()) return;
     if (mo.status === 'fulfilled') setMonths(mo.value);
-    if (td.status === 'fulfilled') setToday(td.value);
+    if (td.status === 'fulfilled') setToday(td.value); else setToday(null);
     /* The refresh call only learns the session has ended when it is the call that hits it;
        once the day's read budget is spent no call is made at all. The account row carries the
        last recorded outcome, so the month still says why it stopped moving. */
     if (ac.status === 'fulfilled') { setAccounts(ac.value); if (ac.value.some((a) => a.needs_reconnect)) setNeedsReconnect(true); }
-    if (f.status === 'fulfilled') setForecast(f.value);
+    if (f.status === 'fulfilled') setForecast(f.value); else setForecast(null);
     if (l.status === 'fulfilled') {
       setLedgerLines(l.value.length);
       const bookedTo = l.value.reduce<string | null>((m, t) => (t.posted_at && (!m || t.occurred_at > m) ? t.occurred_at : m), null);
@@ -198,10 +198,12 @@ export default function MonthScreen({ onOpenQuestions, questionCount, onOpenLedg
     return () => { live = false; };
   }, [refresh]);
 
+  const evidenceBlocked = !loading && !consistentGuidance(forecast, today);
+  const needsEvidenceReview = forecast?.reconciliation?.state === 'pending' || today?.reconciliation?.state === 'pending';
   const empty = !loading && (ledgerLines ?? 0) === 0;
   /* One purchase makes p10, p50 and p90 the same euro, and reading the same number three
      times looks broken rather than honest. Say nothing about the month until the band opens. */
-  const projectable = Boolean(forecast && forecast.projected_p90 - forecast.projected_p10 > 0.5);
+  const projectable = Boolean(usableForecast(forecast) && forecast.projected_p90 - forecast.projected_p10 > 0.5);
 
   /* What is still to come this month, as dated rows under the band: detected charges,
      stated commitments, income with a plus, and diary events with a learned cost. A band
@@ -264,6 +266,12 @@ export default function MonthScreen({ onOpenQuestions, questionCount, onOpenLedg
               <Display style={layout.after}>Nothing to read.</Display>
               <Body muted style={layout.after}>The ledger did not answer. Pull down to try again.</Body>
             </>
+          ) : evidenceBlocked ? (
+            <>
+              <Display style={layout.after}>{needsEvidenceReview ? 'Review payment observations' : 'Spending guidance unavailable'}</Display>
+              <Body muted style={layout.after}>{needsEvidenceReview ? 'Spending guidance waits until the evidence is clear. Review observations in Account on twinme.me.' : 'The payment evidence could not be confirmed. Pull down to try again.'}</Body>
+              {needsEvidenceReview ? <><Small style={layout.after}>Recorded payments below exclude observations awaiting review.</Small><Pill label="Review on twinme.me" onPress={() => { void Linking.openURL('https://twinme.me/money/account#sources'); }} /></> : null}
+            </>
           ) : empty ? (
             <>
               <Display style={layout.after}>Nothing read yet.</Display>
@@ -271,7 +279,7 @@ export default function MonthScreen({ onOpenQuestions, questionCount, onOpenLedg
                 The first line arrives with the first receipt, from the bank or from a payment your phone sees.
               </Body>
             </>
-          ) : forecast ? (
+          ) : usableForecast(forecast) ? (
             <>
               <Counting value={forecast.spent} format={euro} style={layout.after} />
               <Body muted style={layout.after}>
@@ -354,7 +362,7 @@ export default function MonthScreen({ onOpenQuestions, questionCount, onOpenLedg
           <>
             {/* What the money says */}
             <Section title="What the money says" aside={quietDays !== null && quietDays >= 2 ? `Nothing new for ${quietDays} days` : undefined}>
-              {readings.length === 0 ? (
+              {(evidenceBlocked || readings.length === 0) ? (
                 <Small>A reading appears once there are enough payments behind it to count one.</Small>
               ) : (
                 <>

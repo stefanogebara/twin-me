@@ -1,3 +1,4 @@
+vi.mock('../../../../api/_app/services/money/reconciliationService.js', () => ({ getReconciliationStatus: async () => ({ state: 'clear', unresolvedCount: 0, revision: 1 }) }));
 /**
  * The chat phrases; it never computes. These tests hand the pure half real rows and check
  * that nothing the model asks for can put a number on the screen that the ledger did not.

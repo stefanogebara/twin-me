@@ -1,3 +1,5 @@
+import { beginReconciliationRead, finishReconciliationRead } from './reconciliationRead.js';
+import { financialEvidenceBlocked, withheldForecast, withheldReply, financialEvidenceReason } from './financialCompleteness.js';
 /**
  * The money chat.
  * ===============
@@ -266,6 +268,7 @@ export function euroGlyphs(text) {
  * but a failed ledger read must never become onboarding or an invented zero.
  */
 export async function gather(userId, now = new Date()) {
+  const reconciliationRead = await beginReconciliationRead(userId);
   const settled = async (p, fallback) => { try { return await p; } catch (e) { log.warn(`chat gather: ${e.message}`); return fallback; } };
   /* Every read starts as early as its own rows allow, and the answer waits for all of them at
      once. Before this they went in five waves, each waiting on the one before, so a turn paid
@@ -277,19 +280,19 @@ export async function gather(userId, now = new Date()) {
      are working memory the answer needs (2026-09-16). */
   const ledgerRead = listTransactions(userId, { limit: 20000, includeRejected: true });
   const factsRead = listFacts(userId, { includeInternal: true });
-  const readingsRead = settled(listReadings(userId), []);
+  const readingsRead = settled(listReadings(userId, { reconciliationRead }), []);
   const questionsRead = settled(questionsFor(userId, now), { opening: [], fromLedger: [], answered: 0 });
   const placesRead = settled(listPlaces(userId), []);
   const accountsRead = Promise.resolve().then(() => listBankAccounts(userId));
   const languageRead = settled(Promise.resolve().then(() => userLanguage(userId)), null);
   const returnsRead = settled(listReturnsClosing(userId, now, { within: 14 }), []);
   /* The rows the derived reads stand on; each starts the moment they are in. */
-  const givenRead = Promise.all([ledgerRead, factsRead]).then(([transactions, facts]) => ({ ...(transactions ? { transactions } : {}), ...(facts ? { facts } : {}) }));
+  const givenRead = Promise.all([ledgerRead, factsRead]).then(([transactions, facts]) => ({ ...(transactions ? { transactions } : {}), ...(facts ? { facts } : {}), reconciliationRead }));
   const segmentsRead = givenRead.then((given) => months(userId, now, given));
   const castRead = givenRead.then((given) => forecast(userId, now, given));
   const recurringRead = givenRead.then((given) => settled(refreshRecurring(userId, now, given), []));
   /* what each subscription is used for, against what it costs: "least worth it" was answered by size (2026-09-23) */
-  const usageRead = ledgerRead.then((rows) => settled(Promise.resolve().then(() => subscriptionUsage(userId, now, { transactions: rows || undefined })), null));
+  const usageRead = ledgerRead.then((rows) => settled(Promise.resolve().then(() => subscriptionUsage(userId, now, { transactions: rows || undefined, reconciliationRead })), null));
   /* Last month's kinds of place go in beside this month's: asked "and last month?" the model
      attributed September's groceries to August, because August had no line of its own. The
      month comes from the forecast, so these two wait for it and for nothing else. */
@@ -305,14 +308,15 @@ export async function gather(userId, now = new Date()) {
     ledgerRead, factsRead, segmentsRead, castRead, recurringRead, readingsRead, questionsRead, placesRead, accountsRead, languageRead, returnsRead, usageRead, kindsRead,
   ]);
   const transactions = allTransactions ? selectTransactions(allTransactions, { currency: ledgerCurrency(), limit: 5000 }) : [];
-  return assemble({ transactions, segments, forecast: cast, recurring, readings, facts: facts || [], questions, places, categories, lastCategories, accounts, language, now, returns, usage });
+  const reconciliation = await finishReconciliationRead(reconciliationRead);
+  return assemble({ transactions, segments, reconciliation, forecast: financialEvidenceBlocked(reconciliation) ? withheldForecast(reconciliation, now) : cast, recurring, readings, facts: facts || [], questions, places, categories, lastCategories, accounts, language, now, returns, usage });
 }
 
 /**
  * The pure half of gathering: the same rows, learned and indexed. Tests hand rows straight
  * to this and skip the database.
  */
-export function assemble({ transactions: rawTransactions = [], segments = [], forecast: cast = null, recurring = [], readings = [], facts = [], questions = null, places = [], categories = null, lastCategories = null, accounts = [], language = null, now = new Date(), returns = [], usage = null } = {}) {
+export function assemble({ transactions: rawTransactions = [], segments = [], forecast: cast = null, recurring = [], readings = [], facts = [], questions = null, places = [], categories = null, lastCategories = null, accounts = [], language = null, now = new Date(), returns = [], usage = null, reconciliation = cast?.reconciliation } = {}) {
   /* The same rule the month page uses decides which transfers are spending, so a share the
      twin quotes and the hero above it are the same euros. */
   const transactions = markCounted(rawTransactions, facts);
@@ -328,7 +332,7 @@ export function assemble({ transactions: rawTransactions = [], segments = [], fo
   const byId = new Map(transactions.map((t) => [t.id, t]));
   const open = [...(questions?.opening || []), ...(questions?.fromLedger || [])];
   return {
-    now, transactions, byId, segments, forecast: cast, recurring, readings, facts, roles, returns: returns || [],
+    now, reconciliation, transactions, byId, segments, forecast: cast, recurring, readings, facts, roles, returns: returns || [],
     questions: open, places: places || [], placeByKey, categoryOf, categories, lastCategories, accounts: accounts || [], language: language || null, usage: usage || null, profiles, patterns, predictions,
   };
 }
@@ -365,6 +369,7 @@ function resolveMonth(ctx, month) {
  * figure and the transactions it stands on, so the receipts are the figure's own.
  */
 export function buildFigure(request, ctx) {
+  if (ctx.forecast?.withheld || (ctx.reconciliation !== undefined && financialEvidenceBlocked(ctx.reconciliation))) return null;
   const kind = request?.kind;
   if (!FIGURE_KINDS.includes(kind)) return null;
 
@@ -593,10 +598,11 @@ function usageLine(f) {
 export function chatAllowance(ctx) {
   const since = new Date(ctx.now.getTime() - 8 * 86400000).toISOString();
   return safeToSpend({ cast: ctx.forecast, segments: ctx.segments, facts: ctx.facts,
-    accounts: ctx.accounts, transactions: selectTransactions(ctx.transactions, { since, limit: 5000 }), now: ctx.now });
+    reconciliation: ctx.reconciliation, accounts: ctx.accounts, transactions: selectTransactions(ctx.transactions, { since, limit: 5000 }), now: ctx.now });
 }
 
 export function contextText(ctx) {
+  if (ctx.forecast?.withheld || (ctx.reconciliation !== undefined && financialEvidenceBlocked(ctx.reconciliation))) return financialEvidenceReason(ctx.reconciliation, ctx.language);
   const lines = [];
   const today = ctx.now;
   lines.push(`Today is ${dayMonth(today.toISOString())} ${partsIn(today).year}. Amounts are in ${ledgerCurrency()}.`);
@@ -1234,6 +1240,7 @@ export function shortCircuit(message, ctx) {
   const m = String(message || '').toLowerCase();
   const small = smalltalkReply(message, ctx.language);
   if (small) return { text: small, figures: [], actions: [], receipts: [] };
+  if (ctx.forecast?.withheld || (ctx.reconciliation !== undefined && financialEvidenceBlocked(ctx.reconciliation))) return withheldReply(ctx.reconciliation, ctx.language);
   const purchase = affordabilityAnswer(message, () => chatAllowance(ctx), ctx.language, ledgerCurrency());
   if (purchase) return purchase;
   const byKind = kindAnswer(message, ctx);
@@ -1701,6 +1708,7 @@ export function asksPerDay(message) {
 }
 
 export function assembleReply(parsed, ctx, message = '') {
+  if (ctx.forecast?.withheld || (ctx.reconciliation !== undefined && financialEvidenceBlocked(ctx.reconciliation))) return withheldReply(ctx.reconciliation, ctx.language);
   const requests = (parsed.figures || []).slice(0, 2);
   /* Asked for each day, the figure is the week (a bar per day), whatever the model named: it
      drew the weekday shape for "a graph of this week" one run in two (2026-09-20). */
@@ -1839,6 +1847,7 @@ const NOT_AN_INSTRUCTION = 'The ledger answers from what it holds and keeps only
 const ROLE_SENTENCES = {'family':'{name} is family','flatmate':'{name} is your flatmate','friend':'{name} is a friend','partner':'{name} is your partner','landlord':'{name} is your landlord','work':'{name} is from work','other':'{name} is somebody you pay'};
 
 export function plainReplyFor(text, ctx, now = new Date()) {
+  if (ctx.forecast?.withheld || (ctx.reconciliation !== undefined && financialEvidenceBlocked(ctx.reconciliation))) return withheldReply(ctx.reconciliation, ctx.language);
   const plain = plainReplyRaw(text, ctx, now);
   /* The page writes the euro's glyph; a computed line goes through the same step as the model's. */
   return plain ? { ...plain, text: euroGlyphs(plain.text) } : null;
@@ -1897,6 +1906,7 @@ export async function answer(userId, message, history = [], { now = new Date() }
     await saveChatTurn(userId, { role: 'twin', text: reply.text, figures: reply.figures || null, actions: reply.actions || null, basis: reply.basis || null, receipts: reply.receipts || null, next: reply.next || null }).catch(quietly('chat/save-twin-turn', null));
     return reply;
   };
+  if (financialEvidenceBlocked(ctx.reconciliation)) return keep(withheldReply(ctx.reconciliation, ctx.language));
   if (!ctx.transactions.length) return keep({ text: say(ctx.language, EMPTY_LEDGER), figures: [], actions: [setupOffer(text, ctx)].filter(Boolean), receipts: [] });
 
   const quick = shortCircuit(asking, ctx);
@@ -2128,6 +2138,7 @@ export async function answerStream(userId, message, history = [], { now = new Da
   const asking = before || asked;
   if (wanted && before) { ctx.language = wanted; ctx.forceLanguage = wanted; }
 
+  if (financialEvidenceBlocked(ctx.reconciliation)) { const held = withheldReply(ctx.reconciliation, ctx.language); whole(held.text); return closeWith(held); }
   if (!ctx.transactions.length) {
     whole(say(ctx.language, EMPTY_LEDGER));
     return closeWith({ text: say(ctx.language, EMPTY_LEDGER), figures: [], actions: [setupOffer(asked, ctx)].filter(Boolean), receipts: [] });

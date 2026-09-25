@@ -1,0 +1,8 @@
+/* Explicit review is a single form within Sources, not another page section. */
+.mv .mv-review { margin-top: 32px; }
+.mv .mv-review-choices { min-width: 0; border: 0; padding: 0; margin: 20px 0; }
+.mv .mv-review-choices legend { margin-bottom: 12px; }
+.mv .mv-review-choices label { display: grid; grid-template-columns: 24px minmax(0, 1fr); gap: 12px; cursor: pointer; }
+.mv .mv-review-choices input[type='radio'] { appearance: auto; display: block; width: 20px; min-width: 20px; height: 20px; margin: 0; accent-color: var(--rg-ink); }
+.mv .mv-review-choices .mv-item-sub { white-space: normal; overflow-wrap: anywhere; }
+.mv .mv-review > button { margin: 8px 12px 8px 0; }

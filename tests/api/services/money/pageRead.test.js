@@ -1,3 +1,4 @@
+vi.mock('../../../../api/_app/services/money/reconciliationService.js', () => ({ getReconciliationStatus: async () => ({ state: 'clear', unresolvedCount: 0, revision: 1 }) }));
 /**
  * The page in one read: every part in parallel, the forecast read once for the month and
  * the day both, and a part that could not be read named rather than dropped.
@@ -41,7 +42,7 @@ describe('readPage', () => {
     const now = new Date('2026-09-19T10:00:00Z');
     const { data, failed } = await readPage(owner, { view: 'today', now });
     expect(failed).toEqual([]);
-    expect(Object.keys(data).sort()).toEqual(['accounts', 'capabilities', 'categories', 'facts', 'forecast', 'inbox', 'ledger', 'months', 'profile', 'readings', 'recurring', 'seen', 'sources', 'today', 'usage']);
+    expect(Object.keys(data).sort()).toEqual(['accounts', 'capabilities', 'categories', 'facts', 'forecast', 'inbox', 'ledger', 'months', 'profile', 'readings', 'reconciliation', 'recurring', 'seen', 'sources', 'today', 'usage']);
     /* One read of each table, with everything: the internal facts and the rejected rows. */
     expect(f.ledger).toHaveBeenCalledTimes(1);
     expect(f.ledger).toHaveBeenCalledWith(owner, { limit: 20000, includeRejected: true });
@@ -49,7 +50,7 @@ describe('readPage', () => {
     expect(f.facts).toHaveBeenCalledWith(owner, { includeInternal: true });
     const allFacts = [{ id: 'f1', kind: 'home_area' }, { id: 'f2', kind: 'calendar_feed' }];
     const allRows = [{ id: 't1', occurred_at: '2026-09-18T10:00:00Z', currency: 'EUR' }, { id: 't2', occurred_at: '2026-09-17T10:00:00Z', currency: 'EUR', verdict: 'not_me' }];
-    const given = { facts: allFacts, transactions: allRows };
+    const given = { facts: allFacts, transactions: allRows, reconciliationRead: { owner, initial: { state: 'clear', unresolvedCount: 0, revision: 1 } } };
     expect(f.forecast).toHaveBeenCalledTimes(1);
     expect(f.forecast).toHaveBeenCalledWith(owner, now, given);
     expect(f.months).toHaveBeenCalledTimes(1);

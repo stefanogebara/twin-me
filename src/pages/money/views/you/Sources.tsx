@@ -8,6 +8,7 @@ import { useState } from 'react';
 import { Landmark, Mail } from 'lucide-react';
 import { euro, shortDay, BANKS } from '../../../../services/api/moneyAPI';
 import LedgerOrb from '../../../../components/LedgerOrb';
+import DeferredEvidenceReview from '../../DeferredEvidenceReview';
 import StatementImport from '../../StatementImport';
 import BankAccounts from '../../BankAccounts';
 import Mark from '../../Mark';
@@ -23,6 +24,7 @@ export default function Sources({ m }: { m: MoneyAccount }) {
   const gave = sources?.by || {};
   const month = sources?.month || null;
   const [feedUrl, setFeedUrl] = useState('');
+  const [reviewOpen, setReviewOpen] = useState(false);
   return (
           <section className="mv-section" id="sources">
             <div className="mv-head">
@@ -36,6 +38,11 @@ export default function Sources({ m }: { m: MoneyAccount }) {
                 <li className="mv-item mv-item--tight"><span className="mv-item-text"><span className="mv-item-title">{t('Carrying the hour they happened')}</span><span className="mv-item-sub">{month.timed < month.payments ? t('the other {n} carry the day the bank booked them', { n: month.payments - month.timed }) : t('all of them')}</span></span><span className="mv-item-end mv-figures">{month.timed}</span></li>
               </ul>
             ) : null}
+            {m.reconciliation && m.reconciliation.state !== 'clear' ? <div className="mv-item">
+              <span className="mv-item-text"><span className="mv-item-title">{t(m.reconciliation.state === 'pending' ? 'Payment observations need review' : 'Payment review could not be checked')}</span><span className="mv-item-sub">{t('Spending guidance waits until the evidence is clear.')}</span></span>
+              {m.reconciliation.state === 'pending' ? <button type="button" className="mv-link" onClick={() => setReviewOpen(v => !v)} aria-expanded={reviewOpen}>{t('Review')}</button> : <button type="button" className="mv-link" onClick={() => void load()}>{t('Try again')}</button>}
+            </div> : null}
+            {reviewOpen ? <DeferredEvidenceReview onResolved={() => void load()} /> : null}
             <ul className="mv-list">
               {capabilities.bank && BANKS.map((bank, i) => {
                 /* Rows from before the second bank carry no name; they were all Santander. */

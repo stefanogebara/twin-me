@@ -12,7 +12,7 @@
  */
 
 import { useCallback, useEffect, useState } from 'react';
-import { Alert, Platform, RefreshControl, ScrollView, Share, StyleSheet, View } from 'react-native';
+import { Alert, Linking, Platform, RefreshControl, ScrollView, Share, StyleSheet, View } from 'react-native';
 import Constants from 'expo-constants';
 import * as WebBrowser from 'expo-web-browser';
 import { cosmos, dayMonth, euro, monthYear } from '../constants/cosmos';
@@ -20,7 +20,7 @@ import { Enter, List, Micro, Page, Panel, Pill, Row, Section, Small, Title } fro
 import { Prompt } from '../ui/prompt';
 import { KindTile, Stamp } from '../ui/carved';
 import { CalendarGlyph, CardGlyph, PhoneGlyph, MailGlyph } from '../ui/glyphs';
-import { moneyApi, bankLabel, type MoneyAccount, type MoneyCalendar, type MoneyFact } from '../services/moneyApi';
+import { moneyApi, bankLabel, type MoneyReconciliation, type MoneyAccount, type MoneyCalendar, type MoneyFact } from '../services/moneyApi';
 import type { User } from '../types';
 
 
@@ -65,6 +65,7 @@ type Props = {
 };
 
 export default function YouScreen({ user, onSignOut, onOpenPhone, onOpenBank, onOpenQuestions }: Props) {
+  const [reconciliation, setReconciliation] = useState<MoneyReconciliation | null>(null);
   const [accounts, setAccounts] = useState<MoneyAccount[]>([]);
   const [facts, setFacts] = useState<MoneyFact[]>([]);
   /* A failed read preserves the last calendar; it does not mean disconnected. */
@@ -84,7 +85,8 @@ export default function YouScreen({ user, onSignOut, onOpenPhone, onOpenBank, on
   const [failed, setFailed] = useState(false);
 
   const load = useCallback(async () => {
-    const [a, f, c, i] = await Promise.allSettled([moneyApi.accounts(), moneyApi.facts(), moneyApi.calendar(), moneyApi.inbox()]);
+    const [a, f, c, i, review] = await Promise.allSettled([moneyApi.accounts(), moneyApi.facts(), moneyApi.calendar(), moneyApi.inbox(), moneyApi.reconciliation()]);
+    setReconciliation(review.status === 'fulfilled' ? review.value : {state: 'unavailable', unresolvedCount: null, revision: null});
     if (i.status === 'fulfilled') setInbox(i.value);
     if (a.status === 'fulfilled') setAccounts(a.value);
     if (f.status === 'fulfilled') setFacts(f.value);
@@ -204,6 +206,7 @@ export default function YouScreen({ user, onSignOut, onOpenPhone, onOpenBank, on
                       onPress={() => { void Share.share({ message: inbox.address }); }}
                     />
                   ) : null}
+                  {reconciliation?.state === 'pending' ? <Row label="Review payment observations" sub="Spending guidance waits until review" onPress={() => { void Linking.openURL('https://twinme.me/money/account#sources'); }} /> : reconciliation?.state === 'unavailable' ? <Row label="Payment evidence unavailable" sub="Tap to try again" onPress={() => { void load(); }} /> : null}
                   {calendar || calendarFailed ? (
                     <Row
                       inset

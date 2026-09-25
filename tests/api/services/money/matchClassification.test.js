@@ -91,12 +91,12 @@ describe('explicit payment match classification', () => {
   });
 });
 
-describe('runtime compatibility until deferred ingestion exists', () => {
-  it('documents the unresolved F03 gap: legacy matching still attaches the ambiguous alert', () => {
+describe('runtime deferral with legacy matching wrapper compatibility', () => {
+  it('defers the F03 ambiguous alert while preserving the legacy wrapper', () => {
     expect(classifyMatch(alert, [coffee, taxi]).kind).toBe('ambiguous_weak');
-    // This is a compatibility assertion, not the desired eventual financial behavior.
+    // External legacy matcher stays compatible; the ingestion decision defers ambiguity.
     expect(findMatch(alert, [coffee, taxi])).toBe(taxi);
-    expect(reconcile(alert, [coffee, taxi])).toMatchObject({ action: 'attach', transaction: { id: 'b' } });
+    expect(reconcile(alert, [coffee, taxi])).toMatchObject({ action: 'deferred', transaction: null });
   });
 
   it('keeps a provider identity authoritative even when fuzzy matching is ambiguous or excluded', () => {

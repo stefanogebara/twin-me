@@ -9,7 +9,7 @@ import { monthlyLoad as loadOfRecurring } from './recurringLoad';
 import { dayPartsIn, browserZone } from './readingHelpers';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLocale, useT } from '@/lib/i18n';
-import { moneyAPI, shortDay, BANKS, setLedgerCurrency, ownCurrency, type MoneyProfile, type MoneyCapabilities, type MoneyAccount as MoneyBankAccount, type MoneyCalendar, type MoneyCategories, type MoneyFact, type MoneyForecast, type MoneyPattern, type MoneyQuestions, type MoneyToday, type MoneyMonth, type MoneyPage, type MoneyReading, type MoneyRecurring, type MoneyTransaction, type MoneyUsage, type MoneySourceCounts, type MoneyInbox } from '../../services/api/moneyAPI';
+import { usableForecast, moneyAPI, shortDay, BANKS, setLedgerCurrency, ownCurrency, type MoneyReconciliation, type MoneyProfile, type MoneyCapabilities, type MoneyAccount as MoneyBankAccount, type MoneyCalendar, type MoneyCategories, type MoneyFact, type MoneyForecast, type MoneyPattern, type MoneyQuestions, type MoneyToday, type MoneyMonth, type MoneyPage, type MoneyReading, type MoneyRecurring, type MoneyTransaction, type MoneyUsage, type MoneySourceCounts, type MoneyInbox } from '../../services/api/moneyAPI';
 import { moneyRevision, MONEY_CHANGED } from '../../services/api/moneyChanges';
 import { todayHere, localDay } from './readingWords';
 import type { MoneyView } from './navLinks';
@@ -22,6 +22,7 @@ import { CHANGE_BOUNDARY, readingRank, readingStake } from './readingOrder';
    read paints from it at once and reads again quietly only when it is older than half a
    minute (Stefano, 2026-09-16: "it loads all over again"). */
 type Snapshot = {
+  reconciliation?: MoneyReconciliation;
   userId: string | null; revision: number; at: number; forecast: MoneyForecast | null; today: MoneyToday | null; ledger: MoneyTransaction[]; recurring: MoneyRecurring[];
   accounts: MoneyBankAccount[]; months: MoneyMonth[]; readings: MoneyReading[]; categories: MoneyCategories | null; usage: MoneyUsage | null; unread: boolean;
   capabilities: MoneyCapabilities; inbox: MoneyInbox | null; facts: MoneyFact[] | null; seen: Record<string, string[]>; sources: MoneySourceCounts | null;
@@ -54,6 +55,7 @@ function storeSnapshot(snapshot: Snapshot) {
 /** The nine reads that make the page, kept fresh and kept across mounts. */
 export function useMoneyRead(userId: string | null, view: MoneyView) {
   if (SNAPSHOT?.userId !== userId || SNAPSHOT?.revision !== moneyRevision()) SNAPSHOT = storedSnapshot(userId);
+  const [reconciliation, setReconciliation] = useState<MoneyReconciliation | undefined>(SNAPSHOT?.reconciliation);
   const [forecast, setForecast] = useState<MoneyForecast | null>(SNAPSHOT?.forecast ?? null);
   /* Where the person is, from the page: the zone every day on this screen is read in. */
   const [profile, setProfile] = useState<MoneyProfile | null>(null);
@@ -111,6 +113,8 @@ export function useMoneyRead(userId: string | null, view: MoneyView) {
     lastLoad.current = Date.now();
     const failed = new Set(page ? page.failed : []);
     const got = <K extends keyof MoneyPage>(k: K): NonNullable<MoneyPage[K]> | undefined => (page && !failed.has(k) && page[k] !== null ? (page[k] as NonNullable<MoneyPage[K]>) : undefined);
+    const status = got('reconciliation') ?? { state: 'unavailable' as const, unresolvedCount: null, revision: null };
+    setReconciliation(status);
     const f = got('forecast'); if (f !== undefined) setForecast(f);
     const td = got('today'); if (page && !failed.has('today')) setToday(page.today);
     const l = got('ledger'); if (l !== undefined) setLedger(l);
@@ -137,7 +141,7 @@ export function useMoneyRead(userId: string | null, view: MoneyView) {
        try again rather than paint a failure it has not seen. */
     if (!unreadNow) {
       const kept: Snapshot = {
-        userId, revision: moneyRevision(), at: Date.now(),
+        userId, revision: moneyRevision(), at: Date.now(), reconciliation: status,
         forecast: f !== undefined ? f : SNAPSHOT?.forecast ?? null,
         today: td !== undefined ? td : SNAPSHOT?.today ?? null,
         ledger: l !== undefined ? l : SNAPSHOT?.ledger ?? [],
@@ -196,7 +200,7 @@ export function useMoneyRead(userId: string | null, view: MoneyView) {
       .catch(() => {});
     return () => { live = false; };
   }, [load]);
-  return { forecast, profile, today, unread, ledger, setLedger, recurring, accounts, months, readings, categories, setCategories, usage, capabilities, inbox, facts, seen, sources, failedParts, loaded, needsReconnect, setNeedsReconnect, load };
+  return { reconciliation, forecast: reconciliation?.state === 'clear' && usableForecast(forecast) ? forecast : null, profile, today: reconciliation?.state === 'clear' ? today : null, unread, ledger, setLedger, recurring, accounts, months, readings: reconciliation?.state === 'clear' ? readings : [], categories, setCategories, usage, capabilities, inbox, facts, seen, sources, failedParts, loaded, needsReconnect, setNeedsReconnect, load };
 }
 
 /** What only You shows, read only there: the calendar, the questions, the patterns. */
@@ -457,7 +461,7 @@ export function useMoneyAccount(view: MoneyView, userId: string | null) {
   const rest = lead ? shown.slice(1) : shown;
   /* One purchase makes p10, p50 and p90 the same euro, and reading the same number three
      times looks broken rather than honest. Say nothing about the month until the band opens. */
-  const projectable = Boolean(forecast && forecast.projected_p90 - forecast.projected_p10 > 0.5);
+  const projectable = Boolean(forecast && !forecast.withheld && forecast.projected_p90 != null && forecast.projected_p10 != null && forecast.projected_p90 - forecast.projected_p10 > 0.5);
   /* The figure and how many of the rows it covers: a card of six adding to 134,12 EUR under
      a line reading 114,12 EUR was telling a person two things at once (2026-09-24). */
   const monthlyLoad = useMemo(() => loadOfRecurring(recurring), [recurring]);

@@ -27,7 +27,8 @@ vi.mock('../../api/_app/services/database.js', () => {
       rpc: (name) => {
         counts.rpcs[name] = (counts.rpcs[name] || 0) + 1;
         /* The scoring snapshot is one object, not rows: nothing scored, nothing dirty. */
-        if (name === 'prepare_money_scoring') return Promise.resolve({ data: { figures: [], dirty: false, revision: 0 }, error: null });
+        if (name === 'money_reconciliation_status') return Promise.resolve({ data: { state: 'clear', unresolvedCount: 0, revision: 0, financialRevision: 0 }, error: null });
+        if (name === 'prepare_money_scoring') return Promise.resolve({ data: { figures: [], dirty: false, revision: 0, reconciliation: { state: 'clear', unresolvedCount: 0, revision: 0, financialRevision: 0 } }, error: null });
         return Promise.resolve(answer);
       },
     },
@@ -43,5 +44,6 @@ describe('the money page reads each table once', () => {
     expect(failed).toEqual([]);
     expect(counts.rpcs.money_ledger_page, 'money_ledger_page walks').toBe(1);
     expect(counts.tables.money_facts, 'money_facts reads').toBe(1);
+    expect(counts.rpcs.money_reconciliation_status, 'shared completeness checks').toBe(2);
   });
 });

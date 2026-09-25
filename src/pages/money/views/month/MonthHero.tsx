@@ -49,8 +49,9 @@ export default function MonthHero({ m }: { m: MoneyAccount }) {
                 />
               );
             })() : null}
+            {m.reconciliation && m.reconciliation.state !== 'clear' ? <p role="status" className="mv-sub">{t(m.reconciliation.state === 'pending' ? 'Recorded payments below exclude observations awaiting review. Spending guidance is unavailable.' : 'Payment review could not be checked')} <a href="/money/account#sources">{t(m.reconciliation.state === 'pending' ? 'Review' : 'Try again')}</a></p> : null}
             {loaded ? <h1>{(() => {
-              const amount = forecast ? euro(forecast.spent) : (months[0] ? euro(months[0].spent) : '\u2026');
+              const amount = forecast && forecast.spent !== null ? euro(forecast.spent) : (months[0] ? euro(months[0].spent) : '\u2026');
               return incomeEdge ? t('{month}, {amount} of {income}.', { month: monthLabel, amount, income: euro(incomeEdge) }) : t('{month}, {amount}.', { month: monthLabel, amount });
             })()}</h1> : null}
             {ledger.some((row) => !ownCurrency(row.currency)) ? <p className="mv-sub">{ledgerCurrency() === 'EUR' ? t('Totals include euros only. Other currencies stay on their original receipts.') : t('Totals include {ccy} only. Other currencies stay on their original receipts.', { ccy: ledgerCurrency() })}</p> : null}
@@ -71,7 +72,7 @@ export default function MonthHero({ m }: { m: MoneyAccount }) {
                 </div>
               </>
             ) : null}
-            {loaded && monthRows.length ? (
+            {loaded && m.reconciliation?.state === 'clear' && monthRows.length ? (
               <p className="mv-sub">
                 <button type="button" className="mv-pill mv-pill--ghost" onClick={() => void downloadSheet()} disabled={sheet === 'busy'}>{sheet === 'busy' ? t('Making the sheet…') : t('Download as a sheet')}</button>
                 {sheet === 'failed' ? <span className="mv-quiet"> {t('The sheet could not be made. Try again.')}</span> : null}

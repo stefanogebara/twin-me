@@ -1,5 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import * as XLSX from 'xlsx';
+const status=vi.hoisted(()=>vi.fn(async()=>({state:'clear',unresolvedCount:0,revision:1,financialRevision:1})));
+vi.mock('../../../../api/_app/services/money/reconciliationService.js',()=>({getReconciliationStatus:status}));
 
 vi.mock('../../../../api/_app/services/database.js', () => ({ supabaseAdmin: {} }));
 vi.mock('../../../../api/_app/services/money/store.js', async (importOriginal) => {
@@ -83,4 +85,10 @@ describe('monthSheet', () => {
     const wb = XLSX.read(out.buffer, { type: 'buffer' });
     expect(XLSX.utils.sheet_to_json(wb.Sheets['2026-09'], { header: 1 })[0][0]).toBe('Dia');
   });
+});
+
+it('does not export a seemingly complete month while payment evidence is pending',async()=>{
+ status.mockResolvedValueOnce({state:'pending',unresolvedCount:1,revision:1});
+ const deps={personProfileCached:async()=>({timezone:'UTC'}),listOwnTransactions:async()=>tx,listPlaces:async()=>[],userLanguage:async()=> 'en',listFacts:async()=>[]};
+ await expect(monthSheet('u1',{month:'2026-09',deps})).rejects.toMatchObject({code:'PAYMENT_REVIEW_REQUIRED'});
 });

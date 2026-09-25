@@ -1,3 +1,4 @@
+vi.mock('../../../../api/_app/services/money/reconciliationService.js', () => ({ getReconciliationStatus: async () => ({ state: 'clear', unresolvedCount: 0, revision: 1 }) }));
 /**
  * The streamed answer says the same things in the same order, only sooner. These tests hold
  * the contract the app depends on: prose before figures, a sentence never taken back, and a

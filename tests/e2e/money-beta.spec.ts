@@ -436,3 +436,22 @@ test('known calendar reauthorization failure offers the recovery action', async 
   await expect(sources.getByRole('button',{name:'Reconnect Google',exact:true})).toBeVisible();
   await expect(sources.getByRole('button',{name:'Try calendar again',exact:true})).toHaveCount(0);
 });
+
+
+test('ambiguous payment review withholds stale guidance and requires explicit confirmation', async ({page}) => {
+  const state=await moneyFixture(page); state.reconciliationPending=true;
+  let resolved=false; const writes:unknown[]=[];
+  await page.route('**/api/money/reconciliation/review*', route=>route.fulfill({json:{success:true,data:{revision:1,items:resolved?[]:[{id:'s1',source:'email',merchant:'Payment receipt',amount:-10,currency:'EUR',occurred_at:'2026-09-25T10:00:00Z',candidates:[{id:'tx1',merchant:'Audit Cafe',amount:-10,currency:'EUR',occurred_at:'2026-09-25T09:00:00Z',accountLabel:'Current account'}]}],remaining:0,nextOffset:null}}}));
+  await page.route('**/api/money/reconciliation/s1/resolve', async route=>{writes.push(route.request().postDataJSON());resolved=true;state.reconciliationPending=false;await route.fulfill({json:{success:true,data:{resolved:true,revision:2}}});});
+  await page.goto('/money');
+  await expect(page.getByRole('heading',{name:'Review payment observations',exact:true})).toBeVisible();
+  await expect(page.getByText('Safe to spend today',{exact:true})).toHaveCount(0);
+  await page.getByRole('link',{name:'Review',exact:true}).click();
+  await page.getByRole('button',{name:'Review',exact:true}).click();
+  await expect(page.getByRole('button',{name:'Confirm choice'})).toBeDisabled();
+  await page.getByRole('radio').first().check(); expect(writes).toHaveLength(0);
+  await page.getByRole('button',{name:'Confirm choice'}).click();
+  await expect(page.getByText('No payment observations need review.',{exact:true})).toBeVisible();
+  expect(writes).toEqual([{revision:1,action:'match',transactionId:'tx1'}]);
+  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=document.documentElement.clientWidth)).toBe(true);
+});

@@ -1,3 +1,4 @@
+vi.mock('../../../../api/_app/services/money/reconciliationService.js', () => ({ getReconciliationStatus: async () => ({ state: 'clear', unresolvedCount: 0, revision: 1 }) }));
 /**
  * One read, handed on (M2-A, 2026-09-22). The page and the chat read the ledger and the facts
  * once and give the rows to every part; each part must take what it is given, select the same

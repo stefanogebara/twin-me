@@ -158,3 +158,18 @@ describe('readAttachment', () => {
     expect((await readAttachment(USER, { buffer: jpg, filename: 'blur.jpg' }, dead)).kind).toBe('unreadable');
   });
 });
+
+it('keeps ambiguous receipt evidence without claiming it was counted as a payment', async () => {
+  const receipt={amount:23.45,currency:'EUR',merchant:'Mercadona',date:'2026-09-12',kind:'receipt',payment_status:'paid',items:[],confidence:0.9};
+  const d=deps({extractReceipt:vi.fn(async()=>receipt),ingestSighting:vi.fn(async()=>({action:'deferred',transaction:null}))});
+  const r=await readAttachment(USER,{buffer:jpg,filename:'receipt.jpg'},d);
+  expect(r.said).toMatch(/review/i); expect(r.said).not.toContain('kept as a payment');
+  expect(r.action).toBe('deferred'); expect(r.receipts).toEqual([]);
+});
+
+it('does not claim an already deleted reviewed payment was imported again', async()=>{
+ const receipt={amount:23.45,currency:'EUR',merchant:'Mercadona',date:'2026-09-12',kind:'receipt',payment_status:'paid',items:[],confidence:0.9};
+ const d=deps({extractReceipt:vi.fn(async()=>receipt),ingestSighting:vi.fn(async()=>({action:'ignored_deleted',transaction:null}))});
+ const r=await readAttachment(USER,{buffer:jpg,filename:'receipt.jpg'},d);
+ expect(r.said).toMatch(/removed|deleted/i);expect(r.said).not.toContain('kept as a payment');expect(r.receipts).toEqual([]);
+});

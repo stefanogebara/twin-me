@@ -40,6 +40,13 @@ export default function TodayView({ m }: { m: MoneyAccount }) {
                   <button type="button" className="mv-pill" onClick={() => void load()}>{t('Try again')}</button>
                 </div>
               </>
+            ) : m.reconciliation && m.reconciliation.state !== 'clear' ? (
+              <>
+                <h1>{t(m.reconciliation.state === 'pending' ? 'Review payment observations' : 'Spending guidance is unavailable')}</h1>
+                <p className="mv-sub">{t('Spending guidance waits until the evidence is clear.')}</p>
+                {m.reconciliation.state === 'pending' ? <Link to="/money/account#sources" className="mv-link">{t('Review')}</Link> : <button type="button" className="mv-link" onClick={() => void load()}>{t('Try again')}</button>}
+                {balanceLine ? <p className="mv-sub">{balanceLine}</p> : null}
+              </>
             ) : empty ? (
               <>
                 <h1>{t('Nothing read yet.')}</h1>

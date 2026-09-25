@@ -2,7 +2,7 @@
 import React, { act } from 'react';
 import { createRoot } from 'react-dom/client';
 import { afterEach, expect, it, vi } from 'vitest';
-const f = vi.hoisted(() => ({ owner: 'A', forecast: vi.fn(), today: vi.fn(), refresh: vi.fn(async () => ({ pulled: false, created: 0 })) }));
+const f = vi.hoisted(() => ({ owner: 'A', reconciliation: {state:'clear',unresolvedCount:0,revision:0}, forecast: vi.fn(), today: vi.fn(), refresh: vi.fn(async () => ({ pulled: false, created: 0 })) }));
 vi.mock('@/contexts/AuthContext', () => ({ useAuth: () => ({ user: { id: f.owner, name: f.owner } }) }));
 vi.mock('@/hooks/useDocumentTitle', () => ({ useDocumentTitle: () => {} }));
 vi.mock('@/lib/i18n', () => ({ useLocale: () => 'en-GB', useT: () => (s: string, holes: Record<string, unknown> = {}) => s.replace(/\{([^}]+)\}/g, (_, key) => String(holes[key] ?? key)) }));
@@ -21,7 +21,7 @@ vi.mock('@/services/api/moneyAPI', async (original) => {
     /* The page is one read now (M2-3); it is built from the same two fakes so every count below holds. */
     if (key === 'page') return async () => {
       const [forecast, today] = await Promise.all([f.forecast(), f.today()]);
-      return { forecast, today, ledger: [{ id: 't', amount: -5, currency: 'EUR', occurred_at: new Date().toISOString(), merchant_key: 'coffee' }], recurring: [], accounts: [], months: [], readings: [], categories: null, usage: null, capabilities: { bank: false, capture: false }, inbox: { receiving: false }, facts: [], seen: {}, failed: [] };
+      return { reconciliation:f.reconciliation, forecast, today, ledger: [{ id: 't', amount: -5, currency: 'EUR', occurred_at: new Date().toISOString(), merchant_key: 'coffee' }], recurring: [], accounts: [], months: [], readings: [], categories: null, usage: null, capabilities: { bank: false, capture: false }, inbox: { receiving: false }, facts: [], seen: {}, failed: [] };
     };
     if (key === 'forecast') return f.forecast;
     if (key === 'today') return f.today;
@@ -104,7 +104,7 @@ it('paints at once from what the tab kept, then reads again quietly', async () =
   /* A reload or a return from the bank: the numbers of a moment ago, then the fresh ones. */
   f.owner = 'K';
   const { moneyRevision } = await import('../../src/services/api/moneyChanges');
-  sessionStorage.setItem('twinme:money:page:K', JSON.stringify({ userId: 'K', revision: moneyRevision(), at: Date.now() - 120000, forecast: { month: '2026-09-01', spent: 5, days_left: 13, committed: 0, projected_p90: 5 }, today: { amount: 77.5, basis: 'income', base: 1000, income: 1000, keep: 0, free: 100, budget: 1000, days_left: 13, today_events: [], sentence: '' }, ledger: [{ id: 'k', amount: -5, currency: 'EUR', occurred_at: new Date().toISOString(), merchant_key: 'coffee' }], recurring: [], accounts: [], months: [], readings: [], categories: null, usage: null, capabilities: { bank: false, capture: false }, inbox: null, unread: false }));
+  sessionStorage.setItem('twinme:money:page:K', JSON.stringify({ reconciliation:{state:'clear',unresolvedCount:0,revision:0}, userId: 'K', revision: moneyRevision(), at: Date.now() - 120000, forecast: { month: '2026-09-01', spent: 5, days_left: 13, committed: 0, projected_p90: 5 }, today: { amount: 77.5, basis: 'income', base: 1000, income: 1000, keep: 0, free: 100, budget: 1000, days_left: 13, today_events: [], sentence: '' }, ledger: [{ id: 'k', amount: -5, currency: 'EUR', occurred_at: new Date().toISOString(), merchant_key: 'coffee' }], recurring: [], accounts: [], months: [], readings: [], categories: null, usage: null, capabilities: { bank: false, capture: false }, inbox: null, unread: false }));
   f.forecast.mockClear().mockReturnValue(new Promise(() => {}));
   f.today.mockClear().mockReturnValue(new Promise(() => {}));
   root = createRoot(host);
@@ -116,7 +116,7 @@ it('paints at once from what the tab kept, then reads again quietly', async () =
 
 it('never paints another person from what the tab kept', async () => {
   const { moneyRevision } = await import('../../src/services/api/moneyChanges');
-  sessionStorage.setItem('twinme:money:page:K', JSON.stringify({ userId: 'K', revision: moneyRevision(), at: Date.now(), forecast: null, today: { amount: 77.5, basis: 'income', base: 1000, income: 1000, keep: 0, free: 100, budget: 1000, days_left: 13, today_events: [], sentence: '' }, ledger: [{ id: 'k', amount: -5, currency: 'EUR', occurred_at: new Date().toISOString(), merchant_key: 'coffee' }], recurring: [], accounts: [], months: [], readings: [], categories: null, usage: null, capabilities: { bank: false, capture: false }, inbox: null, unread: false }));
+  sessionStorage.setItem('twinme:money:page:K', JSON.stringify({ reconciliation:{state:'clear',unresolvedCount:0,revision:0}, userId: 'K', revision: moneyRevision(), at: Date.now(), forecast: null, today: { amount: 77.5, basis: 'income', base: 1000, income: 1000, keep: 0, free: 100, budget: 1000, days_left: 13, today_events: [], sentence: '' }, ledger: [{ id: 'k', amount: -5, currency: 'EUR', occurred_at: new Date().toISOString(), merchant_key: 'coffee' }], recurring: [], accounts: [], months: [], readings: [], categories: null, usage: null, capabilities: { bank: false, capture: false }, inbox: null, unread: false }));
   f.owner = 'L';
   f.forecast.mockClear().mockReturnValue(new Promise(() => {}));
   f.today.mockClear().mockReturnValue(new Promise(() => {}));
@@ -124,4 +124,20 @@ it('never paints another person from what the tab kept', async () => {
   await act(async () => { root.render(<MoneyV2Page />); });
   expect(host.textContent).not.toContain('77');
   sessionStorage.removeItem('twinme:money:page:K');
+});
+
+
+it('removes cached spending guidance when payment completeness becomes unavailable', async () => {
+  f.owner='incomplete-evidence';
+  f.reconciliation={state:'clear',unresolvedCount:0,revision:1};
+  f.forecast.mockResolvedValue({month:'2026-09-01',spent:5,committed:0,projected_p10:5,projected_p50:5,projected_p90:5});
+  f.today.mockResolvedValue({amount:123.45,basis:'income',base:1000,income:1000,free:100,budget:1000,days_left:13,today_events:[],sentence:'Old guidance',why:null});
+  root=createRoot(host); await act(async()=>root.render(<MoneyV2Page />));
+  expect(host.textContent).toContain('123');
+  f.reconciliation={state:'unavailable',unresolvedCount:0,revision:1};
+  const {moneyChanged}=await import('../../src/services/api/moneyChanges');
+  await act(async()=>moneyChanged(undefined));
+  expect(host.textContent).not.toContain('123');
+  expect(host.textContent).toContain('Spending guidance is unavailable');
+  f.reconciliation={state:'clear',unresolvedCount:0,revision:0};
 });

@@ -1,3 +1,4 @@
+import { financialEvidenceBlocked } from './financialCompleteness.js';
 /** A durable dirty revision makes corrections retryable. At most one bounded rebuild per
  * evidence revision/settling boundary; ordinary page reads reuse the persisted scores. */
 import { z } from 'zod';
@@ -16,7 +17,9 @@ export async function currentFigureScores(userId, { now = new Date() } = {}) {
     });
     if (error) throw new Error(`Could not read scoring evidence: ${error.message}`);
     if (!snapshot || !Array.isArray(snapshot.figures)) throw new Error('Incomplete scoring snapshot');
-    if (!snapshot.dirty) return { figures:snapshot.figures,changed:0,revision:snapshot.revision };
+    if (!snapshot.reconciliation) throw new Error('Scoring completeness capability is unavailable');
+    const withheld = financialEvidenceBlocked(snapshot.reconciliation);
+    if (!snapshot.dirty && !withheld) return { figures:snapshot.figures,changed:0,revision:snapshot.revision };
     const counts = spendingRule(snapshot.facts);
     // A failed/partial bank read cannot make a day mature. Statement coverage is not
     // recorded yet, so statement-only and mixed-source histories remain unscored.
@@ -27,7 +30,7 @@ export async function currentFigureScores(userId, { now = new Date() } = {}) {
     const covered = p => sourceCutoffs.length > 0 && sourceCutoffs.every(c => c && c >= p.predicted_for);
     const changes=[];
     const figures=snapshot.figures.map(p=>{
-      const score=covered(p) ? scoreOne(p,snapshot.transactions,counts,now) : null;
+      const score=!withheld && covered(p) ? scoreOne(p,snapshot.transactions,counts,now) : null;
       // A previously premature score must stop training the band, not merely be skipped.
       const next=score ? {...score,scored_at:now.toISOString()} : {actual:null,error:null,hit:null,scored_at:null};
       const equal=(a,b)=>a==null?b==null:b!=null&&Number(a)===Number(b);
@@ -35,10 +38,11 @@ export async function currentFigureScores(userId, { now = new Date() } = {}) {
       changes.push({id:p.id,...next});
       return {...p,...next,score_revision:snapshot.revision};
     });
+    if (!snapshot.dirty && withheld && !changes.length) return { figures, changed: 0, revision: snapshot.revision, reconciliation: snapshot.reconciliation };
     const {data:commit,error:commitError}=await supabaseAdmin.rpc('commit_money_scoring', {
       p_user_id:userId,p_revision:snapshot.revision,p_cutoff:cutoff,p_changes:changes,p_now:now.toISOString(),
     });
-    if (commitError?.code==='40001' || commit?.cached) continue;
+    if (['PT409', '40001'].includes(commitError?.code) || commit?.cached) continue;
     if (commitError) throw new Error(`Could not reconcile forecast outcomes: ${commitError.message}`);
     return {figures,changed:changes.length,revision:snapshot.revision};
   }

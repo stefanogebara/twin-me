@@ -1,3 +1,4 @@
+vi.mock('../../../../api/_app/services/money/reconciliationService.js', () => ({ getReconciliationStatus: async () => ({ state: 'clear', unresolvedCount: 0, revision: 1 }) }));
 /** A model that did not answer in time is not a ledger that lacks the number: the chat says which, and asks the gateway for fifty seconds. */
 import { describe, expect, it, vi } from 'vitest';
 const complete = vi.fn();
