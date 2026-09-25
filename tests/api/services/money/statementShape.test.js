@@ -14,7 +14,7 @@
  * is money out.
  */
 import { describe, it, expect } from 'vitest';
-import { sanitisePlan, planQuestions, answeredPlan, describeGrid, readDate, readAmount } from '../../../../api/_app/services/money/statements/shape.js';
+import { sanitisePlan, planQuestions, answeredPlan, describeGrid, readDate, readAmount, textGrid } from '../../../../api/_app/services/money/statements/shape.js';
 import { toSightings } from '../../../../api/_app/services/money/statements/importer.js';
 
 const budget = [
@@ -401,5 +401,73 @@ describe('a budget with no dates in it', () => {
     const { sightings, skipped } = toSightings(madrid, { plan: forced });
     expect(sightings).toHaveLength(0);
     expect(skipped.every((s) => s.reason === 'no_date' || s.reason === 'empty_row')).toBe(true);
+  });
+});
+
+/**
+ * A PDF is a page, not a table.
+ * =============================
+ * Plenty of people have no CSV at all: the bank gives them a PDF, and that is what they have.
+ * documentExtractionService already pulls the text out of one, with OCR behind it when the
+ * page is a scan. What is missing is the step from that text to a grid, because everything
+ * downstream -- the header dictionary, the model that reads the shape, the parser -- works on
+ * rows and columns.
+ *
+ * A statement's columns are held apart by runs of spaces, so that is what splits them. A
+ * single space never splits, or "EL CORTE INGLES" becomes three columns and the shop's name
+ * is lost.
+ */
+describe('textGrid', () => {
+  const statement = [
+    'Banco Santander',
+    'Extracto de cuenta  ES12 3456 **** 7516',
+    '',
+    'Fecha        Concepto                     Importe',
+    '01/09/2026   PAGO MOVIL EN MERCADONA      -48,20',
+    '04/09/2026   RECIBO SPOTIFY               -11,99',
+    '30/09/2026   NOMINA SEPTIEMBRE            1.850,00',
+  ].join('\n');
+
+  it('splits columns on runs of spaces and keeps a shop name whole', () => {
+    const rows = textGrid(statement);
+    const header = rows.find((r) => r[0] === 'Fecha');
+    expect(header).toEqual(['Fecha', 'Concepto', 'Importe']);
+    const first = rows.find((r) => r[0] === '01/09/2026');
+    expect(first).toEqual(['01/09/2026', 'PAGO MOVIL EN MERCADONA', '-48,20']);
+  });
+
+  it('is a grid the rest of the machinery can already read', () => {
+    const rows = textGrid(statement);
+    const plan = sanitisePlan({ index: rows.findIndex((r) => r[0] === 'Fecha'), columns: { date: 0, concept: 1, amount: 2 }, dateOrder: 'dmy', decimal: ',', sign: 'signed' }, rows);
+    const { sightings } = toSightings(rows, { accountId: 'acc-1', plan });
+    expect(sightings.map((s) => [s.occurred_at.slice(0, 10), s.direction, s.amount])).toEqual([
+      ['2026-09-01', 'out', 48.2],
+      ['2026-09-04', 'out', 11.99],
+      ['2026-09-30', 'in', 1850],
+    ]);
+  });
+
+  it('splits on a tab as readily as on spaces', () => {
+    expect(textGrid('a\tb\tc')).toEqual([['a', 'b', 'c']]);
+  });
+
+  it('keeps blank lines out and does not lose the line after one', () => {
+    const rows = textGrid('one  1\n\n\ntwo  2');
+    expect(rows).toEqual([['one', '1'], ['two', '2']]);
+  });
+
+  it('survives a page of prose without pretending it is a table', () => {
+    const rows = textGrid('This statement is issued by the bank.\nPlease keep it.');
+    expect(rows.every((r) => r.length === 1)).toBe(true);
+  });
+
+  it('reads nothing out of nothing', () => {
+    expect(textGrid('')).toEqual([]);
+    expect(textGrid(null)).toEqual([]);
+  });
+
+  it('stops at a sane number of lines, because a PDF can be a book', () => {
+    const many = Array.from({ length: 9000 }, (_, i) => `row  ${i}`).join('\n');
+    expect(textGrid(many).length).toBeLessThanOrEqual(5000);
   });
 });

@@ -309,3 +309,32 @@ export function readAmount(value, { decimal = ',', sign = 'signed' } = {}) {
   else if (sign === 'all_in') n = Math.abs(n);
   return n;
 }
+
+/* ------------------------------------------------------- a page, not a table */
+
+/** A PDF can be a book; a statement is not, and nothing past this is a ledger worth reading. */
+export const MAX_TEXT_ROWS = 5000;
+
+/**
+ * The text of a document as a grid.
+ *
+ * Plenty of people have no CSV at all: the bank gives them a PDF and that is what they have.
+ * documentExtractionService already pulls the text out, with OCR behind it for a scan. This
+ * is the step from that text to rows and columns, because everything downstream -- the header
+ * dictionary, the model that reads the shape, the parser -- works on a grid.
+ *
+ * A statement holds its columns apart with runs of spaces, so runs of spaces are what split
+ * them. A single space never splits, or "EL CORTE INGLES" becomes three columns and the
+ * shop's name is gone. Pure.
+ */
+export function textGrid(text) {
+  const raw = String(text ?? '');
+  if (!raw.trim()) return [];
+  return raw
+    .replace(/\r\n?/g, '\n')
+    .split('\n')
+    .map((line) => line.replace(/\u00a0/g, ' ').trimEnd())
+    .filter((line) => line.trim())
+    .slice(0, MAX_TEXT_ROWS)
+    .map((line) => line.trim().split(/\t+|\s{2,}/).map((c) => c.trim()).filter((c, i, all) => c || i < all.length - 1));
+}
