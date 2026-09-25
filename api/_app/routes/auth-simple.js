@@ -9,6 +9,7 @@ import { inngest, EVENTS } from '../services/inngestClient.js';
 import { sendWelcomeEmail, sendMagicLink } from '../services/emailService.js';
 import { rotationVerdict } from '../services/auth/refreshRotation.js';
 import { getRedisClient, isRedisAvailable } from '../services/redisClient.js';
+import { isSafeRedirectPath } from '../utils/safeRedirect.js';
 import { createLogger } from '../services/logger.js';
 import { validate } from '../middleware/validate.js';
 import * as AS from './authSchemas.js';
@@ -857,7 +858,7 @@ router.post('/magic-link/request', authLimiter, validate({ body: AS.MAGIC_LINK }
     }
 
     const appUrl = resolveAppUrl(req);
-    const redirect = typeof req.body?.redirect === 'string' && req.body.redirect.startsWith('/') && !req.body.redirect.startsWith('//')
+    const redirect = isSafeRedirectPath(req.body?.redirect)
       ? `&redirect=${encodeURIComponent(req.body.redirect)}`
       : '';
     const link = `${appUrl}/api/auth/magic-link/verify?token=${rawToken}${redirect}`;
@@ -903,7 +904,7 @@ router.get('/magic-link/verify', authLimiter, async (req, res) => {
   /* Where a signin link lands when it does not say. The money product is the front door
      now, so a person who asked for a link and pressed it arrives at their month, not at the
      old soul-signature dashboard. A link that names its own destination still wins. */
-  const redirectParam = typeof req.query?.redirect === 'string' && req.query.redirect.startsWith('/') && !req.query.redirect.startsWith('//')
+  const redirectParam = isSafeRedirectPath(req.query?.redirect)
     ? req.query.redirect
     : '/money';
 

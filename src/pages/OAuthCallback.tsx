@@ -4,6 +4,7 @@ import Wait from '@/components/Wait';
 import { toast } from 'sonner';
 import { useAnalytics } from '@/contexts/AnalyticsContext';
 import { API_URL, setAccessToken, pushRefreshTokenToDesktop } from '@/services/api/apiBase';
+import { isSafeRedirectPath } from '@/lib/safeRedirect';
 
 const CHROME_EXTENSION_ID = (import.meta.env.VITE_CHROME_EXTENSION_ID as string | undefined) || 'acnofcjjfjaikcfnalggkkbghjaijepc';
 
@@ -150,7 +151,7 @@ const OAuthCallback = () => {
             setStatus('success');
             setMessage('Authentication successful! Redirecting...');
             toast.success('Welcome!', { description: 'Successfully signed in', duration: 3000 });
-            const isRelativePath = (path: string) => path.startsWith('/') && !path.startsWith('//');
+            const isRelativePath = isSafeRedirectPath;
             const redirectPath = (claimData.redirectAfterAuth && isRelativePath(claimData.redirectAfterAuth))
               ? claimData.redirectAfterAuth
               : '/money';
@@ -428,7 +429,7 @@ const OAuthCallback = () => {
               // First check URL param (from backend redirect)
               // Only allow relative paths to prevent open redirect attacks
               const urlRedirectParam = searchParams.get('redirect');
-              const isRelativePath = (path: string) => path.startsWith('/') && !path.startsWith('//');
+              const isRelativePath = isSafeRedirectPath;
               if (urlRedirectParam && isRelativePath(decodeURIComponent(urlRedirectParam))) {
                 redirectPath = decodeURIComponent(urlRedirectParam);
               } else if (data.redirectAfterAuth && isRelativePath(data.redirectAfterAuth)) {
