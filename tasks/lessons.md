@@ -641,3 +641,19 @@ the lesson is not the same as having a habit. The habit is: **after any heredoc 
 was meant to contain a backslash escape, run `npx eslint <file>` before moving on**,
 or write the file with a Python patch script, which passes the escape through
 unchanged.
+
+## A feature is tested through the door a person uses (2026-09-25)
+
+#596 shipped PDF statement reading with 17 passing tests, and none of them posted a PDF
+to the route. Two faults hid there. The upload filter in routes/money.js still refused
+every .pdf, so production answered each PDF with a blank 500: the feature was dead on
+arrival. And the grid itself had only been tried on a monospace page; a realistic
+statement (Chrome-printed HTML table, Arial, wrapped concepts) read 6 of 22 rows with a
+date where each shop's name belonged, and the known-header path would have written them
+with no preview.
+
+The rule: when a feature is reached through a route, at least one test posts the real
+artifact through that route (supertest with the actual file), and at least one fixture
+is the realistic case rather than the easy one. A parser passing its unit tests says
+nothing about whether a person can use it.
+
