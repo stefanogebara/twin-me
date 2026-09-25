@@ -49,10 +49,11 @@ export default defineConfig({
       include: [...moneyApiFiles(), 'src/pages/money/**/*.{ts,tsx}'],
       exclude: ['**/node_modules/**', '**/*.d.ts'],
       reportsDirectory: 'coverage/money',
-      /* The floor: measured 2026-09-19 over 67 files and 815 tests -- lines 65.19%, functions
-         58.78%, branches 52.41%, statements 61.52% -- and set a hair under so the first run
-         holds. Raise it when it is beaten. */
-      thresholds: { lines: 65, functions: 58, branches: 52, statements: 61 },
+      /* The floor: measured 2026-09-26 over 165 files and 1,743 tests -- lines 77.70%,
+         functions 71.45%, branches 63.32%, statements 74.17% -- and set about two points under,
+         so a real drop fails and noise does not (it was 65/58/52/61 from 2026-09-19, twelve
+         points under what the suite had reached). Raise it when it is beaten. */
+      thresholds: { lines: 75, functions: 69, branches: 61, statements: 72 },
     },
   },
 });
