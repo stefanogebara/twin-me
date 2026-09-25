@@ -12,6 +12,7 @@ import express from 'express';
 import request from 'supertest';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
+import { createHash } from 'node:crypto';
 
 const owner = '00000000-0000-4000-8000-000000000001';
 const account = '00000000-0000-4000-8000-000000000010';
@@ -61,6 +62,20 @@ it('imports it on a separate confirmation, every row of it', async () => {
   expect(Math.round(out * 100) / 100).toBe(510.6);
   expect(incoming).toBe(1350);
   expect(sightings.every((s) => s.account_id === account && s.source === 'statement')).toBe(true);
+});
+
+it('marks every row with the file it came from, a PDF and a spreadsheet alike', async () => {
+  /* The ledger lets a row join a line another file backs and never one its own file backs, so a
+     kept sheet and the bank's PDF of one month are one payment per line (2026-09-26). */
+  const fingerprint = (bytes) => createHash('sha256').update(bytes).digest('hex').slice(0, 16);
+  const statement = pdf('extracto-web.pdf');
+  const sheet = Buffer.from('Fecha;Concepto;Importe\n17/09/2026;Cafe;-5,00');
+  await post(statement, 'extracto.pdf', true);
+  await request(app).post('/money/statement').field('accountId', account).attach('file', sheet, 'payments.csv');
+  const [[, fromPdf], [, fromSheet]] = f.ingest.mock.calls;
+  expect(fromPdf).toHaveLength(22);
+  expect(new Set(fromPdf.map((s) => s.raw_json.document))).toEqual(new Set([fingerprint(statement)]));
+  expect(fromSheet.map((s) => s.raw_json.document)).toEqual([fingerprint(sheet)]);
 });
 
 it('treats a monospace statement the same way', async () => {

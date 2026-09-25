@@ -294,17 +294,30 @@ function sourceRef(dateKey, signedAmount, concept) {
 const cell = (row, index) => (index === undefined || row[index] === undefined ? '' : String(row[index]));
 
 /**
+ * The file a statement row came from: the first 16 hex characters of the sha256 of its bytes.
+ * Two files can describe one payment (the sheet a person keeps and the bank's PDF of the same
+ * month), and the reconciler lets a row join a line another file backs, never one its own file
+ * already backs, which is how two equal payments in one file stay two (2026-09-26).
+ * @param {Buffer|Uint8Array} bytes
+ * @returns {string}
+ */
+export function documentFingerprint(bytes) {
+  return crypto.createHash('sha256').update(bytes).digest('hex').slice(0, 16);
+}
+
+/**
  * The rows of an exported statement become sightings.
  *
  * @param {string[][]} rows  every row, preamble included
  * @param {object} [opts]
  * @param {string|null} [opts.accountId]       money_accounts.id these rows belong to
  * @param {string} [opts.defaultCurrency]      when the export has no currency column
+ * @param {string|null} [opts.document]        documentFingerprint() of the file, kept in raw_json.document
  * @returns {{ sightings: object[], skipped: object[], header: object|null }}
  *   Sightings carry exactly the keys the Enable Banking feed produces. Rows without a
  *   parseable date, or with a zero or absent amount, go to `skipped` with a reason.
  */
-export function toSightings(rows, { accountId = null, defaultCurrency = 'EUR', plan = null } = {}) {
+export function toSightings(rows, { accountId = null, defaultCurrency = 'EUR', plan = null, document = null } = {}) {
   const all = Array.isArray(rows) ? rows.map((r) => (Array.isArray(r) ? r : [])) : [];
   /* A plan is how a sheet nobody designed for us gets read: shape.js worked out which column
      is which and how its dates and amounts are written, and it is applied here so the rows
@@ -365,7 +378,7 @@ export function toSightings(rows, { accountId = null, defaultCurrency = 'EUR', p
       source_ref: occurrence === 1 ? identity : `${identity}#${occurrence}`,
       legacy_refs: occurrence === 1 ? [legacyRef, ...(accountId ? [sourceRef(when, signed, `unassigned|${currency}|${concept}`)] : [])] : [],
       account_id: accountId,
-      raw_json: { row, header },
+      raw_json: { row, header, ...(document ? { document } : {}) },
       raw_text: concept || null,
       amount: Math.abs(signed),
       currency,

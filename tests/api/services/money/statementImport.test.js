@@ -8,6 +8,7 @@
  */
 import { describe, it, expect } from 'vitest';
 import * as XLSX from 'xlsx';
+import { createHash } from 'node:crypto';
 import {
   parseDelimited,
   parseWorkbook,
@@ -15,6 +16,7 @@ import {
   parseSpanishAmount,
   parseSpanishDate,
   toSightings,
+  documentFingerprint,
 } from '../../../../api/_app/services/money/statements/importer.js';
 
 /** The five preamble rows Santander puts above the header. */
@@ -313,6 +315,19 @@ describe('toSightings', () => {
   });
 });
 
+
+it('keeps the file a row came from, without letting it change the row identity', () => {
+  const bytes = Buffer.from('Fecha;Concepto;Importe\n17/09/2026;Cafe;-5,00');
+  const document = documentFingerprint(bytes);
+  expect(document).toBe(createHash('sha256').update(bytes).digest('hex').slice(0, 16));
+  const [row] = toSightings(parseDelimited(bytes.toString('utf8')), { accountId: 'acc-1', document }).sightings;
+  expect(row.raw_json).toEqual({ row: ['17/09/2026', 'Cafe', '-5,00'], header: expect.any(Object), document });
+  expect(toSightings([HEADER, CARD_ROW]).sightings[0].raw_json).not.toHaveProperty('document');
+  /* A re-downloaded export is another file with the same rows: the refs still dedupe it. */
+  const again = toSightings(parseDelimited(bytes.toString('utf8')), { accountId: 'acc-1', document: 'another-file' }).sightings[0];
+  expect(again.source_ref).toBe(row.source_ref);
+  expect(again.legacy_refs).toEqual(row.legacy_refs);
+});
 
 it('keeps identical statement lines distinct and stable on reimport', () => {
   const rows = [['Fecha','Concepto','Importe'],['11/09/2026','Cafe','-5,00'],['11/09/2026','Cafe','-5,00']];

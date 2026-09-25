@@ -15,7 +15,7 @@ import { supabaseAdmin } from '../database.js';
 import { acceptsAttachment, MAX_ATTACHMENT_BYTES, readAttachment } from './attachments.js';
 import { ATTACHMENT_DEPS } from './attachmentDeps.js';
 import { fetchReceivedAttachment, HELD_STATEMENT_KIND } from './inbox.js';
-import { parseDelimited, parseWorkbook, toSightings } from './statements/importer.js';
+import { parseDelimited, parseWorkbook, toSightings, documentFingerprint } from './statements/importer.js';
 import { statementAccounts, checkStatementEvidence } from './statements/accounts.js';
 import { ingestSightings, refreshRecurring, refreshReadings } from './store.js';
 import { receiptReference } from './notices.js';
@@ -60,7 +60,8 @@ export async function statementFromMail(userId, buffer, filename, origin, deps =
     return { kind: 'held', rows: probe.sightings.length };
   }
   const account = accounts[0];
-  const { sightings } = toSightings(rows, { accountId: account.id, defaultCurrency: account.currency });
+  // The file travels with its rows, as on the page's upload: one payment per line across files.
+  const { sightings } = toSightings(rows, { accountId: account.id, defaultCurrency: account.currency, document: documentFingerprint(buffer) });
   if (!sightings.length) return { kind: 'nothing' };
   await deps.checkStatementEvidence(userId, account, sightings);
   const result = await deps.ingestSightings(userId, sightings);

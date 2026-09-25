@@ -68,7 +68,7 @@ import { holdUndatedCapture } from '../services/money/legacyCapture.js';
 import { recordOptIn } from '../services/money/channelStore.js';
 import { isMoneyChannelUser } from '../services/money/channel.js';
 import { removeBankAccount, inPersonScope, personProfileCached, personProfile, ingestSighting, ingestSightings, listTransactions, transactionPage, sightingsFor, refreshRecurring, forecast, setVerdict, userForCaptureKey, createCaptureKey, saveBankAccounts, listBankAccounts, pullBankFeed, refreshReadings, listReadings, setReadingVerdict, months, feedBudget, categorySpend, listPlaces, setPlaceCategory, enrichPlaces, subscriptionUsage, questionsFor, answerQuestion, skipQuestion, listFacts, deleteFact, recordCallbackFailure, listChatTurns, saveChatTurn, learn, userLanguage, patternsFor } from '../services/money/store.js';
-import { parseDelimited, parseWorkbook, toSightings } from '../services/money/statements/importer.js';
+import { parseDelimited, parseWorkbook, toSightings, documentFingerprint } from '../services/money/statements/importer.js';
 import { planQuestions, answeredPlan, sanitisePlan, textGrid } from '../services/money/statements/shape.js';
 import { extractDocumentText } from '../services/documentExtractionService.js';
 import { pdfGrid } from '../services/money/statements/pdfGrid.js';
@@ -448,6 +448,9 @@ router.post('/statement', statementUpload, async (req, res) => {
   try {
     const account = await ownedStatementAccount(req.user.id, req.body?.accountId);
     const name = req.file.originalname || '';
+    /* Every row keeps the file it came from: the ledger lets a row join a line another file
+       backs (the kept sheet and the bank's PDF of one month) and never one its own file backs. */
+    const document = documentFingerprint(req.file.buffer);
     /* A PDF is a page, not a table, and for plenty of people it is the only thing the bank
        gives them. documentExtractionService reads the text layer, with OCR behind it for a
        scan; textGrid turns that text into the rows and columns everything downstream wants,
@@ -474,7 +477,7 @@ router.post('/statement', statementUpload, async (req, res) => {
     }
     /* A bank's own export reads for nothing: the header dictionary knows it, no model is
        asked and no question is put. Only a sheet that dictionary cannot read goes further. */
-    let { sightings, skipped, header } = toSightings(rows, { accountId: account.id, defaultCurrency: account.currency });
+    let { sightings, skipped, header } = toSightings(rows, { accountId: account.id, defaultCurrency: account.currency, document });
     let notPayments = false;
 
     /* A PDF's columns are inferred from where its text was drawn, never read from the file, so
@@ -510,7 +513,7 @@ router.post('/statement', statementUpload, async (req, res) => {
       if (plan) {
         plan = answeredPlan(plan, jsonField(req.body?.answers) || {});
         const questions = planQuestions(rows, plan, { accountCurrency: account.currency });
-        ({ sightings, skipped, header } = toSightings(rows, { accountId: account.id, defaultCurrency: account.currency, plan }));
+        ({ sightings, skipped, header } = toSightings(rows, { accountId: account.id, defaultCurrency: account.currency, plan, document }));
         // Column identification is still a model interpretation, even when the sheet
         // needs no date/direction answers. Always show it before accepting a separate
         // confirmation carrying the reviewed plan. While questions remain, this preview

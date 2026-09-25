@@ -8,7 +8,7 @@ import { extractReceipt, receiptToSighting } from './inbox.js';
 import { extractDocumentText } from '../documentExtractionService.js';
 import { complete as llmComplete, TIER_EXTRACTION } from '../llmGateway.js';
 import { ingestSighting, ingestSightings, listFacts, answerQuestion, refreshRecurring, refreshReadings } from './store.js';
-import { parseDelimited, parseWorkbook, toSightings } from './statements/importer.js';
+import { parseDelimited, parseWorkbook, toSightings, documentFingerprint } from './statements/importer.js';
 
 const log = createLogger('MoneyAttachments');
 
@@ -18,7 +18,7 @@ export const ATTACHMENT_DEPS = {
   receiptToSighting,
   ingestSighting,
   ingestSightings,
-  parseStatement: (buffer, name) => toSightings(/\.(xlsx|xls)$/i.test(name) ? parseWorkbook(buffer) : parseDelimited(buffer.toString('utf8')), {}),
+  parseStatement: (buffer, name) => toSightings(/\.(xlsx|xls)$/i.test(name) ? parseWorkbook(buffer) : parseDelimited(buffer.toString('utf8')), { document: documentFingerprint(buffer) }),
   complete: (args) => llmComplete({ tier: TIER_EXTRACTION, ...args }),
   listFacts,
   rememberNote: (userId, { subject, text }) => answerQuestion(userId, { questionId: null, kind: 'note', subject, subjectLabel: null, value: text }),
