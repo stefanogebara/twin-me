@@ -23,12 +23,10 @@
 .fd-hero-copy .pb-cta { margin-top: 8px; }
 .fd-hero--product { min-height: 72svh; }
 .fd-prompt { width: min(560px, calc(100% - 48px)); margin-top: 48px; }
-.fd-reveal { width: min(600px, calc(100% - 48px)); margin-top: 48px; }
 .fd-status { margin: 16px 0 0; padding: 0 var(--rg-gutter); text-align: center; }
-/* The orb over the plate while the reading runs: white ink, the photograph's own dark as
-   its ground (#09111b, the plate's average), 96 wide, the only thing moving besides the film. */
+/* An orb drawn over the photograph takes the plate's own dark as its ground (#09111b, the
+   plate's average), not the page. */
 .n-atmosphere { --orb-ground: #09111b; }
-.n-atmosphere .fd-orb { display: block; margin: 40px auto 0; color: var(--rg-white); }
 
 /* ---- sections sit 72 apart (56 on a phone), not twice that ---- */
 .fd .n-section { padding-top: 0; padding-bottom: var(--rg-section); }
@@ -77,57 +75,4 @@
   .fd .n-section { padding-bottom: var(--rg-section-phone); }
   .fd .n-atmosphere + .n-section { padding-top: var(--rg-section-phone); }
   .fd-day-bar { height: 48px; }
-}
-
-/* ==========================================================================
-   The first reading (src/components/landing/RevealStory.tsx), shown in the
-   hero after an email scan. The glass card becomes a plain panel on the page
-   colour, so its ink reads over any part of the photograph; the ink names are
-   scoped back from the hero's white.
-   ========================================================================== */
-
-.rv { width: 100%; text-align: left; }
-.rv-dots { display: flex; justify-content: center; gap: 8px; margin-bottom: 20px; color: var(--n-cloud); }
-.rv-dots > i { width: 6px; height: 6px; border-radius: 3px; background: currentColor; opacity: 0.35; transition: width 0.3s ease, opacity 0.3s ease; }
-.rv-dots > i.is-on { opacity: 1; }
-.rv-dots > i.is-current { width: 20px; opacity: 1; }
-
-.rv-panel {
-  --n-pure: var(--rg-ink);
-  --n-void: var(--rg-page);
-  --n-cloud: var(--rg-ink);
-  --n-ash: var(--rg-ink-2);
-  --n-fog: var(--rg-ink-3);
-  display: grid;
-  gap: 16px;
-  width: 100%;
-  box-sizing: border-box;
-  padding: 28px;
-  border: 0;
-  border-radius: var(--rg-radius-icon);
-  background: var(--rg-page);
-  color: var(--rg-ink);
-  font: inherit;
-  font-size: var(--rg-text);
-  line-height: var(--rg-line);
-  letter-spacing: var(--rg-track);
-  text-align: left;
-}
-button.rv-panel { cursor: pointer; }
-.rv-panel:focus-visible { outline: 2px solid var(--rg-white); outline-offset: 3px; }
-.rv-panel--center { justify-items: center; text-align: center; }
-
-.rv-meta { display: flex; justify-content: space-between; gap: 16px; margin: 0; font-weight: var(--rg-weight-title); color: var(--rg-ink); }
-.rv-meta > span + span { font-weight: var(--rg-weight-line); color: var(--rg-ink-3); font-variant-numeric: tabular-nums; }
-.rv-beat { margin: 0; font-size: clamp(20px, 2.2vw, 24px); line-height: 1.3; font-weight: 400; letter-spacing: -0.02em; color: var(--rg-ink); }
-.rv-more { display: inline-flex; align-items: center; gap: 6px; margin: 0; color: var(--rg-ink-2); }
-button.rv-panel:hover .rv-more { color: var(--rg-ink); }
-.rv-question { margin: 0; font-size: var(--rg-section-title); font-weight: 400; line-height: 1.08; letter-spacing: var(--rg-section-track); color: var(--rg-ink); }
-.rv-name { margin: 0; font-size: var(--rg-title); font-weight: 300; line-height: 1; letter-spacing: var(--rg-title-track); color: var(--rg-ink); }
-.rv-line { margin: 0; font-weight: var(--rg-weight-line); color: var(--rg-ink-2); }
-.rv-actions { display: flex; flex-wrap: wrap; gap: 8px; }
-.rv-rule { height: 1px; background: var(--rg-rule); }
-
-@media (prefers-reduced-motion: reduce) {
-  .rv-dots > i { transition: none; }
 }

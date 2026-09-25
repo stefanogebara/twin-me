@@ -36,7 +36,12 @@ const CustomAuth = () => {
 
   const [busy, setBusy] = useState<'google' | 'link' | null>(null);
   const [error, setError] = useState('');
-  const [email, setEmail] = useState('');
+  /* The front door's email field hands the address over as ?email=; anything that is not an
+     email is ignored rather than shown back. */
+  const [email, setEmail] = useState(() => {
+    const given = (searchParams.get('email') || '').trim();
+    return EMAIL.test(given) ? given : '';
+  });
   const [sentTo, setSentTo] = useState<string | null>(null);
   const [inviteCode, setInviteCode] = useState('');
 
