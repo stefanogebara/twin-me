@@ -62,6 +62,84 @@ describe('a message on the channel', () => {
   });
 });
 
+describe('an unconfirmed outbound send', () => {
+  const OFFER = '11111111-1111-4111-8111-111111111111';
+  const action = { kind: 'not_me', transaction_id: 't1', label: 'Not mine' };
+  const parsed = { phone: '34600000000', text: 'compare months', messageId: 'wamid.failed' };
+
+  it.each([
+    ['reported failure', { success: false, error: 'provider failure' }],
+    ['missing result', undefined],
+    ['missing success', { messageId: 'wamid.unconfirmed' }],
+  ])('does not report an answer or start later parts after %s', async (_name, result) => {
+    send.mockResolvedValue(result);
+    deps.answer.mockResolvedValue({ text: 'Comparison.', figures: [{ kind: 'months' }], actions: [action] });
+    const r = await handleMoneyInbound(parsed, { userId: 'u1', send, deps });
+    expect(r).toEqual({ handled: false, reason: 'money_send_failed', part: 'text', userId: 'u1' });
+    expect(send).toHaveBeenCalledTimes(1);
+    expect(deps.sendCta).not.toHaveBeenCalled();
+    expect(deps.keepOffers).not.toHaveBeenCalled();
+    expect(deps.sendButtons).not.toHaveBeenCalled();
+  });
+
+  it('returns a failed outcome on a thrown send without asking the pipeline to retry the work', async () => {
+    send.mockRejectedValue(new Error('timeout after possible acceptance'));
+    expect(await handleMoneyInbound(parsed, { userId: 'u1', send, deps }))
+      .toEqual({ handled: false, reason: 'money_send_failed', part: 'text', userId: 'u1' });
+    expect(send).toHaveBeenCalledTimes(1);
+  });
+
+  it.each(['chart', 'setup'])('stops before offers if the %s link fails', async (kind) => {
+    deps.answer.mockResolvedValue({ text: 'See the page.', figures: kind === 'chart' ? [{ kind: 'months' }] : [], actions: [
+      ...(kind === 'setup' ? [{ kind: 'setup', href: '/money/you', label: 'Connect a bank' }] : []), action,
+    ] });
+    deps.sendCta.mockResolvedValue({ success: false });
+    const r = await handleMoneyInbound(parsed, { userId: 'u1', send, deps });
+    expect(r).toEqual({ handled: false, reason: 'money_send_failed', part: 'link', userId: 'u1' });
+    expect(send).toHaveBeenCalledTimes(1);
+    expect(deps.keepOffers).not.toHaveBeenCalled();
+    expect(deps.sendButtons).not.toHaveBeenCalled();
+  });
+
+  it('never links a failed button send to a provider message, even if an ID is present', async () => {
+    deps.answer.mockResolvedValue({ text: 'A payment.', actions: [action] });
+    deps.keepOffers.mockResolvedValue([{ id: OFFER, position: 0, action }]);
+    deps.sendButtons.mockResolvedValue({ success: false, messageId: 'wamid.unconfirmed' });
+    expect(await handleMoneyInbound(parsed, { userId: 'u1', send, deps }))
+      .toEqual({ handled: false, reason: 'money_send_failed', part: 'buttons', userId: 'u1' });
+    expect(deps.noteOfferMessage).not.toHaveBeenCalled();
+  });
+
+  it('keeps an applied action consumed after its reply fails, including another confirmation', async () => {
+    deps.takeOffer.mockResolvedValueOnce({ id: OFFER, action }).mockResolvedValue(null);
+    send.mockResolvedValueOnce({ success: false }).mockResolvedValue({ success: true });
+    const confirmation = { ...parsed, replyId: `mo:${OFFER}` };
+    expect(await handleMoneyInbound(confirmation, { userId: 'u1', send, deps }))
+      .toEqual({ handled: false, reason: 'money_send_failed', part: 'text', userId: 'u1' });
+    expect(deps.offerSaid).not.toHaveBeenCalled();
+    expect(deps.releaseOffer).not.toHaveBeenCalled();
+    expect(await handleMoneyInbound({ ...confirmation, messageId: 'wamid.second-tap' }, { userId: 'u1', send, deps }))
+      .toMatchObject({ kind: 'money_act_stale' });
+    expect(deps.act).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not reclaim the same inbound receipt after a failed send', async () => {
+    deps.claimInbound.mockResolvedValueOnce(true).mockResolvedValue(false);
+    send.mockResolvedValue({ success: false });
+    expect(await handleMoneyInbound(parsed, { userId: 'u1', send, deps })).toMatchObject({ reason: 'money_send_failed' });
+    expect(await handleMoneyInbound(parsed, { userId: 'u1', send, deps })).toMatchObject({ kind: 'money_duplicate' });
+    expect(deps.answer).toHaveBeenCalledTimes(1);
+    expect(send).toHaveBeenCalledTimes(1);
+  });
+
+  it('distinguishes a locally suppressed send from a provider-accepted answer', async () => {
+    send.mockResolvedValue({ success: true, suppressed: true });
+    expect(await handleMoneyInbound(parsed, { userId: 'u1', send, deps }))
+      .toEqual({ handled: false, reason: 'money_send_suppressed', part: 'text', userId: 'u1' });
+    expect(deps.keepOffers).not.toHaveBeenCalled();
+  });
+});
+
 describe('a channel deadline', () => {
   it('says so and stops waiting when the ledger takes too long, sending no offers or links', async () => {
     deps.deadlineMs = 20;

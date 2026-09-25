@@ -29,6 +29,16 @@ Status words: `todo` · `doing (who, date)` · `done (#PR, date)` · `blocked (w
 
 ## Now
 
+### Release follow-through — 2026-09-25, 09:20 UTC
+
+- **done (#575, #578, Codex):** Git-triggered production releases READY. #578 merges as `4fceae4a2207bc01621b1d2d360cac023baec6cc`, preserving Claude's #576 refresh-cookie repair and #577 timing evidence. No duplicate CLI deployment.
+- **Measured:** integrated root suite 4,529 passed/11 skipped; 19 native handler/lifecycle tests; 60 desktop/phone browser tests; app/Money/native types and web build pass. All CI jobs and secret scan pass. The skipped CodeRabbit review is not counted as independent review.
+- **Live check:** authenticated Month and health load; payment evidence returns masked card references. Browser transport disconnected before live failure/retry testing; that behavior has automated coverage. Updated local iOS bundle loads against production; full updated-device foreground/keyboard coverage and interactive Android pass remain open. Native binary distribution is not part of these web deploys.
+- **doing (Codex, 2026-09-25):** screenshot-only Ask refinement remains local and outside #578. Fresh desktop scores through round15 peak at8.1/10; the9/10 gate is unmet. Direct labels and proportional bars replace the experimental misleading segmented legend in the next study.
+- **doing (Codex, 2026-09-25):** bounded WhatsApp send-result handling implemented locally: ten new regressions failed first, then 91 channel/provider/pipeline tests and three quiet-failure checks passed. A resolved provider failure stops later reply parts and returns `money_send_failed`; local suppression stays distinct. Independent bounded review found no actionable issues;56 handler/pipeline tests passed in review. Release CI pending. Financial approval consumption is retained. Never release/re-execute a financial action because its reply could not be sent. This is truthful outcome reporting, not durable inbox/outbox recovery; broader W1–W3 work remains open.
+
+**Decision:** Libraries.dev's seven public libraries and19 variants were evaluated. Retain the existing orb for real work, fix reduced-motion lifecycle, and avoid adding ornamental dependencies to payment evidence. No new package was installed. Private account screenshots and audit artifacts are not committed to this public repository.
+
 ### Audit follow-through — 2026-09-25
 
 Stefano authorized implementation, research, design iterations and native-device QA after the September 24–25 audit. Codex works on `codex/money-beta-hardening`, based on `a10e605a`, in an isolated checkout; the owner's working tree is untouched.
