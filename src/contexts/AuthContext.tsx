@@ -397,8 +397,11 @@ setUser(null);
       } else {
         // Refresh token cookie is invalid or expired — DON'T clear localStorage here.
         // Let checkAuth() decide based on any remaining localStorage token (backward compat).
-        // Suppress further refresh attempts for this page session.
-        refreshDisabledForSession = true;
+        /* Only a 401 is the server saying this cookie is no good. A 500, a 502 from a cold
+           function or a rate limit says nothing about the session, and latching on those
+           turned one bad response into a sign-out that lasted the whole page session
+           (2026-09-25). */
+        if (response.status === 401) refreshDisabledForSession = true;
         return false;
       }
     } catch (error) {
