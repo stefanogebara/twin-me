@@ -68,7 +68,9 @@ import { recordOptIn } from '../services/money/channelStore.js';
 import { isMoneyChannelUser } from '../services/money/channel.js';
 import { removeBankAccount, inPersonScope, personProfileCached, personProfile, ingestSighting, ingestSightings, listTransactions, transactionPage, sightingsFor, refreshRecurring, forecast, setVerdict, userForCaptureKey, saveBankAccounts, listBankAccounts, pullBankFeed, refreshReadings, listReadings, setReadingVerdict, months, feedBudget, categorySpend, listPlaces, setPlaceCategory, enrichPlaces, subscriptionUsage, questionsFor, answerQuestion, skipQuestion, listFacts, deleteFact, recordCallbackFailure, listChatTurns, saveChatTurn, learn, userLanguage, patternsFor } from '../services/money/store.js';
 import { parseDelimited, parseWorkbook, toSightings } from '../services/money/statements/importer.js';
-import { planQuestions, answeredPlan, sanitisePlan } from '../services/money/statements/shape.js';
+import { planQuestions, answeredPlan, sanitisePlan, textGrid } from '../services/money/statements/shape.js';
+import { extractDocumentText } from '../services/documentExtractionService.js';
+import { pdfGrid } from '../services/money/statements/pdfGrid.js';
 import { readShape } from '../services/money/statements/shapeReader.js';
 import { maskEvidenceCards } from '../services/money/evidencePrivacy.js';
 import { complete as llmComplete, TIER_EXTRACTION } from '../services/llmGateway.js';
@@ -421,9 +423,29 @@ router.post('/statement', upload.single('file'), async (req, res) => {
   try {
     const account = await ownedStatementAccount(req.user.id, req.body?.accountId);
     const name = req.file.originalname || '';
-    const rows = /\.(xlsx|xls)$/i.test(name)
-      ? parseWorkbook(req.file.buffer)
-      : parseDelimited(req.file.buffer.toString('utf8'));
+    /* A PDF is a page, not a table, and for plenty of people it is the only thing the bank
+       gives them. documentExtractionService reads the text layer, with OCR behind it for a
+       scan; textGrid turns that text into the rows and columns everything downstream wants,
+       so a PDF meets the same header dictionary, the same model and the same parser as a
+       spreadsheet (2026-09-25). */
+    let rows;
+    if (/\.pdf$/i.test(name) || req.file.mimetype === 'application/pdf') {
+      /* A digital PDF keeps its layout in the positions each run of text was drawn at, and
+         pdfGrid rebuilds the rows and columns from those. A scan has no text layer at all,
+         so it goes the long way: OCR, which returns lines, and textGrid splits those. */
+      rows = await pdfGrid(req.file.buffer).catch(quietly('statement/pdf-grid', () => []));
+      if (rows.length < 2) {
+        const read = await extractDocumentText(req.file.buffer, { filename: name, mimeType: req.file.mimetype || 'application/pdf', userId: req.user.id });
+        rows = read?.ok ? textGrid(read.text) : [];
+      }
+      if (rows.length < 2) {
+        return res.status(422).json({ success: false, error: 'Nothing could be read out of that PDF. A CSV or Excel export of the same statement will read better.' });
+      }
+    } else {
+      rows = /\.(xlsx|xls)$/i.test(name)
+        ? parseWorkbook(req.file.buffer)
+        : parseDelimited(req.file.buffer.toString('utf8'));
+    }
     /* A bank's own export reads for nothing: the header dictionary knows it, no model is
        asked and no question is put. Only a sheet that dictionary cannot read goes further. */
     let { sightings, skipped, header } = toSightings(rows, { accountId: account.id, defaultCurrency: account.currency });

@@ -78,9 +78,9 @@ export default function StatementImport({ onImported }: { onImported: () => Prom
           <p className="mv-quiet">{t('A name for your imports. This does not connect to your bank.')}</p>
         </>}
         <label htmlFor="statement-file">{t('Statement file')}</label>
-        <input ref={input} className="mv-statement-file" id="statement-file" type="file" accept=".xlsx,.xls,.csv,.txt,.tsv" required disabled={busy}
+        <input ref={input} className="mv-statement-file" id="statement-file" type="file" accept=".xlsx,.xls,.csv,.txt,.tsv,.pdf" required disabled={busy}
           onChange={(e) => { setFile(e.target.files?.[0] || null); resetInterpretation(); }} aria-describedby="statement-format" />
-        <p className="mv-quiet" id="statement-format">{t('Euro statements, one account per file.')}</p>
+        <p className="mv-quiet" id="statement-format">{t('Excel, CSV or a PDF from your bank. One account per file.')}</p>
         {needs && <fieldset disabled={busy} className="mv-feed">
           <legend>{t('Check how to read this file')}</legend>
           <p role="status" className="mv-quiet">{t('Nothing has been imported yet.')}</p>

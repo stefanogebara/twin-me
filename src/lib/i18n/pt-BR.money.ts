@@ -1,5 +1,6 @@
 /** Brazilian Portuguese for the money pages (MoneyV2Page, MoneySetupPage). Keys are the English source strings. */
 export const PT_BR_MONEY: Record<string, string> = {
+  "Excel, CSV or a PDF from your bank. One account per file.": "Excel, CSV ou um PDF do seu banco. Uma conta por arquivo.",
   "Euro statements, one account per file.": "Extratos em euros, uma conta por arquivo.",
   "Check how to read this file": "Confira como ler este arquivo",
   "Nothing has been imported yet.": "Nada foi importado ainda.",

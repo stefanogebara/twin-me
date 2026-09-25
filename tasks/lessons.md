@@ -632,3 +632,12 @@ Three guards caught things a green suite did not on this one day: the load guard
 anonymous swallowing catch, and the baseline ratchet caught a character nobody can see.
 
 - 2026-09-25 — When replacing silent calendar fallbacks with explicit errors, carry the recovery action through the API and both clients. A correct502 must not hide the only Google reconnect button or turn a native failed read into connected:false. Preserve the previous snapshot; distinguish confirmed absence, retryable failure and known reauthorization.
+
+### It happened again the same day (2026-09-25)
+
+Writing `textGrid` into the same file with another heredoc put another literal
+non-breaking space in another regex, hours after the note above was written. Reading
+the lesson is not the same as having a habit. The habit is: **after any heredoc that
+was meant to contain a backslash escape, run `npx eslint <file>` before moving on**,
+or write the file with a Python patch script, which passes the escape through
+unchanged.
