@@ -34,6 +34,7 @@ import { openingQuestions, followUpQuestions, ledgerQuestions, checkCommitment, 
 import { calendarForecast, calendarFromFacts } from './calendar.js';
 import { withPerson } from './scope.js';
 import { dayIn, dayOfMonthIn } from './zone.js';
+import { maskEvidenceCards } from './evidencePrivacy.js';
 
 import { listOwnTransactions, selectTransactions } from './transactionRepository.js';
 export { listTransactions, listOwnTransactions, transactionPage } from './transactionRepository.js';
@@ -48,8 +49,9 @@ export { forecast, months, scorePredictions } from './forecastService.js';
 const log = createLogger('money-store');
 
 export async function sightingsFor(userId, transactionId) {
-  const { data } = await supabaseAdmin.from('money_sightings').select('id, source, seen_at, raw_text, amount, currency, occurred_at, parse_confidence').eq('user_id', userId).eq('transaction_id', transactionId).order('seen_at');
-  return data || [];
+  const { data, error } = await supabaseAdmin.from('money_sightings').select('id, source, seen_at, raw_text, amount, currency, occurred_at, parse_confidence').eq('user_id', userId).eq('transaction_id', transactionId).order('seen_at');
+  if (error) throw new Error('Could not read payment evidence');
+  return (data || []).map((row) => ({ ...row, raw_text: maskEvidenceCards(row.raw_text) }));
 }
 
 /** Recompute recurring series from the last 400 days and flag the ledger rows. */

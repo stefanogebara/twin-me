@@ -15,7 +15,8 @@
  */
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { AppState, DeviceEventEmitter, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, TextInput, View, type NativeScrollEvent, type NativeSyntheticEvent } from 'react-native';
+import { DeviceEventEmitter, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, TextInput, View, type NativeScrollEvent, type NativeSyntheticEvent } from 'react-native';
+import { useActiveRead } from '../hooks/useActiveRead';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { cosmos, dayMonth, euro } from '../constants/cosmos';
 import { Body, Card, Enter, Hairline, Heading, Label, Micro, Page, Pill, Press, Row, Small, Title } from '../ui/primitives';
@@ -185,7 +186,7 @@ function Receipts({ receipts }: { receipts: ChatReceipt[] }) {
  * The screen.
  * -------------------------------------------------------------------------------------- */
 
-export default function ChatScreen({ mode, onDone, onClose }: { mode: 'onboarding' | 'ask'; onDone?: () => void; onClose?: () => void }) {
+export default function ChatScreen({ mode, onDone, onClose, active = true }: { active?: boolean; mode: 'onboarding' | 'ask'; onDone?: () => void; onClose?: () => void }) {
   const insets = useSafeAreaInsets();
   const reduced = useReducedMotion();
   const scroller = useRef<ScrollView | null>(null);
@@ -279,34 +280,27 @@ export default function ChatScreen({ mode, onDone, onClose }: { mode: 'onboardin
     return () => { live = false; };
   }, [mode, sessionEpoch]);
 
+  const refreshHistory = useCallback(async (isCurrent: () => boolean) => {
+    const before = readLines('ask');
+    if (before.some(line => line.pending)) return;
+    try {
+      const turns = await moneyApi.chatHistory();
+      if (!isCurrent() || currentSessionEpoch() !== sessionEpoch || readLines('ask') !== before) return;
+      replaceUnchangedHistory(before, turns.length ? turns.map(t => ({
+        id: `kept-${t.id}`, who: t.role === 'twin' ? 'twin' as const : 'you' as const, text: t.text, lead: t.role === 'twin' ? leadOf(t.text) : undefined,
+        figures: t.figures || undefined, receipts: t.receipts || undefined, thinking: t.thinking || undefined, basis: t.basis || undefined,
+      })) : [{ id: lineId(), who: 'twin', text: 'Ask about any month, any shop, anything that leaves your account. Answers come from your own payments, with the payments underneath.' }], sessionEpoch);
+      setNote(null);
+    } catch {
+      if (isCurrent() && currentSessionEpoch() === sessionEpoch) setNote('The conversation could not refresh. Reopen Ask to try again.');
+    }
+  }, [sessionEpoch]);
+  useActiveRead(refreshHistory, active && mode === 'ask');
+
   /* Opening. Onboarding asks what only the person knows; ask mode opens the floor, once. */
   useEffect(() => {
     let live = true;
-    if (mode === 'ask') {
-      const refreshHistory = () => {
-        const before = readLines('ask');
-        if (before.some(line => line.pending)) return;
-        /* Reopening or foregrounding includes conversations from the web. A new local
-           message or account change invalidates this read before it can replace anything. */
-        moneyApi.chatHistory().then((turns) => {
-          if (!live || currentSessionEpoch() !== sessionEpoch || readLines('ask') !== before) return;
-          if (!turns.length) {
-            replaceUnchangedHistory(before, [{ id: lineId(), who: 'twin', text: 'Ask about any month, any shop, anything that leaves your account. Answers come from your own payments, with the payments underneath.' }], sessionEpoch);
-            return;
-          }
-          replaceUnchangedHistory(before, turns.map((t) => ({
-            id: `kept-${t.id}`, who: t.role === 'twin' ? 'twin' as const : 'you' as const, text: t.text, lead: t.role === 'twin' ? leadOf(t.text) : undefined,
-            figures: t.figures || undefined, receipts: t.receipts || undefined, thinking: t.thinking || undefined, basis: t.basis || undefined,
-          })), sessionEpoch);
-        }).catch(() => {
-          if (live && currentSessionEpoch() === sessionEpoch) setNote('The conversation could not refresh. Reopen Ask to try again.');
-        });
-      };
-      refreshHistory();
-      const active = AppState.addEventListener('change', state => { if (state === 'active') refreshHistory(); });
-      setPhase('asking');
-      return () => { live = false; active.remove(); };
-    }
+    if (mode === 'ask') { setPhase('asking'); return () => { live = false; }; }
     storeLines('onboarding', [], sessionEpoch);
     moneyApi.forecast().then((f) => rememberLikely(f.projected_p50, sessionEpoch)).catch(() => {});
     (async () => {

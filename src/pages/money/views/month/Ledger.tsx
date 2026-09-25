@@ -4,21 +4,43 @@
  * useMoneyAccount and each view is its own file. The words on the page did not move.
  */
 
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { euro, shortDay, moneyAPI, type MoneySighting } from '../../../../services/api/moneyAPI';
 import Chevron from '../../Chevron';
 import { merchantLabel, monthYear, ordinalDay, seenWords, SOURCE } from '../../words';
 import type { MoneyAccount } from '../../useMoneyAccount';
 
 export default function Ledger({ m }: { m: MoneyAccount }) {
+  return <LedgerRows key={m.user?.id || 'signed-out'} m={m} />;
+}
+
+function LedgerRows({ m }: { m: MoneyAccount }) {
   const { t, locale, ledger, byMonth, pairMax, todayDay, verdict, seen } = m;
   const [monthOpen, setMonthOpen] = useState<Record<string, boolean>>({});
   const [open, setOpen] = useState<string | null>(null);
   const [receipts, setReceipts] = useState<Record<string, MoneySighting[]>>({});
-  async function toggle(id: string) {
+  const [receiptErrors, setReceiptErrors] = useState<Record<string, boolean>>({});
+  const pending = useRef(new Set<string>());
+  const mounted = useRef(false);
+  useEffect(() => { mounted.current = true; return () => { mounted.current = false; }; }, []);
+  async function readReceipts(id: string) {
+    if (pending.current.has(id)) return;
+    pending.current.add(id);
+    setReceiptErrors(all => ({ ...all, [id]: false }));
+    try {
+      const rows = await moneyAPI.sightings(id);
+      if (!Array.isArray(rows)) throw new Error('Invalid receipt response');
+      if (mounted.current) setReceipts(all => ({ ...all, [id]: rows }));
+    } catch {
+      if (mounted.current) setReceiptErrors(all => ({ ...all, [id]: true }));
+    } finally {
+      pending.current.delete(id);
+    }
+  }
+  function toggle(id: string) {
     if (open === id) { setOpen(null); return; }
     setOpen(id);
-    if (!receipts[id]) { try { const s = await moneyAPI.sightings(id); setReceipts((m) => ({ ...m, [id]: s })); } catch { /* the row still opens */ } }
+    if (!receipts[id]) void readReceipts(id);
   }
   return (
           <section className="mv-section" id="ledger">
@@ -71,6 +93,12 @@ export default function Ledger({ m }: { m: MoneyAccount }) {
                                 </button>
                                 {open === row.id ? (
                                   <div className="mv-body mv-body--sub">
+                                    {receiptErrors[row.id] ? (
+                                      <div role="alert">
+                                        <p>{t('Could not read these receipts.')}</p>
+                                        <button type="button" className="mv-pill mv-pill--ghost" onClick={() => void readReceipts(row.id)}>{t('Try again')}</button>
+                                      </div>
+                                    ) : receipts[row.id] === undefined ? <p role="status">{t('Reading the receipts.')}</p> : null}
                                     <ul className="mv-receipts">
                                       {(receipts[row.id] || []).map((s) => (
                                         <li key={s.id}>

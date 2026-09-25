@@ -20,6 +20,18 @@ const places = [{ merchant_key: 'el corte ingles', name: 'El Corte Ingles', cate
 const recurring = [{ merchant_key: 'spotify' }];
 
 describe('sheetRows', () => {
+  it.each(['place', 'merchant_raw', 'merchant_key'])('masks card identifiers in the exported %s without changing stored data', (source) => {
+    const label = 'Cafe TARJETA 4111111111111111';
+    const row = Object.freeze({ ...tx[0], merchant_key: source === 'merchant_key' ? label : 'cafe', merchant_raw: source === 'merchant_raw' ? label : null });
+    const namedPlaces = source === 'place' ? Object.freeze([Object.freeze({ merchant_key: 'cafe', name: label })]) : [];
+    const table = sheetRows(Object.freeze([row]), { month: '2026-09', places: namedPlaces, zone: 'UTC' });
+    const workbook = XLSX.read(sheetFile(table, '2026-09'), { type: 'buffer' });
+    const cells = XLSX.utils.sheet_to_json(workbook.Sheets['2026-09'], { header: 1 });
+    expect(cells[1][1]).toBe('Cafe TARJETA ****1111');
+    expect(cells[1][3]).toBe(-116.76);
+    expect(source === 'place' ? namedPlaces[0].name : row[source]).toBe(label);
+  });
+
   it('is a row per payment of the month, oldest first, with the place, the kind, the channel and what comes back', () => {
     const { header, rows } = sheetRows(tx, { month: '2026-09', places, recurring, language: 'en', zone: 'Europe/Madrid' });
     expect(header).toEqual(['Day', 'Place', 'Kind', 'Amount', 'Currency', 'Channel', 'Comes back']);

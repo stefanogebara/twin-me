@@ -15,6 +15,7 @@ import { kindWord } from './chat.js';
 import { listOwnTransactions, listPlaces, categoryOfPayment, userLanguage, personProfileCached, listFacts } from './store.js';
 import { personRoles, roleOf } from './spending.js';
 import { quietly } from './quietly.js';
+import { maskEvidenceCards } from './evidencePrivacy.js';
 
 const HEADERS = {
   en: ['Day', 'Place', 'Kind', 'Amount', 'Currency', 'Channel', 'Comes back'],
@@ -55,7 +56,7 @@ export function sheetRows(transactions, { month, places = [], recurring = [], fa
       const kind = categoryOfPayment(place, t.channel, roleOf(roles, t.merchant_key));
       return [
         dayIn(t.occurred_at, zone),
-        place?.name || t.merchant_raw || t.merchant_key || '',
+        maskEvidenceCards(place?.name || t.merchant_raw || t.merchant_key || ''),
         kind ? kindWord(lang, kind) : NOT_READ[lang],
         Number(t.amount) || 0,
         t.currency || ledgerCurrency(),
