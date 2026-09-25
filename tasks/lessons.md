@@ -613,3 +613,20 @@ edited file, and the commit carried only its test. Its green checks read as proo
   must import it for real.
 
 - 2026-09-25 — When reviewing Money across web and native, label each screenshot by surface and build. Open the owner's actual `twinme.me/money` session before design judgments; the iOS Month screen is not evidence of the current web Today design. Preserve the current warm, spacious web register when closing native parity gaps.
+
+## A heredoc writes the character, not the escape (2026-09-25)
+
+Writing a file with `cat > file <<'EOF'` puts `\u00a0` into the file as a literal
+non-breaking space, not as the six characters of the escape. It is invisible in the
+source, the code runs, and 49 tests passed over it. ESLint's `no-irregular-whitespace`
+and the baseline ratchet in `scripts/ci/check-baselines.mjs` caught it: 2 errors against
+a baseline of 0.
+
+Fix the violation, never raise the baseline to match it; the ratchet exists for exactly
+this. And when a file needs a non-ASCII escape, write the file and then check it:
+`python3 -c "print(open(p,encoding='utf-8').read().count(chr(0xa0)))"`, or run
+`npx eslint <file>` before committing.
+
+Three guards caught things a green suite did not on this one day: the load guard
+(#563) caught an outage vitest could not see, `quiet-failures.goal.test.js` caught an
+anonymous swallowing catch, and the baseline ratchet caught a character nobody can see.
