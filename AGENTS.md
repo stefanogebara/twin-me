@@ -176,9 +176,11 @@ Measured 2026-09-19: 34 twin-chat memories by 2 users in 30 days against 3,214 r
 **deleted on 2026-09-24** (M2-B api, on Stefano's directive: money from scratch, forget the
 rest): every file under `api/_app/` that no root in `scripts/ci/staying-roots.txt` reaches went,
 with its mounts, its startup jobs and its tests. What remains of it is the gate:
-`api/_app/middleware/legacyTwin.js` keeps `LEGACY_TWIN_ROUTES`, the 114 addresses that answer
-410 with the parked line, and `src/lib/legacyTwin.ts` parks the pages; a goal test keeps the
-list unmounted. `scripts/ci/reach.mjs` walks the roots and the staying-set coverage floor is
+`api/_app/middleware/legacyTwin.js` keeps `LEGACY_TWIN_ROUTES`, the 113 addresses that answer
+410 with the parked line (`/api/api-keys` left it on 2026-09-26: installed Android builds make
+their capture key there, D27), and `src/lib/legacyTwin.ts` parks the pages; a goal test keeps the
+list unmounted, and `no-parked-calls.goal.test.js` keeps the front end from calling it.
+`scripts/ci/reach.mjs` walks the roots and the staying-set coverage floor is
 measured over exactly that set. Do not resurrect a twin file from git history without a
 Decisions entry.
 
