@@ -17,6 +17,9 @@ const sanitizeProvider = (value: string | null | undefined): string =>
 
 const OAuthCallback = () => {
   const [searchParams] = useSearchParams();
+  /* A 'connector.' state is the Google Calendar consent money starts from Account; the rest
+     are sign-ins. Its failure says what failed and goes back to Account, not to /connect. */
+  const connectorFlow = (searchParams.get('state') || '').startsWith('connector.');
   const navigate = useNavigate();
   const { trackFunnel } = useAnalytics();
   const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading');
@@ -635,9 +638,12 @@ const OAuthCallback = () => {
           });
         }, 500);
 
-        // Don't redirect to auth for connector OAuth failures - stay on /connect
+        // A failed calendar consent goes back to where it was started; /connect is the
+        // retired twin's page and only its own flows still end there.
+        const failedConnector = (searchParams.get('state') || '').startsWith('connector.');
         setTimeout(() => {
-          window.location.href = '/connect';
+          if (failedConnector) navigate('/money/account?calendar=failed', { replace: true });
+          else window.location.href = '/connect';
         }, 3000);
       }
     };
@@ -649,7 +655,8 @@ const OAuthCallback = () => {
      is not shown until showError, so a transient 401 during the claim never flashes. */
   const displayStatus = status === 'error' && !showError ? 'loading' : status;
   if (displayStatus === 'loading') return <Wait line="Signing you in." />;
-  if (displayStatus === 'success') return <Wait line="Signed in." sub="Taking you to your month." />;
+  if (displayStatus === 'success') return connectorFlow ? <Wait line="Google Calendar is connected." /> : <Wait line="Signed in." sub="Taking you to your month." />;
+  if (connectorFlow) return <Wait line="Google Calendar was not connected." sub="Try again from your account." action={{ label: 'Back to your account', onClick: () => navigate('/money/account') }} />;
   return <Wait line="That sign-in did not go through." sub={message} action={{ label: 'Try again', onClick: () => navigate('/auth') }} />;
 };
 

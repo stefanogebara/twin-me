@@ -95,4 +95,12 @@ describe('the calendar consent on /oauth/callback', () => {
     await open('code-c');
     await vi.waitFor(() => expect(where()).toBe('/money'));
   });
+
+  it('says the calendar was not connected and goes back to the account, not to a retired page', async () => {
+    setAccessToken('tok');
+    vi.stubGlobal('fetch', vi.fn(async () => new Response(JSON.stringify({ success: false, error: 'Google did not accept that consent.' }), { status: 502, headers: { 'Content-Type': 'application/json' } })));
+    await open('code-d');
+    await vi.waitFor(() => expect(host.textContent).toContain('Google Calendar was not connected.'), { timeout: 2000 });
+    await vi.waitFor(() => expect(where()).toBe('/money/account?calendar=failed'), { timeout: 5000 });
+  });
 });
