@@ -24,6 +24,7 @@ import { parse } from 'csv-parse/sync';
 import * as XLSX from 'xlsx';
 import { merchantKey } from '../captureParser.js';
 import { parseNarrative } from '../narrative.js';
+import { readDate, readAmount } from './shape.js';
 
 /* ------------------------------------------------------------------ reading */
 
@@ -303,9 +304,15 @@ const cell = (row, index) => (index === undefined || row[index] === undefined ? 
  *   Sightings carry exactly the keys the Enable Banking feed produces. Rows without a
  *   parseable date, or with a zero or absent amount, go to `skipped` with a reason.
  */
-export function toSightings(rows, { accountId = null, defaultCurrency = 'EUR' } = {}) {
+export function toSightings(rows, { accountId = null, defaultCurrency = 'EUR', plan = null } = {}) {
   const all = Array.isArray(rows) ? rows.map((r) => (Array.isArray(r) ? r : [])) : [];
-  const header = findHeader(all);
+  /* A plan is how a sheet nobody designed for us gets read: shape.js worked out which column
+     is which and how its dates and amounts are written, and it is applied here so the rows
+     become the same sightings a bank export does. Without one this reads the Spanish bank
+     exports it always has. */
+  const header = plan ? { index: plan.index, columns: plan.columns } : findHeader(all);
+  const dateOf = plan ? (v) => readDate(v, plan) : parseSpanishDate;
+  const amountOf = plan ? (v) => readAmount(v, plan) : parseSpanishAmount;
   const sightings = [];
   const skipped = [];
   const occurrences = new Map();
@@ -322,8 +329,8 @@ export function toSightings(rows, { accountId = null, defaultCurrency = 'EUR' } 
     const row = all[i];
     if (!row.some((c) => String(c ?? '').trim())) { skipped.push({ index: i, row, reason: 'empty_row' }); continue; }
 
-    const opDate = parseSpanishDate(cell(row, columns.date));
-    const valueDate = parseSpanishDate(cell(row, columns.valueDate));
+    const opDate = dateOf(cell(row, columns.date));
+    const valueDate = dateOf(cell(row, columns.valueDate));
     /* The value date is when the money actually left; the operation date is when the
        shop asked. The reconciler matches against the former when the bank gives it. */
     const when = valueDate || opDate;
@@ -331,10 +338,10 @@ export function toSightings(rows, { accountId = null, defaultCurrency = 'EUR' } 
 
     let signed = null;
     if (columns.amount !== undefined) {
-      signed = parseSpanishAmount(cell(row, columns.amount));
+      signed = amountOf(cell(row, columns.amount));
     } else {
-      const debit = parseSpanishAmount(cell(row, columns.debit));
-      const credit = parseSpanishAmount(cell(row, columns.credit));
+      const debit = amountOf(cell(row, columns.debit));
+      const credit = amountOf(cell(row, columns.credit));
       if (credit !== null && credit !== 0) signed = Math.abs(credit);
       else if (debit !== null && debit !== 0) signed = -Math.abs(debit);
       else signed = debit === null && credit === null ? null : 0;
@@ -348,7 +355,7 @@ export function toSightings(rows, { accountId = null, defaultCurrency = 'EUR' } 
        itself is the best name there is, the way the feed adapter keeps it. */
     const name = read.merchant || concept || null;
 
-    const currency = currencyFrom(cell(row, columns.currency), defaultCurrency);
+    const currency = currencyFrom(cell(row, columns.currency), plan?.currency || defaultCurrency);
     const legacyRef = sourceRef(when, signed, concept);
     const identity = sourceRef(when, signed, `${accountId || 'unassigned'}|${currency}|${concept}`);
     const occurrence = (occurrences.get(identity) || 0) + 1;
