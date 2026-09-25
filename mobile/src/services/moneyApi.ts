@@ -363,13 +363,15 @@ export function chatStream(
   }, handlers.onEvent, handlers.onEnd);
 }
 
-type Envelope<T> = { success?: boolean; error?: string; data?: T };
+type Envelope<T> = { success?: boolean; error?: string; data?: T; needsReconnect?: boolean };
+export type MoneyCalendarError = Error & { status?: number; needsReconnect?: boolean };
 
-async function json<T>(res: Response): Promise<T> {
+async function json<T>(res: Response, { calendarRead = false } = {}): Promise<T> {
   const body = (await res.json().catch(() => ({}))) as Envelope<T>;
   if (!res.ok || body.success === false) {
-    const err = new Error(body.error || `Request failed (${res.status})`) as Error & { status?: number };
+    const err = new Error(body.error || `Request failed (${res.status})`) as MoneyCalendarError;
     err.status = res.status;
+    if (calendarRead && body.needsReconnect === true) err.needsReconnect = true;
     throw err;
   }
   return body.data as T;
@@ -472,7 +474,7 @@ export const moneyApi = {
   /** The conversation so far, so Ask opens where it stood. */
   chatHistory: () => authFetch('/money/chat/history').then((r) => json<ChatTurnKept[]>(r)),
   /** The calendar lens: connected or not, and the week ahead with what it usually costs. */
-  calendar: () => authFetch('/money/calendar').then((r) => json<MoneyCalendar>(r)),
+  calendar: () => authFetch('/money/calendar').then((r) => json<MoneyCalendar>(r, { calendarRead: true })),
   /** Where to send the person to connect their calendar. */
   calendarConnect: () => authFetch('/money/calendar/connect').then((r) => json<{ url: string }>(r)),
   /** A Canvas, Blackboard or .ics link, read once to prove it reads, then kept. */

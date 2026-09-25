@@ -11,7 +11,10 @@ import express from 'express';
 import request from 'supertest';
 
 const owner = '00000000-0000-4000-8000-000000000001';
-const f = vi.hoisted(() => ({ listFacts: vi.fn(), listTransactions: vi.fn(), forecast: vi.fn() }));
+const f = vi.hoisted(() => ({ listFacts: vi.fn(), listTransactions: vi.fn(), forecast: vi.fn(), calendarAhead: vi.fn() }));
+vi.mock('../../../api/_app/services/money/calendar.js', async (importOriginal) => ({
+  ...await importOriginal(), ahead: f.calendarAhead,
+}));
 vi.mock('../../../api/_app/services/money/store.js', () => ({ inPersonScope: (id, fn) => fn(), personProfileCached: async () => ({ timezone: 'Europe/Madrid', country: 'ES', currency: 'EUR', language: null }), 
   ingestSighting: vi.fn(),
   ingestSightings: vi.fn(),
@@ -59,6 +62,7 @@ for (let t = Date.parse('2026-06-24T12:00:00Z'); t <= Date.parse('2026-10-23T12:
 const meta = { kind: 'event_spend_meta', subject: 'meta', value: JSON.stringify({ learned_at: new Date().toISOString(), snapshot: [], past: [], days }) };
 
 beforeEach(() => {
+  f.calendarAhead.mockReset();
   f.listFacts.mockReset(); f.listTransactions.mockReset(); f.forecast.mockReset();
   f.listTransactions.mockResolvedValue([]);
   f.forecast.mockResolvedValue({ month: null, days: { days: [] } });
@@ -77,4 +81,31 @@ it('answers with the term, and with a count of events on the squares', async () 
   expect(res.body.data.term).toBeTruthy();
   expect(res.body.data.term.weeks.filter((w) => w.known).length).toBeGreaterThanOrEqual(3);
   expect(res.body.data.cells.filter((c) => (c.events || 0) > 0).length).toBeGreaterThan(0);
+});
+
+it('keeps a known calendar reauthorization failure as 502 while exposing its recovery action', async () => {
+  f.calendarAhead.mockRejectedValue(Object.assign(new Error('Google credential unreadable'), { code: 'calendar_read_incomplete', requiresReauth: true }));
+  const res = await request(app).get('/money/calendar');
+  expect(res.status).toBe(502);
+  expect(res.body).toEqual({ success: false, error: 'The calendar could not be read right now.', needsReconnect: true });
+  expect(res.body.data).toBeUndefined();
+});
+
+it.each([
+  new Error('temporary failure'),
+  Object.assign(new Error('Google refresh timed out'), { code: 'calendar_read_incomplete' }),
+  Object.assign(new Error('Unrelated error with a similarly named property'), { requiresReauth: true }),
+])('does not infer a reconnect instruction from an unrelated or transient error', async (error) => {
+  f.calendarAhead.mockRejectedValue(error);
+  const res = await request(app).get('/money/calendar');
+  expect(res.status).toBe(502);
+  expect(res.body).toEqual({ success: false, error: 'The calendar could not be read right now.' });
+});
+
+it('keeps a successful empty calendar distinguishable from failure', async () => {
+  const data = { connected: false, google: false, feeds: [], ahead: [] };
+  f.calendarAhead.mockResolvedValue(data);
+  const res = await request(app).get('/money/calendar');
+  expect(res.status).toBe(200);
+  expect(res.body).toEqual({ success: true, data });
 });

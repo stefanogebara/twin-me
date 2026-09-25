@@ -630,3 +630,5 @@ this. And when a file needs a non-ASCII escape, write the file and then check it
 Three guards caught things a green suite did not on this one day: the load guard
 (#563) caught an outage vitest could not see, `quiet-failures.goal.test.js` caught an
 anonymous swallowing catch, and the baseline ratchet caught a character nobody can see.
+
+- 2026-09-25 — When replacing silent calendar fallbacks with explicit errors, carry the recovery action through the API and both clients. A correct502 must not hide the only Google reconnect button or turn a native failed read into connected:false. Preserve the previous snapshot; distinguish confirmed absence, retryable failure and known reauthorization.

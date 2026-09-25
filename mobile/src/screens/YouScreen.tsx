@@ -67,8 +67,10 @@ type Props = {
 export default function YouScreen({ user, onSignOut, onOpenPhone, onOpenBank, onOpenQuestions }: Props) {
   const [accounts, setAccounts] = useState<MoneyAccount[]>([]);
   const [facts, setFacts] = useState<MoneyFact[]>([]);
-  /* null until read; a server without the calendar lens reads as not connected. */
+  /* A failed read preserves the last calendar; it does not mean disconnected. */
   const [calendar, setCalendar] = useState<MoneyCalendar | null>(null);
+  const [calendarFailed, setCalendarFailed] = useState(false);
+  const [calendarNeedsReconnect, setCalendarNeedsReconnect] = useState(false);
   /* The receipts address, once the server has minted it; null until then. */
   const [inbox, setInbox] = useState<{ address: string; receiving: boolean } | null>(null);
   const [connecting, setConnecting] = useState(false);
@@ -86,7 +88,12 @@ export default function YouScreen({ user, onSignOut, onOpenPhone, onOpenBank, on
     if (i.status === 'fulfilled') setInbox(i.value);
     if (a.status === 'fulfilled') setAccounts(a.value);
     if (f.status === 'fulfilled') setFacts(f.value);
-    setCalendar(c.status === 'fulfilled' ? c.value : { connected: false, ahead: [] });
+    if (c.status === 'fulfilled') {
+      setCalendar(c.value); setCalendarFailed(false); setCalendarNeedsReconnect(false);
+    } else {
+      setCalendarFailed(true);
+      setCalendarNeedsReconnect(c.reason?.needsReconnect === true);
+    }
     setFailed(a.status === 'rejected' && f.status === 'rejected');
     setLoaded(true);
     setRefreshing(false);
@@ -197,19 +204,22 @@ export default function YouScreen({ user, onSignOut, onOpenPhone, onOpenBank, on
                       onPress={() => { void Share.share({ message: inbox.address }); }}
                     />
                   ) : null}
-                  {calendar ? (
+                  {calendar || calendarFailed ? (
                     <Row
                       inset
                       glyph={<CalendarGlyph />}
                       label="Your calendar"
-                      sub={calendar.google
-                        ? (routine || 'Google connected')
-                        : connecting ? 'Opening' : 'Google: learn what your week costs'}
-                      onPress={calendar.google ? undefined : () => void connectCalendar()}
+                      sub={connecting ? 'Opening' : refreshing ? 'Reading' : calendarFailed
+                        ? (calendarNeedsReconnect ? 'Reconnect Google' : 'Could not read. Tap to retry')
+                        : calendar?.google ? (routine || 'Google connected') : 'Connect Google calendar'}
+                      onPress={calendarFailed
+                        ? () => { if (calendarNeedsReconnect) void connectCalendar(); else { setRefreshing(true); void load(); } }
+                        : calendar?.google ? undefined : () => void connectCalendar()}
+                      disabled={connecting || refreshing}
                     />
                   ) : null}
                   {(calendar?.feeds || []).map((f) => (
-                    <Row key={f.id} inset glyph={<CalendarGlyph />} label={f.label} sub="Read once a day. Tap to remove" onPress={() => removeFeed(f.id, f.label)} />
+                    <Row key={f.id} inset glyph={<CalendarGlyph />} label={f.label} sub="Calendar link connected. Tap to remove" onPress={() => removeFeed(f.id, f.label)} />
                   ))}
                   {calendar ? (
                     <Row
@@ -223,7 +233,7 @@ export default function YouScreen({ user, onSignOut, onOpenPhone, onOpenBank, on
                   {feedOpen ? (
                     <View style={s.feed}>
                       <Prompt value={feedUrl} onChange={setFeedUrl} onSubmit={() => void addFeed()} placeholder="https://" busy={feedBusy} autoFocus />
-                      <Micro quiet>Canvas: Calendar, then Calendar feed. Blackboard: Calendar, then Get external calendar link.</Micro>
+                      <Micro quiet>Canvas: Calendar, then Calendar feed. Blackboard Ultra: Calendar settings, then Share calendar. Older Blackboard: Get external calendar link.</Micro>
                     </View>
                   ) : null}
                 </Panel>

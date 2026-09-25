@@ -560,7 +560,7 @@ async function ensureFreshToken(userId, platform) {
  *
  * @param {string} userId - User ID (UUID)
  * @param {string} provider - Platform provider name
- * @returns {Promise<{success: boolean, accessToken?: string, error?: string, requiresReauth?: boolean, source?: string}>}
+ * @returns {Promise<{success: boolean, accessToken?: string, error?: string, code?: string, requiresReauth?: boolean, source?: string}>}
  */
 export async function getValidAccessToken(userId, provider) {
   try {
@@ -584,7 +584,7 @@ export async function getValidAccessToken(userId, provider) {
       return { success: false, error: `Lookup failed for ${provider}: ${dbError.message}` };
     }
     if (!connection) {
-      return { success: false, error: `No active connection found for ${provider}` };
+      return { success: false, code: 'not_connected', error: `No active connection found for ${provider}` };
     }
 
     if (!connection.access_token) {

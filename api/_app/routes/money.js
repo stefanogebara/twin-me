@@ -834,7 +834,8 @@ router.get('/calendar', async (req, res) => {
     res.json({ success: true, data: await calendarAhead(req.user.id, days) });
   } catch (error) {
     log.error('calendar read failed', { error: error.message });
-    res.status(502).json({ success: false, error: 'The calendar could not be read right now.' });
+    const needsReconnect = error.code === 'calendar_read_incomplete' && error.requiresReauth === true;
+    res.status(502).json({ success: false, error: 'The calendar could not be read right now.', ...(needsReconnect ? { needsReconnect: true } : {}) });
   }
 });
 

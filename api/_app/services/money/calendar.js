@@ -517,7 +517,14 @@ export function calendarLines(facts, { now = new Date() } = {}) {
 
 async function token(userId) {
   const r = await getValidAccessToken(userId, 'google_calendar');
-  if (!r?.success || !r.accessToken) return { accessToken: null, needsReconnect: Boolean(r?.requiresReauth), error: r?.error || 'not connected' };
+  if (r?.code === 'not_connected') return { accessToken: null, needsReconnect: false, error: r.error };
+  /* A failed lookup, decryption or refresh does not establish that Google is absent.
+     Otherwise healthy ICS feeds could replace a Google + ICS diary with only their part. */
+  if (!r?.success || !r.accessToken) {
+    throw Object.assign(new Error('The Google calendar connection could not be read.'), {
+      code: 'calendar_read_incomplete', requiresReauth: Boolean(r?.requiresReauth),
+    });
+  }
   return { accessToken: r.accessToken, needsReconnect: false, error: null };
 }
 
@@ -555,7 +562,13 @@ export function publicFeeds(feeds) {
 }
 
 export async function listFeeds(userId) {
-  return feedsFromFacts(await listFacts(userId, { includeInternal: true }));
+  const facts = await listFacts(userId, { includeInternal: true });
+  const feeds = feedsFromFacts(facts);
+  /* A registered link that cannot be decrypted is an unread source, not an absent one. */
+  if (feeds.length !== facts.filter((f) => f.kind === FEED_KIND).length) {
+    throw Object.assign(new Error('A saved calendar link could not be read.'), { code: 'calendar_read_incomplete' });
+  }
+  return feeds;
 }
 
 /** The two things a person is told about a link that did not read; the rest stays in the log. */
@@ -628,6 +641,26 @@ async function readCapped(r) {
  * to a cap. Whatever went wrong, the person hears one of two sentences and the log keeps
  * the rest. Throws with `code` 'feed_unreadable' or 'feed_not_calendar'.
  */
+function completeCalendar(text) {
+  /* A 200 may still contain a cut-off export. Balance component boundaries before the
+     permissive event parser can turn its incomplete tail into a successful empty diary. */
+  const components = [];
+  let calendars = 0;
+  const lines = text.replace(/\r\n?/g, '\n').replace(/\n[ \t]/g, '').split('\n');
+  for (const line of lines) {
+    const boundary = line.trim().match(/^(BEGIN|END):([A-Z0-9-]+)$/i);
+    if (!boundary) continue;
+    const [, action, rawName] = boundary;
+    const name = rawName.toUpperCase();
+    if (action.toUpperCase() === 'BEGIN') {
+      if (components.length === 0 && name !== 'VCALENDAR') return false;
+      if (name === 'VCALENDAR' && (components.length || ++calendars > 1)) return false;
+      components.push(name);
+    } else if (components.pop() !== name) return false;
+  }
+  return calendars === 1 && components.length === 0;
+}
+
 export async function fetchFeed(url, { fetchImpl = fetch, lookupImpl = (h, o) => dns.lookup(h, o) } = {}) {
   let current = String(url || '');
   let text = null;
@@ -656,7 +689,7 @@ export async function fetchFeed(url, { fetchImpl = fetch, lookupImpl = (h, o) =>
       throw Object.assign(new Error(FEED_UNREADABLE), { code: 'feed_unreadable' });
     } finally { clearTimeout(timer); }
   }
-  if (text === null || !looksLikeIcs(text)) throw Object.assign(new Error(FEED_NOT_CALENDAR), { code: 'feed_not_calendar' });
+  if (text === null || !looksLikeIcs(text) || !completeCalendar(text)) throw Object.assign(new Error(FEED_NOT_CALENDAR), { code: 'feed_not_calendar' });
   const kind = feedKind(url);
   return { kind, events: parseIcs(text, { source: kind }) };
 }
@@ -667,6 +700,15 @@ export async function addFeed(userId, url, { fetchImpl = fetch, now = new Date()
   if (existing.some((f) => f.url === url)) return { ...publicFeeds([existing.find((f) => f.url === url)])[0], events: null, already: true };
   if (existing.length >= MAX_FEEDS) throw Object.assign(new Error('Four links is the most; remove one first.'), { code: 'feed_limit' });
   const { kind, events } = await fetchFeed(url, { fetchImpl });
+  let learningEvents = null;
+  if (learn) {
+    const from = now.getTime() - LEARN_DAYS * DAY_MS; const to = now.getTime() + SNAPSHOT_DAYS * DAY_MS;
+    const mine = events.filter((e) => ms(e.end || e.start) >= from && ms(e.start) <= to);
+    /* Read the other sources before saving the new link. An incomplete aggregate must not
+       overwrite the diary, or report a failed add after the link was already kept. */
+    const others = await eventsFor(userId, new Date(from).toISOString(), new Date(to).toISOString(), { feeds: existing });
+    learningEvents = others.concat(mine);
+  }
   const id = crypto.createHash('sha256').update(String(url)).digest('hex').slice(0, 16);
   const nowIso = now.toISOString();
   const { error } = await supabaseAdmin.from('money_facts').upsert(
@@ -678,10 +720,7 @@ export async function addFeed(userId, url, { fetchImpl = fetch, now = new Date()
      and the new link is not fetched a second time. On Vercel this must finish before the
      answer, so the caller awaits it. */
   if (learn) {
-    const from = now.getTime() - LEARN_DAYS * DAY_MS; const to = now.getTime() + SNAPSHOT_DAYS * DAY_MS;
-    const mine = events.filter((e) => ms(e.end || e.start) >= from && ms(e.start) <= to);
-    const others = await eventsFor(userId, new Date(from).toISOString(), new Date(to).toISOString(), { feeds: existing }).catch(quietly('feed/events-after-add', () => []));
-    await learnEventSpend(userId, { now, events: others.concat(mine) }).catch((e) => log.warn(`calendar learn after feed failed: ${e.message}`));
+    await learnEventSpend(userId, { now, events: learningEvents }).catch((e) => log.warn(`calendar learn after feed failed: ${e.message}`));
   }
   return { id, kind, label: FEED_LABELS[kind], added_at: nowIso, events: events.length, already: false };
 }
@@ -691,13 +730,16 @@ export async function removeFeed(userId, id) {
   if (error) throw new Error(error.message);
 }
 
-/** Every feed's events inside a window; a feed that fails is skipped and named in the log. */
+/** Every feed must answer: a partial read cannot replace the shared diary snapshot. */
 export async function feedEvents(feeds, fromISO, toISO, { fetchImpl = fetch } = {}) {
   const from = ms(fromISO); const to = ms(toISO);
   const results = await Promise.allSettled((feeds || []).map((f) => fetchFeed(f.url, { fetchImpl })));
   const out = [];
   results.forEach((r, i) => {
-    if (r.status !== 'fulfilled') { log.warn(`calendar feed skipped: ${(feeds || [])[i]?.label}: ${r.reason?.message}`); return; }
+    if (r.status !== 'fulfilled') {
+      log.warn(`calendar feed unread: ${(feeds || [])[i]?.label}: ${r.reason?.message}`);
+      throw r.reason;
+    }
     for (const e of r.value.events) if (ms(e.end || e.start) >= from && ms(e.start) <= to) out.push(e);
   });
   return out;
@@ -705,7 +747,7 @@ export async function feedEvents(feeds, fromISO, toISO, { fetchImpl = fetch } = 
 
 /** Whether any calendar source exists: Google, or a pasted link. */
 export async function calendarStatus(userId) {
-  const [t, feeds] = await Promise.all([token(userId), listFeeds(userId).catch(quietly('calendar-status/feeds', () => []))]);
+  const [t, feeds] = await Promise.all([token(userId), listFeeds(userId)]);
   return { connected: Boolean(t.accessToken) || feeds.length > 0, google: Boolean(t.accessToken), needsReconnect: t.needsReconnect, feeds };
 }
 
@@ -726,9 +768,14 @@ export async function eventsFor(userId, fromISO, toISO, { accessToken = null, fe
       maxResults: '2500',
     });
     const data = await client.get(`/calendars/primary/events?${params.toString()}`);
+    /* This bounded reader makes one request. Do not certify its first page as the diary
+       when Google says more events remain; leave the previous aggregate intact. */
+    if (data?.nextPageToken) {
+      throw Object.assign(new Error('The calendar returned more events than this read can include.'), { code: 'calendar_read_incomplete' });
+    }
     google = (data?.items || []).map(normaliseEvent).filter(Boolean);
   }
-  const links = feeds || (await listFeeds(userId).catch(quietly('events/feeds', () => [])));
+  const links = feeds || (await listFeeds(userId));
   const fromFeeds = links.length ? await feedEvents(links, fromISO, toISO) : [];
   return google.concat(fromFeeds).sort((a, b) => ms(a.start) - ms(b.start));
 }
@@ -782,7 +829,7 @@ export async function learnEventSpend(userId, { now = new Date(), events = null 
     .map((e) => ({ title: e.title, start: e.start, end: e.end, all_day: e.all_day }));
   /* One integer a day, kept for good: the read only sees ninety days back, so each run
      merges what it saw into what was already there (2026-09-21). */
-  const before = calendarFromFacts(await listFacts(userId, { includeInternal: true }).catch(quietly('calendar/prior-days', () => [])), { now });
+  const before = calendarFromFacts(await listFacts(userId, { includeInternal: true }), { now });
   const days = dayCounts(evs, { ...(before.days || {}), ...coveredDays(from, now.toISOString()) });
   const meta = { learned_at: now.toISOString(), routine: routineSummary(evs, { now }), events_seen: evs.length, snapshot, past, days };
   await persist(userId, learned, meta);
@@ -807,10 +854,14 @@ export async function ahead(userId, days = 7, { now = new Date() } = {}) {
   const to = new Date(now.getTime() + Math.max(days, SNAPSHOT_DAYS) * DAY_MS).toISOString();
   const events = await eventsFor(userId, from, to, { feeds: status.feeds });
   let learned = stored.learned;
+  let learnedAt = stored.learned_at || null;
+  let routine = stored.routine;
   const stale = !stored.learned_at || now.getTime() - ms(stored.learned_at) > LEARN_STALE_MS;
   if (stale) {
     try {
       await learnEventSpend(userId, { now, events });
+      learnedAt = now.toISOString();
+      routine = routineSummary(events, { now });
       learned = calendarFromFacts(await listFacts(userId, { includeInternal: true }), { now }).learned;
     } catch (e) {
       log.warn(`calendar learn failed: ${e.message}`);
@@ -819,10 +870,9 @@ export async function ahead(userId, days = 7, { now = new Date() } = {}) {
   /* The days the person wrote on sit beside the calendar's own events: a trip remembered in
      the chat is in the week ahead whatever Google holds for those days (2026-09-20). */
   const window = aheadFrom(events.concat(stored.noted || []), learned, { now, days });
-  const routine = stale ? routineSummary(events, { now }) : stored.routine;
   /* How much was read and when, so a person can see the diary is being read at all and not
      merely connected (Stefano, 2026-09-16: "I don't even know if we are extracting data"). */
-  return { connected: true, google: status.google, feeds: publicFeeds(status.feeds), needsReconnect: false, ...window, routine, learned: learned.slice(0, 8), events_seen: events.length, learned_at: stale ? now.toISOString() : (stored.learned_at || null) };
+  return { connected: true, google: status.google, feeds: publicFeeds(status.feeds), needsReconnect: false, ...window, routine, learned: learned.slice(0, 8), events_seen: events.length, learned_at: learnedAt };
 }
 
 /**
