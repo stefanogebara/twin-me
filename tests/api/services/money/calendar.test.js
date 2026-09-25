@@ -300,7 +300,7 @@ describe('learnEventSpend and ahead against Google and the store', () => {
   });
 
   it('answers without Google when there is no connection', async () => {
-    token.mockResolvedValue({ success: false, error: 'not connected', requiresReauth: false });
+    token.mockResolvedValue({ success: false, code: 'not_connected', error: 'not connected', requiresReauth: false });
     const r = await ahead('u1', 7, { now: NOW });
     expect(r.connected).toBe(false);
     expect(get).not.toHaveBeenCalled();
@@ -315,7 +315,7 @@ describe('pasted calendar links', () => {
     expect(f).toMatchObject({ id: 'abc123', kind: 'canvas', label: 'Canvas', url: feedFact.value });
   });
   it('counts a link as a calendar source, and merges its events with Google\'s inside the window', async () => {
-    token.mockResolvedValue({ success: false });
+    token.mockResolvedValue({ success: false, code: 'not_connected' });
     store.listFacts.mockResolvedValue([feedFact]);
     const realFetch = globalThis.fetch;
     globalThis.fetch = async () => ({ ok: true, headers: { get: () => '0' }, text: async () => ICS });
@@ -328,12 +328,12 @@ describe('pasted calendar links', () => {
       expect(events[0].source).toBe('canvas');
     } finally { globalThis.fetch = realFetch; }
   });
-  it('skips a link that does not answer with a calendar, without failing the read', async () => {
-    token.mockResolvedValue({ success: false });
+  it('fails an unreadable link instead of presenting an incomplete calendar as empty', async () => {
+    token.mockResolvedValue({ success: false, code: 'not_connected' });
     store.listFacts.mockResolvedValue([feedFact]);
     const realFetch = globalThis.fetch;
     globalThis.fetch = async () => ({ ok: true, headers: { get: () => '0' }, text: async () => '<html>login</html>' });
-    try { expect(await eventsFor('u1', '2026-09-01T00:00:00Z', '2026-10-01T00:00:00Z')).toEqual([]); }
+    try { await expect(eventsFor('u1', '2026-09-01T00:00:00Z', '2026-10-01T00:00:00Z')).rejects.toThrow(FEED_NOT_CALENDAR); }
     finally { globalThis.fetch = realFetch; }
   });
 });
@@ -415,7 +415,7 @@ describe('the week ahead without a calendar', () => {
   it('still lists the days the person wrote on, as away when their words say so', async () => {
     const { ahead } = await import('../../../../api/_app/services/money/calendar.js');
     /* The status reads the facts once for the feeds and the week reads them again: the same rows both times. */
-    token.mockResolvedValue({ accessToken: null, needsReconnect: false });
+    token.mockResolvedValue({ success: false, code: 'not_connected' });
     store.listFacts.mockResolvedValue([
       { kind: 'note', subject: 'day-2026-09-25', value: 'Trip: I am going to Bilbao next Friday to Sunday' },
       { kind: 'note', subject: 'day-2026-09-26', value: 'Trip: I am going to Bilbao next Friday to Sunday' },

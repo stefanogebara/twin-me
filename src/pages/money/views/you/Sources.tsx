@@ -18,7 +18,7 @@ import WhatsAppSource from './WhatsAppSource';
 import type { MoneyAccount } from '../../useMoneyAccount';
 
 export default function Sources({ m }: { m: MoneyAccount }) {
-  const { t, locale, accounts, capabilities, loaded, empty, busy, bankReady, connecting, bankLine, bookedLine, calendar, calendarFailed, inbox, copied, copyInbox, load, pull, connect, connectCalendar, addFeed, removeFeed, removeAccount, sources } = m;
+  const { t, locale, accounts, capabilities, loaded, empty, busy, bankReady, connecting, bankLine, bookedLine, calendar, calendarFailed, calendarNeedsReconnect, calendarLoading, loadCalendar, inbox, copied, copyInbox, load, pull, connect, connectCalendar, addFeed, removeFeed, removeAccount, sources } = m;
   /* What each source has given, and the half a status word hides (2026-09-21). */
   const gave = sources?.by || {};
   const month = sources?.month || null;
@@ -91,11 +91,13 @@ export default function Sources({ m }: { m: MoneyAccount }) {
                         ? (calendar.learned_at
                             ? t('{n} events read, last {day}.', { n: calendar.events_seen, day: shortDay(calendar.learned_at, locale) })
                             : t('{n} events read.', { n: calendar.events_seen }))
-                        : calendar?.google ? t('Google connected. The diary says what a week usually costs.') : t('What a week costs, and when a quiet habit is only a trip.')}
+                        : calendar?.google ? t('Google calendar connected.') : t('Your schedule alongside your spending.')}
                     </span>
                   </span>
                   <span className="mv-item-end">
-                    {calendar && !calendar.google ? <button type="button" className="mv-pill mv-pill--ghost" onClick={() => void connectCalendar()} disabled={busy === 'calendar'}>{t('Connect Google')}</button> : null}
+                    {calendarFailed
+                      ? <button type="button" className="mv-pill mv-pill--ghost" onClick={() => void (calendarNeedsReconnect ? connectCalendar() : loadCalendar())} disabled={calendarLoading || busy === 'calendar'}>{t(calendarNeedsReconnect ? 'Reconnect Google' : 'Try calendar again')}</button>
+                      : calendar && !calendar.google ? <button type="button" className="mv-pill mv-pill--ghost" onClick={() => void connectCalendar()} disabled={busy === 'calendar'}>{t('Connect Google')}</button> : null}
                   </span>
                 </div>
                 <ul className="mv-sublist">
@@ -103,7 +105,7 @@ export default function Sources({ m }: { m: MoneyAccount }) {
                     <li key={f.id} className="mv-item mv-item--sub">
                       <span className="mv-item-text">
                         <span className="mv-item-title">{hasMark(f.kind) ? <span className="mv-mark-small" aria-hidden="true"><Mark name={f.kind} size={12} /></span> : null}{t(f.label)}</span>
-                        <span className="mv-item-sub">{f.added_at ? t('Added {day}, read once a day.', { day: shortDay(f.added_at, locale) }) : t('Read once a day.')}</span>
+                        <span className="mv-item-sub">{f.added_at ? t('Added {day}.', { day: shortDay(f.added_at, locale) }) : t('Calendar link connected.')}</span>
                       </span>
                       <span className="mv-item-end"><button type="button" className="mv-pill mv-pill--ghost" onClick={() => void removeFeed(f.id)} disabled={busy === 'feed'}>{t('Remove')}</button></span>
                     </li>
@@ -119,7 +121,7 @@ export default function Sources({ m }: { m: MoneyAccount }) {
                   {Boolean(calendar?.events_seen) && !(calendar?.learned || []).length ? (
                     <li className="mv-item mv-item--sub">
                       <span className="mv-item-text">
-                        <span className="mv-item-sub">{t('No kind of day has a price yet. It learns from the days you pay on.')}</span>
+                        <span className="mv-item-sub">{t('Calendar events provide context, not proof of spending.')}</span>
                       </span>
                     </li>
                   ) : null}
@@ -130,7 +132,7 @@ export default function Sources({ m }: { m: MoneyAccount }) {
                         <input id="mv-feed-url" className="mv-field" type="url" inputMode="url" placeholder="https://" value={feedUrl} onChange={(e) => setFeedUrl(e.target.value)} disabled={busy === 'feed'} />
                         <button type="submit" className="mv-pill mv-pill--ghost" disabled={busy === 'feed' || !feedUrl.trim()}>{busy === 'feed' ? t('Reading') : t('Add')}</button>
                       </div>
-                      <p className="mv-quiet">{t('Canvas: Calendar, Calendar feed. Blackboard: Calendar, Get external calendar link. Read once a day; nothing goes out.')}</p>
+                      <p className="mv-quiet">{t('Canvas: Calendar, Calendar feed. Blackboard Ultra: Calendar settings, Share calendar. Older Blackboard: Get external calendar link. This is read-only.')}</p>
                     </form>
                   </li>
                 </ul>

@@ -411,3 +411,28 @@ test('Ask waits for saved history while preserving an editable draft', async ({ 
   await expect(page.getByRole('button', { name: 'Ask', exact: true })).toBeEnabled();
   await expect(input).toHaveValue('My unsent follow-up');
 });
+
+test('calendar failure stays unread and can be retried without reconnecting', async ({page}) => {
+  await moneyFixture(page);
+  let failed = true;
+  await page.route('**/api/money/calendar', route => failed
+    ? route.fulfill({status:502,json:{success:false,error:'The calendar could not be read right now.'}})
+    : route.fulfill({json:{success:true,data:{connected:true,google:true,feeds:[],events_seen:3,learned_at:new Date().toISOString(),learned:[]}}}));
+  await page.goto('/money/account');
+  const sources = page.locator('#sources');
+  await expect(sources.getByText('That could not be read right now.',{exact:true})).toBeVisible();
+  await expect(sources.getByRole('button',{name:'Connect Google',exact:true})).toHaveCount(0);
+  failed = false;
+  await sources.getByRole('button',{name:'Try calendar again',exact:true}).click();
+  await expect(sources.getByText(/3 events read, last/)).toBeVisible();
+  await expect(sources.getByRole('button',{name:'Try calendar again',exact:true})).toHaveCount(0);
+});
+
+test('known calendar reauthorization failure offers the recovery action', async ({page}) => {
+  await moneyFixture(page);
+  await page.route('**/api/money/calendar', route => route.fulfill({status:502,json:{success:false,error:'The calendar could not be read right now.',needsReconnect:true}}));
+  await page.goto('/money/account');
+  const sources = page.locator('#sources');
+  await expect(sources.getByRole('button',{name:'Reconnect Google',exact:true})).toBeVisible();
+  await expect(sources.getByRole('button',{name:'Try calendar again',exact:true})).toHaveCount(0);
+});

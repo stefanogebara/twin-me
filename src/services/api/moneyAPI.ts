@@ -157,11 +157,14 @@ export function bankLabel(name: string | null | undefined): string {
   return b ? b.label : (name || 'Santander');
 }
 
-async function json<T>(res: Response): Promise<T> {
+export type MoneyCalendarError = Error & { status?: number; needsReconnect?: boolean };
+
+async function json<T>(res: Response, { calendarRead = false } = {}): Promise<T> {
   const body = await res.json().catch(() => ({}));
   if (!res.ok || body?.success === false) {
-    const err = new Error(body?.error || `Request failed (${res.status})`) as Error & { status?: number };
+    const err = new Error(body?.error || `Request failed (${res.status})`) as MoneyCalendarError;
     err.status = res.status;
+    if (calendarRead && body?.needsReconnect === true) err.needsReconnect = true;
     throw err;
   }
   return body.data as T;
@@ -339,7 +342,7 @@ export const moneyAPI = {
   /** The person's own receipts address: forward a receipt or invoice there and it joins the ledger. */
   inbox: () => moneyFetch('/money/inbox').then((r) => json<MoneyInbox & { domain: string }>(r)),
   /* The calendar lens: Google, or links pasted from Canvas and Blackboard. */
-  calendar: () => moneyFetch('/money/calendar').then((r) => json<MoneyCalendar>(r)),
+  calendar: () => moneyFetch('/money/calendar').then((r) => json<MoneyCalendar>(r, { calendarRead: true })),
   calendarConnect: () => moneyFetch('/money/calendar/connect').then((r) => json<{ url: string }>(r)),
   addCalendarFeed: (url: string) =>
     moneyFetch('/money/calendar/feed', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ url }) }).then((r) => json<MoneyCalendarFeed & { events: number | null; already: boolean }>(r)),

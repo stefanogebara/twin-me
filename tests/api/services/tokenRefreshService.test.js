@@ -94,6 +94,15 @@ describe('getValidAccessToken', () => {
     const result = await getValidAccessToken('user-123', 'spotify');
     expect(result.success).toBe(false);
     expect(result.error).toMatch(/No active connection/);
+    expect(result.code).toBe('not_connected');
+  });
+
+  it('does not label a failed connection lookup as not connected', async () => {
+    setSingleResult({ data: null, error: { message: 'database unavailable' } });
+    const result = await getValidAccessToken('user-123', 'google_calendar');
+    expect(result.success).toBe(false);
+    expect(result.error).toMatch(/Lookup failed/);
+    expect(result.code).not.toBe('not_connected');
   });
 
   it('returns error when connection has no access_token', async () => {

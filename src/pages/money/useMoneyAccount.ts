@@ -209,10 +209,18 @@ export function useYouReads(view: MoneyView, inbox: MoneyInbox | null) {
   /* A read that failed is not a calendar that was never connected: mapped to connected:false,
      one failed request offered Connect Google to somebody who had already connected it. */
   const [calendarFailed, setCalendarFailed] = useState(false);
-  const loadCalendar = useCallback(
-    () => moneyAPI.calendar().then((c) => { setCalendar(c); setCalendarFailed(false); }).catch(() => setCalendarFailed(true)),
-    [],
-  );
+  const [calendarNeedsReconnect, setCalendarNeedsReconnect] = useState(false);
+  const [calendarLoading, setCalendarLoading] = useState(false);
+  const loadCalendar = useCallback(async () => {
+    setCalendarLoading(true);
+    try {
+      const c = await moneyAPI.calendar();
+      setCalendar(c); setCalendarFailed(false); setCalendarNeedsReconnect(false);
+    } catch (error) {
+      setCalendarFailed(true);
+      setCalendarNeedsReconnect(Boolean(error && typeof error === 'object' && 'needsReconnect' in error && error.needsReconnect === true));
+    } finally { setCalendarLoading(false); }
+  }, []);
   /* Only You shows the calendar, and reading it fetches every pasted link: not on every page. */
   useEffect(() => { if (view === 'you') void loadCalendar(); }, [view, loadCalendar]);
 
@@ -229,7 +237,7 @@ export function useYouReads(view: MoneyView, inbox: MoneyInbox | null) {
     if (!inbox) return;
     try { await navigator.clipboard.writeText(inbox.address); setCopied(true); setTimeout(() => setCopied(false), 1600); } catch { /* the address is on the page to select */ }
   }, [inbox]);
-  return { calendar, calendarFailed, loadCalendar, questions, loadYou, patterns, copied, copyInbox };
+  return { calendar, calendarFailed, calendarNeedsReconnect, calendarLoading, loadCalendar, questions, loadYou, patterns, copied, copyInbox };
 }
 
 type ActionDeps = {
