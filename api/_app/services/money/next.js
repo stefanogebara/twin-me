@@ -17,6 +17,7 @@
  * the context holds, so nothing here can say a number the ledger does not.
  */
 import { say, amountText, euroGlyphs, kindInMessage, asksWhereItWent, monthInMessage, kindWord } from './chat.js';
+import { financialEvidenceBlocked } from './financialCompleteness.js';
 
 const MONTH_LONG = { en: ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'], es: ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'], 'pt-BR': ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'] };
 const monthName = (iso, L) => { const d = new Date(iso); return Number.isNaN(d.getTime()) ? '' : (MONTH_LONG[L] || MONTH_LONG.en)[d.getUTCMonth()]; };
@@ -32,6 +33,7 @@ export const OPENER_ASKS = Object.freeze({
 
 /** Three openers with figures; fewer when the ledger holds less. */
 export function openers(ctx) {
+  if (ctx.forecast?.withheld || (ctx.reconciliation !== undefined && financialEvidenceBlocked(ctx.reconciliation))) return [];
   const L = ctx.language;
   const out = [];
   const cast = ctx.forecast;
@@ -94,4 +96,3 @@ export function nextAsks(message, reply, ctx) {
   }
   return out.slice(0, 2);
 }
-
