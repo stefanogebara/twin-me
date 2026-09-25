@@ -37,22 +37,14 @@ function sameMerchant(a, b) {
 /** A sighting that names no shop: the bank's own alert mail, "movimiento de -10,93 EUR". */
 function nameless(key) { return !key || key === 'unknown'; }
 
-/**
- * Find the transaction a sighting belongs to, if any.
- * @param {object} sighting  { amount, direction, merchant_key, occurred_at }
- * @param {object[]} transactions  candidate rows { id, amount, merchant_key, occurred_at }
- */
-export function findMatch(sighting, transactions, opts = {}) {
+/** Shared eligibility for classification and the existing attachment policy. */
+function* eligibleMatches(sighting, transactions, opts) {
   const t0 = new Date(sighting.occurred_at).getTime();
   const signed = signedAmount(sighting);
   /* Lines already backed by a sighting from this same source are not candidates: one bank
      row is one payment, and two identical bank rows in a day are two payments, however
      alike. The phone and the bank still meet on one line. */
   const exclude = opts.exclude || null;
-  /* A shared name is the strong evidence and is taken first; a figure on the same account
-     with a name on one side only is the weak evidence, and is taken only when no named line
-     of that figure is in the window. */
-  let best = null; let bestDt = Infinity; let bestNamed = false;
   for (const t of transactions) {
     if (exclude && exclude.has(t.id)) continue;
     if ((t.currency || 'EUR') !== (sighting.currency || 'EUR')) continue;
@@ -63,20 +55,54 @@ export function findMatch(sighting, transactions, opts = {}) {
     /* Two unknown shops are not evidence that two payments are the same: the same coffee
        twice is two coffees, and neither line can tell them apart. */
     if (blankSide && blankSighting) continue;
-    /* One side without a shop is the bank announcing a figure it has already booked under a
-       name, or about to. Ten such alerts each opened a line of their own beside the row they
-       announced (2026-09-24): 80,99 EUR of spending and a 500,00 EUR arrival that never
-       happened twice. Joining the wrong line of an identical figure still leaves the day's
-       total right; opening a second line never does. */
+    /* One unnamed side is weak evidence: it can be an alert for a named payment, but
+       several eligible lines do not identify which payment it describes. */
     const named = !blankSide && !blankSighting;
     if (named && !sameMerchant(t.merchant_key, sighting.merchant_key)) continue;
     const dt = Math.abs(new Date(t.occurred_at).getTime() - t0);
     if (dt > MATCH_WINDOW_MS) continue;
+    yield { transaction: t, named, dt };
+  }
+}
+
+/** Preserve named priority, nearest distance and first-in-pool ties. */
+function legacyMatch(candidates) {
+  let best = null; let bestDt = Infinity; let bestNamed = false;
+  for (const { transaction: t, named, dt } of candidates) {
     if (bestNamed && !named) continue;
     if (named && !bestNamed) { best = t; bestDt = dt; bestNamed = true; continue; }
     if (dt < bestDt) { best = t; bestDt = dt; bestNamed = named; }
   }
   return best;
+}
+
+/**
+ * Classify validated sighting/candidate rows without deciding what ingestion should write.
+ * candidateIds contains the preferred evidence tier, sorted independently of pool order.
+ * A named result preserves the existing nearest/tie policy; it is not a uniqueness claim.
+ * An ambiguous weak result recommends no transaction. Callers must not interpret that null
+ * as permission to create another payment: evidence-only deferral is not implemented yet.
+ * @returns {{ kind: 'none'|'unique_weak'|'ambiguous_weak'|'named', match: object|null, candidateIds: string[] }}
+ */
+export function classifyMatch(sighting, transactions, opts = {}) {
+  const eligible = [...eligibleMatches(sighting, transactions, opts)];
+  const named = eligible.filter((candidate) => candidate.named);
+  const candidates = named.length ? named : eligible;
+  const candidateIds = candidates.map(({ transaction }) => transaction.id).sort();
+  if (!candidates.length) return { kind: 'none', match: null, candidateIds };
+  if (named.length) return { kind: 'named', match: legacyMatch(named), candidateIds };
+  if (candidates.length > 1) return { kind: 'ambiguous_weak', match: null, candidateIds };
+  return { kind: 'unique_weak', match: candidates[0].transaction, candidateIds };
+}
+
+/**
+ * Existing attachment policy, kept until ingestion can persist deferred evidence atomically.
+ * This still selects the nearest weak candidate even when classifyMatch reports ambiguity.
+ * @param {object} sighting  { amount, direction, merchant_key, occurred_at }
+ * @param {object[]} transactions  candidate rows { id, amount, merchant_key, occurred_at }
+ */
+export function findMatch(sighting, transactions, opts = {}) {
+  return legacyMatch(eligibleMatches(sighting, transactions, opts));
 }
 
 /**

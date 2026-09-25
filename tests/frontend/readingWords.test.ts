@@ -9,6 +9,7 @@
 import { describe, it, expect, beforeAll } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { readingWords, weekdayName, monthName, listOf, ordinal, allowanceWords } from '../../src/pages/money/readingWords';
+import { weekdayShare } from '../../api/_app/services/money/allowance.js';
 import { dayPartsIn, localDay } from '../../src/pages/money/readingHelpers';
 import { translate, ensureDict } from '../../src/lib/i18n';
 
@@ -193,11 +194,23 @@ describe("the day's own line", () => {
       .toBe('From the # you said comes in, keeping #, after # spent and # still to be charged and # the diary expects, over # days.');
   });
 
+  it('does not call an expensive weekday quiet when only a costlier day remains', () => {
+    // Friday is above the full-week average, but below Saturday; the two-day
+    // allocation ratio cannot establish that Fridays are generally quieter.
+    const week = [1, 1, 1, 1, 1, 5, 10];
+    expect(week[5]).toBeGreaterThan(week.reduce((a, b) => a + b, 0) / 7);
+    const shape = weekdayShare(week, new Date('2026-09-25T12:00:00Z'), 2);
+    expect(shape?.ratio).toBeLessThan(1);
+    const result = allowanceWords({ ...base, horizon: { day: null, days: 2, source: null }, shape }, en, 'en-GB');
+    expect(result).toContain('Friday gets a smaller share than an even daily split.');
+    expect(result).not.toMatch(/usually quieter|usually costs/);
+  });
+
   it('says why today is worth more or less than an even split', () => {
     const more = allowanceWords({ ...base, shape: { weekday: 5, ratio: 1.3 } }, en, 'en-GB');
-    expect(more).toContain('Friday usually costs you more, so today has a bigger share.');
+    expect(more).toContain('Friday gets a larger share than an even daily split.');
     const less = allowanceWords({ ...base, shape: { weekday: 2, ratio: 0.8 } }, en, 'en-GB');
-    expect(less).toContain('Tuesday is usually quieter, so today has a smaller share.');
+    expect(less).toContain('Tuesday gets a smaller share than an even daily split.');
   });
 
   it('says it in Spanish and Portuguese too', () => {

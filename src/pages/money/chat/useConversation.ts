@@ -23,6 +23,7 @@ export function useConversation() {
   const navigate = useNavigate();
   const [text, setText] = useState(() => typeof location.state?.draft === 'string' ? location.state.draft.slice(0, 2000) : '');
   const [historyFailed, setHistoryFailed] = useState(false);
+  const [historyLoading, setHistoryLoading] = useState(true);
   const acting = useRef(new Set<string>());
 
   const stop = useRef<(() => void) | null>(null);
@@ -38,6 +39,14 @@ export function useConversation() {
      the ledger may have moved on. */
   useEffect(() => {
     let live = true;
+    /* A stalled read must not lock Ask forever. Retire it at the deadline so a late
+       response cannot prepend old turns after the person starts a new conversation. */
+    const deadline = window.setTimeout(() => {
+      if (!live) return;
+      live = false;
+      setHistoryFailed(true);
+      setHistoryLoading(false);
+    }, 15_000);
     moneyChat.history()
       .then((turns) => {
         if (!live || !turns.length) return;
@@ -50,8 +59,12 @@ export function useConversation() {
         /* Whatever was typed while this loaded stays: the kept turns go in front of it. */
         setLines((all) => (all.length ? [...kept, ...all] : kept));
       })
-      .catch(() => { if (live) setHistoryFailed(true); });
-    return () => { live = false; };
+      .catch(() => { if (live) setHistoryFailed(true); })
+      .finally(() => {
+        window.clearTimeout(deadline);
+        if (live) { live = false; setHistoryLoading(false); }
+      });
+    return () => { live = false; window.clearTimeout(deadline); };
   }, []);
 
   /* How many things the ledger still cannot work out on its own. Answering them is a page
@@ -102,7 +115,7 @@ export function useConversation() {
     const pool = fresh || computed || fixed;
     return pool.filter((o) => !asked.has(o.ask.trim().toLowerCase())).slice(0, asked.size === 0 ? 3 : 2);
   }, [asked, t, openers, last]);
-  const offersShown = offers.length > 0 && !asking && (!last || (last.who === 'twin' && !last.pending));
+  const offersShown = !historyLoading && offers.length > 0 && !asking && (!last || (last.who === 'twin' && !last.pending));
 
   /* The newest line should sit where the eye already is: the page follows the end of the
      transcript while an answer is being written, but not if the person has scrolled up
@@ -124,7 +137,7 @@ export function useConversation() {
 
   function ask(value: string) {
     const said = value.trim();
-    if (asking || !said) return;
+    if (historyLoading || asking || !said) return;
     const history: ChatTurn[] = lines.filter((l) => !l.pending).map((l) => ({ role: l.who === 'you' ? 'user' : 'twin', text: l.text }));
     const seq = nextAsk();
     const twinId = `twin-${seq}`;
@@ -164,7 +177,7 @@ export function useConversation() {
   /* A photo or a file: shown as yours at once, read by the ledger, answered in one line
      with the payment it kept. What was typed alongside goes with it as a note. */
   async function attach(file: File) {
-    if (asking || !file) return;
+    if (historyLoading || asking || !file) return;
     const note = text.trim();
     const seq = nextAsk();
     const twinId = `twin-${seq}`;
@@ -217,6 +230,6 @@ export function useConversation() {
     ? {}
     : { initial: { opacity: 0, y: 10 }, animate: { opacity: 1, y: 0 }, transition: { duration: 0.32, ease: [0.2, 0.7, 0.3, 1] as const } };
 
-  return { openQuestions, lines, asking, text, setText, historyFailed, locale, t, boxRef, fileRef, trace, stillMotion, offers, offersShown, toggleHow, ask, attach, take, rise };
+  return { openQuestions, lines, asking, text, setText, historyFailed, historyLoading, locale, t, boxRef, fileRef, trace, stillMotion, offers, offersShown, toggleHow, ask, attach, take, rise };
 }
 export type Conversation = ReturnType<typeof useConversation>;

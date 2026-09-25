@@ -116,7 +116,7 @@ export default function MoneyChatPage() {
 
 function MoneyConversation() {
   const c = useConversation();
-  const { openQuestions, lines, asking, text, setText, historyFailed, locale, t, boxRef, fileRef, trace, stillMotion, offers, offersShown, toggleHow, ask, attach, take, rise } = c;
+  const { openQuestions, lines, asking, text, setText, historyFailed, historyLoading, locale, t, boxRef, fileRef, trace, stillMotion, offers, offersShown, toggleHow, ask, attach, take, rise } = c;
   return (
     <main className="mv mc mc--ask">
       <div className="mv-shell">
@@ -141,6 +141,7 @@ function MoneyConversation() {
                   ) : null}
                 </div>
 
+                {historyLoading ? <p role="status" className="mv-note">{t('Loading your conversation…')}</p> : null}
                 {historyFailed ? <p role="alert" className="mv-note">{t('Your earlier conversation could not be loaded. Refresh to try again.')}</p> : null}
                 {/* One "How it got there", under the answer someone might actually check: it
                     stood under all eleven turns (2026-09-21). */}
@@ -220,6 +221,7 @@ function MoneyConversation() {
                   <input
                     ref={fileRef}
                     type="file"
+                    disabled={asking || historyLoading}
                     accept={ACCEPT}
                     className="mv-sr"
                     tabIndex={-1}
@@ -242,10 +244,10 @@ function MoneyConversation() {
                       if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); ask(text); }
                     }}
                   />
-                  <button type="button" className="mc-attach" aria-label={t('Add a photo or a file')} disabled={asking} onClick={() => fileRef.current?.click()}>
+                  <button type="button" className="mc-attach" aria-label={t('Add a photo or a file')} disabled={asking || historyLoading} onClick={() => fileRef.current?.click()}>
                     <Paperclip size={16} strokeWidth={1.75} aria-hidden="true" /><span>{t('Add a file')}</span>
                   </button>
-                  <button type="submit" className="mv-pill mc-send" disabled={asking || !text.trim()} aria-label={t('Ask')}>
+                  <button type="submit" className="mv-pill mc-send" disabled={asking || historyLoading || !text.trim()} aria-label={t('Ask')}>
                     <span>{t('Ask')}</span><ArrowUp size={16} strokeWidth={2} aria-hidden="true" />
                   </button>
                 </form>

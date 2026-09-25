@@ -29,6 +29,25 @@ Status words: `todo` · `doing (who, date)` · `done (#PR, date)` · `blocked (w
 
 ## Now
 
+### Current bounded follow-through — 2026-09-25, 10:31 UTC
+
+- **Release candidate measured:** 4,570 root tests passed/11 skipped including disposable PostgreSQL;19 native handler tests;62 desktop/phone browser tests; app/Money/mobile type checks and web build pass. Focused lint has no errors (two existing hook warnings).
+- **Android measured:** actual audit app on the current local bundle loads Month values matching web, saved Ask turns, keyboard/dismissal, masked receipt disclosure and background/resume. Real sign-in component in an isolated native harness keeps email/action above the keyboard and accepts validation taps; no external sign-in message sent. No native binary/OTA release claimed. iOS current app still renders matching figures; control-tool clicks fail, so updated iOS interaction remains unverified.
+- **F03 limit:**18 classification fixtures and2,000 deterministic legacy-equivalence comparisons pass; runtime still uses existing nearest weak match. Classifier is preparation, not a resolved financial finding. No ingestion migration or data repair.
+
+
+- **doing (Codex):** web Ask initial-history race. Live reload briefly exposes new-conversation suggestions/composer before the saved turns arrive; prevent sends/attachments until history settles, retain drafts, distinguish loading from empty/error. Nine behavior tests cover deferred/failed reads, the 15-second deadline, ignored late responses and cleanup. Independent review found no substantive issues. Release work isolated in `codex/money-followthrough-release`; later design studies stay outside it.
+
+- **doing (Codex):** Android sign-in keyboard reachability and truthful native privacy footer. Live audit build on Metro8088 hides email/action under the keyboard; footer retained the old unsupported card-storage claim. Authenticated Month, Ask, Ledger and background/resume now pass in the Android audit app.
+
+- **doing (Codex):** correct the weekday-share explanation. Live Today calls Friday usually quieter while Month shows the largest eight-week recorded total. The allowance ratio compares a weekday median against only the remaining days, not total weekday spending. Update copy/tests to name the even-split comparison; calculations and existing financial assertions stay unchanged. This is the reason for replacing the old wording assertions.
+
+- **done (#580, Codex):** explicit WhatsApp send failures deployed; all CI gates passed. Provider delivery/recovery is still incomplete; no live messages were sent.
+- **doing (Codex):** F03 ambiguity safety net: introduce and test an explicit pure candidate classification, preserving existing ingestion behavior until deferred storage, resolution and uncertainty propagation can ship together. This milestone does not fix ambiguous production attachments.
+- **doing (Codex):** Ask composition remains local; round25 fresh screenshot-only scores 7.3/10 desktop and 7.1/10 phone; independent 9/10 gate unmet. Android read-only interaction passed as detailed above; updated iOS interaction remains unverified.
+- **Live measured:** signed-in receipt failure/retry exercised against the deployed UI with a browser-only simulated503, followed by real200/two evidence entries; payment remains expanded, no false empty state. Plan/You/Account/Ask navigation has no page errors or Money API failures in the bounded pass. Composer focus has only the2px underline and no enclosing form outline.
+
+
 ### Release follow-through — 2026-09-25, 09:20 UTC
 
 - **done (#575, #578, Codex):** Git-triggered production releases READY. #578 merges as `4fceae4a2207bc01621b1d2d360cac023baec6cc`, preserving Claude's #576 refresh-cookie repair and #577 timing evidence. No duplicate CLI deployment.

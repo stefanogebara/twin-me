@@ -71,12 +71,13 @@ export function allowanceWords(a: Allowance, t: T, locale: string): string | nul
   const line = spoken.length
     ? t('{basis}, after {after}, {over}.', { basis, after: spoken.join(t(' and ')), over: until })
     : t('{basis}, {over}.', { basis, over: until });
-  /* Why today is not simply the month divided by its days. */
+  /* The ratio compares today with an even split over the remaining days.
+     It does not rank weekday totals or establish a generally quiet/expensive day. */
   if (!a.shape) return line;
   const weekday = weekdayName(a.shape.weekday, locale);
   return a.shape.ratio > 1
-    ? `${line} ${t('{weekday} usually costs you more, so today has a bigger share.', { weekday })}`
-    : `${line} ${t('{weekday} is usually quieter, so today has a smaller share.', { weekday })}`;
+    ? `${line} ${t('{weekday} gets a larger share than an even daily split.', { weekday })}`
+    : `${line} ${t('{weekday} gets a smaller share than an even daily split.', { weekday })}`;
 }
 
 /* ------------------------------------------------------------------------------ the kinds */

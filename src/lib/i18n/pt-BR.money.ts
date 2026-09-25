@@ -1,5 +1,6 @@
 /** Brazilian Portuguese for the money pages (MoneyV2Page, MoneySetupPage). Keys are the English source strings. */
 export const PT_BR_MONEY: Record<string, string> = {
+  "Loading your conversation…": "Carregando sua conversa…",
   "Ledger activity": "Atividade do registro",
   "Add a file": "Adicionar um arquivo",
   "Ask a follow-up": "Faça outra pergunta",
@@ -603,8 +604,8 @@ export const PT_BR_MONEY: Record<string, string> = {
   "after {spent} spent": "depois de {spent} gastos",
   " and ": " e ",
   "From {basis}, {after}, over {days}.": "De {basis}, {after}, ao longo de {days}.",
-  "{weekday} usually costs you more, so today has a bigger share.": "{weekday} costuma custar mais para voc\u00ea, ent\u00e3o hoje fica com uma parte maior.",
-  "{weekday} is usually quieter, so today has a smaller share.": "{weekday} costuma ser mais parado, ent\u00e3o hoje fica com uma parte menor.",
+  "{weekday} gets a larger share than an even daily split.": "{weekday} recebe uma parte maior do que numa divisão diária uniforme.",
+  "{weekday} gets a smaller share than an even daily split.": "{weekday} recebe uma parte menor do que numa divisão diária uniforme.",
   "There is no month to read yet.": "Ainda n\u00e3o h\u00e1 um m\u00eas para ler.",
   "It does not know what a month of yours looks like yet. Tell it what comes in, or give it one more full month.": "Ele ainda n\u00e3o sabe como \u00e9 um m\u00eas seu. Diga o que entra, ou d\u00ea mais um m\u00eas completo.",
   "No amount to check against.": "N\u00e3o h\u00e1 valor com o que conferir.",
