@@ -276,3 +276,27 @@ test('beta signup submits the chosen phone and Money sources', async ({ page }) 
   await expect(page.getByRole('button', { name: 'Spotify', exact: true })).toHaveCount(0);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
 });
+
+test('payment evidence failure stays distinct from empty and retries without reopening the payment', async ({page}) => {
+  await moneyFixture(page);
+  let reads = 0;
+  await page.route('**/api/money/transactions/tx1/sightings', async route => {
+    reads++;
+    return route.fulfill({status:reads === 1 ? 503 : 200,contentType:'application/json',body:JSON.stringify(reads === 1
+      ? {success:false,error:'Synthetic receipt outage'}
+      : {success:true,data:[{id:'s1',source:'bankfeed',seen_at:new Date().toISOString(),raw_text:'Recovered receipt for Audit Cafe',amount:12.5,currency:'EUR'}]})});
+  });
+  await page.goto('/money/month');
+  const month = new Date().toLocaleDateString('en-GB',{month:'long',year:'numeric'});
+  await page.getByRole('button',{name:new RegExp(month)}).click();
+  const payment = page.getByRole('button',{name:/Audit Cafe/});
+  await payment.click();
+  await expect(page.getByRole('alert').filter({hasText:'Could not read these receipts.'})).toBeVisible();
+  await expect(page.getByText('Reading the receipts.',{exact:true})).toHaveCount(0);
+  await expect(page.getByText('No receipt kept for this one.',{exact:true})).toHaveCount(0);
+  await page.getByRole('button',{name:'Try again',exact:true}).click();
+  await expect(page.getByText('Recovered receipt for Audit Cafe',{exact:true})).toBeVisible();
+  await expect(payment).toHaveAttribute('aria-expanded','true');
+  await expect(page.getByRole('alert').filter({hasText:'Could not read these receipts.'})).toHaveCount(0);
+  expect(reads).toBe(2);
+});

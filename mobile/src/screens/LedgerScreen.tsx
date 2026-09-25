@@ -13,10 +13,12 @@
  * Colour, type, spacing, rounding and motion come from the primitives and nowhere else.
  */
 
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 import { cosmos, dayMonth, euro } from '../constants/cosmos';
+import { useActiveRead } from '../hooks/useActiveRead';
 import { authFetch } from '../services/api';
+import { currentSessionEpoch, onSessionInvalidated } from '../services/sessionEpoch';
 import { moneyApi, type MoneyMonth, type MoneyTransaction, type TransactionVerdict } from '../services/moneyApi';
 import { Body, Display, Enter, Heading, Label, List, Micro, Page, Pill, Row, Small } from '../ui/primitives';
 
@@ -46,7 +48,8 @@ async function fetchSightings(id: string): Promise<MoneySighting[]> {
   const res = await authFetch(`/money/transactions/${encodeURIComponent(id)}/sightings`);
   const body = (await res.json().catch(() => ({}))) as { success?: boolean; error?: string; data?: MoneySighting[] };
   if (!res.ok || body.success === false) throw new Error(body.error || `Request failed (${res.status})`);
-  return body.data || [];
+  if (!Array.isArray(body.data)) throw new Error('Invalid receipt response');
+  return body.data;
 }
 
 // -- Words -------------------------------------------------------------------
@@ -68,19 +71,34 @@ function verdictWord(v: TransactionVerdict): string {
 
 // -- Screen ------------------------------------------------------------------
 
-export default function LedgerScreen() {
+export default function LedgerScreen({ active = true }: { active?: boolean } = {}) {
   const [ledger, setLedger] = useState<MoneyTransaction[]>([]);
   const [months, setMonths] = useState<MoneyMonth[]>([]);
   const [receipts, setReceipts] = useState<Record<string, MoneySighting[]>>({});
+
+  const [receiptErrors, setReceiptErrors] = useState<Record<string, boolean>>({});
+  const pendingReceipts = useRef(new Set<string>());
+  const mounted = useRef(false);
+  useEffect(() => {
+    mounted.current = true;
+    const unsubscribe = onSessionInvalidated(() => {
+      setReceipts({});
+      setReceiptErrors({});
+      setOpenRow(null);
+      pendingReceipts.current.clear();
+    });
+    return () => { mounted.current = false; unsubscribe(); };
+  }, []);
 
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [unreachable, setUnreachable] = useState(false);
   const [openRow, setOpenRow] = useState<string | null>(null);
 
-  const loadAll = useCallback(async () => {
+  const loadAll = useCallback(async (isCurrent: () => boolean) => {
     /* Each request is settled on its own, so the totals failing does not hide the rows. */
     const [l, m] = await Promise.allSettled([moneyApi.ledger(), moneyApi.months()]);
+    if (!isCurrent()) return;
     if (l.status === 'fulfilled') setLedger(l.value);
     if (m.status === 'fulfilled') setMonths(m.value);
     setUnreachable([l, m].every((r) => r.status === 'rejected'));
@@ -88,7 +106,7 @@ export default function LedgerScreen() {
     setRefreshing(false);
   }, []);
 
-  useEffect(() => { void loadAll(); }, [loadAll]);
+  const refresh = useActiveRead(loadAll, active);
 
   /* The ledger is read a month at a time, newest first, against the totals the server
      already worked out for each month. */
@@ -107,17 +125,25 @@ export default function LedgerScreen() {
     }));
   }, [ledger, months]);
 
-  async function toggle(t: MoneyTransaction) {
+  async function readReceipts(id: string) {
+    if (pendingReceipts.current.has(id)) return;
+    const epoch = currentSessionEpoch();
+    pendingReceipts.current.add(id);
+    setReceiptErrors(all => ({ ...all, [id]: false }));
+    try {
+      const rows = await fetchSightings(id);
+      if (mounted.current && epoch === currentSessionEpoch()) setReceipts(all => ({ ...all, [id]: rows }));
+    } catch {
+      if (mounted.current && epoch === currentSessionEpoch()) setReceiptErrors(all => ({ ...all, [id]: true }));
+    } finally {
+      if (epoch === currentSessionEpoch()) pendingReceipts.current.delete(id);
+    }
+  }
+
+  function toggle(t: MoneyTransaction) {
     const opening = openRow !== t.id;
     setOpenRow(opening ? t.id : null);
-    if (opening && !receipts[t.id]) {
-      try {
-        const s = await fetchSightings(t.id);
-        setReceipts((m) => ({ ...m, [t.id]: s }));
-      } catch {
-        /* The row still opens; the verdicts do not depend on the receipts. */
-      }
-    }
+    if (opening && !receipts[t.id]) void readReceipts(t.id);
   }
 
   async function setRowVerdict(t: MoneyTransaction, v: 'worth_it' | 'not_me') {
@@ -149,7 +175,7 @@ export default function LedgerScreen() {
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
-            onRefresh={() => { setRefreshing(true); moneyApi.refreshIfStale().catch(() => {}).finally(() => { void loadAll(); }); }}
+            onRefresh={() => { setRefreshing(true); moneyApi.refreshIfStale().catch(() => {}).finally(() => { void refresh(true); }); }}
             tintColor={cosmos.color.ink3}
           />
         }
@@ -202,7 +228,12 @@ export default function LedgerScreen() {
                     />
                     {open && !inflow ? (
                       <View style={layout.indent}>
-                        {seen === undefined ? (
+                        {receiptErrors[t.id] ? (
+                          <View accessibilityLiveRegion="polite">
+                            <Small>Could not read these receipts.</Small>
+                            <Pill small ghost label="Try again" onPress={() => void readReceipts(t.id)} />
+                          </View>
+                        ) : seen === undefined ? (
                           <Small>Reading the receipts.</Small>
                         ) : seen.length === 0 ? (
                           <Small>No receipt kept for this one.</Small>

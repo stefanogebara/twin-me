@@ -204,7 +204,7 @@ const CustomAuth = () => {
       </section>
 
       <footer className="au-foot au-enter" style={{ '--i': 4 } as React.CSSProperties}>
-        Private beta. No card details are ever stored.
+        Private beta. Your money stays in your bank.
       </footer>
       </div>
     </main>

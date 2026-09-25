@@ -75,24 +75,31 @@ export default function LedgerOrb({ state = 'working', size = 20, speed = 1, pau
       ctx.clearRect(0, 0, size, size);
       draw(ctx, size, t, false, preset.opts);
     };
-    const still = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
-    if (still || paused) { frame(0.6); return; }
-
+    const motionPreference = typeof matchMedia === 'function' ? matchMedia('(prefers-reduced-motion: reduce)') : null;
     let raf = 0;
     let running = false;
     let inView = true;
     const tick = () => { frame((performance.now() / 1000) * tempo); if (running) raf = requestAnimationFrame(tick); };
     const start = () => { if (!running) { running = true; raf = requestAnimationFrame(tick); } };
     const stop = () => { running = false; cancelAnimationFrame(raf); };
-    const onVisibility = () => { if (document.visibilityState === 'hidden') stop(); else if (inView) start(); };
+    const syncMotion = () => {
+      if (paused || motionPreference?.matches) { stop(); frame(0.6); }
+      else if (inView && document.visibilityState !== 'hidden') start();
+      else stop();
+    };
     const io = typeof IntersectionObserver === 'function'
-      ? new IntersectionObserver(([e]) => { inView = e.isIntersecting; if (inView && document.visibilityState !== 'hidden') start(); else stop(); })
+      ? new IntersectionObserver(([e]) => { inView = e.isIntersecting; syncMotion(); })
       : null;
-    frame((performance.now() / 1000) * tempo);
+    frame(0.6);
     io?.observe(canvas);
-    document.addEventListener('visibilitychange', onVisibility);
-    if (!io) start();
-    return () => { stop(); io?.disconnect(); document.removeEventListener('visibilitychange', onVisibility); };
+    document.addEventListener('visibilitychange', syncMotion);
+    motionPreference?.addEventListener('change', syncMotion);
+    syncMotion();
+    return () => {
+      stop(); io?.disconnect();
+      document.removeEventListener('visibilitychange', syncMotion);
+      motionPreference?.removeEventListener('change', syncMotion);
+    };
   }, [state, size, speed, paused, theme]);
 
   return (

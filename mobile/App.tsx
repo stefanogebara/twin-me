@@ -280,19 +280,19 @@ function Shell() {
       <View style={styles.fill}>
         <View style={styles.fill}>
           <Layer active={place === 'month'}>
-            <MonthScreen questionCount={questionCount} onOpenQuestions={() => setPlace('ask')} onOpenLedger={() => setPlace('ledger')} />
+            <MonthScreen active={place === 'month'} questionCount={questionCount} onOpenQuestions={() => setPlace('ask')} onOpenLedger={() => setPlace('ledger')} />
           </Layer>
           <Layer active={place === 'plan'}>
-            <PlanScreen />
+            <PlanScreen active={place === 'plan'} />
           </Layer>
           <Layer active={place === 'ledger'}>
-            <LedgerScreen />
+            <LedgerScreen active={place === 'ledger'} />
           </Layer>
           {/* The conversation is a place, not a sheet over one. Kept mounted like the others,
               so leaving it and coming back finds the transcript where it was, and so opening
               it does not throw the month away and read the ledger again. */}
           <Layer active={place === 'ask'}>
-            <ChatScreen mode="ask" />
+            <ChatScreen mode="ask" active={place === 'ask'} />
           </Layer>
           <Layer active={place === 'you'}>
             <YouScreen

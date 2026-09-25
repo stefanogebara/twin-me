@@ -151,6 +151,8 @@ export const PT_BR_MONEY: Record<string, string> = {
   "pending": "pendente",
   "recurring": "recorrente",
   "{source}, read {day}": "{source}, lido {day}",
+  "Reading the receipts.": "Lendo os recibos.",
+  "Could not read these receipts.": "Não foi possível ler estes recibos.",
   "No receipt kept for this one.": "Nenhum recibo guardado para este.",
   "Worth it": "Valeu a pena",
   "Not me": "N\u00e3o fui eu",

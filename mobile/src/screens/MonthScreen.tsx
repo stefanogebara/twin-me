@@ -18,6 +18,7 @@
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
+import { useActiveRead } from '../hooks/useActiveRead';
 import { cosmos, dayMonth, euro } from '../constants/cosmos';
 import {
   moneyApi, currentMonthStart, bankLabel,
@@ -105,7 +106,8 @@ function Pair({ months }: { months: MoneyMonth[] }) {
 
 // -- Screen ------------------------------------------------------------------
 
-export default function MonthScreen({ onOpenQuestions, questionCount, onOpenLedger }: {
+export default function MonthScreen({ onOpenQuestions, questionCount, onOpenLedger, active = true }: {
+  active?: boolean;
   onOpenQuestions: () => void;
   questionCount: number;
   onOpenLedger?: () => void;
@@ -144,7 +146,7 @@ export default function MonthScreen({ onOpenQuestions, questionCount, onOpenLedg
   const [unreachable, setUnreachable] = useState(false);
   const [openSeries, setOpenSeries] = useState<string | null>(null);
 
-  const loadAll = useCallback(async () => {
+  const loadAll = useCallback(async (isCurrent: () => boolean) => {
     /* One failing endpoint must not take the screen down with it, so each is settled on
        its own. Only a clean sweep of failures is worth telling the person about. */
     const [f, l, rd, c, rc, td, ac, mo] = await Promise.allSettled([
@@ -157,6 +159,7 @@ export default function MonthScreen({ onOpenQuestions, questionCount, onOpenLedg
       moneyApi.accounts(),
       moneyApi.months(),
     ]);
+    if (!isCurrent()) return;
     if (mo.status === 'fulfilled') setMonths(mo.value);
     if (td.status === 'fulfilled') setToday(td.value);
     /* The refresh call only learns the session has ended when it is the call that hits it;
@@ -178,22 +181,22 @@ export default function MonthScreen({ onOpenQuestions, questionCount, onOpenLedg
     setRefreshing(false);
   }, []);
 
-  useEffect(() => { void loadAll(); }, [loadAll]);
+  const refresh = useActiveRead(loadAll, active);
 
   /* The month should not be three days old because nobody pressed anything. On open, ask the
      server whether a read is due; it spends one only if the last is old and the budget allows,
-     and we read the ledger again only when it actually brought something. */
+     and we read again when it completes, including balance-only updates. */
   useEffect(() => {
     let live = true;
     moneyApi.refreshIfStale()
       .then((r) => {
         if (!live) return;
         if (r.needs_reconnect) setNeedsReconnect(true);
-        if (r.pulled && (r.created ?? 0) > 0) void loadAll();
+        if (r.pulled) void refresh(true);
       })
       .catch(() => {});
     return () => { live = false; };
-  }, [loadAll]);
+  }, [refresh]);
 
   const empty = !loading && (ledgerLines ?? 0) === 0;
   /* One purchase makes p10, p50 and p90 the same euro, and reading the same number three
@@ -248,7 +251,7 @@ export default function MonthScreen({ onOpenQuestions, questionCount, onOpenLedg
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
-            onRefresh={() => { setRefreshing(true); moneyApi.refreshIfStale().catch(() => {}).finally(() => { void loadAll(); }); }}
+            onRefresh={() => { setRefreshing(true); moneyApi.refreshIfStale().catch(() => {}).finally(() => { void refresh(true); }); }}
             tintColor={cosmos.color.ink3}
           />
         }

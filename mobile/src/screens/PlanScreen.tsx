@@ -15,6 +15,7 @@
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Alert, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
+import { useActiveRead } from '../hooks/useActiveRead';
 import { cosmos, euro } from '../constants/cosmos';
 import { moneyApi, type MoneyPlan, type MoneyPlanCell, type MoneyPlanItem } from '../services/moneyApi';
 import { Body, Hairline, Heading, Label, List, Micro, Page, Pill, Small, Title } from '../ui/primitives';
@@ -109,7 +110,7 @@ function DayRow({ label, sub, trail, income }: { label: string; sub: string; tra
 
 // -- Screen ------------------------------------------------------------------
 
-export default function PlanScreen() {
+export default function PlanScreen({ active = true }: { active?: boolean } = {}) {
   const current = monthKey(new Date());
   const [month, setMonth] = useState<string>(current);
   const [plan, setPlan] = useState<MoneyPlan | null>(null);
@@ -118,17 +119,18 @@ export default function PlanScreen() {
   const [draft, setDraft] = useState('');
   const [busy, setBusy] = useState(false);
 
-  const load = useCallback(async (key: string) => {
+  const load = useCallback(async (isCurrent: () => boolean) => {
     try {
-      const p = await moneyApi.plan(key === current ? null : key);
+      const p = await moneyApi.plan(month === current ? null : month);
+      if (!isCurrent()) return;
       setPlan(p);
       setFailed(false);
       setPicked((was) => (was && p.cells.some((c) => c.day === was) ? was : p.today));
     } catch {
-      setFailed(true);
+      if (isCurrent()) setFailed(true);
     }
-  }, [current]);
-  useEffect(() => { void load(month); }, [month, load]);
+  }, [current, month]);
+  const refresh = useActiveRead(load, active);
 
   const cell = useMemo(() => (plan && picked ? plan.cells.find((c) => c.day === picked) || null : null), [plan, picked]);
   useEffect(() => { setDraft(''); }, [picked]);
@@ -141,8 +143,8 @@ export default function PlanScreen() {
   const saveNote = useCallback(async () => {
     if (!cell || !draft.trim() || busy) return;
     setBusy(true);
-    try { await moneyApi.noteDay(cell.day, draft.trim()); setDraft(''); await load(month); } catch { /* the field keeps the words */ } finally { setBusy(false); }
-  }, [cell, draft, busy, load, month]);
+    try { await moneyApi.noteDay(cell.day, draft.trim()); setDraft(''); await refresh(true); } catch { /* the field keeps the words */ } finally { setBusy(false); }
+  }, [cell, draft, busy, refresh]);
 
   const forgetNote = useCallback(() => {
     if (!cell?.note?.id || busy) return;
@@ -154,11 +156,11 @@ export default function PlanScreen() {
         style: 'destructive',
         onPress: () => {
           setBusy(true);
-          moneyApi.deleteFact(id).then(() => load(month)).catch(() => { /* it stays until it can go */ }).finally(() => setBusy(false));
+          moneyApi.deleteFact(id).then(() => refresh(true)).catch(() => { /* it stays until it can go */ }).finally(() => setBusy(false));
         },
       },
     ]);
-  }, [cell, busy, load, month]);
+  }, [cell, busy, refresh]);
 
   /* Seven across, Monday first: blanks before the first day, and after the last so the
      final week keeps the same seven columns. */
