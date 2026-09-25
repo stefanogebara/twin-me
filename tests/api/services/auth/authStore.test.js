@@ -62,7 +62,12 @@ describe('authStore', () => {
     expect(rec.calls[0][0]).toBe('user_refresh_tokens');
     rec.calls.length = 0;
     await store.findRefreshToken('h');
-    expect(chainOf()).toBe('from > select(id, user_id, expires_at) > eq(token_hash, h) > single');
+    /* The row carries what it replaced and when, since 2026-09-25: two tabs sharing one
+       cookie jar raced on reload and the loser was told its session was invalid. */
+    expect(chainOf()).toBe('from > select(id, user_id, expires_at, token_hash, previous_token_hash, rotated_at) > eq(token_hash, h) > single');
+    rec.calls.length = 0;
+    await store.findRefreshTokenByPrevious('h');
+    expect(chainOf()).toBe('from > select(id, user_id, expires_at, token_hash, previous_token_hash, rotated_at) > eq(previous_token_hash, h) > maybeSingle');
     rec.calls.length = 0;
     await store.rotateRefreshToken('r1', 'h', { token_hash: 'h2' });
     expect(chainOf()).toBe('from > update({"token_hash":"h2"}) > eq(id, r1) > eq(token_hash, h) > select(id)');
