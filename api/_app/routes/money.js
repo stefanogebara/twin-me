@@ -564,7 +564,11 @@ router.get('/categories', async (req, res) => {
   catch (error) { log.error('categories failed', { error: error.message }); res.status(500).json({ success: false, error: 'Internal server error' }); }
 });
 
-/** Look up the merchants not yet placed. Repeat until `left` is zero. */
+/**
+ * Look up the merchants not yet placed. Repeat until `remaining` (or `left`, the same count) is
+ * zero: a run stops starting merchants at forty seconds so it answers inside the function's
+ * minute, where forty merchants at a lookup and a judge each once ran past it into a 504.
+ */
 router.post('/places/lookup', validate({ body: S.PLACES_LOOKUP }), async (req, res) => {
   const limit = Math.min(Math.max(parseInt(String(req.body?.limit ?? '12'), 10) || 12, 1), 40);
   try { res.json({ success: true, data: await enrichPlaces(req.user.id, { limit }) }); }
@@ -577,14 +581,22 @@ router.get('/places', async (req, res) => {
   catch (error) { log.error('places failed', { error: error.message }); res.status(500).json({ success: false, error: 'Internal server error' }); }
 });
 
+/**
+ * A person's word on a merchant in their own ledger, kept for them alone. The page still sends
+ * the name it showed; nothing keeps it: what a person calls a merchant is read from their own
+ * payments, and nothing a person sends reaches the place cache every ledger reads (audit S5).
+ */
 router.post('/places/:merchantKey/category', validate({ params: S.PLACE_CATEGORY_PARAMS, body: S.PLACE_CATEGORY }), async (req, res) => {
   const category = req.body?.category ?? null;
   if (category !== null && (typeof category !== 'string' || category.length > 40)) {
     return res.status(400).json({ success: false, error: 'category must be a short word or null' });
   }
-  const name = typeof req.body?.name === 'string' ? req.body.name.slice(0, 120) : null;
-  try { res.json({ success: true, data: await setPlaceCategory(req.user.id, String(req.params.merchantKey).slice(0, 120), category, { name }) }); }
-  catch (error) { log.error('place category failed', { error: error.message }); res.status(500).json({ success: false, error: 'Internal server error' }); }
+  try { res.json({ success: true, data: await setPlaceCategory(req.user.id, String(req.params.merchantKey).slice(0, 120), category) }); }
+  catch (error) {
+    if (error.code === 'place_not_in_ledger') return res.status(404).json({ success: false, error: 'That merchant is not in your ledger.' });
+    log.error('place category failed', { error: error.message });
+    res.status(500).json({ success: false, error: 'Internal server error' });
+  }
 });
 
 /** How many unattended reads of the consent are left in the rolling day. */
