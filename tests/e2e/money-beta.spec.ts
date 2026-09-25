@@ -168,7 +168,9 @@ for (const path of ['/money','/money/month','/money/you','/money/account','/mone
     await page.goto(path);
     if(path==='/money/chat') {
       const input=page.getByPlaceholder('Ask about your money');
-      await input.fill('What did I spend today?'); await input.press('Enter');
+      await input.fill('What did I spend today?');
+      await expect(page.getByRole('button', { name: 'Ask', exact: true })).toBeEnabled();
+      await input.press('Enter');
       await expect(page.getByText('You spent 12.50 EUR at Audit Cafe.',{exact:false})).toBeVisible();
     } else if(path==='/money/month') {
       const month=new Date().toLocaleDateString('en-GB',{month:'long',year:'numeric'});
@@ -219,7 +221,10 @@ test('interrupted HTTP 200 chat reports incompleteness and keeps the partial ans
   const state=await moneyFixture(page); state.interrupted=true;
   await page.goto('/money/chat');
   const box=page.getByRole('textbox',{name:'Ask about your money'});
-  await box.fill('Explain this week'); await box.press('Enter');
+  await box.fill('Explain this week');
+  // Draft editing is available before history; sending deliberately is not.
+  await expect(page.getByRole('button', { name: 'Ask', exact: true })).toBeEnabled();
+  await box.press('Enter');
   await expect(page.getByText('An unfinished answer',{exact:true})).toBeVisible();
   await expect(page.getByRole('alert').filter({hasText:'The answer was interrupted'})).toBeVisible();
   await expect(box).toBeEnabled();
@@ -233,7 +238,9 @@ test('confirmed chat correction refreshes Today even inside its 30-second cache'
   // Wait for the lazy route: Today also has a textbox with this accessible name.
   await expect(page.getByRole('heading', { name: 'Ask.', exact: true })).toBeVisible();
   const box=page.getByRole('textbox',{name:'Ask about your money'});
-  await box.fill('That cafe payment is not mine'); await box.press('Enter');
+  await box.fill('That cafe payment is not mine');
+  await expect(page.getByRole('button', { name: 'Ask', exact: true })).toBeEnabled();
+  await box.press('Enter');
   await page.getByRole('button',{name:'Not my payment'}).click();
   await expect(page.getByText('Updated your ledger.',{exact:true})).toBeVisible();
   if (await page.getByRole('button',{name:'Menu',exact:true}).isVisible()) await page.getByRole('button',{name:'Menu',exact:true}).click();
