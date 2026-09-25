@@ -25,10 +25,44 @@ const DEADLINE = Symbol('money_channel_deadline');
 const DEFAULT_DEPS = { markRead: (messageId) => markMessageAsRead(messageId, { typing: true }), transcribe: transcribeVoice, canHear, answer, act, listChatTurns, userLanguage, claimInbound, keepOffers, takeOffer, recentOffers, offerSaid, releaseOffer, noteOfferMessage, offersOfMessage, sendCta: sendWhatsAppCtaButton, sendButtons: sendWhatsAppButtons, looksLikeInstruction, download: downloadWhatsAppMedia, readAttachment, saveChatTurn, attachmentDeps: ATTACHMENT_DEPS, deadlineMs: CHANNEL_DEADLINE_MS };
 const APP_URL = () => String(process.env.APP_URL || process.env.VITE_APP_URL || 'https://twinme.me').replace(/\/+$/, '');
 
+class ChannelSendFailure extends Error {
+  constructor(part, suppressed = false) {
+    super('WhatsApp send was not confirmed.');
+    this.part = part;
+    this.reason = suppressed ? 'money_send_suppressed' : 'money_send_failed';
+  }
+}
+
+/** The adapter can resolve failure (including a timeout), so await alone is not acceptance. */
+function checkedSend(send, part) {
+  return async (...args) => {
+    let result;
+    try { result = await send(...args); }
+    catch { throw new ChannelSendFailure(part); }
+    if (result?.suppressed) throw new ChannelSendFailure(part, true);
+    if (result?.success !== true) throw new ChannelSendFailure(part);
+    return result;
+  };
+}
+
 /** The one effectful entry point, run in the person's own zone. */
 export async function handleMoneyInbound(parsed, opts) {
   const scope = opts?.deps?.inPersonScope || inPersonScope;
-  return scope(opts.userId, () => handleMoneyInboundIn(parsed, opts));
+  const deps = { ...DEFAULT_DEPS, ...opts.deps };
+  try {
+    return await scope(opts.userId, () => handleMoneyInboundIn(parsed, {
+      ...opts,
+      send: checkedSend(opts.send, 'text'),
+      deps: { ...deps, sendCta: checkedSend(deps.sendCta, 'link'), sendButtons: checkedSend(deps.sendButtons, 'buttons') },
+    }));
+  } catch (error) {
+    if (!(error instanceof ChannelSendFailure)) throw error;
+    /* Stop later parts without releasing receipts/offers or inviting the pipeline's generic retry.
+       A mutation may already be committed; the adapter cannot establish acceptance after a timeout.
+       This reports failure only: durable result storage and delivery recovery still need an outbox. */
+    log.warn('money channel send not confirmed', { userId: opts.userId, part: error.part, reason: error.reason });
+    return { handled: false, reason: error.reason, part: error.part, userId: opts.userId };
+  }
 }
 
 async function handleMoneyInboundIn(parsed, { userId, send, deps = {} }) {
