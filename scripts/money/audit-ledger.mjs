@@ -105,7 +105,14 @@ if (pairs.length) faults.push(`${pairs.length} pair${pairs.length === 1 ? '' : '
 const subs = recurring.filter((r) => r.is_subscription);
 console.log(`\nCharges that come back: ${recurring.length}, of them subscriptions: ${subs.length}`);
 for (const r of recurring) console.log(`  ${r.merchant_key} ${r.cadence} ${eur(r.typical_amount)}, last ${day(r.last_seen)}, next ${day(r.next_expected)}${r.is_subscription ? ', a subscription' : ''}`);
-if (recurring.length && !subs.length) faults.push('no series is marked a subscription: the flag is dead again');
+/* Only a beat of a month or longer should ever be a subscription, so a ledger whose only
+   series is a weekly shop has none and is right to have none. Faulting on "series but no
+   subscriptions" called that dead: seen on the demo ledger of 2026-09-25, whose one series
+   was Mercadona every week. The fault is a series that should be flagged and is not. */
+const shouldBeSubs = recurring.filter((r) => ['monthly', 'quarterly', 'yearly'].includes(r.cadence));
+if (shouldBeSubs.length && !shouldBeSubs.some((r) => r.is_subscription)) {
+  faults.push(`${shouldBeSubs.length} series repeat monthly or slower and none is marked a subscription: the flag is dead again`);
+}
 for (const r of subs) {
   if (ageDays(r.next_expected) > 7) faults.push(`${r.merchant_key} was due ${day(r.next_expected)} and has not been seen`);
 }
