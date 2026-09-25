@@ -3,7 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import Wait from '@/components/Wait';
 import { toast } from 'sonner';
 import { useAnalytics } from '@/contexts/AnalyticsContext';
-import { API_URL, setAccessToken, pushRefreshTokenToDesktop } from '@/services/api/apiBase';
+import { API_URL, setAccessToken, pushRefreshTokenToDesktop, authFetch, getAccessToken, accessTokenReady, sessionExpected } from '@/services/api/apiBase';
 import { isSafeRedirectPath } from '@/lib/safeRedirect';
 
 const CHROME_EXTENSION_ID = (import.meta.env.VITE_CHROME_EXTENSION_ID as string | undefined) || 'acnofcjjfjaikcfnalggkkbghjaijepc';
@@ -232,6 +232,8 @@ const OAuthCallback = () => {
 
         // Determine the correct callback endpoint based on flow type prefix
         let response;
+        /* Google Calendar, connected from the money page: the one connector left. */
+        let calendarConnect = false;
         if (isConnectorOAuth) {
           let callbackEndpoint: string;
           // Get provider from sessionStorage for endpoint routing
@@ -250,22 +252,33 @@ const OAuthCallback = () => {
               break;
             case 'connector':
             default:
-              callbackEndpoint = '/connectors/callback';
+              /* Only the calendar mints a 'connector' state now. /connectors/callback left with
+                 the twin and answers 410 (2026-09-26): the money API finishes the consent. */
+              callbackEndpoint = '/money/calendar/callback';
+              calendarConnect = true;
               break;
           }
 
-          response = await fetch(`${API_URL}${callbackEndpoint}`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            // credentials:'include' so the connector callback can read/set session cookies.
-            credentials: 'include',
-            body: JSON.stringify({
-              code,
-              state
-            })
-          });
+          if (calendarConnect) {
+            /* Finished for the person signed in here, who must be the one who began it, so the
+               request carries their token: on a fresh load it arrives after the refresh, and a
+               post that left before it would be refused (the wait moneyAPI makes too). */
+            if (!getAccessToken() && sessionExpected()) await accessTokenReady();
+            response = await authFetch(callbackEndpoint, { method: 'POST', body: JSON.stringify({ code, state }) });
+          } else {
+            response = await fetch(`${API_URL}${callbackEndpoint}`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              // credentials:'include' so the connector callback can read/set session cookies.
+              credentials: 'include',
+              body: JSON.stringify({
+                code,
+                state
+              })
+            });
+          }
         } else {
           // Handle main auth OAuth callback.
           //
@@ -314,10 +327,22 @@ const OAuthCallback = () => {
 
             // Track platform connection in analytics
             trackFunnel('platform_connected', {
-              platform: stateData?.provider || stateData?.platform || 'unknown',
+              platform: calendarConnect ? 'google_calendar' : (stateData?.provider || stateData?.platform || 'unknown'),
             });
 
             setStatus('success');
+
+            if (calendarConnect) {
+              /* Back to where the connection began. The server returns a path on this site and
+                 it is checked again here: a way off the site is never followed ("//host", a
+                 backslash, or a tab or newline a browser would drop). */
+              const returnUrl = data.data?.returnUrl;
+              const back = typeof returnUrl === 'string' && /^\/(?![/\\])/.test(returnUrl) && !/[\\\s]/.test(returnUrl) ? returnUrl : '/money';
+              setMessage('Google Calendar is connected.');
+              toast.success('Google Calendar is connected.');
+              navigate(back, { replace: true });
+              return;
+            }
 
             // Get provider display name
             const providerName = stateData?.provider?.replace('google_', '').replace('_', ' ') || 'Service';

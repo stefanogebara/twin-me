@@ -32,6 +32,7 @@ import { financialEvidenceBlocked, withheldForecast } from '../services/money/fi
  * GET  /api/money/bank/accounts            connected accounts and when consent expires
  * POST /api/money/calendar/feed { url }    a Canvas, Blackboard or .ics link, read with the calendar
  * DELETE /api/money/calendar/feed/:id      forget a link
+ * POST /api/money/calendar/callback { code, state }  Google's consent, finished for the person who began it
  * POST /api/money/bank/pull                pull the feed now (PSD2: four unattended pulls a day)
  * POST /api/money/chat { message, history? } a question or a correction, answered with figures and receipts
  * POST /api/money/chat/act { action }      run an action the person confirmed from a chat reply
@@ -85,7 +86,7 @@ import { guessHome, savedHome, searchAreas, searchPlaces, staticMap, saveHome, p
 import { encryptState } from '../services/encryption.js';
 import { signState, readState } from '../services/money/bankState.js';
 import { getAppUrl } from '../utils/oauthUtils.js';
-import { getGoogleWorkspaceScopes } from '../config/googleWorkspaceScopes.js';
+import { CALENDAR_SCOPE, readConnectState, connectGoogleCalendar } from '../services/money/calendarConnection.js';
 import { quietly } from '../services/money/quietly.js';
 
 const log = createLogger('MoneyRoute');
@@ -918,7 +919,9 @@ router.get('/calendar', async (req, res) => {
 });
 
 /* Where to send the person to connect Google Calendar. The state carries a path back to the
-   money page, which the OAuth callback honours for paths on this site. */
+   money page, which the OAuth callback honours for paths on this site. The consent asks for
+   the calendar, read only: it asked for Gmail, Drive and the contacts too until 2026-09-26,
+   and the money calendar only ever lists the primary calendar's events. */
 router.get('/calendar/connect', async (req, res) => {
   try {
     if (!process.env.GOOGLE_CLIENT_ID) return res.status(503).json({ success: false, error: 'Calendar connection not configured' });
@@ -927,13 +930,36 @@ router.get('/calendar/connect', async (req, res) => {
     const url = 'https://accounts.google.com/o/oauth2/v2/auth?'
       + `client_id=${encodeURIComponent(process.env.GOOGLE_CLIENT_ID)}&`
       + `redirect_uri=${encodeURIComponent(redirectUri)}&`
-      + `scope=${encodeURIComponent(getGoogleWorkspaceScopes().join(' '))}&`
+      + `scope=${encodeURIComponent(CALENDAR_SCOPE)}&`
       + 'response_type=code&access_type=offline&prompt=consent&'
       + `state=${state}`;
     res.json({ success: true, data: { url } });
   } catch (error) {
     log.error('calendar connect failed', { error: error.message });
     res.status(500).json({ success: false, error: 'Could not start the calendar connection' });
+  }
+});
+
+/* Google sends the person back to /oauth/callback on the site, and that page posts the code and
+   the state here under the person's session. The state was sealed by /calendar/connect: it must
+   be a calendar consent, under fifteen minutes old, begun by this same person, or the code is
+   never spent. The exchange uses the redirect the consent was given. Until 2026-09-26 the page
+   posted to /connectors/callback, which left with the twin and answers 410. */
+router.post('/calendar/callback', validate({ body: S.CALENDAR_CALLBACK }), async (req, res) => {
+  const state = readConnectState(req.body.state, req.user.id);
+  if (!state.ok) {
+    log.warn('calendar callback refused', { why: state.why });
+    return res.status(state.status).json({ success: false, error: state.error });
+  }
+  try {
+    await connectGoogleCalendar(req.user.id, { code: req.body.code, redirectUri: `${getAppUrl(req)}/oauth/callback` });
+    res.json({ success: true, data: { returnUrl: state.returnUrl } });
+  } catch (error) {
+    log.error('calendar callback failed', { error: error.message });
+    if (error.code === 'calendar_exchange_failed') {
+      return res.status(502).json({ success: false, error: 'Google did not finish connecting the calendar. Try connecting it again.' });
+    }
+    res.status(500).json({ success: false, error: 'Internal server error' });
   }
 });
 
