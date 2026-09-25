@@ -1,5 +1,19 @@
 /** Spanish for the money pages (MoneyV2Page, MoneySetupPage). Keys are the English source strings. */
 export const ES_MONEY: Record<string, string> = {
+  "Ledger activity": "Actividad del registro",
+  "Add a file": "Añadir un archivo",
+  "Ask a follow-up": "Haz otra pregunta",
+
+  "over today’s estimate": "Por encima de la estimación de hoy",
+  "left from today’s estimate": "Restantes de la estimación de hoy",
+
+
+  "Your purchase": "Tu compra",
+  "Today’s estimate": "Estimación de hoy",
+  "An estimate, not a guarantee of what you can spend.": "Una estimación, no una garantía de lo que puedes gastar.",
+  "Calculation details": "Detalles del cálculo",
+
+  "Your spending, explained.": "Tus gastos, explicados.",
   "It gives your answers local context. It does not track your phone.": "Da contexto local a las respuestas. No rastrea tu teléfono.",
   "It gives your answers study context. Payments are not automatically labelled as a commute.": "Da contexto de tus estudios. No clasifica automáticamente los pagos como desplazamientos.",
   "It gives your answers work context. A payment still needs your explanation to count as work.": "Da contexto de tu trabajo. Para considerar un pago como laboral, necesitas explicarlo.",
@@ -320,6 +334,7 @@ export const ES_MONEY: Record<string, string> = {
   "Paste this when the shortcut asks for it. It is shown once.": "Pegala cuando el atajo la pida. Se muestra una vez.",
   "Open this page on your phone to set it up there.": "Abre esta pagina en tu movil para configurarlo alli.",
   "For an icon on your home screen: tap Share in Safari, then Add to Home Screen.": "Para tener el icono en la pantalla de inicio: toca Compartir en Safari y luego Anadir a pantalla de inicio.",
+  "Supporting payments ({n})": "Pagos de referencia ({n})",
   "Read from one payment": "Leido de un pago",
   "Read from {n} payments": "Leido de {n} pagos",
   "{n} events read, last {day}.": "{n} eventos le\u00eddos, el \u00faltimo el {day}.",

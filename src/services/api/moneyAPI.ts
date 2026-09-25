@@ -360,7 +360,9 @@ export type FigureShare = { label: string; value: number; share: number };
 export type FigureRecurring = { label: string; amount: number; cadence: string; next?: string | null };
 export type FigureDay = { label: string; value: number; today?: boolean };
 export type FigureAhead = { label: string; day: string; amount: number; basis?: string | null };
+export type PurchaseFigure = { kind: 'purchase'; cost: number; allowance: number; difference: number; currency: string };
 export type ChatFigure =
+  | PurchaseFigure
   | { kind: 'week'; title?: string; days: FigureDay[] }
   | { kind: 'ahead'; title?: string; items: FigureAhead[] }
   | { kind: 'months'; title?: string; points: FigurePoint[] }
@@ -369,6 +371,12 @@ export type ChatFigure =
   | { kind: 'shares'; title?: string; items: FigureShare[] }
   | { kind: 'recurring'; title?: string; items: FigureRecurring[] }
   | { kind: 'band'; title?: string; month?: string; spent: number; likely: number; low?: number; high?: number };
+/** Unknown or malformed history falls back to its complete answer text. */
+export function isPurchaseFigure(figure: ChatFigure): figure is PurchaseFigure {
+  return figure?.kind === 'purchase' && [figure.cost, figure.allowance, figure.difference].every(Number.isFinite)
+    && /^[A-Z]{3}$/.test(figure.currency);
+}
+
 export type ChatReceipt = { id: string; occurred_at: string; merchant: string; amount: number | string };
 export type ChatAction = { kind: string; label: string; [key: string]: unknown };
 export type ChatTurn = { role: 'user' | 'twin'; text: string };

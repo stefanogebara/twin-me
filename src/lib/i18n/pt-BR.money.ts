@@ -1,5 +1,19 @@
 /** Brazilian Portuguese for the money pages (MoneyV2Page, MoneySetupPage). Keys are the English source strings. */
 export const PT_BR_MONEY: Record<string, string> = {
+  "Ledger activity": "Atividade do registro",
+  "Add a file": "Adicionar um arquivo",
+  "Ask a follow-up": "Faça outra pergunta",
+
+  "over today’s estimate": "Acima da estimativa de hoje",
+  "left from today’s estimate": "Restantes da estimativa de hoje",
+
+
+  "Your purchase": "Sua compra",
+  "Today’s estimate": "Estimativa de hoje",
+  "An estimate, not a guarantee of what you can spend.": "Uma estimativa, não uma garantia do que você pode gastar.",
+  "Calculation details": "Detalhes do cálculo",
+
+  "Your spending, explained.": "Seus gastos, explicados.",
   "It gives your answers local context. It does not track your phone.": "Dá contexto local às respostas. Não rastreia seu telefone.",
   "It gives your answers study context. Payments are not automatically labelled as a commute.": "Dá contexto dos seus estudos. Não classifica pagamentos automaticamente como deslocamentos.",
   "It gives your answers work context. A payment still needs your explanation to count as work.": "Dá contexto do seu trabalho. Para considerar um pagamento como profissional, você precisa explicá-lo.",
@@ -320,6 +334,7 @@ export const PT_BR_MONEY: Record<string, string> = {
   "Paste this when the shortcut asks for it. It is shown once.": "Cole quando o atalho pedir. E mostrada uma vez.",
   "Open this page on your phone to set it up there.": "Abra esta p\u00e1gina no seu celular para configurar por l\u00e1.",
   "For an icon on your home screen: tap Share in Safari, then Add to Home Screen.": "Para ter o icone na tela de inicio: toque em Compartilhar no Safari e depois Adicionar a Tela de Inicio.",
+  "Supporting payments ({n})": "Pagamentos de referência ({n})",
   "Read from one payment": "Lido de um pagamento",
   "Read from {n} payments": "Lido de {n} pagamentos",
   "{n} events read, last {day}.": "{n} eventos lidos, o \u00faltimo em {day}.",

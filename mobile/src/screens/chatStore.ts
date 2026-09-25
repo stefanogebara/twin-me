@@ -9,6 +9,7 @@
  */
 
 import { useSyncExternalStore } from 'react';
+import { currentSessionEpoch, onSessionInvalidated } from '../services/sessionEpoch';
 import type { ChatAction, ChatReceipt, MoneyQuestion } from '../services/moneyApi';
 import type { ChatFigure } from '../ui/figures';
 
@@ -68,15 +69,31 @@ let lastLikely: number | null = null;
 
 function emit() { listeners.forEach((fn) => fn()); }
 
+onSessionInvalidated(() => {
+  transcripts.ask = [];
+  transcripts.onboarding = [];
+  lastLikely = null;
+  emit();
+});
+
 export function readLines(mode: ChatMode): Line[] { return transcripts[mode]; }
 
-export function setLines(mode: ChatMode, next: Line[] | ((all: Line[]) => Line[])) {
+export function setLines(mode: ChatMode, next: Line[] | ((all: Line[]) => Line[]), epoch = currentSessionEpoch()) {
+  if (epoch !== currentSessionEpoch()) return;
   transcripts[mode] = typeof next === 'function' ? next(transcripts[mode]) : next;
   emit();
 }
 
-export function rememberLikely(v: number | null) { lastLikely = v; }
+export function rememberLikely(v: number | null, epoch = currentSessionEpoch()) {
+  if (epoch === currentSessionEpoch()) lastLikely = v;
+}
 export function recallLikely(): number | null { return lastLikely; }
+
+/** Never let a slow history read overwrite a newly sent message or another account. */
+export function replaceUnchangedHistory(before: Line[], next: Line[], epoch: number) {
+  if (readLines('ask') !== before || before.some(line => line.pending)) return;
+  setLines('ask', next, epoch);
+}
 
 /** The transcript for one use of the chat, live. */
 export function useTranscript(mode: ChatMode): Line[] {

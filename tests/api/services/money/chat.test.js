@@ -319,6 +319,19 @@ describe('dropUngrounded', () => {
     expect(dropUngrounded('That leaves 283,51 EUR. Or 30,58 EUR a day.', ctx)).toEqual({ text: '', dropped: 2 });
     expect(amountsInText('1.011,02 EUR and 77,41 EUR')).toEqual([1011.02, 77.41]);
   });
+  it.each(['You have 9999 EUR left.', 'You have €9999 left.', 'You have 9999 euros left.', 'You have EUR 9999 left.'])('rejects invented amounts even without decimal cents: %s', (text) => {
+    expect(dropUngrounded(text, ctx)).toEqual({ text: '', dropped: 1 });
+  });
+  it.each([
+    ['€25.50', 25.5], ['EUR 1,250.50', 1250.5], ['25,5 euros', 25.5],
+    ['€1,250', 1250], ['1.250,50 EUR', 1250.5], ['25.50 euros', 25.5],
+  ])('reads the entire currency amount in %s', (text, expected) => {
+    expect(amountsInText(text)).toEqual([expected]);
+  });
+  it('does not interpret a date or a payment count as a money amount', () => {
+    expect(amountsInText('On 25 September there were 12 payments.')).toEqual([]);
+    expect(amountsInText('25 EUR and 12,50 EUR')).toEqual([25, 12.5]);
+  });
   it('the answer path drops the invented total and keeps the rest, with its basis', async () => {
     complete.mockResolvedValue({ content: '{"text":"Clothing took 116,76 EUR. Together with Spotify that is 128,75 EUR, so 283,51 EUR would be too much.","figures":[],"actions":[]}' });
     const reply = await answer('u1', 'how much on clothes and spotify?', [], { now: NOW });

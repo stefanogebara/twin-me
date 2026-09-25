@@ -109,3 +109,5 @@
 {"url": "https://apps.apple.com/es/app/revolut-m%C3%A1s-que-un-banco/id932493382?see-all=reviews", "hash": "622d1635eecce286", "date": "2026-09-19", "verdict": "REGISTRAR", "score": 5}
 {"url": "https://hn.algolia.com/api/v1/search?query=Plaid%20bank%20connection%20broken&tags=comment", "hash": "d75f4f6d2f406870", "date": "2026-09-19", "verdict": "DESCARTAR", "score": 3}
 {"url": "https://news.ycombinator.com/item?id=9740999", "hash": "f02036b786c0f95d", "date": "2026-09-19", "verdict": "DESCARTAR", "score": 4}
+{"url": "https://research.meta.ai/blog/security-and-safety-for-ai-agents-our-approach-with-muse", "hash": "b44796516c3d5ae1dad77839f537b08da802361c", "date": "2026-09-25", "verdict": "DISCUTIR", "score": 9}
+{"url": "https://instinct.com/", "hash": "414ef4d42ab5d0343f8e7ab5786a21002665969e", "date": "2026-09-25", "verdict": "DESCARTAR", "score": 9}

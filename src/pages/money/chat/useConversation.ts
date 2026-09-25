@@ -18,7 +18,6 @@ export function useConversation() {
   useDocumentTitle(t('Ask'));
   const [openQuestions, setOpenQuestions] = useState(0);
   const [lines, setLines] = useState<AskLine[]>([]);
-  const [traceOpen, setTraceOpen] = useState(false);
   const [asking, setAsking] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
@@ -218,6 +217,6 @@ export function useConversation() {
     ? {}
     : { initial: { opacity: 0, y: 10 }, animate: { opacity: 1, y: 0 }, transition: { duration: 0.32, ease: [0.2, 0.7, 0.3, 1] as const } };
 
-  return { openQuestions, lines, traceOpen, setTraceOpen, asking, text, setText, historyFailed, locale, t, boxRef, fileRef, trace, stillMotion, offers, offersShown, toggleHow, ask, attach, take, rise };
+  return { openQuestions, lines, asking, text, setText, historyFailed, locale, t, boxRef, fileRef, trace, stillMotion, offers, offersShown, toggleHow, ask, attach, take, rise };
 }
 export type Conversation = ReturnType<typeof useConversation>;

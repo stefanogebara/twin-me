@@ -2,7 +2,7 @@
 import React, { act } from 'react';
 import { createRoot } from 'react-dom/client';
 import { afterEach, expect, it, vi } from 'vitest';
-const f = vi.hoisted(() => ({ owner: 'A', forecast: vi.fn(), today: vi.fn() }));
+const f = vi.hoisted(() => ({ owner: 'A', forecast: vi.fn(), today: vi.fn(), refresh: vi.fn(async () => ({ pulled: false, created: 0 })) }));
 vi.mock('@/contexts/AuthContext', () => ({ useAuth: () => ({ user: { id: f.owner, name: f.owner } }) }));
 vi.mock('@/hooks/useDocumentTitle', () => ({ useDocumentTitle: () => {} }));
 vi.mock('@/lib/i18n', () => ({ useLocale: () => 'en-GB', useT: () => (s: string, holes: Record<string, unknown> = {}) => s.replace(/\{([^}]+)\}/g, (_, key) => String(holes[key] ?? key)) }));
@@ -27,7 +27,7 @@ vi.mock('@/services/api/moneyAPI', async (original) => {
     if (key === 'today') return f.today;
     if (key === 'ledger') return async () => [{ id: 't', amount: -5, currency: 'EUR', occurred_at: new Date().toISOString(), merchant_key: 'coffee' }];
     if (key === 'inbox') return async () => ({ receiving: false });
-    if (key === 'refreshIfStale') return async () => ({ pulled: false });
+    if (key === 'refreshIfStale') return f.refresh;
     return async () => [];
   } }) };
 });
@@ -37,7 +37,20 @@ const host = document.createElement('div');
 document.body.append(host);
 let root: ReturnType<typeof createRoot>;
 Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true });
-afterEach(async () => { await act(async () => root?.unmount()); host.innerHTML=''; });
+afterEach(async () => { await act(async () => root?.unmount()); host.innerHTML=''; f.forecast.mockClear(); f.today.mockClear(); f.refresh.mockReset().mockResolvedValue({ pulled: false, created: 0 }); });
+
+it('refreshes after a completed bank pull even when it creates no new transaction', async () => {
+  f.owner = 'updated-bank-balance';
+  f.forecast.mockClear().mockResolvedValue({ month:'2026-09-01',spent:5,days_left:13,committed:0,projected_p90:5 });
+  f.today.mockResolvedValue(null);
+  let completePull!: (result: {pulled: boolean; created: number}) => void;
+  f.refresh.mockImplementationOnce(() => new Promise(resolve => { completePull = resolve; }));
+  root = createRoot(host);
+  await act(async () => root.render(<MoneyV2Page />));
+  expect(f.forecast).toHaveBeenCalledOnce();
+  await act(async () => completePull({ pulled: true, created: 0 }));
+  expect(f.forecast).toHaveBeenCalledTimes(2);
+});
 
 it('does not paint the previous owner’s fresh Money snapshot after switching accounts', async () => {
   f.owner='A'; f.forecast.mockResolvedValue({ month:'2026-09-01',spent:5,days_left:13,committed:0,projected_p90:5 });

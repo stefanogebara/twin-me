@@ -184,14 +184,14 @@ export function useMoneyRead(userId: string | null, view: MoneyView) {
   }, [load]);
   /* The month should not be days old because nobody pressed anything. On open, ask the server
      whether a read is due; it spends one only when the last is old and the budget allows, and
-     the page reloads only if that read brought something. */
+     a completed pull reloads the page even if it only corrected existing rows or the balance. */
   useEffect(() => {
     let live = true;
     moneyAPI.refreshIfStale()
       .then((r) => {
         if (!live) return;
         if (r.needs_reconnect) setNeedsReconnect(true);
-        if (r.pulled && (r.created ?? 0) > 0) void load();
+        if (r.pulled) void load();
       })
       .catch(() => {});
     return () => { live = false; };

@@ -76,17 +76,33 @@ export async function forecast(userId, now = new Date(), given = {}) {
      spending.js. The forecast must never be the only place that knows it. */
   const isSpending = spendingRule(facts);
 
-  /* What the band has earned from its scored days: one widening in euros per person, from
-     calibration.js. A missing table or an empty record is a widening of zero. */
-  /* The reconciliation is bookkeeping the nightly loop also does; a page or a chat turn must
-     not wait on it. It once held every read for 27 s while a database call timed out (the
-     benchmark of 2026-09-23). Past the deadline the band reads with no scored day, carried
-     widening included, and the next read tries again. */
-  const { figures } = await Promise.race([
-    currentFigureScores(userId, { now }),
-    new Promise((resolve) => setTimeout(() => resolve({ figures: [], deadline: true }), SCORING_DEADLINE_MS)),
-  ]).then((r) => { if (r.deadline) quietly('forecast/scoring-deadline', null)(new Error(`scoring did not answer in ${SCORING_DEADLINE_MS} ms`)); return r; })
-    .catch(quietly('forecast/scoring-read', { figures: [] }));
+  /* Reconciliation may need to rebuild outcomes after a correction. While it is late,
+     retain the range already issued; never turn an unavailable score into zero uncertainty.
+     Old outcomes are deliberately not used to train until reconciliation succeeds. */
+  let timer;
+  let figures;
+  let reconciliationPending = false;
+  try {
+    ({ figures } = await Promise.race([
+      currentFigureScores(userId, { now }),
+      new Promise((_resolve, reject) => {
+        timer = setTimeout(() => reject(new Error('Scoring deadline exceeded')), SCORING_DEADLINE_MS);
+      }),
+    ]));
+  } catch (error) {
+    reconciliationPending = true;
+    quietly('forecast/scoring-read', null)(error);
+    const controller = new AbortController();
+    const fallbackTimer = setTimeout(() => controller.abort(), SCORING_DEADLINE_MS);
+    try {
+      const { data, error: readError } = await supabaseAdmin.from('money_figure_scores')
+        .select('kind,predicted_on,predicted_for,value,low,high,issued_low,issued_high')
+        .eq('user_id', userId).eq('kind', 'day_total')
+        .order('predicted_on', { ascending: false }).limit(120).abortSignal(controller.signal);
+      if (readError || !Array.isArray(data)) throw new Error('Could not read forecast uncertainty. Please retry.');
+      figures = data.map(row => ({ ...row, scored_at: null }));
+    } finally { clearTimeout(fallbackTimer); }
+  } finally { clearTimeout(timer); }
   const figureDays = figures.filter((r) => r.kind === 'day_total');
   const band = calibrate((figureDays || []).filter((r) => r.scored_at));
   /* No scored day means no widening, which after a correction to the ledger is the state for
@@ -102,7 +118,7 @@ export async function forecast(userId, now = new Date(), given = {}) {
   const cal = calendarForecast(facts, { now });
   const expected = (cal.calendar_items || []).map((i) => ({ date: i.day, amount: i.amount, label: i.title }));
   const result = projectMonth({ transactions: rows, recurring, commitments, income, shareOf, isSpending, isIncome, now, widen: band.widen, expected });
-  result.band_calibration = { widen: band.widen, days: band.days, coverage: band.coverage, trusted: band.trusted, carried_from: band.carried_from || null };
+  result.band_calibration = { widen: band.widen, days: band.days, coverage: band.coverage, trusted: band.trusted, carried_from: band.carried_from || null, reconciliation_pending: reconciliationPending };
   /* The last thirty days as marks, with the range the twin gave each one and whether it
      held, and the range it has given tomorrow, widened by what it has earned so far. */
   result.days = dayStrip(rows, band.record, { now, isSpending });

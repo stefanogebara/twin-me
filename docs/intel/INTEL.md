@@ -342,4 +342,14 @@ Novos em 2026-09-19 (varredura de três batedores: produtos, papers, o que as pe
 
 ## Arquivo
 
+### [DISCUTIR 9/15 — decidido] Muse: operações duráveis e autorização fora do modelo
+**Data:** 2026-09-25 · **Fonte:** [Meta, segurança do Muse](https://research.meta.ai/blog/security-and-safety-for-ai-agents-our-approach-with-muse) · **Eixos:** P2 A2 D3 E0 L2
+**Mecanismo:** a publicação descreve estado durável em PostgreSQL, um Sentinel separado do agente para avaliar permissões e aprovações vinculadas à operação. São afirmações de arquitetura do fornecedor, sem benchmark independente de precisão financeira ou confiabilidade. Não inspecionamos uma sessão autenticada do Muse.
+**Decisão delegada pelo dono:** aplicar a separação de permissão e execução ao Money existente, sem trocar o monólito por uma frota de agentes. Primeiro resultado: fechamento mensal verificável e o Excel já calculado em `api/_app/services/money/sheet.js`; depois uma página imprimível/PDF se o piloto a usar. `channelInbound.js` ainda precisa de processamento retomável e entrega persistida: gravar o identificador antes de responder não prova conclusão.
+
+### [DESCARTAR 9/15 — duplicado, decisão preservada] Instinct: canal conveniente, resultado verificável
+**Data:** 2026-09-25 · **Fontes:** [Instinct](https://instinct.com/), [privacidade](https://instinct.com/privacy-policy), [WhatsApp Business](https://whatsappbusiness.com/policy/) · **Eixos:** P3 A2 D2 E0 L2
+Revisita pedida pelo dono ao teardown de 21/09. Mensagem/voz, integrações e tarefas já motivaram o canal do Money; não há nova evidência quantitativa para criar outra arquitetura. A decisão é consulta financeira, correções confirmadas individualmente e arquivos com totais calculados pelo servidor. Não inferir filas, isolamento ou taxa de sucesso a partir da landing. A política de privacidade diferencia desconectar uma integração de apagar cópias coletadas: a remoção de fontes do Money precisa acompanhar os derivados.
+**Limite da pesquisa:** as regras públicas do WhatsApp permitem respostas livres na janela de atendimento e exigem modelos aprovados fora dela; a exceção específica para provedores de IA não foi reconfirmada porque seus termos redirecionaram para login. A afirmação de 21/09 sobre uma categoria legalmente defensável continua hipótese, não aprovação. Validar os termos atuais antes de ampliar o canal.
+
 _vazio_

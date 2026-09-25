@@ -29,6 +29,25 @@ Status words: `todo` · `doing (who, date)` · `done (#PR, date)` · `blocked (w
 
 ## Now
 
+### Audit follow-through — 2026-09-25
+
+Stefano authorized implementation, research, design iterations and native-device QA after the September 24–25 audit. Codex works on `codex/money-beta-hardening`, based on `a10e605a`, in an isolated checkout; the owner's working tree is untouched.
+
+| Work | Status |
+|---|---|
+| T01/T03: regressions, streamed greeting completion, mandatory financial reads | doing (Codex, 2026-09-25) |
+| T08: reconcile production anonymous Money privileges | done (live migration `20260924230642`, 2026-09-25) — anonymous grants 119 → 0, service-role grants 189 unchanged, 27 Money tables retain RLS; ledger row count unchanged; permission catalog saved |
+| T04: monetary claim guard and shared allowance evidence | doing (Codex, 2026-09-25) — integer-currency bypass reproduced; semantic grounding remains a separate larger slice |
+| T03/T16 native session and transcript synchronization | doing (Codex, 2026-09-25) — three failing regressions now pass: session clear, delayed old-session write, refresh during a reply; iOS displays the web turn; keyboard clearance and supporting-payment expansion verified; pending release |
+| T07: preserve issued uncertainty through scoring timeouts | doing (Codex, 2026-09-25) |
+| T10: durable channel boundary and unambiguous approvals | doing (Codex, 2026-09-25) |
+| T04–T12: grounding, matching, purpose, coverage, uncertainty, privileges, deletion, durable channels, refresh, series | todo |
+| T16: current-register Ask evidence disclosure and native parity | doing (Codex, 2026-09-25) — current live web reopened and deployment matched; no global register replacement |
+| T13–T19: scoped chat, exports, prediction evaluation, approved design, pages, dependencies, documentation | todo |
+| Canvas/Blackboard data path, Instinct/Muse research, iOS/Android and page QA | doing (Codex, 2026-09-25) — iOS 26.5 Ask/Plan inspected; Android 35 audit build compiled and launched; full native QA blocked by locked Mac, not certified |
+
+Decisions under the owner's explicit delegation: source removal must remove derived financial copies while preserving user-authored messages with unsupported answers retired; credit limits are not spendable cash; initial friend pilots use complete statements with visible coverage; calendars provide schedule context, never payment evidence or causal claims; WhatsApp starts with reliable consultation and individually confirmed edits, without unsolicited broadcasts or third-party purchases. Channel safety decision: a reaction cannot identify one of multiple offers, and consumed siblings must not change that meaning or renumber numbered replies. Expire all approval routes after the existing ten-minute window and fail closed if an inbound receipt cannot be stored; this does not claim durable completion is solved. The current live warm/spacious web register is the baseline; native screenshots are a separate surface. Ask screenshot-only critiques now reach 7.5 desktop and 7.3 phone after nine iterations; the independent 9/10 gate remains open. The purchase comparison is computed, currency-scoped, and preserved in streamed/history responses; generic follow-ups now reflect the comparison. Local verification: 4,488 full-suite tests pass, 1,314 Money tests pass (73.70% lines / 60.27% branches), 45 PostgreSQL persistence tests and 58 desktop/phone browser tests pass; web/mobile type checks and web build pass. Claude’s beta-signup #574 is merged into the audit branch without conflict; the nullable phone column exists in production, and the browser test verifies the submitted phone/source choices without sending an invitation. Application changes await release; only T08 from this audit is live.
+
 | # | Task | Status |
 |---|---|---|
 | QW1 | `bankState.js`: refuse to sign or read without `JWT_SECRET`; `timingSafeEqual` | done (claude/quick-wins `ba89498a`, 2026-09-19) — 8 tests; the route answers 502 instead of signing with 'dev' |
@@ -150,6 +169,18 @@ Not there yet, honestly: no web access (the chat says only what the ledger compu
 | Repository audit | artifact above |
 
 ## Decisions
+
+### 2026-09-25 — Ask comparison hierarchy (Codex, doing)
+
+The fresh screenshot critic rated the current Ask 5.5/10: three equal-weight monetary values bury the conclusion. Add a server-computed purchase comparison figure, keeping the full text for older clients and WhatsApp. Update the affordability scenario's empty-figure assertion to require only this relevant comparison; unrelated month charts and receipt lists remain excluded. Preserve the live web palette and Today layout. The narrow euro route must also reject a non-euro ledger and non-finite allowance rather than silently compare currencies. Verify these boundaries before changing the calculation, then test keyboard access, narrow screens and long history.
+
+Focus decision: the owner reported a rectangle on clicking the chat input. Ask now uses a visible two-pixel ink underline on the editable area instead of an outline around the entire composer. Update the browser focus assertion for Ask to verify the replacement on both click and keyboard return; keep Today's existing container outline assertion. The ledger activity remains accessible inside answer details, and its existing background read is preserved.
+
+### 2026-09-25 — affordability routing (Codex)
+
+The live dinner question returned unrelated whole-month shares and eight payments. Chat's allowance also omitted the bank accounts and pending rows used by Today. Four new regressions failed before the evidence fix. Explicit single-price euro questions about today/tonight now use the shared allowance calculation and a deterministic difference, without an LLM or unrelated chart. Update the `afford-tonight` scenario from `model` to `short` to reflect this deliberate behavior change; the new behavior tests cover both sides of the estimate, missing evidence, Spanish/Portuguese, and refusal to reuse today's number for other currencies/dates/multiple prices. Broader affordability semantics remain open.
+
+WhatsApp's failed offer take now covers expiration as well as prior use. Change the old “already done” assertion/copy to “expired or was already used”; a missing take is not proof that an edit succeeded. The atomic time-window and owner-scope tests verify the new boundary.
 
 - **D1 (2026-09-19) — The legacy twin is not used by people; its machinery still runs.** Measured: 34 `conversation` memories by 2 users in 30 days (about seventeen exchanges), against 3,214 reflections and 160 proactive insights generated by crons in the same window; money: 51 chat turns, 141 bank reads. The LLM spend of $3.18/30 days (15,261 DeepSeek calls) is almost entirely this machinery reflecting on nobody. **Recommendation:** park the routes (M2-5) *and* stop the reflection and insight crons for users with no twin-chat activity in 30 days. Awaiting Stefano's yes; parking is reversible.
 - **D2 (2026-09-19) — Orbs.** The engine is vendored verbatim from thinking-orbs 0.3.1 (`src/lib/orb/engine.js`, MIT). The single deviation is colour: the library is strictly monochrome (neutral grey, dark dots on a light page); TwinMe draws in the register's warm ink. Stefano asked for the exact design, so OW2 adopts the library's monochrome rule; the register comment in `LedgerOrb.tsx` is updated to say so.

@@ -51,7 +51,7 @@ export const SCENARIOS = [
   { id: 'place-week', kind: 'ask', message: 'Where did I spend the most this week?', route: 'model', figures: { only: ['history', 'week', 'shares'] }, actions: { none: true }, mention: [/\d+,\d{2}\s?(EUR|€)/], maxSentences: 3 },
   { id: 'graph-week', kind: 'ask', message: 'Give me a graph of what I spent each day this week', route: 'model', figures: { some: ['week'] }, actions: { none: true }, maxSentences: 3 },
   { id: 'transport-last-week', kind: 'ask', message: 'What did transport cost me last week?', route: 'model', figures: { only: ['history', 'week', 'shares'] }, actions: { none: true }, mention: [/\d+,\d{2}\s?(EUR|€)|nothing|nada|no transport|sem transporte|sin transporte/i], maxSentences: 3 },
-  { id: 'afford-tonight', kind: 'ask', message: 'Can I afford 60 euros tonight?', route: 'model', figures: { only: ['band', 'history', 'week'] }, actions: { none: true }, mention: [/\d+,\d{2}\s?(EUR|€)/], maxSentences: 4 },
+  { id: 'afford-tonight', kind: 'ask', message: 'Can I afford 60 euros tonight?', route: 'short', figures: { only: ['purchase'] }, actions: { none: true }, mention: [/\d+,\d{2}\s?(EUR|€)/], maxSentences: 4 },
 
   /* round 5 (2026-09-20): the questions a person asks over a month */
   { id: 'left-this-month', kind: 'ask', message: 'How much do I have left this month?', route: 'model', figures: { only: ['band', 'months', 'history', 'week'] }, actions: { none: true }, mention: [/\d+,\d{2}\s?(EUR|€)/], maxSentences: 4 },
