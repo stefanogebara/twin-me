@@ -1,7 +1,7 @@
 /**
  * The orb: the ledger at work, in view.
  *
- * A dotted thought-orb (Jakub Antalik's thinking-orbs engine, vendored in src/lib/orb),
+ * A dotted thought-orb (the pinned thinking-orbs package by Jakub Antalik),
  * drawn exactly as the library draws it: strictly monochrome, dark dots on a light page
  * (Stefano, 2026-09-19: the exact design of libraries.dev/orbs). The substrate is pinned
  * light rather than read from the page, because the app stamps data-theme="dark" while
