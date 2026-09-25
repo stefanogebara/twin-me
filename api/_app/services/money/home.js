@@ -97,8 +97,15 @@ export function weighPlaces(transactions, places, { now = new Date() } = {}) {
     byKey.set(p.merchant_key, { ...p, lat: Number(p.lat), lng: Number(p.lon ?? p.lng), category: p.category || null });
   }
   const days = new Map();
+  /* A place is named as the person's own latest payment names it: money_places is shared by
+     every ledger, and its name is not this person's to show (audit S5, 2026-09-26). */
+  const own = new Map();
+  const ownAt = new Map();
   for (const t of transactions) {
     if (!(Number(t.amount) < 0)) continue;
+    const raw = String(t.merchant_raw || '').trim();
+    const when = Date.parse(t.occurred_at) || 0;
+    if (t.merchant_key && raw && (!own.has(t.merchant_key) || when > ownAt.get(t.merchant_key))) { own.set(t.merchant_key, raw); ownAt.set(t.merchant_key, when); }
     const at = new Date(t.occurred_at).getTime();
     if (!Number.isFinite(at) || at < since) continue;
     if (!byKey.has(t.merchant_key)) continue;
@@ -112,7 +119,7 @@ export function weighPlaces(transactions, places, { now = new Date() } = {}) {
     const everyday = EVERYDAY_CATEGORIES.includes(p.category);
     const habit = HABIT_CATEGORIES.includes(p.category) && n >= HABIT_MIN_DAYS;
     if (!everyday && !habit) continue;
-    out.push({ merchant_key: key, name: p.name || key, category: p.category, lat: p.lat, lng: p.lng, weight: n });
+    out.push({ merchant_key: key, name: own.get(key) || key, category: p.category, lat: p.lat, lng: p.lng, weight: n });
   }
   return out;
 }
@@ -365,9 +372,10 @@ export async function staticMap(opts, { key = process.env.GOOGLE_PLACES_API_KEY,
 async function placesForUser(userId, transactions) {
   const keys = [...new Set(transactions.map((t) => t.merchant_key).filter(Boolean))];
   if (!keys.length) return [];
-  const { data } = await supabaseAdmin.from('money_places')
-    .select('merchant_key, name, category, lat, lon')
+  const { data, error } = await supabaseAdmin.from('money_places')
+    .select('merchant_key, category, lat, lon')
     .in('merchant_key', keys);
+  if (error) throw new Error(`places not read: ${error.message}`);
   return data || [];
 }
 

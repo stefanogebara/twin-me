@@ -66,6 +66,16 @@ describe('weighing places', () => {
     expect(w.some((p) => p.merchant_key === 'la tasca')).toBe(false);
   });
 
+  it('names a place as the person\'s own payment does, never with the shared cache\'s name', () => {
+    const shared = [place('mercadona chamberi', 40.4362, -3.7038, 'groceries', 'WHAT SOMEONE ELSE TYPED')];
+    const own = [
+      { ...pay('mercadona chamberi', 1), merchant_raw: 'Mercadona Chamberi' },
+      { ...pay('mercadona chamberi', 4), merchant_raw: 'MERCADONA CHAMBERI 2' },
+    ];
+    expect(weighPlaces(own, shared, { now: NOW })[0].name).toBe('MERCADONA CHAMBERI 2');
+    expect(weighPlaces([pay('mercadona chamberi', 1), pay('mercadona chamberi', 4)], shared, { now: NOW })[0].name).toBe('mercadona chamberi');
+  });
+
   it('ignores payments older than the lookback and places without a point', () => {
     const old = [{ merchant_key: 'mercadona chamberi', amount: -10, occurred_at: '2026-01-05T10:00:00Z' }];
     expect(weighPlaces(old, places, { now: NOW })).toEqual([]);
