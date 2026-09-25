@@ -39,11 +39,21 @@ export function channelFrom(text, { amount = null } = {}) {
   return Number(amount) > 0 ? 'transfer' : 'card';
 }
 
-/** The last four digits of the card, from a masked PAN or a *NNNNNN fragment. */
+/**
+ * The last four digits of the card, from a masked PAN or a *NNNNNN fragment.
+ *
+ * The card number is read as one token of digits and masking characters and its last four
+ * digits taken. It read digits only, up to the first mask character, so "TARJ.
+ * 5540XXXXXXXX1234" gave 5540, the card's first four (2026-09-25). That is not cosmetic:
+ * findMatch refuses to merge two sightings whose cards disagree, so a statement line carrying
+ * the wrong digits could never meet the phone's sighting of the same payment. A number
+ * masked at its end has no last four to give, and says nothing rather than guess.
+ */
 export function cardFrom(text) {
-  const m = String(text || '').match(/(?:TARJETA|TARJ\.?)\s*:?\s*\*?(\d{4,19})/i);
+  const m = String(text || '').match(/(?:TARJETA|TARJ\.?)\s*:?\s*([*Xx\d]{4,25})/i);
   if (!m) return null;
-  return m[1].slice(-4);
+  const tail = m[1].match(/(\d{4})$/);
+  return tail ? tail[1] : null;
 }
 
 /** Card descriptors that are a company under a shorthand nobody says out loud. */

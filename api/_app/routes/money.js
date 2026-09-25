@@ -391,9 +391,24 @@ const upload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: 12 * 1024 * 1024 },
   fileFilter: (_req, file, cb) => {
-    const ok = /\.(xlsx|xls|csv|txt|tsv)$/i.test(file.originalname || '');
-    cb(ok ? null : new Error('Upload a statement exported as Excel or CSV.'), ok);
+    /* The PDF reading shipped in #596 behind this filter, which still refused every .pdf, so
+       the screen offered PDFs and the server answered each one with a blank 500 (found
+       2026-09-25 by the first test to post a PDF through the route rather than the parser). */
+    const ok = /\.(xlsx|xls|csv|txt|tsv|pdf)$/i.test(file.originalname || '');
+    cb(ok ? null : Object.assign(new Error('Upload a statement exported as Excel, CSV or PDF.'), { status: 415 }), ok);
   },
+});
+
+/* A refused upload says why. multer's errors went to Express's handler, which answered a
+   wrong file type or an oversized one with a 500 and an empty body, so the screen could
+   only say that the statement could not be read. */
+const statementUpload = (req, res, next) => upload.single('file')(req, res, (error) => {
+  if (!error) return next();
+  const tooBig = error.code === 'LIMIT_FILE_SIZE';
+  return res.status(tooBig ? 413 : (error.status || 400)).json({
+    success: false,
+    error: tooBig ? 'That file is larger than 12 MB.' : error.message,
+  });
 });
 
 const statementFailure = (res, error) => {
@@ -418,7 +433,7 @@ function jsonField(value) {
 /** A row as the person will see it before they agree to it. */
 const previewRow = (s) => ({ day: s.occurred_at.slice(0, 10), name: maskEvidenceCards(s.merchant_raw), amount: s.amount, currency: s.currency, direction: s.direction });
 
-router.post('/statement', upload.single('file'), async (req, res) => {
+router.post('/statement', statementUpload, async (req, res) => {
   if (!req.file?.buffer?.length) return res.status(400).json({ success: false, error: 'No file received' });
   try {
     const account = await ownedStatementAccount(req.user.id, req.body?.accountId);
@@ -429,7 +444,8 @@ router.post('/statement', upload.single('file'), async (req, res) => {
        so a PDF meets the same header dictionary, the same model and the same parser as a
        spreadsheet (2026-09-25). */
     let rows;
-    if (/\.pdf$/i.test(name) || req.file.mimetype === 'application/pdf') {
+    const isPdf = /\.pdf$/i.test(name) || req.file.mimetype === 'application/pdf';
+    if (isPdf) {
       /* A digital PDF keeps its layout in the positions each run of text was drawn at, and
          pdfGrid rebuilds the rows and columns from those. A scan has no text layer at all,
          so it goes the long way: OCR, which returns lines, and textGrid splits those. */
@@ -450,6 +466,20 @@ router.post('/statement', upload.single('file'), async (req, res) => {
        asked and no question is put. Only a sheet that dictionary cannot read goes further. */
     let { sightings, skipped, header } = toSightings(rows, { accountId: account.id, defaultCurrency: account.currency });
     let notPayments = false;
+
+    /* A PDF's columns are inferred from where its text was drawn, never read from the file, so
+       even when the header dictionary knows the titles the rows are shown before anything is
+       written -- the rule a sheet whose columns a model read already follows. The first PDF
+       rebuild (#596) read 6 of 22 rows of a realistic statement, with dates where the shops'
+       names belonged, and this path would have written them without a word (2026-09-25). */
+    if (isPdf && sightings.length && header && req.body?.confirm !== 'true') {
+      const plan = sanitisePlan({ index: header.index, columns: header.columns, dateOrder: 'dmy', decimal: ',', sign: 'signed' }, rows)
+        || { index: header.index, columns: header.columns };
+      return res.json({ success: true, data: { needs: {
+        plan, questions: [], preview: sightings.slice(0, 5).map(previewRow),
+        read: sightings.length, skipped: skipped.length, reviewRequired: true,
+      } } });
+    }
 
     if (!sightings.length) {
       /* A sheet somebody keeps their own budget in. A model says which column is which --

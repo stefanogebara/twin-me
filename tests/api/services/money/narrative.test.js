@@ -87,6 +87,17 @@ describe('cardFrom', () => {
     expect(cardFrom('TARJETA 5489010523741245 , COMISION 0,00')).toBe('1245');
     expect(cardFrom('BIZUM A FAVOR DE X')).toBe(null);
   });
+  /* A masked number is one token of digits and mask characters, and its last four digits
+     are the card's. Reading digits only up to the first X gave the first four, and findMatch
+     refuses to merge sightings whose cards disagree (2026-09-25). */
+  it('takes the last four of a masked PAN, not the first four', () => {
+    expect(cardFrom('COMPRA TARJ. 5540XXXXXXXX1234 MERCADONA')).toBe('1234');
+    expect(cardFrom('TARJETA 4940xxxxxxxx9876')).toBe('9876');
+    expect(cardFrom('TARJ. ****1234')).toBe('1234');
+  });
+  it('says nothing about a number masked at its end', () => {
+    expect(cardFrom('TARJ. 5540XXXXXXXXXXXX')).toBe(null);
+  });
 });
 
 describe('prettyMerchant', () => {
