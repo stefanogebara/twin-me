@@ -45,8 +45,13 @@ export function clearLegacyRefreshHash(id, hash) {
 export function insertRefreshToken(row) {
   return supabaseAdmin.from('user_refresh_tokens').insert(row);
 }
+const REFRESH_COLUMNS = 'id, user_id, expires_at, token_hash, previous_token_hash, rotated_at';
 export function findRefreshToken(hash) {
-  return supabaseAdmin.from('user_refresh_tokens').select('id, user_id, expires_at').eq('token_hash', hash).single();
+  return supabaseAdmin.from('user_refresh_tokens').select(REFRESH_COLUMNS).eq('token_hash', hash).single();
+}
+/** The row that replaced this hash at its last rotation: the tab that lost the race. */
+export function findRefreshTokenByPrevious(hash) {
+  return supabaseAdmin.from('user_refresh_tokens').select(REFRESH_COLUMNS).eq('previous_token_hash', hash).maybeSingle();
 }
 export function deleteRefreshTokenById(id) {
   return supabaseAdmin.from('user_refresh_tokens').delete().eq('id', id);

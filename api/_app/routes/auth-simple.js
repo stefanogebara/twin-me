@@ -7,6 +7,7 @@ import { encryptToken, encryptState, decryptState } from '../services/encryption
 import * as betaInviteService from '../services/betaInviteService.js';
 import { inngest, EVENTS } from '../services/inngestClient.js';
 import { sendWelcomeEmail, sendMagicLink } from '../services/emailService.js';
+import { rotationVerdict } from '../services/auth/refreshRotation.js';
 import { getRedisClient, isRedisAvailable } from '../services/redisClient.js';
 import { createLogger } from '../services/logger.js';
 import { validate } from '../middleware/validate.js';
@@ -15,7 +16,7 @@ import { authenticateUser } from '../middleware/auth.js';
 import { computeIsAdmin } from '../services/adminAccess.js';
 import {
   findUserByEmail, findUserById, findUserByLegacyRefreshHash, findUserByVerificationToken, createUser, updateUser, clearLegacyRefreshHash,
-  insertRefreshToken, findRefreshToken, deleteRefreshTokenById, deleteRefreshTokenByHash, rotateRefreshToken,
+  insertRefreshToken, findRefreshToken, findRefreshTokenByPrevious, deleteRefreshTokenById, deleteRefreshTokenByHash, rotateRefreshToken,
   insertMagicLink, findMagicLink, consumeMagicLink, insertPendingAuthCode, findPendingAuthCode, deletePendingAuthCode, upsertPlatformConnection,
 } from '../services/auth/authStore.js';
 
@@ -236,6 +237,35 @@ function generateTokenPair(user, client = 'web') {
   const refreshToken = crypto.randomBytes(64).toString('hex');
 
   return { accessToken, refreshToken };
+}
+
+/** The columns /refresh needs to rebuild the signed-in person. */
+const REFRESH_USER_COLUMNS = 'id, email, first_name, last_name, created_at, email_verified, oauth_provider, timezone, preferred_language';
+
+/**
+ * A refresh whose token a rotation replaced out from under it.
+ *
+ * Returns a sent response when the row and the clock settle it, and null when this is not
+ * that case, so the caller carries on down its own path. Three tabs sharing one cookie jar
+ * raced each other on reload and two were told their session was invalid (2026-09-25).
+ */
+async function answerRacedRefresh(res, row, tokenHash) {
+  const verdict = rotationVerdict({ row, presented: tokenHash });
+  if (verdict.action === 'reuse') {
+    /* A credential replaced long ago is being presented. This is the case rotation exists to
+       catch, so the session goes rather than just this call. */
+    log.warn('Refresh token reused after the grace window; revoking the session', { rowId: row.id });
+    await deleteRefreshTokenById(row.id);
+    return res.status(401).json({ error: 'Invalid refresh token' });
+  }
+  if (verdict.action !== 'grace') return null;
+
+  const { data: user } = await findUserById(row.user_id, REFRESH_USER_COLUMNS);
+  if (!user) return null;
+  const { accessToken } = generateTokenPair(user);
+  /* No cookie is set. The jar already holds the token the winner rotated in, and writing
+     this caller's own would hand the browser one the row has never heard of. */
+  return res.json({ success: true, accessToken, user: buildAuthUser(user) });
 }
 
 function hashToken(token) {
@@ -666,6 +696,13 @@ router.post('/refresh', refreshLimiter, validate({ body: AS.REFRESH }), async (r
       tokenRowId = tokenRow.id;
       const { data: userRow } = await findUserById(tokenRow.user_id, 'id, email, first_name, last_name, created_at, email_verified, oauth_provider, timezone, preferred_language');
       user = userRow || null;
+    } else {
+      /* No row holds this hash. It may be the one a rotation replaced moments ago -- the
+         other tab, sharing this browser's single cookie jar, got there first. Answering
+         that with 401 is what signed people out on every reload (2026-09-25). */
+      const { data: racedRow } = await findRefreshTokenByPrevious(tokenHash);
+      const graced = await answerRacedRefresh(res, racedRow, tokenHash);
+      if (graced) return graced;
     }
 
     // Legacy fallback: token was issued before the user_refresh_tokens
@@ -694,6 +731,8 @@ router.post('/refresh', refreshLimiter, validate({ body: AS.REFRESH }), async (r
       const newExpiresAt = new Date(Date.now() + REFRESH_TOKEN_TTL_MS).toISOString();
       const { data: rotated, error: rotateErr } = await rotateRefreshToken(tokenRowId, tokenHash, {
           token_hash: newHash,
+          previous_token_hash: tokenHash,
+          rotated_at: new Date().toISOString(),
           last_used_at: new Date().toISOString(),
           expires_at: newExpiresAt,
         });
@@ -702,8 +741,13 @@ router.post('/refresh', refreshLimiter, validate({ body: AS.REFRESH }), async (r
         return res.status(500).json({ error: 'Internal server error' });
       }
       if (!rotated || rotated.length === 0) {
-        // Lost the race — another refresh already rotated this row.
-        log.warn('refresh rotation lost race — token already rotated', { tokenRowId });
+        /* Lost the write race: both calls read the row before either wrote. The winner has
+           rotated and the cookie jar already holds its token, so this caller needs an access
+           token and nothing else -- the same answer the grace path gives. */
+        log.info('refresh rotation lost race, answering from grace', { tokenRowId });
+        const { data: racedRow } = await findRefreshTokenByPrevious(tokenHash);
+        const graced = await answerRacedRefresh(res, racedRow, tokenHash);
+        if (graced) return graced;
         return res.status(401).json({ error: 'Invalid refresh token' });
       }
 
