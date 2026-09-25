@@ -39,7 +39,9 @@ to this repository:
   `/api/health/deep` 902-1 863 ms for one round trip, and `/money/page` 7 249 ms on a first
   load because it makes several in sequence. It reads as a cold start and is not one: a cold
   `/api/health` answers in 629 ms against 307 ms warm. If the database moves, move this with
-  it; `tests/goals/function-region.goal.test.js` holds the two together.
+  it; `tests/goals/function-region.goal.test.js` holds the two together. Measured after the
+  move: `/auth/verify` 4 563 -> 218 ms, one round trip 650-1 600 -> 140-200 ms, cold first
+  paint 10 462 -> 6 873 ms.
 
 ## Workflow & Task Management
 
