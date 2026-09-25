@@ -462,3 +462,42 @@ test('ambiguous payment review withholds stale guidance and requires explicit co
   expect(writes).toEqual([{revision:1,action:'match',transactionId:'tx1'}]);
   expect(await page.evaluate(()=>document.documentElement.scrollWidth<=document.documentElement.clientWidth)).toBe(true);
 });
+
+test('the package orb paints while Ask waits and follows live reduced motion', async ({ page }) => {
+  await moneyFixture(page);
+  let release!: () => void;
+  const held = new Promise<void>(resolve => { release = resolve; });
+  await page.route('**/api/money/chat/stream', async route => {
+    await held;
+    await route.fulfill({ contentType: 'text/event-stream', body:
+      'data: {"phase":"text","delta":"The check is complete."}\n\n' +
+      'data: {"phase":"done"}\n\n' });
+  });
+  await page.goto('/money/chat');
+  const input = page.getByRole('textbox', { name: 'Ask about your money' });
+  await input.fill('Explain my spending');
+  const send = page.getByRole('button', { name: 'Ask', exact: true });
+  await expect(send).toBeEnabled();
+  await send.click();
+  const orb = page.locator('.mc-pending canvas.orb');
+  try {
+    await expect(orb).toBeVisible();
+    await expect(orb).toHaveAttribute('aria-label', 'Reading');
+    await expect.poll(() => orb.evaluate((el: HTMLCanvasElement) => {
+      const pixels = el.getContext('2d')!.getImageData(0, 0, el.width, el.height).data;
+      return pixels.some((value, index) => index % 4 === 3 && value > 0);
+    })).toBe(true);
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    const unchangedAcrossFrames = () => orb.evaluate(async (el: HTMLCanvasElement) => {
+      const before = el.toDataURL();
+      await new Promise<void>(resolve => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
+      return before === el.toDataURL();
+    });
+    await expect.poll(unchangedAcrossFrames).toBe(true);
+    await page.emulateMedia({ reducedMotion: 'no-preference' });
+    await expect.poll(unchangedAcrossFrames).toBe(false);
+    await orb.screenshot({ path: test.info().outputPath('official-thinking-orb.png') });
+  } finally { release(); }
+  await expect(page.getByText('The check is complete.', { exact: true })).toBeVisible();
+  await expect(orb).toHaveCount(0);
+});

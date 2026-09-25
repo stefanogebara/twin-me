@@ -1,0 +1,18 @@
+{
+  "repository": "https://github.com/Jakubantalik/Libraries.dev",
+  "commit": "f20116327f4e3b28d0fb70b04437dfd092bf88fe",
+  "path": "skills/libraries-dev",
+  "license": "MIT",
+  "installed": "2026-09-26",
+  "files": {
+    "LICENSE": "915a283980628a0ca9e7b423ebafc6f3a0fa1e630ff17d34e59034808d92011c",
+    "SKILL.md": "7ba03e3884bd75a45a08b734f9629e172c1917744d9fb81506d434b8d7fe1372",
+    "references/01-border-beam.md": "19bd52664f2c98ab64d36cf20496073d4ac714439981643486de01e51db26ac5",
+    "references/02-thinking-orbs.md": "d8aebfb00760474eb5edfc1f82209eef9f9223d9202d2019e8cb358cc05de43e",
+    "references/03-liquid-gooey.md": "0554c6d7a466d111b305cd31e16fe3fe96c555db6a1a0ff682f57e51503aa8ec",
+    "references/04-voice-glow.md": "37bbb1d85fb8701471f9e970bcbf6b905c231da2293620f10fa3f83b093ad410",
+    "references/05-bot-avatars.md": "4cca84e40875a9fd815105921cf3f3518ad1c8191d67d072d99d78578bcdac51",
+    "references/06-metal-fx.md": "dfd07ee746481951512b88a22a6dce901abd2c7a838757a469e8aaf3f6239852",
+    "references/07-img-fx.md": "488b2471bd800cba208aa38f59f139314f52f5c04b918a64dc9e39bf6f7f683a"
+  }
+}

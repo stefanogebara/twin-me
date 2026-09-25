@@ -293,6 +293,21 @@ Recent memories are dominated by reflections (~90 of last 100). Platform data ob
 **OK to kill specific processes by PID:**
 - `cmd.exe //c "taskkill /PID 12345 /F"` - OK when you know the specific PID
 
+## Libraries.dev (project skill)
+
+The official free skill is `.agents/skills/libraries-dev/SKILL.md`, also available
+through `.claude/skills/libraries-dev`. It covers all seven Libraries.dev libraries;
+`UPSTREAM.json` records its pinned source and license. Use it when the user asks for
+Libraries.dev integration. The current register and actual product states remain
+this project's design authority: skill suggestions are not a reason to put metal
+on financial figures or a glowing frame around a focused chat input.
+
+The web `LedgerOrb` now uses the pinned `thinking-orbs/engine` package through a
+small compatibility painter; keep its reduced-motion, visibility and translated
+status behavior. The native renderer is a separate integration and remains unchanged.
+`voice-glow` is already used by Presence. Other packages are not installed merely
+because their references are available. No Pro skill or subscription is required.
+
 ## Custom Slash Commands
 - `/verify-app` - TypeScript check + Vite build + server health
 - `/test-api <endpoint>` - Test API endpoints with auth
