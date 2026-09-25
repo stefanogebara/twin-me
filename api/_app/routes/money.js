@@ -427,6 +427,7 @@ router.post('/statement', upload.single('file'), async (req, res) => {
     /* A bank's own export reads for nothing: the header dictionary knows it, no model is
        asked and no question is put. Only a sheet that dictionary cannot read goes further. */
     let { sightings, skipped, header } = toSightings(rows, { accountId: account.id, defaultCurrency: account.currency });
+    let notPayments = false;
 
     if (!sightings.length) {
       /* A sheet somebody keeps their own budget in. A model says which column is which --
@@ -437,6 +438,13 @@ router.post('/statement', upload.single('file'), async (req, res) => {
         complete: (args) => llmComplete({ tier: TIER_EXTRACTION, ...args }),
         userId: req.user.id,
       });
+      /* Asked, and the answer was that these are not payments. "Madrid Budget.xlsx", a real
+         one sent on WhatsApp (2026-09-25), is a column per category with the amounts stacked
+         under each and not one date in the file. It is a budget, and a budget is not a
+         ledger: this product places every payment on the day it happened, so a figure with
+         no day cannot be put anywhere. Saying "no statement header" of a file with eighteen
+         headers told the person nothing they could act on. */
+      if (!plan) notPayments = true;
       if (plan) {
         plan = answeredPlan(plan, jsonField(req.body?.answers) || {});
         const questions = planQuestions(rows, plan, { accountCurrency: account.currency });
@@ -457,7 +465,9 @@ router.post('/statement', upload.single('file'), async (req, res) => {
     if (!sightings.length) {
       return res.status(422).json({
         success: false,
-        error: header ? 'No rows in that file could be read as payments.' : 'That file has no statement header this reads yet.',
+        error: header ? 'No rows in that file could be read as payments.'
+          : notPayments ? 'This reads like a budget rather than a list of payments. Each payment needs its own row, with the day it happened.'
+            : 'That file has no statement header this reads yet.',
         data: { skipped: skipped.length },
       });
     }
