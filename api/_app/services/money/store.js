@@ -220,8 +220,16 @@ export async function removeBankAccount(userId, accountId, { endConsent = null }
   if (error) throw new Error(`account not removed: ${error.message}`);
   let consentEnded = false;
   if (account.session_id && endConsent) {
-    const { data: siblings } = await supabaseAdmin.from('money_accounts').select('id').eq('user_id', userId).eq('session_id', account.session_id).limit(1);
-    if (!(siblings || []).length) consentEnded = await Promise.resolve(endConsent(account.session_id)).then(() => true).catch(quietly('accounts/end-consent', false));
+    let siblings;
+    try {
+      const { data, error: siblingError } = await supabaseAdmin.from('money_accounts').select('id').eq('user_id', userId).eq('session_id', account.session_id).limit(1);
+      if (siblingError || !Array.isArray(data)) throw new Error('shared-account lookup failed');
+      siblings = data;
+    } catch {
+      // Local removal succeeded; an unknown sibling state cannot authorize ending shared consent.
+      log.warn('bank consent retained: shared-account lookup failed');
+    }
+    if (siblings?.length === 0) consentEnded = await Promise.resolve(endConsent(account.session_id)).then(() => true).catch(quietly('accounts/end-consent', false));
   }
   log.info('bank account removed', { userId, accountId, sightings: gone.money_sightings, transactions: gone.money_transactions, consentEnded });
   return { id: account.id, name: account.name, iban_mask: account.iban_mask, provider: account.provider, sightings: gone.money_sightings, transactions: gone.money_transactions, consent_ended: consentEnded };
