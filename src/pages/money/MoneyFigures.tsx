@@ -49,7 +49,7 @@ function Shares({ items }: { items: FigureShare[] }) {
 function Purchase({ figure }: { figure: PurchaseFigure }) {
   const t = useT();
   const above = figure.difference > 0;
-  const money = (n: number) => euro(n, figure.currency);
+  const money = (n: number) => `${n < 0 ? '−' : ''}${euro(n, figure.currency)}`;
   return (
     <div className="mc-purchase">
       <div className="mc-purchase-verdict">
