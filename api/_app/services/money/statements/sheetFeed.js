@@ -1,25 +1,18 @@
 /**
- * A sheet somebody keeps updating.
- * ================================
- * Enable Banking is not open yet, and plenty of people already keep every cost and every
- * payday in a spreadsheet they touch most days. Uploading that once is the wrong shape: the
- * file is alive. A link re-read on a schedule is the right one, and it is the shape the
- * calendar already uses for a pasted Canvas or Blackboard address (calendar.js, FEED_KIND).
+ * Unwired sheet-feed core. Do not expose a route or schedule until stable row updates /
+ * deletions and a safe network adapter are implemented. Content-derived statement refs
+ * deduplicate unchanged rows, but edits create new identities and absent rows remain.
+ * Re-reading still performs ingestion writes; this is not a zero-cost synchronization.
  *
- * Two things already in place make it cheap. importer.js gives every row a source_ref
- * content-addressed on its day, its amount and its text, so re-reading the whole sheet
- * writes nothing for a row that has not changed and exactly one row for a row that has --
- * no diffing, no cursor, no state to get wrong. And shape.js can read a sheet nobody
- * designed for us, so the plan is settled once, with its questions, and reused every time.
- *
- * The dangerous part is that a server fetches a pasted address on a schedule for ever. The
- * guard here is the calendar's (ics.js, isFeedUrl): https only, and never an address that
- * resolves only from inside -- localhost, .local, .internal, a bare IP, a cloud's metadata
- * service. This module is pure; the fetching and the storing live with the caller.
+ * URL checks here validate syntax only. The caller's fetchText must validate and pin
+ * public DNS addresses at every redirect, enforce deadlines and stream the byte limit.
+ * A hostname passing isFeedUrl does not establish private-network safety.
  */
+import { createHash } from 'node:crypto';
+import { planQuestions as interpretationQuestions } from './shape.js';
 import { isFeedUrl } from '../ics.js';
 
-/** Whether this is an address this will fetch at all. */
+/** Syntactic eligibility only; not DNS, redirect or connection safety. */
 export function isSheetUrl(url) {
   return isFeedUrl(url);
 }
@@ -27,8 +20,9 @@ export function isSheetUrl(url) {
 /** Where the sheet lives, for the one line a screen shows about it. */
 export function sheetKind(url) {
   const host = (() => { try { return new URL(String(url || '')).hostname.toLowerCase(); } catch { return ''; } })();
-  if (host.endsWith('docs.google.com') || host.endsWith('google.com')) return 'google';
-  if (host.endsWith('onedrive.live.com') || host.endsWith('sharepoint.com') || host.endsWith('live.com')) return 'onedrive';
+  const belongsTo = (domain) => host === domain || host.endsWith(`.${domain}`);
+  if (belongsTo('google.com')) return 'google';
+  if (belongsTo('sharepoint.com') || belongsTo('live.com')) return 'onedrive';
   return 'csv';
 }
 
@@ -63,29 +57,87 @@ export function normaliseSheetUrl(url) {
   return `https://docs.google.com/spreadsheets/d/${sheet[1]}/export?format=csv&gid=${gid}`;
 }
 
+/** Canonical fetch identity; fragments do not reach the server. */
+function sourceIdentity(url) {
+  const normalised = normaliseSheetUrl(url);
+  if (!normalised) return null;
+  const parsed = new URL(normalised);
+  parsed.hash = '';
+  parsed.searchParams.sort();
+  return parsed.href;
+}
+
+const digest = (value) => createHash('sha256').update(JSON.stringify(value)).digest('hex');
+
+function approvalBinding(feed) {
+  const source = sourceIdentity(feed?.url);
+  const p = feed?.plan;
+  if (!source || typeof feed?.accountId !== 'string' || !feed.accountId.trim()
+    || !p || !Number.isInteger(p.index) || p.index < 0 || !p.columns
+    || typeof p.columns !== 'object' || Array.isArray(p.columns)
+    || (p.currency != null && !/^[A-Z]{3}$/.test(p.currency))
+    || (p.year != null && (!Number.isInteger(p.year) || p.year < 2000 || p.year > 2100))
+    || !['dmy', 'mdy', 'ymd'].includes(p.dateOrder) || ![',', '.'].includes(p.decimal)
+    || !['signed', 'all_out', 'all_in', 'debit_credit'].includes(p.sign)) return null;
+  const columns = Object.entries(p.columns).sort(([a], [b]) => a.localeCompare(b));
+  if (!columns.length || columns.some(([, at]) => !Number.isInteger(at) || at < 0)) return null;
+  if (p.columns.date === undefined && p.columns.valueDate === undefined) return null;
+  if (p.columns.amount === undefined && p.columns.debit === undefined && p.columns.credit === undefined) return null;
+  return digest({ source, accountId: feed.accountId, index: p.index, columns,
+    dateOrder: p.dateOrder, decimal: p.decimal, sign: p.sign,
+    currency: p.currency ?? null, year: p.year ?? null });
+}
+
+function schemaFingerprint(rows, plan) {
+  if (!Array.isArray(rows)) return null;
+  const header = rows[plan.index];
+  if (!Array.isArray(header) || !header.length
+    || Object.values(plan.columns).some((at) => at >= header.length)
+    || rows.slice(plan.index + 1).some((row) => !Array.isArray(row) || row.length > header.length)) return null;
+  // Exact header text and position: a rename or reorder requires a new review.
+  return digest({ index: plan.index, header: header.map((cell) => String(cell ?? '')) });
+}
+
+/**
+ * Call only after an explicit confirmation of the preview; answered questions are not
+ * consent. The future registration route must store this server-side with its owner.
+ * This digest is a change detector, not a signed authorization token: never accept an
+ * arbitrary client-supplied approval or regenerate one during a scheduled read.
+ */
+export function createSheetApproval(feed, rows, { confirmed = false } = {}) {
+  if (confirmed !== true) return null;
+  const binding = approvalBinding(feed);
+  if (!binding) return null;
+  const schema = schemaFingerprint(rows, feed.plan);
+  if (!schema || interpretationQuestions(rows, feed.plan).length) return null;
+  return { version: 1, binding, schema };
+}
+
 /* --------------------------------------------------------------- re-reading */
 
-/** A sheet larger than this is not a budget; it is a mistake, and it is not downloaded. */
+/** Requested byte limit; the future network adapter must enforce it while streaming. */
 export const MAX_SHEET_BYTES = 4 * 1024 * 1024;
 
 /**
  * Read a registered sheet once and put what is in it through the ledger.
  *
- * Nothing here diffs. Every row goes to ingestSightings every time, and the content-addressed
- * source_ref means a row that has not changed finds its own line and writes nothing, while a
- * row the person added since finds nothing and opens one. That is why this can run hourly
- * and cost almost nothing.
+ * Approval must still match the canonical source, account, interpretation and header.
+ * This does not reconcile edited or deleted rows; production wiring remains blocked.
  *
- * @param {object} feed   { url, plan, accountId }
+ * @param {object} feed   { url, plan, accountId, approval }
  * @param {object} deps   { fetchText, parseDelimited, toSightings, ingestSightings, planQuestions }
  * @returns {Promise<{ ok: boolean, reason?: string, read?: number, created?: number, attached?: number, questions?: object[] }>}
  */
 export async function readSheetFeed(feed, deps) {
   const url = normaliseSheetUrl(feed?.url);
   if (!url) return { ok: false, reason: 'bad_url' };
-  /* Without a settled plan the sheet's columns were never agreed with the person, and
-     guessing them on a schedule would write a ledger nobody checked. */
+  // Having a plan or answering its questions does not establish explicit approval.
   if (!feed?.plan) return { ok: false, reason: 'no_plan' };
+  const binding = approvalBinding(feed);
+  // Copy primitive fields: a mutable approval reference is not a snapshot across await.
+  const approval = { version: feed.approval?.version, binding: feed.approval?.binding, schema: feed.approval?.schema };
+  if (!binding || approval.version !== 1 || approval.binding !== binding
+    || typeof approval.schema !== 'string') return { ok: false, reason: 'approval_required' };
 
   const text = await deps.fetchText(url, { maxBytes: MAX_SHEET_BYTES }).catch(() => null);
   if (text === null || text === undefined) return { ok: false, reason: 'unreachable' };
@@ -94,8 +146,13 @@ export async function readSheetFeed(feed, deps) {
   if (/^\s*<(!doctype|html)/i.test(text)) return { ok: false, reason: 'not_shared' };
 
   const rows = deps.parseDelimited(text);
-  /* The person may have added a column, or moved the header down. The plan stops fitting and
-     the honest answer is to ask again, not to import the wrong columns quietly. */
+  if (approvalBinding(feed) !== binding || feed.approval?.version !== approval.version
+    || feed.approval?.binding !== approval.binding || feed.approval?.schema !== approval.schema) {
+    return { ok: false, reason: 'approval_required' };
+  }
+  const schema = schemaFingerprint(rows, feed.plan);
+  if (!schema || schema !== approval.schema) return { ok: false, reason: 'approval_required' };
+  // New rows can introduce unanswered interpretation questions despite stable headers.
   const questions = deps.planQuestions(rows, feed.plan);
   if (questions.length) return { ok: false, reason: 'shape_changed', questions };
 
