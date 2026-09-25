@@ -101,7 +101,7 @@ const PrivacyPolicy = () => {
             <p>If you use Money, we collect what it takes to read your spending:</p>
             <ul>
               <li><strong>Your bank,</strong> Santander or Revolut, through Enable Banking, a licensed European account provider. You approve the connection at your own bank and we never see your bank login. We read balances and transactions: the amount, the date, the name and text the bank sends, the last four digits of the card, and the account name and IBAN. The connection is read-only — we cannot move money.</li>
-              <li><strong>Statements you upload</strong> (CSV, Excel or OFX)</li>
+              <li><strong>Statements you upload</strong> (CSV, Excel or OFX), and spreadsheets you keep your own budget in</li>
               <li><strong>Bank notifications you forward</strong> from your phone, as the text your bank wrote</li>
               <li><strong>A calendar link you paste,</strong> from Canvas, Blackboard or any calendar that gives you a private .ics address. We read it once a day: event titles, dates and times, and where they are. We keep, for ninety days back, only the events that name a trip, an exam or something due, and the month ahead; nothing is ever written to the calendar, and the link is removed the moment you remove it.</li>
               <li><strong>Emails sent to your receipts address.</strong> Money gives you an address of your own ending in in.twinme.me. Anything sent there is read as a payment: a receipt or invoice you forward, or the alert your bank sends when you point its alerts at that address. We keep the amount, the shop, the date, the line items and the order reference, and the message itself for as long as your account exists. Receipts from shops are read by a language model that may only return numbers present in the email; your bank's alerts are read by fixed rules. Nothing is sent to that address unless you or your bank send it, and we never read any other mailbox for this.</li>
@@ -186,7 +186,12 @@ const PrivacyPolicy = () => {
                 retired twin, for personality analysis. Since 22 September 2026 it also routes a merchant's
                 name on a bank line, how many payments it took and their typical amount to TypeSafe's Jev,
                 a classification model, when no places provider could say what kind of place it is; the
-                answer is kept for you alone and can be found and undone. Content sent to these models is
+                answer is kept for you alone and can be found and undone. Since 25 September 2026 it
+                also routes the first dozen rows of a spreadsheet you upload, with each cell shortened,
+                so a model can say which column is the date and which is the amount when the file is not
+                a bank's own export. It is asked for the shape of the file and never for its figures:
+                every amount in your ledger is read from the file by our own code, never produced by a
+                model. The rest of the file is not sent. Content sent to these models is
                 processed and not retained by the providers for training.
               </li>
               <li>

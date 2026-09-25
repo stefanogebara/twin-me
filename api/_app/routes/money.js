@@ -65,6 +65,9 @@ import { recordOptIn } from '../services/money/channelStore.js';
 import { isMoneyChannelUser } from '../services/money/channel.js';
 import { removeBankAccount, inPersonScope, personProfileCached, personProfile, ingestSighting, ingestSightings, listTransactions, transactionPage, sightingsFor, refreshRecurring, forecast, setVerdict, userForCaptureKey, saveBankAccounts, listBankAccounts, pullBankFeed, refreshReadings, listReadings, setReadingVerdict, months, feedBudget, categorySpend, listPlaces, setPlaceCategory, enrichPlaces, subscriptionUsage, questionsFor, answerQuestion, skipQuestion, listFacts, deleteFact, recordCallbackFailure, listChatTurns, saveChatTurn, learn, userLanguage, patternsFor } from '../services/money/store.js';
 import { parseDelimited, parseWorkbook, toSightings } from '../services/money/statements/importer.js';
+import { planQuestions, answeredPlan, sanitisePlan } from '../services/money/statements/shape.js';
+import { readShape } from '../services/money/statements/shapeReader.js';
+import { complete as llmComplete, TIER_EXTRACTION } from '../services/llmGateway.js';
 import { statementAccounts, createStatementAccount, ownedStatementAccount, checkStatementEvidence, StatementInputError } from '../services/money/statements/accounts.js';
 import { isConfigured, listBanks, startAuthorisation, createSession, getSession, applicationInfo, deleteSession } from '../services/money/feeds/enableBanking.js';
 import { answer as chatAnswer, answerStream as chatAnswerStream, act as chatAct } from '../services/money/chat.js';
@@ -397,6 +400,14 @@ router.post('/statement/accounts', validate({ body: S.STATEMENT_ACCOUNT }), asyn
   try { res.status(201).json({ success: true, data: await createStatementAccount(req.user.id, req.body) }); }
   catch (error) { statementFailure(res, error); }
 });
+/** A multipart text field carrying JSON. Bad JSON is no field, never a 500. */
+function jsonField(value) {
+  if (!value || typeof value !== 'string') return null;
+  try { const v = JSON.parse(value); return v && typeof v === 'object' ? v : null; } catch { return null; }
+}
+/** A row as the person will see it before they agree to it. */
+const previewRow = (s) => ({ day: s.occurred_at.slice(0, 10), name: s.merchant_raw, amount: s.amount, currency: s.currency, direction: s.direction });
+
 router.post('/statement', upload.single('file'), async (req, res) => {
   if (!req.file?.buffer?.length) return res.status(400).json({ success: false, error: 'No file received' });
   try {
@@ -405,7 +416,30 @@ router.post('/statement', upload.single('file'), async (req, res) => {
     const rows = /\.(xlsx|xls)$/i.test(name)
       ? parseWorkbook(req.file.buffer)
       : parseDelimited(req.file.buffer.toString('utf8'));
-    const { sightings, skipped, header } = toSightings(rows, { accountId: account.id, defaultCurrency: account.currency });
+    /* A bank's own export reads for nothing: the header dictionary knows it, no model is
+       asked and no question is put. Only a sheet that dictionary cannot read goes further. */
+    let { sightings, skipped, header } = toSightings(rows, { accountId: account.id, defaultCurrency: account.currency });
+
+    if (!sightings.length) {
+      /* A sheet somebody keeps their own budget in. A model says which column is which --
+         never what the figures are -- and what the file cannot say about itself is put to
+         the person before a single row enters the ledger. */
+      const given = jsonField(req.body?.plan);
+      let plan = given ? sanitisePlan(given, rows) : await readShape(rows, {
+        complete: (args) => llmComplete({ tier: TIER_EXTRACTION, ...args }),
+        userId: req.user.id,
+      });
+      if (plan) {
+        plan = answeredPlan(plan, jsonField(req.body?.answers) || {});
+        const questions = planQuestions(rows, plan, { accountCurrency: account.currency });
+        if (questions.length) {
+          const preview = toSightings(rows, { accountId: account.id, defaultCurrency: account.currency, plan }).sightings.slice(0, 5);
+          return res.json({ success: true, data: { needs: { plan, questions, preview: preview.map(previewRow) } } });
+        }
+        ({ sightings, skipped, header } = toSightings(rows, { accountId: account.id, defaultCurrency: account.currency, plan }));
+      }
+    }
+
     if (!sightings.length) {
       return res.status(422).json({
         success: false,
