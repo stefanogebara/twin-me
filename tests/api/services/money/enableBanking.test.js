@@ -24,14 +24,14 @@ describe('toSighting', () => {
       credit_debit_indicator: 'DBIT',
       booking_date: '2026-09-08',
       value_date: '2026-09-07',
-      remittance_information: ['PAGO MOVIL EN EL CORTE INGLES, MADRID ES, TARJ. :*741245'],
+      remittance_information: ['PAGO MOVIL EN EL CORTE INGLES, MADRID ES, TARJ. :*554444'],
     }, 'acc-1');
     expect(s).toMatchObject({
       merchant_raw: 'El Corte Ingles',
       merchant_key: 'el corte ingles',
       channel: 'card',
-      card_last4: '1245',
-      raw_text: 'PAGO MOVIL EN EL CORTE INGLES, MADRID ES, TARJ. :*741245',
+      card_last4: '4444',
+      raw_text: 'PAGO MOVIL EN EL CORTE INGLES, MADRID ES, TARJ. :*554444',
     });
   });
 
@@ -168,7 +168,7 @@ describe('fetchTransactions, attended and with pending rows', () => {
 
 describe('toSighting on a pending row', () => {
   it('keys it by its own day and amount, marks it less certain, and keeps the status', () => {
-    const s = toSighting({ status: 'PDNG', transaction_amount: { amount: '19.99', currency: 'EUR' }, credit_debit_indicator: 'DBIT', remittance_information: ['PAGO MOVIL EN CABIFY, MADRID ES, TARJ. :*741245'], transaction_date: '2026-09-13' }, 'a1');
+    const s = toSighting({ status: 'PDNG', transaction_amount: { amount: '19.99', currency: 'EUR' }, credit_debit_indicator: 'DBIT', remittance_information: ['PAGO MOVIL EN CABIFY, MADRID ES, TARJ. :*554444'], transaction_date: '2026-09-13' }, 'a1');
     expect(s.source_ref.startsWith('pend:')).toBe(true);
     expect(s.parse_confidence).toBe(0.85);
     expect(s.raw_json.status).toBe('PDNG');

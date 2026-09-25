@@ -20,7 +20,7 @@ beforeEach(() => { vi.clearAllMocks(); });
 describe('payment evidence presentation', () => {
   it.each([
     ['COMPRA Cafe, TARJETA 4111111111111111, COMISION 0,00', 'COMPRA Cafe, TARJETA ****1111, COMISION 0,00'],
-    ['PAGO MOVIL Cafe, TARJ. :*741245', 'PAGO MOVIL Cafe, TARJ. :****1245'],
+    ['PAGO MOVIL Cafe, TARJ. :*554444', 'PAGO MOVIL Cafe, TARJ. :****4444'],
     ['Card number: 4111 1111 1111 1111', 'Card number: ****1111'],
     ['debit card # 4111-1111-1111-1111', 'debit card # ****1111'],
     ['credit card 3782 822463 10005', 'credit card ****0005'],
@@ -67,7 +67,7 @@ describe('payment evidence presentation', () => {
   });
 
   it('does not progressively change evidence shown more than once', async () => {
-    returning([fixture('TARJ. :*741245')]);
+    returning([fixture('TARJ. :*554444')]);
     const once = await sightingsFor('owner', 'payment');
     returning(once);
     expect(await sightingsFor('owner', 'payment')).toEqual(once);

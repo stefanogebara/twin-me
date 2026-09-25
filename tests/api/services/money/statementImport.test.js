@@ -28,7 +28,7 @@ const PREAMBLE = [
 
 const HEADER = ['FECHA OPERACIÓN', 'FECHA VALOR', 'CONCEPTO', 'IMPORTE', 'SALDO'];
 
-const CARD_ROW = ['08/09/2026', '08/09/2026', 'PAGO MOVIL EN EL CORTE INGLES, MADRID ES, TARJ. :*741245', '-116,76', '2.345,67'];
+const CARD_ROW = ['08/09/2026', '08/09/2026', 'PAGO MOVIL EN EL CORTE INGLES, MADRID ES, TARJ. :*554444', '-116,76', '2.345,67'];
 const BIZUM_ROW = ['07/09/2026', '07/09/2026', 'BIZUM A FAVOR DE ANA LOPEZ CONCEPTO: Cena', '-20,00', '2.462,43'];
 const TRANSFER_ROW = ['01/09/2026', '02/09/2026', 'TRANSFERENCIA INMEDIATA DE UNIVERSIDAD CARLOS III, CONCEPTO Nomina agosto', '1.850,00', '2.482,43'];
 const BLANK_ROW = ['', '', '', '', ''];
@@ -123,12 +123,12 @@ describe('parseDelimited', () => {
       'Rango de fechas: 01/09/2026 - 30/09/2026;;;;',
       ';;;;',
       'FECHA OPERACIÓN;FECHA VALOR;CONCEPTO;IMPORTE;SALDO',
-      '08/09/2026;08/09/2026;"PAGO MOVIL EN EL CORTE INGLES, MADRID ES, TARJ. :*741245";-116,76;2.345,67',
+      '08/09/2026;08/09/2026;"PAGO MOVIL EN EL CORTE INGLES, MADRID ES, TARJ. :*554444";-116,76;2.345,67',
       '07/09/2026;07/09/2026;BIZUM A FAVOR DE ANA LOPEZ CONCEPTO: Cena;-20,00;2.462,43',
     ].join('\r\n');
     const rows = parseDelimited(csv);
     expect(rows[3]).toEqual(HEADER);
-    expect(rows[4][2]).toBe('PAGO MOVIL EN EL CORTE INGLES, MADRID ES, TARJ. :*741245');
+    expect(rows[4][2]).toBe('PAGO MOVIL EN EL CORTE INGLES, MADRID ES, TARJ. :*554444');
     expect(rows[4][3]).toBe('-116,76');
   });
   it('reads a comma file whose amounts are quoted, and a tab file', () => {
@@ -165,18 +165,18 @@ describe('toSightings', () => {
     const header = { index: 5, columns: { date: 0, valueDate: 1, concept: 2, amount: 3, balance: 4 } };
     expect(sightings[0]).toEqual({
       source: 'statement',
-      source_ref: 'st:005bb65b70e812090f35d79fb341388e',
-      legacy_refs: expect.arrayContaining(['st:124055d0871eaa18f48e1d59930f047b']),
+      source_ref: 'st:5e2041d32484a5914feae3ebadadcc26',
+      legacy_refs: expect.arrayContaining(['st:d715523f6815cfc3b3f37984bf666bfa']),
       account_id: 'acc-1',
       raw_json: { row: CARD_ROW, header },
-      raw_text: 'PAGO MOVIL EN EL CORTE INGLES, MADRID ES, TARJ. :*741245',
+      raw_text: 'PAGO MOVIL EN EL CORTE INGLES, MADRID ES, TARJ. :*554444',
       amount: 116.76,
       currency: 'EUR',
       direction: 'out',
       merchant_raw: 'El Corte Ingles',
       merchant_key: 'el corte ingles',
       occurred_at: '2026-09-08T12:00:00.000Z',
-      card_last4: '1245',
+      card_last4: '4444',
       parse_confidence: 0.95,
       channel: 'card',
     });
@@ -205,7 +205,7 @@ describe('toSightings', () => {
   it('prefers the value date over the operation date', () => {
     const { sightings } = toSightings([HEADER, TRANSFER_ROW]);
     expect(sightings[0].occurred_at).toBe('2026-09-02T12:00:00.000Z');   // valor, not operación
-    const noValueDate = ['05/09/2026', '', 'COMPRA MERCADONA, MADRID ES, TARJETA 5489010523741245', '-31,20', ''];
+    const noValueDate = ['05/09/2026', '', 'COMPRA MERCADONA, MADRID ES, TARJETA 5555555555554444', '-31,20', ''];
     expect(toSightings([HEADER, noValueDate]).sightings[0].occurred_at).toBe('2026-09-05T12:00:00.000Z');
   });
 
@@ -233,7 +233,7 @@ describe('toSightings', () => {
     const rows = [
       ['Movimientos de la cuenta', '', '', '', ''],
       ['FECHA', 'CONCEPTO', 'CARGO', 'ABONO', 'SALDO'],
-      ['08/09/26', 'COMPRA GLOVOAPP ES, MADRID, TARJETA 5489010523741245', '24,90', '', '1.000,00'],
+      ['08/09/26', 'COMPRA GLOVOAPP ES, MADRID, TARJETA 5555555555554444', '24,90', '', '1.000,00'],
       ['09/09/26', 'BIZUM DE ANA LOPEZ CONCEPTO: Sin concepto', '', '15,00', '1.015,00'],
       ['10/09/26', 'RECIBO IBERDROLA CLIENTES', '(45,00)', '', '970,00'],
       ['11/09/26', 'APUNTE SIN IMPORTE', '', '', '970,00'],
@@ -252,8 +252,8 @@ describe('toSightings', () => {
       HEADER,
       ['08/09/2026', '08/09/2026', 'TRANSFERENCIA DE STEFANO GEBARA', '12.500,00', ''],
       ['08/09/2026', '08/09/2026', 'COMISION MANTENIMIENTO', '(45,00)', ''],
-      ['08/09/2026', '08/09/2026', 'COMPRA APPLE STORE, MADRID ES, TARJETA 5489010523741245', '-1.299,00 €', ''],
-      ['08/09/2026', '08/09/2026', 'PAGO MOVIL EN MERCADONA, MADRID ES, TARJ. :*741245', '-1,50', ''],
+      ['08/09/2026', '08/09/2026', 'COMPRA APPLE STORE, MADRID ES, TARJETA 5555555555554444', '-1.299,00 €', ''],
+      ['08/09/2026', '08/09/2026', 'PAGO MOVIL EN MERCADONA, MADRID ES, TARJ. :*554444', '-1,50', ''],
     ];
     const { sightings } = toSightings(rows);
     expect(sightings.map((s) => [s.direction, s.amount])).toEqual([
@@ -265,9 +265,9 @@ describe('toSightings', () => {
   it('reads ISO dates, two-digit years and an unformatted serial in the same file', () => {
     const rows = [
       ['fecha', 'concepto', 'importe', 'divisa'],
-      ['2026-09-08', 'COMPRA MERCADONA, MADRID ES, TARJETA 5489010523741245', '-31,20', 'EUR'],
-      ['09/09/26', 'COMPRA ZARA, MADRID ES, TARJETA 5489010523741245', '-59,95', 'EUR'],
-      ['46273', 'COMPRA IKEA, ALCORCON ES, TARJETA 5489010523741245', '-120,00', 'USD'],
+      ['2026-09-08', 'COMPRA MERCADONA, MADRID ES, TARJETA 5555555555554444', '-31,20', 'EUR'],
+      ['09/09/26', 'COMPRA ZARA, MADRID ES, TARJETA 5555555555554444', '-59,95', 'EUR'],
+      ['46273', 'COMPRA IKEA, ALCORCON ES, TARJETA 5555555555554444', '-120,00', 'USD'],
       ['no es una fecha', 'COMPRA X', '-1,00', 'EUR'],
     ];
     const { sightings, skipped } = toSightings(rows);
