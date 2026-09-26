@@ -42,7 +42,7 @@ describe('readPage', () => {
     const now = new Date('2026-09-19T10:00:00Z');
     const { data, failed } = await readPage(owner, { view: 'today', now });
     expect(failed).toEqual([]);
-    expect(Object.keys(data).sort()).toEqual(['accounts', 'capabilities', 'categories', 'facts', 'forecast', 'inbox', 'ledger', 'months', 'profile', 'readings', 'reconciliation', 'recurring', 'seen', 'sources', 'today', 'usage']);
+    expect(Object.keys(data).sort()).toEqual(['accounts', 'capabilities', 'categories', 'facts', 'flows', 'forecast', 'inbox', 'ledger', 'months', 'profile', 'readings', 'reconciliation', 'recurring', 'seen', 'sources', 'today', 'usage']);
     /* One read of each table, with everything: the internal facts and the rejected rows. */
     expect(f.ledger).toHaveBeenCalledTimes(1);
     expect(f.ledger).toHaveBeenCalledWith(owner, { limit: 20000, includeRejected: true });
@@ -83,11 +83,27 @@ describe('readPage', () => {
     vi.clearAllMocks(); happy();
     f.ledger.mockRejectedValue(new Error('down'));
     const { data, failed } = await readPage(owner, { view: 'today' });
-    expect(failed.sort()).toEqual(['accounts', 'forecast', 'ledger', 'months', 'recurring', 'today', 'usage']);
+    expect(failed.sort()).toEqual(['accounts', 'flows', 'forecast', 'ledger', 'months', 'recurring', 'today', 'usage']);
     expect(data.ledger).toBeNull();
     expect(data.facts).toEqual([{ id: 'f1', kind: 'home_area' }]);
     expect(data.categories).toEqual({ groups: [] });
     expect(data.inbox.address).toBe('u1@in.twinme.me');
+  });
+  it('carries the month read from both sides, from the ledger rows it already read', async () => {
+    vi.clearAllMocks(); happy();
+    f.ledger.mockResolvedValue([
+      { id: 'pay', occurred_at: '2026-09-18T10:00:00Z', amount: 1200, currency: 'EUR', merchant_key: 'acme sl', merchant_raw: 'ACME SL', channel: 'transfer' },
+      { id: 'shop', occurred_at: '2026-09-17T10:00:00Z', amount: -80, currency: 'EUR', merchant_key: 'mercadona', channel: 'card' },
+      { id: 'disowned', occurred_at: '2026-09-16T10:00:00Z', amount: 50, currency: 'EUR', merchant_key: 'somebody', channel: 'bizum', verdict: 'not_me' },
+      { id: 'august', occurred_at: '2026-08-01T10:00:00Z', amount: 900, currency: 'EUR', merchant_key: 'acme sl', merchant_raw: 'ACME SL', channel: 'transfer' },
+    ]);
+    const { data, failed } = await readPage(owner, { view: 'month', now: new Date('2026-09-19T10:00:00Z') });
+    expect(failed).toEqual([]);
+    expect(data.flows).toMatchObject({ month: '2026-09-01', money_in: 1200, money_out: 80, net: 1120, more_sources: 0 });
+    expect(data.flows.sources).toEqual([{ key: 'acme sl', name: 'ACME SL', amount: 1200, count: 1, last_at: '2026-09-18T10:00:00Z' }]);
+    expect(data.flows.months.map((m) => [m.month, m.money_in])).toEqual([['2026-09-01', 1200], ['2026-08-01', 900]]);
+    /* No read of its own: the same one walk of the ledger. */
+    expect(f.ledger).toHaveBeenCalledTimes(1);
   });
   it('refuses a view it does not know', async () => {
     await expect(readPage(owner, { view: 'plan' })).rejects.toThrow('Unknown view');

@@ -969,4 +969,15 @@ export const PT_BR_MONEY: Record<string, string> = {
   "Next observation": "Próxima observação",
   "No recorded payments.": "Não há pagamentos registrados.",
   "{n} previously removed payments were not added again.": "Não foram adicionados novamente {n} pagamentos removidos anteriormente.",
+  /* Money in beside money out, on Month and in Ask's figure (2026-09-26). */
+  "{in} in, {out} out, {diff} more in than out.": "Entraram {in} e sa\u00edram {out}: {diff} a mais do que saiu.",
+  "{in} in, {out} out, {diff} more out than in.": "Entraram {in} e sa\u00edram {out}: {diff} a mais do que entrou.",
+  "{in} in, {out} out.": "Entraram {in} e sa\u00edram {out}.",
+  "Where it came from this month.": "De onde veio este m\u00eas.",
+  "{amount} in all, largest first.": "{amount} no total, do maior para o menor.",
+  "{n} payments, the last on {day}": "{n} pagamentos, o \u00faltimo em {day}",
+  "and {n} more": "e mais {n}",
+  "{month}: {in} in, {out} out": "{month}: entraram {in}, sa\u00edram {out}",
+  "In": "Entradas",
+  "Out": "Sa\u00eddas",
 };

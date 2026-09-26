@@ -22,6 +22,7 @@ import { inboxSummary } from './inbox.js';
 import { firstOfMonthIn } from './zone.js';
 import { seenBy, sourceCounts } from './seen.js';
 import { quietly } from './quietly.js';
+import { monthFlows } from './inflow.js';
 
 export const PAGE_VIEWS = new Set(['today', 'month', 'you']);
 /** The whole ledger, as the page shows it: the client used to page through it 200 at a time. */
@@ -76,6 +77,8 @@ export async function readPage(userId, { view = 'today', now = new Date() } = {}
     /* Where the person is, for the page's own day reads: their zone, country, currency, language. */
     profile: personProfileCached(userId).then((p) => ({ timezone: p.timezone, country: p.country, currency: p.currency, language: p.language })),
     inbox: facts.then((f) => inboxSummary(userId, { facts: f, now })),
+    /* Money in beside money out, this month and the months before, from the same rows (inflow.js). */
+    flows: ledger.then((rows) => monthFlows(rows, { now })),
   };
   const names = Object.keys(reads);
   const settled = await Promise.allSettled(names.map((n) => reads[n]));

@@ -16,7 +16,7 @@ describe('eventName', () => {
   it('leaves a name a person wrote exactly as they wrote it', () => {
     expect(eventName('Murilo Personal')).toBe('Murilo Personal');
     expect(eventName('Álvaro psicólogo')).toBe('Álvaro psicólogo');
-    expect(eventName("Christian Mauad Gebara's birthday")).toBe("Christian Mauad Gebara's birthday");
+    expect(eventName("Carlos Ruiz Martin's birthday")).toBe("Carlos Ruiz Martin's birthday");
     expect(eventName('Consulta Stefano- aplicación de microinyección')).toBe('Consulta Stefano- aplicación de microinyección');
     expect(eventName('S5: Recruitment & Selection Fieldwork form')).toBe('S5: Recruitment & Selection Fieldwork form');
   });

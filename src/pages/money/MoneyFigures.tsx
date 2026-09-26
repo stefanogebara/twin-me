@@ -8,7 +8,7 @@
  * broken picture.
  */
 import { useLocale, useT } from '@/lib/i18n';
-import { euro, shortDay, isPurchaseFigure, type ChatFigure, type PurchaseFigure, type FigurePoint, type FigureShare } from '../../services/api/moneyAPI';
+import { euro, shortDay, isPurchaseFigure, type ChatFigure, type PurchaseFigure, type FigurePoint, type FigureShare, type FigureFlow } from '../../services/api/moneyAPI';
 
 /* A cadence is a phrase, not a word: the server sends weekly, biweekly, monthly. */
 const CADENCE_WORD: Record<string, string> = {
@@ -27,6 +27,34 @@ export function Bars({ points }: { points: FigurePoint[] }) {
           <span className="mc-bar-label">{p.label}</span>
         </div>
       ))}
+    </div>
+  );
+}
+
+/**
+ * Money in beside money out, a pair of bars a month, drawn the way the months are (2026-09-26):
+ * in is the data signal (#0096ba, --rg-signal), out is ink (#251f21, --rg-ink), the month under
+ * each pair in ink-3 (#6c6867, --rg-ink-3). The colours are the register's tokens in
+ * money-chat.css; every pair is said in words for a screen reader, and the key names the two.
+ */
+function Flows({ points }: { points: FigureFlow[] }) {
+  const t = useT();
+  const top = Math.max(...points.flatMap((p) => [p.money_in, p.money_out]), 1);
+  const height = (v: number) => `${v > 0 ? Math.max(2, (v / top) * 100) : 0}%`;
+  return (
+    <div className="mc-flows">
+      <div className="mc-flows-bars" role="img" aria-label={points.map((p) => t('{month}: {in} in, {out} out', { month: p.label, in: euro(p.money_in), out: euro(p.money_out) })).join('; ')}>
+        {points.map((p, i) => (
+          <div key={`${p.label}-${i}`} className={`mc-flow${p.current ? ' is-current' : ''}`}>
+            <span className="mc-flow-track">
+              <i className="mc-flow-in" style={{ height: height(p.money_in) }} />
+              <i className="mc-flow-out" style={{ height: height(p.money_out) }} />
+            </span>
+            <span className="mc-flow-label">{p.label}</span>
+          </div>
+        ))}
+      </div>
+      <p className="mc-flows-key" aria-hidden="true"><i className="mc-flow-in" /><span>{t('In')}</span><i className="mc-flow-out" /><span>{t('Out')}</span></p>
     </div>
   );
 }
@@ -82,6 +110,9 @@ export function Figure({ figure }: { figure: ChatFigure }) {
       break;
     case 'shares':
       body = figure.items.length ? <Shares items={figure.items} /> : null;
+      break;
+    case 'flows':
+      body = figure.points.length ? <Flows points={figure.points} /> : null;
       break;
     case 'recurring':
       body = figure.items.length ? (

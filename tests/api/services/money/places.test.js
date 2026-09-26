@@ -545,20 +545,20 @@ describe('categoryFromBrand', () => {
 
 describe('what is never a place', () => {
   it('a name and an initial is a person the bank abbreviated, and nothing is asked', async () => {
-    for (const n of ['Mauad G.', 'Mauad G', 'M. Dolores T.']) expect(looksLikePerson(n), n).toBe(true);
+    for (const n of ['Ruiz M.', 'Ruiz M', 'M. Dolores T.']) expect(looksLikePerson(n), n).toBe(true);
     for (const n of ['Mercadona', 'El Corte Ingles', 'Bolt.eu', 'La Fruteria', 'H&M']) expect(looksLikePerson(n), n).toBe(false);
     const fetchImpl = vi.fn(async () => ok(GOOGLE_MERCADONA));
-    expect(await lookupPlace({ name: 'Mauad G.', city: 'Madrid', fetchImpl, env: { GOOGLE_PLACES_API_KEY: 'k' } })).toBe(null);
+    expect(await lookupPlace({ name: 'Ruiz M.', city: 'Madrid', fetchImpl, env: { GOOGLE_PLACES_API_KEY: 'k' } })).toBe(null);
     expect(fetchImpl).not.toHaveBeenCalled();
   });
-  it('a hit in another country is refused: Mauad Hotel Santo Domingo is not in Madrid', async () => {
+  it('a hit in another country is refused: Ruiz Hotel Santo Domingo is not in Madrid', async () => {
     expect(inCountry('ES', 40.42, -3.69)).toBe(true);
     expect(inCountry('ES', 28.1, -15.4)).toBe(true);
     expect(inCountry('ES', 18.4611643, -69.9040524)).toBe(false);
     expect(inCountry('FR', 18.46, -69.9)).toBe(true);
-    const hotel = { places: [{ id: 'x', displayName: { text: 'Mauad Hotel Santo Domingo' }, location: { latitude: 18.4611643, longitude: -69.9040524 }, types: ['hotel', 'lodging'], primaryType: 'hotel', formattedAddress: 'Santo Domingo, Republica Dominicana' }] };
+    const hotel = { places: [{ id: 'x', displayName: { text: 'Ruiz Hotel Santo Domingo' }, location: { latitude: 18.4611643, longitude: -69.9040524 }, types: ['hotel', 'lodging'], primaryType: 'hotel', formattedAddress: 'Santo Domingo, Republica Dominicana' }] };
     const fetchImpl = vi.fn(async () => ok(hotel));
-    expect(await lookupPlace({ name: 'Mauad Gebara Hostal', city: 'Madrid', country: 'ES', fetchImpl, env: { GOOGLE_PLACES_API_KEY: 'k' } })).toBe(null);
+    expect(await lookupPlace({ name: 'Ruiz Martin Hostal', city: 'Madrid', country: 'ES', fetchImpl, env: { GOOGLE_PLACES_API_KEY: 'k' } })).toBe(null);
     expect(fetchImpl).toHaveBeenCalledTimes(1);
   });
 });

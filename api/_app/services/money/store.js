@@ -8,13 +8,13 @@ import { financialEvidenceBlocked, financialEvidenceReason } from './financialCo
 import { ledgerCurrency } from './currency.js';
 import { supabaseAdmin } from '../database.js';
 import crypto from 'node:crypto';
-import { splitShareOf, reimbursementIds, splitFindings, SPLIT_OPEN } from './bizum.js';
+import { splitShareOf, splitFindings, SPLIT_OPEN } from './bizum.js';
 import { accuracy, ownScoreFinding } from './predictions.js';
 import { currentFigureScores } from './figureScoreStore.js';
 import { deltaFindings } from './deltas.js';
 import { intentionFindings } from './intention.js';
 import { statedIncome } from './allowance.js';
-import { incomeEvents, incomeFindings } from './income.js';
+import { incomeEvents, incomeFindings, incomeRule } from './income.js';
 import { createLogger } from '../logger.js';
 import { ingestSightings } from './ingestion.js';
 export { ingestSighting, ingestSightings } from './ingestion.js';
@@ -502,8 +502,9 @@ export async function refreshReadings(userId, now = new Date()) {
   const keys = [...new Set(transactions.map((t) => t.merchant_key))];
   const categories = await categoriesFor(userId, keys);
   const categoryOf = (t) => categories.get(t.merchant_key) || CHANNEL_CATEGORY[t.channel] || null;
-  const settled = reimbursementIds(facts, transactions, { now });
-  const { segments, findings: read } = readLedger({ transactions, recurring: withNames, categoryOf, now, isSpending: spendingRule(facts), isIncome: (t) => !settled.has(t.id) });
+  /* Money in by the one rule for it, less a split's Bizums back (income.js). */
+  const isIncome = incomeRule(facts, transactions, { now });
+  const { segments, findings: read } = readLedger({ transactions, recurring: withNames, categoryOf, now, isSpending: spendingRule(facts), isIncome });
   /* The two lines with a trial behind them (nudges.js): a week's charges the month cannot
      carry, and the largest named charge due within three days. Both need the forecast and
      the allowance; neither is spoken without a basis. */
@@ -523,7 +524,7 @@ export async function refreshReadings(userId, now = new Date()) {
   /* What they said they want, read against the month (intention.js): silent without a fact. */
   const intent = intentionFindings({ facts, transactions, categoryOf, cast, now, isSpending: spendingRule(facts), income: statedIncome(facts) });
   /* A stated income that usually comes by now and has not (income.js). */
-  const lateIncome = incomeFindings({ facts, transactions, isIncome: (t) => !settled.has(t.id), now });
+  const lateIncome = incomeFindings({ facts, transactions, isIncome, now });
   const findings = read.concat(intent, nudgeFindings({ cast, allowance, now }), splitFindings(facts, transactions, { now }), own ? [own] : [], deltas, lateIncome);
   /* A finding with no month (a subscription load, a weekday shape) has month NULL, and
      Postgres counts NULLs as distinct: an upsert on (kind, month) inserted a fresh copy

@@ -69,12 +69,12 @@ describe('the person the rent goes to', () => {
 });
 
 describe('roleOf: the bank\'s short form of a person is that person', () => {
-  const roles = new Map([['mauad gebara christian', 'family'], ['maria dolores tomas obon', 'other'], ['ana lopez', 'friend']]);
-  it('matches "Mauad G." to Mauad Gebara Christian, and a Bizum from a family member is not spending', () => {
-    expect(roleOf(roles, 'mauad g')).toBe('family');
-    expect(roleOf(roles, 'mauad gebara')).toBe('family');
+  const roles = new Map([['ruiz martin carlos', 'family'], ['maria dolores tomas obon', 'other'], ['ana lopez', 'friend']]);
+  it('matches "Ruiz M." to Ruiz Martin Carlos, and a Bizum from a family member is not spending', () => {
+    expect(roleOf(roles, 'ruiz m')).toBe('family');
+    expect(roleOf(roles, 'ruiz martin')).toBe('family');
     expect(roleOf(roles, 'maria dolores t')).toBe('other');
-    expect(roleOf(roles, 'mauad gebara christian')).toBe('family');
+    expect(roleOf(roles, 'ruiz martin carlos')).toBe('family');
   });
   it('never matches a stranger, a one-letter first word, or a longer name', () => {
     expect(roleOf(roles, 'mauro g')).toBe(null);

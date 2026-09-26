@@ -13,8 +13,8 @@ import { ledgerCurrency } from './currency.js';
 import { supabaseAdmin } from '../database.js';
 import { seriesOf, storedSeries, SERIES_WINDOW_DAYS } from './recurring.js';
 import { createLogger } from '../logger.js';
-import { splitShareOf, reimbursementIds } from './bizum.js';
-import { incomeEvents } from './income.js';
+import { splitShareOf } from './bizum.js';
+import { incomeEvents, incomeRule } from './income.js';
 import { projectMonth } from './projection.js';
 import { monthSegments } from './analyst.js';
 import { spendingRule } from './spending.js';
@@ -77,8 +77,9 @@ export async function forecast(userId, now = new Date(), given = {}) {
     .map((f) => [String(f.subject || '').toLowerCase(), Number(f.share)]));
 
   const ownShare = splitShareOf(facts);
-  const settlements = reimbursementIds(facts, rows, { now });
-  const isIncome = (t) => !settlements.has(t.id);
+  /* Money in by the one rule for it, less a split's Bizums back: this forecast counts the
+     split payment by the person's share (income.js). */
+  const isIncome = incomeRule(facts, rows, { now });
   /* What comes in, as dated events (income.js): the stated incomes on the day and amount
      their arrivals support, with a confidence, and the regular senders nobody mentioned. */
   const income = incomeEvents({ facts, transactions: rows, isIncome, now })

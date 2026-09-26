@@ -7,7 +7,7 @@ import { describe, expect, it, vi } from 'vitest';
 
 const rows = vi.hoisted(() => ({
   money_transactions: [
-    { id: 't1', amount: -100, merchant_key: 'mauad g', merchant_raw: 'Mauad G.', occurred_at: '2026-09-17T10:48:53Z', channel: 'card', verdict: 'not_me' },
+    { id: 't1', amount: -100, merchant_key: 'ruiz m', merchant_raw: 'Ruiz M.', occurred_at: '2026-09-17T10:48:53Z', channel: 'card', verdict: 'not_me' },
     { id: 't2', amount: -22.47, merchant_key: 'la fruteria', merchant_raw: 'La Fruteria', occurred_at: '2026-09-21T10:00:00Z', channel: 'card', verdict: null },
   ],
 }));

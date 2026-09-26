@@ -126,12 +126,12 @@ describe('the day rests on the balance when the bank has said one', () => {
 
   it('does not run the day to an arrival nobody mentioned and that comes on time half the time', () => {
     /* 100 EUR from family, seen five times, on time 50%: "it depends a lot" (2026-09-23). */
-    const unsure = { source: 'Mauad G.', amount: 100, due_on: '2026-09-14', said: false, confidence: 0.5 };
+    const unsure = { source: 'Ruiz M.', amount: 100, due_on: '2026-09-14', said: false, confidence: 0.5 };
     expect(nextInflow(cast({ days_left: 20, income_items: [unsure] }), NOW)).toEqual({ day: null, days: 21, source: null });
     const sure = { ...unsure, confidence: 0.9 };
-    expect(nextInflow(cast({ days_left: 20, income_items: [sure] }), NOW).source).toBe('Mauad G.');
+    expect(nextInflow(cast({ days_left: 20, income_items: [sure] }), NOW).source).toBe('Ruiz M.');
     const said = { ...unsure, said: true, confidence: 0.5 };
-    expect(nextInflow(cast({ days_left: 20, income_items: [said] }), NOW).source).toBe('Mauad G.');
+    expect(nextInflow(cast({ days_left: 20, income_items: [said] }), NOW).source).toBe('Ruiz M.');
   });
 
   it('only counts what lands before the next money', () => {
