@@ -46,7 +46,7 @@ DELETE FROM public.money_places WHERE provider = 'person' OR (category IS NULL A
 
 -- 4. Rows about people, and rows nobody holds: a key no ledger has paid except by transfer or
 --    Bizum, or no longer has at all. No provider is asked about a person any more; what one
---    said ("Mauad G." became a hotel, 2026-09-23) was never about the person paid.
+--    said ("Ruiz M." became a hotel, 2026-09-23) was never about the person paid.
 DELETE FROM public.money_places p
 WHERE NOT EXISTS (
   SELECT 1 FROM public.money_transactions t

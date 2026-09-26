@@ -20,7 +20,7 @@ const forecast = {
     { merchant_key: 'spotify', merchant_name: 'Spotify', typical_amount: 11.99, next_expected: '2026-10-04', cadence: 'monthly' },
   ],
   commitment_items: [{ subject: 'Rent', amount: 200, due_on: '2026-10-05' }, { subject: 'Gym', amount: 35, due_on: '2026-09-28' }],
-  income_items: [{ subject: 'Mauad G.', amount: 100, due_on: '2026-09-24', said: false, confidence: 0.83 }],
+  income_items: [{ subject: 'Ruiz M.', amount: 100, due_on: '2026-09-24', said: false, confidence: 0.83 }],
   /* The shape calendar.js sends: title, day, amount. This line used to carry a shape nothing
      produces, which is how a mismatch in plan.js survived (2026-09-16). */
   calendar_items: [{ title: 'Trip to Valencia', day: '2026-09-26', amount: 48.5 }, { title: 'Final exam', day: '2026-09-29', amount: 0 }],
@@ -60,7 +60,7 @@ describe('monthPlan', () => {
     expect(cell('2026-09-22').items).toEqual([{ kind: 'charge', label: 'Higgsfield', amount: 53.96, cadence: 'monthly' }]);
     expect(cell('2026-09-22').expected).toBe(53.96);
     expect(cell('2026-09-28').items[0]).toMatchObject({ kind: 'commitment', label: 'Gym', amount: 35 });
-    expect(cell('2026-09-24').items[0]).toMatchObject({ kind: 'income', label: 'Mauad G.', amount: 100, said: false, confidence: 0.83 });
+    expect(cell('2026-09-24').items[0]).toMatchObject({ kind: 'income', label: 'Ruiz M.', amount: 100, said: false, confidence: 0.83 });
     expect(cell('2026-09-24').expected).toBe(0);
     expect(cell('2026-09-26').items[0]).toMatchObject({ kind: 'calendar', label: 'Trip to Valencia', amount: 48.5 });
     expect(cell('2026-09-29').items[0]).toMatchObject({ kind: 'calendar', label: 'Final exam', amount: 0 });

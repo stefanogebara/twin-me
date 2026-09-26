@@ -45,7 +45,7 @@ function ledger() {
     const wd = d.getUTCDay(); const dom = d.getUTCDate();
     const away = i >= 100 && i < 104;
     if (dom === 1) add(i, 7, -550, 'Piso Calle Mayor', 'transfer');
-    if (dom === 3) add(i, 9, 400, 'MAUAD GEBARA', 'transfer');
+    if (dom === 3) add(i, 9, 400, 'RUIZ MARTIN', 'transfer');
     if (dom === 5) add(i, 3, -9.99, 'Spotify', 'card', { is_recurring: true });
     if (away) continue;
     if (wd >= 1 && wd <= 5 && rand() < 0.8) add(i, 8, -2.2, 'Cafe Sol');

@@ -1,9 +1,9 @@
 /**
  * Forget a place the lookup got wrong, so the ledger reads the merchant fresh.
  *
- *   node --env-file=.env scripts/money/forget-place.mjs "mauad g"
+ *   node --env-file=.env scripts/money/forget-place.mjs "ruiz m"
  *
- * 2026-09-23: "Mauad G." (a family member sending 100 EUR by Bizum) was matched to Mauad Hotel
+ * 2026-09-23: "Ruiz M." (a family member sending 100 EUR by Bizum) was matched to Ruiz Hotel
  * Santo Domingo, kind hotel, category lodging, 6,000 km from the person. money_places is
  * shared across ledgers, so the row is deleted, not overridden.
  */

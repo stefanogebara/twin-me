@@ -90,7 +90,7 @@ const FOLLOW_UP_FORMATTING_INSTRUCTIONS = [
   '',
   'Example:',
   "**Today's important emails**",
-  '1. **Presidencia (Telefonica)** — "BPS/CGH - Stefano" — flight bookings with **Christian Mauad Gebara**',
+  '1. **Presidencia (Telefonica)** — "BPS/CGH - Stefano" — flight bookings with **Carlos Ruiz Martin**',
   '2. **BTG Pactual** — Bitcoin purchase confirmed, **R$ 4,918.41**',
   '3. **Meta** — WhatsApp template recategorized to MARKETING',
   '',

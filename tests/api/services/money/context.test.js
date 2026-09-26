@@ -81,10 +81,10 @@ describe('rent raised by the ledger', () => {
 
 describe('questions the ledger raises', () => {
   const incoming = [
-    tx('2026-06-25', 100, 'Mauad Gebara Christian', 'transfer'),
-    tx('2026-07-10', 100, 'Mauad Gebara Christian', 'transfer'),
-    tx('2026-07-23', 100, 'Mauad Gebara Christian', 'transfer'),
-    tx('2026-08-26', 1750, 'Mauad Gebara Christian', 'transfer'),
+    tx('2026-06-25', 100, 'Ruiz Martin Carlos', 'transfer'),
+    tx('2026-07-10', 100, 'Ruiz Martin Carlos', 'transfer'),
+    tx('2026-07-23', 100, 'Ruiz Martin Carlos', 'transfer'),
+    tx('2026-08-26', 1750, 'Ruiz Martin Carlos', 'transfer'),
     tx('2026-08-30', 50, 'Isi Yaffe Bitton', 'transfer'),
   ];
 
@@ -92,7 +92,7 @@ describe('questions the ledger raises', () => {
     const qs = ledgerQuestions({ transactions: incoming, now: NOW });
     const first = qs[0];
     expect(first.kind).toBe('person');
-    expect(plain(first.ask)).toBe('Mauad Gebara Christian has sent you 2050,00 € across 4 transfers. Who is that?');
+    expect(plain(first.ask)).toBe('Ruiz Martin Carlos has sent you 2050,00 € across 4 transfers. Who is that?');
     expect(first.changes).toBe('whether this counts as income');
     expect(first.receipts).toHaveLength(3);
     expect(first.input).toContain('family');
@@ -106,9 +106,9 @@ describe('questions the ledger raises', () => {
   });
 
   it('never asks twice about a person already named', () => {
-    const facts = [{ kind: 'person', subject: 'mauad gebara christian', value: 'family' }];
+    const facts = [{ kind: 'person', subject: 'ruiz martin carlos', value: 'family' }];
     const qs = ledgerQuestions({ transactions: incoming, facts, now: NOW });
-    expect(qs.map((q) => q.subject)).not.toContain('mauad gebara christian');
+    expect(qs.map((q) => q.subject)).not.toContain('ruiz martin carlos');
   });
 
   it('asks who was paid, but not over small settling-up', () => {
@@ -186,7 +186,7 @@ describe('what the twin is told about the person', () => {
       { kind: 'study_place', value: 'IE Business School' },
       { kind: 'commitment', subject: 'rent', amount: 500, day: 1 },
       { kind: 'income', subject: 'family', amount: 100, day: 25 },
-      { kind: 'person', subject: 'mauad gebara christian', subject_label: 'Mauad', value: 'family' },
+      { kind: 'person', subject: 'ruiz martin carlos', subject_label: 'Ruiz', value: 'family' },
       { kind: 'goal', value: 'save' },
     ];
     const block = describeContext(facts);
@@ -198,7 +198,7 @@ describe('what the twin is told about the person', () => {
     /* The 1st, not the 1th: a system that cannot spell a date is not trusted with a number. */
     expect(block).not.toContain('1th');
     expect(block).not.toContain('25th around');
-    expect(block).toContain('Mauad is family');
+    expect(block).toContain('Ruiz is family');
     expect(block).not.toMatch(/[\u{1F300}-\u{1FAFF}]/u);
   });
 

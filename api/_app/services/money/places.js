@@ -311,7 +311,7 @@ function normalize(text) {
     .toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
 }
 
-/** A name and an initial ("Mauad G.", "M. Dolores T."): a person the bank abbreviated, never a shop. */
+/** A name and an initial ("Ruiz M.", "M. Dolores T."): a person the bank abbreviated, never a shop. */
 export function looksLikePerson(merchant) {
   const words = String(merchant || '').trim().split(/\s+/);
   if (words.length < 2 || words.length > 4) return false;
@@ -505,8 +505,8 @@ export async function lookupPlace({
 } = {}) {
   const merchant = cleanName(name);
   if (!merchant) return null;
-  /* "Mauad G." is how a bank writes a person: a name and an initial. Asked as a place, Google
-     answered Mauad Hotel Santo Domingo, and a family transfer became lodging (2026-09-23). */
+  /* "Ruiz M." is how a bank writes a person: a name and an initial. Asked as a place, Google
+     answered Ruiz Hotel Santo Domingo, and a family transfer became lodging (2026-09-23). */
   if (looksLikePerson(merchant)) return null;
 
   if (looksOnline(merchant)) {

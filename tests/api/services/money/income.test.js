@@ -8,14 +8,14 @@ import { incomeSeries, incomeEvents, incomeFindings, INCOME_LATE, SAID_CONFIDENC
 const NOW = new Date('2026-09-14T12:00:00Z');
 const inflow = (id, day, amount, name, channel = 'transfer') => ({ id, occurred_at: `${day}T09:00:00Z`, amount, merchant_raw: name, merchant_key: name.toLowerCase(), channel });
 /* Family money on the 3rd, 5th and 2nd of the last three months; a Bizum back that is a settlement. */
-const family = [inflow('f1', '2026-06-03', 400, 'MAUAD GEBARA'), inflow('f2', '2026-07-05', 400, 'MAUAD GEBARA'), inflow('f3', '2026-08-02', 420, 'MAUAD GEBARA')];
+const family = [inflow('f1', '2026-06-03', 400, 'RUIZ MARTIN'), inflow('f2', '2026-07-05', 400, 'RUIZ MARTIN'), inflow('f3', '2026-08-02', 420, 'RUIZ MARTIN')];
 const settlement = inflow('s1', '2026-09-11', 15.6, 'Ana Lopez', 'bizum');
 const isIncome = (t) => t.id !== 's1';
 
 describe('incomeSeries', () => {
   it('reads each sender as a rhythm: usual day, usual amount, how often on time', () => {
     const [s] = incomeSeries([...family, settlement], { isIncome, now: NOW });
-    expect(s).toMatchObject({ key: 'mauad gebara', name: 'Mauad G.', times: 3, typical_amount: 400, typical_day: 3, on_time: 1, months: 3 });
+    expect(s).toMatchObject({ key: 'ruiz martin', name: 'Ruiz M.', times: 3, typical_amount: 400, typical_day: 3, on_time: 1, months: 3 });
     expect(incomeSeries([...family, settlement], { isIncome, now: NOW })).toHaveLength(1);
   });
 });
@@ -33,7 +33,7 @@ describe('incomeEvents', () => {
   });
   it('says back a regular sender nobody mentioned, as seen and not said', () => {
     const [e] = incomeEvents({ facts: [], transactions: family, isIncome, now: NOW });
-    expect(e).toMatchObject({ source: 'Mauad G.', amount: 400, said: false, basis: 'seen 3 times, not said', confidence: 1 });
+    expect(e).toMatchObject({ source: 'Ruiz M.', amount: 400, said: false, basis: 'seen 3 times, not said', confidence: 1 });
     /* Two arrivals are not yet a sender worth mentioning unasked. */
     expect(incomeEvents({ facts: [], transactions: family.slice(0, 2), isIncome, now: NOW })).toEqual([]);
   });
@@ -56,7 +56,7 @@ describe('incomeFindings', () => {
     expect(f.numbers).toMatchObject({ typical_day: 3, days_late: 11 });
   });
   it('is quiet once it arrived, before the margin, and without a rhythm to hold it to', () => {
-    expect(incomeFindings({ facts, transactions: [...family, inflow('f4', '2026-09-04', 400, 'MAUAD GEBARA')], isIncome, now: NOW })).toEqual([]);
+    expect(incomeFindings({ facts, transactions: [...family, inflow('f4', '2026-09-04', 400, 'RUIZ MARTIN')], isIncome, now: NOW })).toEqual([]);
     expect(incomeFindings({ facts, transactions: family, isIncome, now: new Date('2026-09-05T12:00:00Z') })).toEqual([]);
     expect(incomeFindings({ facts, transactions: family.slice(0, 1), isIncome, now: NOW })).toEqual([]);
   });
@@ -78,13 +78,13 @@ describe('one sender, two kinds of money (2026-09-23)', () => {
   /* The father sends 1750 on the first and 100 now and then; the owner named him as family
      and said "Family, on the 1st, 1750". */
   const father = [
-    inflow('a1', '2026-06-25', 100, 'Mauad Gebara Christian'), inflow('a2', '2026-07-10', 100, 'Mauad Gebara Christian'),
-    inflow('a3', '2026-07-23', 100, 'Mauad Gebara Christian'), inflow('a4', '2026-07-29', 100, 'Mauad Gebara Christian'),
-    inflow('a5', '2026-08-17', 100, 'Mauad Gebara Christian'), inflow('a6', '2026-08-26', 1750, 'Mauad Gebara Christian'),
-    inflow('a7', '2026-07-01', 1750, 'Mauad Gebara Christian'),
+    inflow('a1', '2026-06-25', 100, 'Ruiz Martin Carlos'), inflow('a2', '2026-07-10', 100, 'Ruiz Martin Carlos'),
+    inflow('a3', '2026-07-23', 100, 'Ruiz Martin Carlos'), inflow('a4', '2026-07-29', 100, 'Ruiz Martin Carlos'),
+    inflow('a5', '2026-08-17', 100, 'Ruiz Martin Carlos'), inflow('a6', '2026-08-26', 1750, 'Ruiz Martin Carlos'),
+    inflow('a7', '2026-07-01', 1750, 'Ruiz Martin Carlos'),
   ];
   const facts = [
-    { kind: 'person', subject: 'mauad gebara christian', value: 'family' },
+    { kind: 'person', subject: 'ruiz martin carlos', value: 'family' },
     { kind: 'income', subject: 'family', subject_label: 'Family', amount: 1750, day: 1 },
   ];
   it('the stated income is dated from the arrivals of its own size, and the gifts make no event', () => {
@@ -95,10 +95,10 @@ describe('one sender, two kinds of money (2026-09-23)', () => {
   });
   it('a named person who sends now and then never becomes an arrival to count on', () => {
     const gifts = father.filter((t) => t.amount === 100);
-    const only = [{ kind: 'person', subject: 'mauad gebara christian', value: 'family' }];
+    const only = [{ kind: 'person', subject: 'ruiz martin carlos', value: 'family' }];
     expect(incomeEvents({ facts: only, transactions: gifts, now: NOW })).toEqual([]);
     /* And by the bank's short form of the same name. */
-    const short = gifts.map((t) => ({ ...t, merchant_raw: 'Mauad G.', merchant_key: 'mauad g' }));
+    const short = gifts.map((t) => ({ ...t, merchant_raw: 'Ruiz M.', merchant_key: 'ruiz m' }));
     expect(incomeEvents({ facts: only, transactions: short, now: NOW })).toEqual([]);
   });
   it('a stranger who lands near the same day less than most of the time has no usual day', () => {

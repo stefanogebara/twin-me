@@ -68,7 +68,7 @@ describe('a bank alert mail reaching the ledger', () => {
   });
 
   it('an arrival is folded the same way: 500,00 EUR came in once, not twice', () => {
-    const transfer = { ...bankLine, id: 't-in', amount: 500, merchant_key: 'mauad gebara christian', merchant_raw: 'Mauad Gebara Christian', occurred_at: '2026-09-24T12:00:00Z', posted_at: '2026-09-24T12:00:00Z' };
+    const transfer = { ...bankLine, id: 't-in', amount: 500, merchant_key: 'ruiz martin carlos', merchant_raw: 'Ruiz Martin Carlos', occurred_at: '2026-09-24T12:00:00Z', posted_at: '2026-09-24T12:00:00Z' };
     const inbound = { ...alert('email:eee', 500, '2026-09-24T16:16:27Z'), direction: 'in' };
     const plan = planIngestion([inbound], snapshot([transfer]));
     expect(plan.creates).toHaveLength(0);

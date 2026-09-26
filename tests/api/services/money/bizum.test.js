@@ -18,7 +18,7 @@ const backs = [
   tx('b2', '2026-09-11T09:00:00Z', 15.6, 'Luis Perez', 'bizum'),
   tx('b3', '2026-09-13T12:00:00Z', 15.5, 'Marta Ruiz', 'bizum'),
 ];
-const noise = [tx('n1', '2026-09-11T10:00:00Z', -9.9, 'Cabify'), tx('n2', '2026-09-12T10:00:00Z', 100, 'Mauad Gebara', 'transfer'), tx('n3', '2026-09-12T11:00:00Z', -1.7, 'Renfe')];
+const noise = [tx('n1', '2026-09-11T10:00:00Z', -9.9, 'Cabify'), tx('n2', '2026-09-12T10:00:00Z', 100, 'Ruiz Martin', 'transfer'), tx('n3', '2026-09-12T11:00:00Z', -1.7, 'Renfe')];
 const ledger = [dinner, ...backs, ...noise];
 
 describe('personMovements', () => {
@@ -85,11 +85,11 @@ describe('what it says', () => {
     expect(splitFindings([{ kind: SPLIT_KIND, subject: 'd1', value: '4' }], ledger, { now: NOW })).toEqual([]);
   });
   it('sums what stands between the person and each name, settlements apart from income', () => {
-    const facts = [{ kind: SPLIT_KIND, subject: 'd1', value: '4' }, { kind: 'person', subject: 'mauad gebara', value: 'family' }];
+    const facts = [{ kind: SPLIT_KIND, subject: 'd1', value: '4' }, { kind: 'person', subject: 'ruiz martin', value: 'family' }];
     const rows = balances(ledger, facts, { now: NOW });
-    expect(rows[0]).toMatchObject({ name: 'Mauad G.', role: 'family', received: 100, settlements: 0, sent: 0, net: 100 });
+    expect(rows[0]).toMatchObject({ name: 'Ruiz M.', role: 'family', received: 100, settlements: 0, sent: 0, net: 100 });
     expect(rows.find((r) => r.name === 'Ana L.')).toMatchObject({ received: 0, settlements: 15.6, net: 15.6 });
-    expect(describeBetweenPeople(rows)[0]).toBe('Mauad G. (family): sent you 100,00\u00a0\u20ac in 90 days, last on 12 Sep.');
+    expect(describeBetweenPeople(rows)[0]).toBe('Ruiz M. (family): sent you 100,00\u00a0\u20ac in 90 days, last on 12 Sep.');
   });
 });
 

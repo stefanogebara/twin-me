@@ -17,7 +17,7 @@ const plain = (line: string | null | undefined) => String(line).replace(/[\u00a0
 const forecast = (income: Record<string, unknown>) => ({
   month: '2026-09-01', as_of: '2026-09-23', days_left: 7, spent: 0, committed: 0, expected: 0, baseline_rest: 0,
   projected_p10: 0, projected_p50: 0, projected_p90: 0, history_days: 90, committed_items: [], commitment_items: [],
-  income_items: [{ subject: 'Mauad G.', amount: 100, due_on: '2026-09-24', ...income }], calendar_items: [],
+  income_items: [{ subject: 'Ruiz M.', amount: 100, due_on: '2026-09-24', ...income }], calendar_items: [],
 } as unknown as MoneyForecast);
 
 describe('what comes in says how it knows', () => {
