@@ -154,6 +154,27 @@ describe('a figure the person asks for is drawn by the code', () => {
     expect(events.find((e) => e.phase === 'figures').figures).toEqual([]);
   });
 
+  it('says why a figure is not drawn once, even when the model already said it', async () => {
+    store.months.mockResolvedValue([segments[0]]);
+    modelSays('A graph by month needs at least two months in the ledger.');
+    const r = await answer('u1', 'show me a chart of my spending by month', [], { now: NOW });
+    expect(r.text.match(/two months/g)).toHaveLength(1);
+  });
+
+  it('on the stream, says why once when the model streamed the same sentence', async () => {
+    store.months.mockResolvedValue([segments[0]]);
+    streamCall.mockImplementation(async ({ onChunk }) => {
+      const pieces = ['{"text":"A graph by month needs at least ', 'two months in the ledger.","figures":[],"actions":[]}'];
+      for (const p of pieces) onChunk(p);
+      return { content: pieces.join('') };
+    });
+    const events = [];
+    const reply = await answerStream('u1', 'show me a chart of my spending by month', [], { now: NOW, onEvent: (e) => events.push(e) });
+    const said = events.filter((e) => e.phase === 'text').map((e) => e.delta).join('');
+    expect(said.match(/two months/g)).toHaveLength(1);
+    expect(reply.text.match(/two months/g)).toHaveLength(1);
+  });
+
   it('reads "show me" as asking for a figure, never as the entertainment kind', () => {
     expect(kindInMessage('show me my spending by month')).toBe(null);
     expect(kindInMessage('can you show me a graph of that')).toBe(null);

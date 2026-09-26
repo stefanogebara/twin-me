@@ -2290,6 +2290,8 @@ export async function answerStream(userId, message, history = [], { now = new Da
   /* Whether the code draws the figure asked for, so a sentence that contradicts it never reaches the screen. */
   const plan = figurePlan(asking, ctx);
   const stray = (sentence) => Boolean(plan) && strayBeside(sentence, plan === 'draw');
+  /* Whether a sentence is already on the screen, so why a figure is not drawn is said once. */
+  const onScreen = (sentence) => shown.length > 0 && asShown(shown).toLowerCase().includes(String(sentence).toLowerCase());
 
   /**
    * Could what is being written still turn out to be a sentence the person was already told?
@@ -2448,7 +2450,7 @@ export async function answerStream(userId, message, history = [], { now = new Da
     /* Nothing on the screen yet: the shaped words go, without a sentence telling them to ask for
        a figure; words already there are followed by why a figure asked for is not drawn. */
     if (!shown.length) whole(shaped.text || text);
-    else if (figureNote(shaped)) put(figureNote(shaped), false);
+    else if (figureNote(shaped) && !onScreen(figureNote(shaped))) put(figureNote(shaped), false);
     const said = shown.length ? asShown(shown) : (shaped.text || text);
     return closeWith({ ...shaped, text: said, basis: basisOf(said, ctx) });
   }
@@ -2461,7 +2463,7 @@ export async function answerStream(userId, message, history = [], { now = new Da
   const guarded = g.text || (g.dropped ? say(ctx.language, NO_TOTAL) : reply.text);
   if (!shown.length) whole(guarded);
   /* Why a figure asked for is not drawn follows the words already on the screen (askIntent.js). */
-  else if (figureNote(reply)) put(figureNote(reply), false);
+  else if (figureNote(reply) && !onScreen(figureNote(reply))) put(figureNote(reply), false);
   const finalText = shown.length ? asShown(shown) : guarded;
   const basis = basisOf(finalText, ctx);
   return closeWith({ ...reply, text: finalText, basis, thinking: thinking || null });

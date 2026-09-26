@@ -226,7 +226,14 @@ export function withAskedFigure(reply, message, ctx) {
     note = whyNot(ask, ctx, L);
   }
   let words = figures.length ? withoutChartQuestion(text, true) : text;
-  words = String(words || '').split(SENTENCES).filter((p) => !strayBeside(p, figures.length > 0)).join(' ').trim();
+  /* One of each sentence, and the reason once: the model is told why a figure cannot be drawn,
+     and repeated it word for word before the code added it too (2026-09-26). */
+  const once = new Set();
+  words = String(words || '').split(SENTENCES)
+    .filter((p) => !strayBeside(p, figures.length > 0))
+    .filter((p) => { const k = flat(p); if (!k || once.has(k)) return false; once.add(k); return true; })
+    .join(' ').trim();
+  if (note && flat(words).includes(flat(note))) note = null;
   if (note) words = [words, note].filter(Boolean).join(' ');
   if (!String(words).trim()) words = figures.length ? say(L, 'Drawn from your own payments.') : reply.text;
   const out = { ...reply, text: words, figures, receipts };
