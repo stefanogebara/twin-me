@@ -115,8 +115,8 @@ describe('a weekend between the alert and the booking', () => {
 });
 
 describe('one bank row is one payment', () => {
-  const bank = { id: 's1', source: 'bankfeed', amount: 0.5, direction: 'out', merchant_key: 'sebastian', merchant_raw: 'Sebastian', occurred_at: '2026-09-14T12:00:00Z', channel: 'bizum' };
-  const line = { id: 't1', amount: -0.5, merchant_key: 'sebastian', occurred_at: '2026-09-14T12:00:00Z', posted_at: null };
+  const bank = { id: 's1', source: 'bankfeed', amount: 0.5, direction: 'out', merchant_key: 'silvestre', merchant_raw: 'Silvestre', occurred_at: '2026-09-14T12:00:00Z', channel: 'bizum' };
+  const line = { id: 't1', amount: -0.5, merchant_key: 'silvestre', occurred_at: '2026-09-14T12:00:00Z', posted_at: null };
   it('does not fold a second bank sighting onto a line the bank already backs', () => {
     expect(findMatch(bank, [line], { exclude: new Set(['t1']) })).toBeNull();
     expect(reconcile(bank, [line], null, { exclude: new Set(['t1']) }).action).toBe('create');

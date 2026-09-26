@@ -142,7 +142,7 @@ describe('buildFigure', () => {
      filed every one of them under "not read yet" in the chat while the month page listed them
      as transfers. Two surfaces, the same euros, two answers. */
   it('shares give a transfer the kind its channel already names, as the month page does', () => {
-    const sent = t('t9', '2026-09-06T10:00:00Z', -53.25, 'rafaella van der graaff', 'Rafaella Van Der Graaff', { channel: 'transfer' });
+    const sent = t('t9', '2026-09-06T10:00:00Z', -53.25, 'rosalind van der geest', 'Rosalind Van Der Geest', { channel: 'transfer' });
     const withTransfer = assemble({
       transactions: [...transactions, sent], segments, forecast: cast, recurring,
       readings: [], facts: [], questions, places, categories, now: NOW,
@@ -153,10 +153,10 @@ describe('buildFigure', () => {
   });
 
   it('shares leave out a transfer to a friend, as the hero does', () => {
-    const sent = t('t9', '2026-09-06T10:00:00Z', -53.25, 'rafaella van der graaff', 'Rafaella Van Der Graaff', { channel: 'transfer' });
+    const sent = t('t9', '2026-09-06T10:00:00Z', -53.25, 'rosalind van der geest', 'Rosalind Van Der Geest', { channel: 'transfer' });
     const withFriend = assemble({
       transactions: [...transactions, sent], segments, forecast: cast, recurring, readings: [],
-      facts: [{ kind: 'person', subject: 'rafaella van der graaff', value: 'friend' }], questions, places, categories, now: NOW,
+      facts: [{ kind: 'person', subject: 'rosalind van der geest', value: 'friend' }], questions, places, categories, now: NOW,
     });
     const { figure } = buildFigure({ kind: 'shares', month: '2026-09' }, withFriend);
     expect(figure.items.find((i) => i.label === 'transfers')).toBeUndefined();

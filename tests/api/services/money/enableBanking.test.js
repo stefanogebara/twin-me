@@ -178,7 +178,7 @@ describe('toSighting on a pending row', () => {
 
 describe('two identical pending rows in one read', () => {
   it('get distinct keys, in order, so the batch can be written; booked rows are untouched', () => {
-    const row = { status: 'PDNG', transaction_amount: { amount: '0.50', currency: 'EUR' }, credit_debit_indicator: 'DBIT', remittance_information: ['BIZUM A FAVOR DE SEBASTIAN ALFONSO IZURIETA SAENZ CONCEPTO Sin concepto'], transaction_date: '2026-09-14' };
+    const row = { status: 'PDNG', transaction_amount: { amount: '0.50', currency: 'EUR' }, credit_debit_indicator: 'DBIT', remittance_information: ['BIZUM A FAVOR DE SILVESTRE ANSELMO IRIGOYEN SERNA CONCEPTO Sin concepto'], transaction_date: '2026-09-14' };
     const booked = { status: 'BOOK', entry_reference: 'ref-1', transaction_amount: { amount: '1.70', currency: 'EUR' }, credit_debit_indicator: 'DBIT', remittance_information: ['PAGO MOVIL EN RENFE, MADRID ES'], transaction_date: '2026-09-11' };
     const batch = distinctPending([toSighting(row, 'a1'), toSighting(booked, 'a1'), toSighting(row, 'a1'), toSighting(row, 'a1')]);
     const refs = batch.map((s) => s.source_ref);

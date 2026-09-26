@@ -64,7 +64,7 @@ export const BENCH = [
   { id: 'sh-two-kinds', dim: 'shape', message: 'how much on groceries and eating out this month?', route: 'model', figures: { only: ['shares', 'history'] }, actions: NO_ACT, mention: [TWO], avoid: [/571,38/], maxSentences: 4 },
   { id: 'sh-place', dim: 'shape', message: 'how much at El Corte Ingles this month?', route: 'model', figures: { only: ['history', 'shares'] }, actions: NO_ACT, mention: [/el corte ingl/i, EUR], maxSentences: 3 },
   { id: 'sh-place-count', dim: 'shape', message: 'how many times did I take a Cabify this month?', route: 'model', figures: { only: ['history', 'shares'] }, actions: NO_ACT, mention: [/cabify/i, /\d+|once|twice|one|two|three|four|five|six/i], maxSentences: 3 },
-  { id: 'sh-people-out', dim: 'shape', message: 'Who did I send money to this month?', route: 'model', figures: NONE, actions: NO_ACT, mention: [/maria d/i, EUR], maxSentences: 4 },
+  { id: 'sh-people-out', dim: 'shape', message: 'Who did I send money to this month?', route: 'model', figures: NONE, actions: NO_ACT, mention: [/laura i/i, EUR], maxSentences: 4 },
   { id: 'sh-people-in', dim: 'shape', message: 'Who sent me money this month?', route: 'model', figures: NONE, actions: NO_ACT, mention: [/andres/i, EUR], maxSentences: 4 },
   { id: 'sh-explain-left', dim: 'shape', message: 'Explain what is left for the month and how you got there.', route: 'model', figures: { only: ['band'] }, actions: NO_ACT, mention: [EUR, /spent|spoken for|left|comes? in/i], maxSentences: 5 },
   { id: 'sh-summary', dim: 'shape', message: 'Give me a summary of my month so far.', route: 'model', figures: { some: ['shares', 'months', 'band'] }, actions: NO_ACT, mention: [EUR], maxSentences: 5 },
@@ -92,7 +92,7 @@ export const BENCH = [
   { id: 'fu-in-august', dim: 'follow-up', message: 'and in August?', history: [{ role: 'user', text: 'how much on groceries this month?' }, { role: 'twin', text: 'Groceries this month: 436,45 EUR in 7 payments.' }], route: 'model', figures: { only: ['shares', 'months', 'history'] }, actions: NO_ACT, mention: [/122,99/], avoid: [/436,45/], maxSentences: 3 },
   { id: 'fu-and-spotify', dim: 'follow-up', message: 'and Spotify?', history: [{ role: 'user', text: 'What comes back every month?' }, { role: 'twin', text: '5 charges come back every month, 114,12 EUR together: Higgsfield, Elevenlabs.io, Fly.io and 2 more.' }], route: 'model', figures: { only: ['recurring', 'history'] }, actions: NO_ACT, mention: [/spotify/i], maxSentences: 3 },
   { id: 'fu-in-spanish', dim: 'follow-up', message: 'en español, por favor', history: [{ role: 'user', text: 'How much did I spend this week?' }, { role: 'twin', text: 'This week you spent 188,34 EUR in 14 payments, the largest El Corte Ingles 101,39 EUR.' }], route: 'model', figures: { only: ['week', 'shares'] }, actions: NO_ACT, mention: [/semana|gast/i], avoid: [/\bthis week\b|\byou spent\b/i], maxSentences: 3 },
-  { id: 'fu-first-one', dim: 'follow-up', message: 'who is the first one?', history: [{ role: 'user', text: 'Who did I send money to this month?' }, { role: 'twin', text: 'You sent 389,25 EUR to 9 people: Laura I. (other) 200,00 EUR, Omar H. 50,00 EUR, Rafaella V. (friend) 49,25 EUR and others.' }], route: 'model', figures: NONE, actions: { optional: true, some: ['person'] }, mention: [/maria/i], maxSentences: 3 },
+  { id: 'fu-first-one', dim: 'follow-up', message: 'who is the first one?', history: [{ role: 'user', text: 'Who did I send money to this month?' }, { role: 'twin', text: 'You sent 389,25 EUR to 9 people: Laura I. (other) 200,00 EUR, Omar H. 50,00 EUR, Rosalind V. (friend) 49,25 EUR and others.' }], route: 'model', figures: NONE, actions: { optional: true, some: ['person'] }, mention: [/laura/i], maxSentences: 3 },
   { id: 'fu-per-week', dim: 'follow-up', message: 'and per week?', history: [{ role: 'user', text: 'How does this month compare with the last ones?' }, { role: 'twin', text: 'Sep is at 1630,13 EUR so far. Aug closed at 582,87 EUR.' }], route: 'model', figures: { only: ['week', 'weekdays', 'months'] }, actions: NO_ACT, mention: [EUR], maxSentences: 4 },
   { id: 'fu-why-more', dim: 'follow-up', message: 'why?', history: [{ role: 'user', text: 'Am I spending more than usual?' }, { role: 'twin', text: 'Yes: this month is at 1630,13 EUR against 582,87 EUR in August.' }], route: 'model', figures: { only: ['shares', 'months', 'weekdays', 'week', 'history'] }, actions: NO_ACT, mention: [EUR], maxSentences: 4 },
   { id: 'fu-again', dim: 'follow-up', message: 'how much yesterday?', history: [{ role: 'user', text: 'How much did I spend yesterday?' }, { role: 'twin', text: 'Yesterday you spent 131,34 EUR in total.' }], route: 'model', figures: NONE, actions: NO_ACT, mention: [EUR], maxSentences: 3 },
@@ -101,8 +101,8 @@ export const BENCH = [
 
   /* ---------------------------------------------------------------- learning: teach, take, ask again, undo */
   { id: 'ln-flatmate', dim: 'learning', steps: [
-    { message: 'Rafaella Van Der Graaff is my flatmate', route: 'any', figures: NONE, actions: { some: ['person'] }, act: 'person', mention: [/rafaella/i] },
-    { message: 'who is Rafaella?', route: 'model', figures: NONE, actions: { optional: true, some: ['person'] }, mention: [/flatmate|compañer|colega/i] },
+    { message: 'Rosalind Van Der Geest is my flatmate', route: 'any', figures: NONE, actions: { some: ['person'] }, act: 'person', mention: [/rosalind/i] },
+    { message: 'who is Rosalind?', route: 'model', figures: NONE, actions: { optional: true, some: ['person'] }, mention: [/flatmate|compañer|colega/i] },
   ] },
   { id: 'ln-netflix', dim: 'learning', steps: [
     { message: 'I subscribed to Netflix, 12,99 a month on the 15th', route: 'any', figures: { only: ['recurring', 'band'] }, actions: { some: ['fact'] }, act: 'fact', mention: [/netflix/i] },
@@ -136,8 +136,8 @@ export const BENCH = [
     { message: 'how much on eating out this month?', route: 'short', figures: { some: ['shares'] }, actions: NO_ACT, mention: [/eating out/i, EUR], avoid: [/134,93/], judge: false },
   ] },
   { id: 'ln-correct-role', dim: 'learning', steps: [
-    { message: 'no, Rafaella is my flatmate, not a friend', history: [{ role: 'user', text: 'Who did I send money to this month?' }, { role: 'twin', text: 'You sent 389,25 EUR to 9 people: Laura I. 200,00 EUR, Rafaella V. (friend) 49,25 EUR and others.' }], route: 'any', figures: NONE, actions: { some: ['person'] }, act: 'person', mention: [/rafaella|flatmate/i] },
-    { message: 'how much did I send to my flatmate this month?', route: 'model', figures: NONE, actions: NO_ACT, mention: [/49,25|rafaella/i] },
+    { message: 'no, Rosalind is my flatmate, not a friend', history: [{ role: 'user', text: 'Who did I send money to this month?' }, { role: 'twin', text: 'You sent 389,25 EUR to 9 people: Laura I. 200,00 EUR, Rosalind V. (friend) 49,25 EUR and others.' }], route: 'any', figures: NONE, actions: { some: ['person'] }, act: 'person', mention: [/rosalind|flatmate/i] },
+    { message: 'how much did I send to my flatmate this month?', route: 'model', figures: NONE, actions: NO_ACT, mention: [/49,25|rosalind/i] },
   ] },
   { id: 'ln-cancel', dim: 'learning', steps: [
     { message: 'I cancelled Higgsfield yesterday', route: 'any', figures: { only: ['recurring'] }, actions: { some: ['fact'] }, act: 'fact', mention: [/higgsfield/i] },
