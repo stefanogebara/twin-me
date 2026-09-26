@@ -18,7 +18,7 @@ import { incomeEvents, incomeFindings } from './income.js';
 import { createLogger } from '../logger.js';
 import { ingestSightings } from './ingestion.js';
 export { ingestSighting, ingestSightings } from './ingestion.js';
-import { detectRecurring, withoutCancelled } from './recurring.js';
+import { seriesOf, storedSeries } from './recurring.js';
 import { projectMonth } from './projection.js';
 import { fetchTransactions, toSighting, distinctPending, fetchBalances } from './feeds/enableBanking.js';
 import { readLedger, monthSegments } from './analyst.js';
@@ -44,7 +44,7 @@ export { listTransactions, listOwnTransactions, transactionPage } from './transa
    cycles); store.js keeps their names so no caller had to move. */
 import { INTERNAL_FACT_KINDS, listFacts, publicFacts, categoriesFor } from './factsRepository.js';
 export { INTERNAL_FACT_KINDS, listFacts, categoriesFor } from './factsRepository.js';
-import { forecast, months, scorePredictions } from './forecastService.js';
+import { forecast, months, scorePredictions, seriesEvidence } from './forecastService.js';
 import { quietly } from './quietly.js';
 export { forecast, months, scorePredictions } from './forecastService.js';
 
@@ -56,31 +56,75 @@ export async function sightingsFor(userId, transactionId) {
   return (data || []).map((row) => ({ ...row, raw_text: maskEvidenceCards(row.raw_text) }));
 }
 
-/** Recompute recurring series from the last 400 days and flag the ledger rows. */
 /**
+ * The series in the last 400 days at `now`, from the evidence they were read from. Reads only.
  * @param {{ facts?: object[], transactions?: object[] }} given every fact (with the internal
  *   ones) and the ledger (with its rejected rows) when the caller already read them (M2-A).
  */
-export async function refreshRecurring(userId, now = new Date(), given = {}) {
-  const reconciliationRead = await beginReconciliationRead(userId, given);
-  if (financialEvidenceBlocked(reconciliationRead.initial)) return [];
-  const since = new Date(now.getTime() - 400 * 86400000).toISOString();
-  const evidence = given.transactions
-    ? selectTransactions(given.transactions, { since, limit: 5000, currency: ledgerCurrency(), includeRejected: true })
-    : await listOwnTransactions(userId, { since, limit: 5000, includeRejected: true });
-  const rows = evidence.filter((row) => row.verdict !== 'not_me');
+async function seriesNow(userId, now, given) {
+  const evidence = await seriesEvidence(userId, now, given);
   const { data: merchants } = await supabaseAdmin.from('money_merchants').select('merchant_key, platform').not('platform', 'is', null);
   const platforms = Object.fromEntries((merchants || []).map((m) => [m.merchant_key, m.platform]));
   const facts = given.facts ? publicFacts(given.facts) : await listFacts(userId).catch(quietly('recurring/facts', () => []));
-  const series = withoutCancelled(detectRecurring(rows, { now, platforms }), facts);
+  return { evidence, series: seriesOf(evidence, { now, platforms, facts }) };
+}
+
+/** What a card shows beside a series: its name, its payments, what they have cost. Pure. */
+function recurringCards(series, evidence) {
+  const rows = evidence.filter((row) => row.verdict !== 'not_me');
   /* The key is machine spelling ("render com"). A card should carry the name the ledger shows. */
   const names = new Map();
   for (const t of rows) if (t.merchant_raw && !names.has(t.merchant_key)) names.set(t.merchant_key, t.merchant_raw);
+  /* A card says a charge comes back every month; the person then asks which payments those
+     were, when the next one lands and what it has cost so far. The transactions are already
+     in hand, so the answer costs no query. */
+  const charges = new Map();
+  for (const t of rows) {
+    if (Number(t.amount) >= 0) continue;
+    if (!charges.has(t.merchant_key)) charges.set(t.merchant_key, []);
+    charges.get(t.merchant_key).push({ id: t.id, occurred_at: t.occurred_at, amount: Math.abs(Number(t.amount) || 0), verdict: t.verdict || null });
+  }
+  return series.map((x) => {
+    const paid = (charges.get(x.merchant_key) || []).sort((a, b) => new Date(b.occurred_at) - new Date(a.occurred_at));
+    return {
+      ...x,
+      merchant_name: names.get(x.merchant_key) || null,
+      charges: paid.slice(0, 12),
+      total_paid: Math.round(paid.reduce((sum, c) => sum + c.amount, 0) * 100) / 100,
+      day_of_month: paid.length ? dayOfMonthIn(paid[0].occurred_at) : null,
+    };
+  });
+}
+
+/**
+ * The standing charges for a read (the page, the chat, GET /recurring, the sheet): computed
+ * from the rows the read holds, never stored. The page stored them on every open, inside its
+ * own completeness check; the flags it wrote moved the financial revision that check compares,
+ * so a read after a bank pull withheld itself (audit C3, 2026-09-26).
+ */
+export async function recurringSeries(userId, now = new Date(), given = {}) {
+  const reconciliationRead = await beginReconciliationRead(userId, given);
+  if (financialEvidenceBlocked(reconciliationRead.initial)) return [];
+  const { evidence, series } = await seriesNow(userId, now, given);
+  if (!given.reconciliationRead && financialEvidenceBlocked(await finishReconciliationRead(reconciliationRead))) return [];
+  return recurringCards(series, evidence);
+}
+
+/**
+ * Store the series and flag their rows, where the evidence changes: a bank read, an import, a
+ * capture, a mail, a verdict, a removal, a review, a charge said to be cancelled, and the hourly
+ * cron for the clock. It holds its own completeness check and refuses to run inside a read's.
+ */
+export async function refreshRecurring(userId, now = new Date(), given = {}) {
+  if (given.reconciliationRead) throw new Error('refreshRecurring writes and cannot run inside a read (a reconciliation window); a read uses recurringSeries');
+  const reconciliationRead = await beginReconciliationRead(userId);
+  if (financialEvidenceBlocked(reconciliationRead.initial)) return [];
+  const { evidence, series } = await seriesNow(userId, now, given);
   const { data: previous, error: readError } = await supabaseAdmin.from('money_recurring').select('merchant_key').eq('user_id', userId);
   if (readError) throw new Error('Could not read recurring charges');
-  if (!given.reconciliationRead && financialEvidenceBlocked(await finishReconciliationRead(reconciliationRead))) return [];
+  if (financialEvidenceBlocked(await finishReconciliationRead(reconciliationRead))) return [];
   if (series.length) {
-    const { error } = await supabaseAdmin.from('money_recurring').upsert(series.map(({ platform, transaction_ids, variants, variant_amounts, ...item }) => ({ user_id: userId, ...item, updated_at: now.toISOString() })), { onConflict: 'user_id,merchant_key' });
+    const { error } = await supabaseAdmin.from('money_recurring').upsert(series.map((item) => ({ user_id: userId, ...storedSeries(item), updated_at: now.toISOString() })), { onConflict: 'user_id,merchant_key' });
     if (error) throw new Error('Could not save recurring charges');
   }
   // A rejected charge can dissolve a series. Remove the old commitment as well as its flags.
@@ -101,25 +145,7 @@ export async function refreshRecurring(userId, now = new Date(), given = {}) {
     const { error } = await supabaseAdmin.from('money_transactions').update({ is_recurring: true }).eq('user_id', userId).in('id', ids);
     if (error) throw new Error('Could not update recurring payment flags');
   }
-  /* A card says a charge comes back every month; the person then asks which payments those
-     were, when the next one lands and what it has cost so far. The transactions are already
-     in hand, so the answer costs no query. */
-  const charges = new Map();
-  for (const t of rows) {
-    if (Number(t.amount) >= 0) continue;
-    if (!charges.has(t.merchant_key)) charges.set(t.merchant_key, []);
-    charges.get(t.merchant_key).push({ id: t.id, occurred_at: t.occurred_at, amount: Math.abs(Number(t.amount) || 0), verdict: t.verdict || null });
-  }
-  return series.map((x) => {
-    const paid = (charges.get(x.merchant_key) || []).sort((a, b) => new Date(b.occurred_at) - new Date(a.occurred_at));
-    return {
-      ...x,
-      merchant_name: names.get(x.merchant_key) || null,
-      charges: paid.slice(0, 12),
-      total_paid: Math.round(paid.reduce((sum, c) => sum + c.amount, 0) * 100) / 100,
-      day_of_month: paid.length ? dayOfMonthIn(paid[0].occurred_at) : null,
-    };
-  });
+  return recurringCards(series, evidence);
 }
 
 export async function setVerdict(userId, transactionId, verdict) {
@@ -374,6 +400,7 @@ export async function pullBankFeed(userId, { since, attended = false, psu = null
   // Presence must be backed by PSU headers, never merely by an internal boolean.
   attended = Boolean(attended && psu?.ip);
   const summary = [];
+  let changed = 0; // lines created or given new evidence, across every account read
   for (const acc of accounts) {
     if (Date.now() + 2000 >= deadline) {
       summary.push({ account: acc.name, seen: 0, created: 0, complete: false, error: 'time_budget_exhausted' });
@@ -408,7 +435,7 @@ export async function pullBankFeed(userId, { since, attended = false, psu = null
         });
         const batch = distinctPending(page.rows.map((row) => toSighting(row, acc.id)).filter((s) => s.occurred_at && s.amount), occurrences);
         const result = await ingestSightings(userId,batch);
-        seen += result.seen; created += result.created; pages++;
+        seen += result.seen; created += result.created; changed += result.created + (result.attached || 0); pages++;
         key = page.continuationKey;
         if (key) {
           const { error } = await supabaseAdmin.from('money_accounts').update({ sync_checkpoint: { from, key, occurrences: [...occurrences] } }).eq('user_id',userId).eq('id',acc.id);
@@ -444,6 +471,9 @@ export async function pullBankFeed(userId, { since, attended = false, psu = null
   if (summary.length && summary.every((s) => s.error === 'feed_budget_spent')) {
     throw Object.assign(new Error('The bank allows four unattended reads per day.'),{code:'feed_budget_spent'});
   }
+  /* What comes back is stored here, before the readings or the page the app reloads read it:
+     a read only computes it (audit C3, 2026-09-26). A re-read that changed no line does not. */
+  if (changed) await refreshRecurring(userId).catch(quietly('pull/recurring', undefined));
   return summary;
 }
 
@@ -1288,6 +1318,8 @@ export async function answerQuestion(userId, { questionId, kind, subject, subjec
     await supabaseAdmin.from('money_questions_asked')
       .upsert({ user_id: userId, question_id: questionId, answered: true, skipped: false }, { onConflict: 'user_id,question_id' });
   }
+  /* A charge said to be cancelled leaves the stored series now; a read no longer stores it. */
+  if (kind === 'merchant_kind') await refreshRecurring(userId).catch(quietly('facts/recurring-after-answer', undefined));
   return data;
 }
 
@@ -1317,6 +1349,7 @@ export async function deleteFact(userId, factId, { reason = 'forget' } = {}) {
   const { error } = await supabaseAdmin.from('money_facts').delete().eq('user_id', userId).eq('id', factId);
   if (error) throw new Error(error.message);
   if (fact.question_id) await supabaseAdmin.from('money_questions_asked').delete().eq('user_id', userId).eq('question_id', fact.question_id);
+  if (fact.kind === 'merchant_kind') await refreshRecurring(userId).catch(quietly('facts/recurring-after-forget', undefined));
   return { deleted: true };
 }
 

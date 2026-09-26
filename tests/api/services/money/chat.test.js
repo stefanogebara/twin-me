@@ -10,7 +10,7 @@ vi.mock('../../../../api/_app/services/llmGateway.js', () => ({ complete: (...a)
 vi.mock('../../../../api/_app/services/logger.js', () => ({ createLogger: () => ({ warn() {}, info() {}, error() {} }) }));
 
 const store = {
-  listTransactions: vi.fn(), months: vi.fn(), forecast: vi.fn(), categorySpend: vi.fn(), refreshRecurring: vi.fn(),
+  listTransactions: vi.fn(), months: vi.fn(), forecast: vi.fn(), categorySpend: vi.fn(), recurringSeries: vi.fn(),
   listReadings: vi.fn(), listFacts: vi.fn(), questionsFor: vi.fn(), listPlaces: vi.fn(),
   setVerdict: vi.fn(), setPlaceCategory: vi.fn(), answerQuestion: vi.fn(), listBankAccounts: vi.fn(), userLanguage: vi.fn(),
   subscriptionUsage: vi.fn(async () => ({ findings: [], unmeasurable: [], measured: [] })),
@@ -67,7 +67,7 @@ beforeEach(() => {
   store.months.mockResolvedValue(segments);
   store.forecast.mockResolvedValue(cast);
   store.categorySpend.mockResolvedValue(categories);
-  store.refreshRecurring.mockResolvedValue(recurring);
+  store.recurringSeries.mockResolvedValue(recurring);
   store.listReadings.mockResolvedValue([]);
   store.listFacts.mockResolvedValue([]);
   store.questionsFor.mockResolvedValue(questions);

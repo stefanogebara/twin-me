@@ -16,7 +16,7 @@ vi.mock('../../../../api/_app/services/llmGateway.js', () => ({
 vi.mock('../../../../api/_app/services/logger.js', () => ({ createLogger: () => ({ warn() {}, info() {}, error() {} }) }));
 
 const store = {
-  saveChatTurn: vi.fn(), listTransactions: vi.fn(), months: vi.fn(), forecast: vi.fn(), categorySpend: vi.fn(), refreshRecurring: vi.fn(),
+  saveChatTurn: vi.fn(), listTransactions: vi.fn(), months: vi.fn(), forecast: vi.fn(), categorySpend: vi.fn(), recurringSeries: vi.fn(),
   listReadings: vi.fn(), listFacts: vi.fn(), questionsFor: vi.fn(), listPlaces: vi.fn(),
   setVerdict: vi.fn(), setPlaceCategory: vi.fn(), answerQuestion: vi.fn(), listBankAccounts: vi.fn(), userLanguage: vi.fn(),
   subscriptionUsage: vi.fn(async () => ({ findings: [], unmeasurable: [], measured: [] })),
@@ -96,7 +96,7 @@ beforeEach(() => {
   store.months.mockResolvedValue(segments);
   store.forecast.mockResolvedValue(cast);
   store.categorySpend.mockResolvedValue(categories);
-  store.refreshRecurring.mockResolvedValue(recurring);
+  store.recurringSeries.mockResolvedValue(recurring);
   /* Readings put the amounts these tests speak of into the context: since 2026-09-15 a sentence
      whose amount the ledger does not hold is dropped before it reaches the wire. */
   store.listReadings.mockResolvedValue([

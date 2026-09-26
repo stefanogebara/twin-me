@@ -8,7 +8,7 @@ import { financialEvidenceBlocked, withheldForecast } from '../services/money/fi
  * GET  /api/money/ledger?since=            reconciled transactions, newest first
  * GET  /api/money/transactions/:id/sightings   the receipts behind one transaction
  * POST /api/money/transactions/:id/verdict { verdict: worth_it | not_me | null }
- * GET  /api/money/recurring                recurring series (recomputed on call)
+ * GET  /api/money/recurring                recurring series (computed on call, never stored by a read)
  * GET  /api/money/forecast                 this month, with a band
  * POST /api/money/statement                a bank statement (xlsx/csv) becomes sightings
  * GET  /api/money/categories[?month=]      where a month went, by kind of place
@@ -56,7 +56,7 @@ import * as S from './moneySchemas.js';
 import { inboxSummary, isInboxConfigured, verifySvix, ingestReceivedEmail } from '../services/money/inbox.js';
 import { MAIL_ATTACHMENT_DEPS } from '../services/money/mailAttachments.js';
 import { monthSheet } from '../services/money/sheet.js';
-import { refreshRecurring as recurringOf } from '../services/money/store.js';
+import { recurringSeries as recurringOf } from '../services/money/store.js';
 import { readAttachment, acceptsAttachment, MAX_ATTACHMENT_BYTES } from '../services/money/attachments.js';
 import { ATTACHMENT_DEPS } from '../services/money/attachmentDeps.js';
 import { accuracy } from '../services/money/predictions.js';
@@ -67,7 +67,7 @@ const bankClosed = (c) => ({ unconfigured: 'Live bank connections are not set up
 import { holdUndatedCapture } from '../services/money/legacyCapture.js';
 import { recordOptIn } from '../services/money/channelStore.js';
 import { isMoneyChannelUser } from '../services/money/channel.js';
-import { removeBankAccount, inPersonScope, personProfileCached, personProfile, ingestSighting, ingestSightings, listTransactions, transactionPage, sightingsFor, refreshRecurring, forecast, setVerdict, userForCaptureKey, createCaptureKey, saveBankAccounts, listBankAccounts, pullBankFeed, refreshReadings, listReadings, setReadingVerdict, months, feedBudget, categorySpend, listPlaces, setPlaceCategory, enrichPlaces, subscriptionUsage, questionsFor, answerQuestion, skipQuestion, listFacts, deleteFact, recordCallbackFailure, listChatTurns, saveChatTurn, learn, userLanguage, patternsFor } from '../services/money/store.js';
+import { removeBankAccount, inPersonScope, personProfileCached, personProfile, ingestSighting, ingestSightings, listTransactions, transactionPage, sightingsFor, refreshRecurring, forecast, setVerdict, userForCaptureKey, createCaptureKey, saveBankAccounts, listBankAccounts, pullBankFeed, refreshReadings, listReadings, setReadingVerdict, months, feedBudget, categorySpend, listPlaces, setPlaceCategory, enrichPlaces, subscriptionUsage, questionsFor, answerQuestion, skipQuestion, listFacts, deleteFact, recordCallbackFailure, listChatTurns, saveChatTurn, learn, userLanguage, patternsFor, recurringSeries } from '../services/money/store.js';
 import { parseDelimited, parseWorkbook, toSightings, documentFingerprint } from '../services/money/statements/importer.js';
 import { planQuestions, answeredPlan, sanitisePlan, textGrid } from '../services/money/statements/shape.js';
 import { extractDocumentText } from '../services/documentExtractionService.js';
@@ -91,6 +91,8 @@ import { quietly } from '../services/money/quietly.js';
 
 const log = createLogger('MoneyRoute');
 const router = Router();
+/** The ingestion outcomes that write a line: a new one, or new evidence on one already held. */
+const LINE_CHANGED = new Set(['create', 'attach']);
 
 /**
  * The phone cannot hold a session. A Shortcut or a listener sends `X-TwinMe-Key: twm_...`,
@@ -133,6 +135,9 @@ router.post('/capture', authenticateUserOrKey, validate({ body: S.CAPTURE }), as
   const ref = `${read.refPrefix}:${crypto.createHash('sha256').update(read.refSeed).digest('hex').slice(0, 32)}`;
   try {
     const result = await ingestSighting(req.user.id, { ...parsed, source_ref: ref });
+    /* A new line, or new evidence on one, can complete a standing charge: it is stored before
+       the answer, outside any read (C3). This route runs before the person's scope is set. */
+    if (LINE_CHANGED.has(result.action)) await inPersonScope(req.user.id, () => refreshRecurring(req.user.id)).catch(quietly('capture/recurring', undefined));
     res.status(result.action === 'create' ? 201 : 200).json({ success: true, data: { action: result.action, transaction: result.transaction, sighting: { id: result.sighting.id, parse_confidence: result.sighting.parse_confidence } } });
   } catch (error) {
     log.error('capture failed', { error: error.message });
@@ -152,6 +157,11 @@ router.post('/inbox/resend', async (req, res) => {
   if (req.body?.type !== 'email.received') return res.json({ success: true, data: { outcome: 'ignored' } });
   try {
     const result = await ingestReceivedEmail(req.body, MAIL_ATTACHMENT_DEPS);
+    /* A receipt or a bank alert that became or settled a line: the series are stored for its
+       owner, in their scope, before Resend is answered (C3). */
+    if (result?.outcome === 'read' && result.userId && LINE_CHANGED.has(result.action)) {
+      await inPersonScope(result.userId, () => refreshRecurring(result.userId)).catch(quietly('inbox/recurring', undefined));
+    }
     res.json({ success: true, data: result });
   } catch (error) {
     log.error('inbox failed', { error: error.message });
@@ -240,8 +250,9 @@ router.post('/transactions/:id/verdict', validate({ params: S.UUID_PARAM, body: 
   catch (error) { log.error('verdict failed', { error: error.message }); res.status(500).json({ success: false, error: 'Internal server error' }); }
 });
 
+/* A read: the series are computed here and stored only where the evidence changes (C3). */
 router.get('/recurring', async (req, res) => {
-  try { res.json({ success: true, data: await refreshRecurring(req.user.id) }); }
+  try { res.json({ success: true, data: await recurringSeries(req.user.id) }); }
   catch (error) { log.error('recurring failed', { error: error.message }); res.status(500).json({ success: false, error: 'Internal server error' }); }
 });
 

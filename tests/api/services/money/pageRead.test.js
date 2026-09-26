@@ -11,7 +11,7 @@ vi.mock('../../../../api/_app/services/money/allowanceService.js', () => ({ toda
 vi.mock('../../../../api/_app/services/money/transactionRepository.js', async (importOriginal) => ({ ...(await importOriginal()), listTransactions: f.ledger }));
 vi.mock('../../../../api/_app/services/money/factsRepository.js', async (importOriginal) => ({ ...(await importOriginal()), listFacts: f.facts }));
 vi.mock('../../../../api/_app/services/money/seen.js', () => ({ seenBy: f.seen, sourceCounts: f.sources }));
-vi.mock('../../../../api/_app/services/money/store.js', () => ({ inPersonScope: (id, fn) => fn(), personProfileCached: async () => ({ timezone: 'Europe/Madrid', country: 'ES', currency: 'EUR', language: null }),  refreshRecurring: f.recurring, listBankAccounts: f.accounts, reconnectByAccount: f.reconnect, listReadings: f.readings, categorySpend: f.categories, subscriptionUsage: f.usage }));
+vi.mock('../../../../api/_app/services/money/store.js', () => ({ inPersonScope: (id, fn) => fn(), personProfileCached: async () => ({ timezone: 'Europe/Madrid', country: 'ES', currency: 'EUR', language: null }),  recurringSeries: f.recurring, listBankAccounts: f.accounts, reconnectByAccount: f.reconnect, listReadings: f.readings, categorySpend: f.categories, subscriptionUsage: f.usage }));
 vi.mock('../../../../api/_app/services/money/instruments.js', () => ({ accountsWithCards: f.cards }));
 vi.mock('../../../../api/_app/services/money/betaCapabilities.js', () => ({ capabilitiesFor: async () => ({ bank: true, capture: false }) }));
 vi.mock('../../../../api/_app/services/money/inbox.js', () => ({ inboxSummary: f.inbox }));
