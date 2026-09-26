@@ -93,7 +93,7 @@ describe('buildFigure', () => {
   it('drops a kind that is not in the catalogue', () => {
     expect(buildFigure({ kind: 'pie' }, ctx())).toBe(null);
     expect(buildFigure(null, ctx())).toBe(null);
-    expect(FIGURE_KINDS).toEqual(['months', 'shares', 'weekdays', 'recurring', 'band', 'history', 'week']);
+    expect(FIGURE_KINDS).toEqual(['months', 'shares', 'weekdays', 'recurring', 'band', 'history', 'week', 'flows']);
   });
 
   it('draws the months from the segments, oldest first, with this month marked', () => {

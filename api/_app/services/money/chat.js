@@ -37,6 +37,7 @@ import { keepStatement, notMineStatement, recategoriseStatement, forgetStatement
 import { listReturnsClosing } from './returns.js';
 import { tripDays } from './when.js';
 import { balances, describeBetweenPeople, monthBetweenPeople, describeMonthBetweenPeople, splitFindings, MIN_WAYS, MAX_WAYS } from './bizum.js';
+import { monthFlows, moneyInRows, describeFlows, FLOW_FIGURE_MONTHS } from './inflow.js';
 import crypto from 'node:crypto';
 import { createLogger } from '../logger.js';
 import { subscriptionUsage,
@@ -56,7 +57,7 @@ import { selectTransactions } from './transactionRepository.js';
 
 const log = createLogger('money-chat');
 
-export const FIGURE_KINDS = Object.freeze(['months', 'shares', 'weekdays', 'recurring', 'band', 'history', 'week']);
+export const FIGURE_KINDS = Object.freeze(['months', 'shares', 'weekdays', 'recurring', 'band', 'history', 'week', 'flows']);
 /** Purchase comparisons come only from the deterministic scenario, never a model proposal. */
 export const REPLY_FIGURE_KINDS = Object.freeze([...FIGURE_KINDS, 'purchase']);
 export const ACTION_KINDS = Object.freeze(['not_me', 'recategorise', 'answer', 'split', 'person', 'remember', 'forget', 'setup', 'fact']);
@@ -385,6 +386,17 @@ export function buildFigure(request, ctx) {
     return { figure: { kind, title: say(ctx.language, 'Spent per month'), points }, rows };
   }
 
+  /* Money in beside money out, a pair of bars a month, the last six, oldest first (inflow.js,
+     the same figures the month page shows). Nothing when nothing came in: that would be the
+     months figure with an empty half. Its receipts are this month's money in, largest first. */
+  if (kind === 'flows') {
+    const flows = monthFlows(ctx.transactions, { now: ctx.now });
+    const shown = flows.months.slice(0, FLOW_FIGURE_MONTHS).reverse();
+    if (!shown.some((m) => m.money_in > 0)) return null;
+    const points = shown.map((m) => ({ label: monthLabel(m.month, ctx.language), money_in: m.money_in, money_out: m.money_out, ...(m.month === flows.month ? { current: true } : {}) }));
+    return { figure: { kind, title: say(ctx.language, 'Money in and out per month'), points }, rows: moneyInRows(ctx.transactions, { now: ctx.now }) };
+  }
+
   if (kind === 'shares') {
     const month = resolveMonth(ctx, request.month);
     const inMonth = ctx.transactions.filter((t) => out(t) && monthKeyOf(t.occurred_at) === monthKeyOf(month));
@@ -628,8 +640,11 @@ export function contextText(ctx) {
     const spread = f.projected_p90 - f.projected_p10 > 0.5;
     lines.push(`This month (${monthLabel(f.month)}): spent ${amountText(f.spent)} so far, ${f.days_left} days left, ${amountText(f.committed)} still committed.`
       + (spread ? ` Likely to end at ${amountText(Math.max(f.projected_p50, f.spent + f.committed))}, between ${amountText(f.projected_p10)} and ${amountText(f.projected_p90)}.` : ''));
-    if (f.received) lines.push(`Came in this month: ${amountText(f.received)}.`);
   }
+  /* Money in beside money out (inflow.js): what came in, from whom, and each month's two sides.
+     It replaces the forecast's own received, which leaves a split's Bizums back out: two figures
+     for what came in this month gave the model two answers to one question (2026-09-26). */
+  lines.push(...describeFlows(monthFlows(ctx.transactions, { now: ctx.now })));
 
   /* The stretches a person asks about by name, totalled here so the model never adds: asked
      for last night and for yesterday, it gave the lines one by one and no total (2026-09-20). */
@@ -823,7 +838,7 @@ export const RULES = [
   'Asked for a table, a list or a ranking of one kind\'s payments, read the line "<kind> this month, largest first" and say every name and amount on it, in that order, then the kind\'s total; the shares figure by place within that kind is drawn under your words too. Never say you cannot make a table, never stop at the largest.',
   'Asked what a kind costs every month, per month or month by month, read the line "<kind> by month" and say each month with its figure, newest first; never give an average, never take one month for all.',
   'Asked about one kind and one month, never list the other months and never name charges of other kinds: this month\'s total and count, its largest, one comparison with last month, and only that kind\'s own charges that come back.',
-  'Never ask whether they would like a figure or a chart: when one would help, ask for it by kind and it is drawn under your words. When a figure would show the thing better than words, ask for it by kind. Kinds: months (spent per month), shares (where a month went; add month, and by: "merchant" for places), weekdays (spend by weekday), recurring (what comes back), band (this month so far and likely), history (one merchant over time; add merchant). Ask for at most two, and only when they add something.',
+  'Never ask whether they would like a figure or a chart: when one would help, ask for it by kind and it is drawn under your words. When a figure would show the thing better than words, ask for it by kind. Kinds: months (spent per month), shares (where a month went; add month, and by: "merchant" for places), weekdays (spend by weekday), recurring (what comes back), band (this month so far and likely), history (one merchant over time; add merchant), flows (money in and money out per month, side by side). Ask for at most two, and only when they add something.',
   'Actions are offers the person taps, never things you did: the text must not claim to have changed, marked or recorded anything. Say something like "If that is right, mark it below." and leave the doing to the card.',
   'Propose an action only when the person asks to fix or record something: not_me with transaction_id from the recent payments; recategorise with merchant_key from the places and a category from: ' + CATEGORIES.join(', ') + '; answer with question_id from the open questions and the value they gave; split with transaction_id from the recent payments and ways (2 to 12, the person included) when they say a payment was shared, for a dinner, a shop, a present.',
   'When the person tells you who somebody on the statement is, or what a transfer to them was for, propose person with merchant_key (the key of that person in the recent payments), role from: ' + PERSON_ROLES.join(', ') + ', and note with what they said about it. When they tell you something about their money that fits none of these (a plan, a reason, a rule of theirs), propose remember with text in their words. When they say something the ledger holds is wrong (their words, on What it knows), propose forget with the fact_id from the facts list.',
@@ -931,6 +946,7 @@ const PHRASES = {
     'That receipt': 'Ese recibo',
     'today': 'hoy',
     'Spent per month': 'Gastado por mes',
+    'Money in and out per month': 'Entradas y salidas por mes',
     'Where {month} went, by place': 'A d\u00f3nde fue {month}, por sitio',
     'Where {month} went': 'A d\u00f3nde fue {month}',
     'Spent by day of the week': 'Gastado por d\u00eda de la semana',
@@ -1094,6 +1110,7 @@ const PHRASES = {
     'That receipt': 'Esse recibo',
     'today': 'hoje',
     'Spent per month': 'Gasto por m\u00eas',
+    'Money in and out per month': 'Entradas e sa\u00eddas por m\u00eas',
     'Where {month} went, by place': 'Para onde foi {month}, por lugar',
     'Where {month} went': 'Para onde foi {month}',
     'Spent by day of the week': 'Gasto por dia da semana',
