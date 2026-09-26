@@ -226,6 +226,7 @@ export function withAskedFigure(reply, message, ctx) {
     note = whyNot(ask, ctx, L);
   }
   let words = figures.length ? withoutChartQuestion(text, true) : text;
+  words = String(words || '').split(SENTENCES).filter((p) => !strayBeside(p, figures.length > 0)).join(' ').trim();
   if (note) words = [words, note].filter(Boolean).join(' ');
   if (!String(words).trim()) words = figures.length ? say(L, 'Drawn from your own payments.') : reply.text;
   const out = { ...reply, text: words, figures, receipts };
@@ -283,6 +284,25 @@ export function withoutFigureAsks(text) {
 export function mayAskForFigure(partial) {
   const s = flat(partial);
   return Boolean(s) && (OPENS.test(s) || ASK_FOR.test(s) || FIG_WORD.test(s));
+}
+
+/* A figure the code draws answers the request, so a question the model asked instead ("What
+   would you like the graph to show? For example, by month?") answers nothing; and a figure
+   the code cannot draw is never presented ("Here is your spending per month."), 2026-09-26. */
+const PRESENTS = /^(here(?:'s| is| are)|below (?:is|are)|aqui (?:esta|estan|tienes|va|van|estao|vai|vao)|segue|seguem|eis)\b/;
+
+/** Whether a sentence contradicts what the code does with the figure asked for: drawn or not. Pure. */
+export function strayBeside(sentence, drawing) {
+  const s = String(sentence || '').trim();
+  return drawing ? /\?\s*$/.test(s) : PRESENTS.test(flat(s));
+}
+
+/** What the code does with the figure the words ask for: 'draw', 'refuse', or null when none is asked. */
+export function figurePlan(message, ctx) {
+  if (blocked(ctx)) return null;
+  const ask = figureAsk(message, ctx);
+  if (!ask) return null;
+  return !ask.refuse && buildFigure(ask, ctx) ? 'draw' : 'refuse';
 }
 
 /* ------------------------------------------------------------------ a file asked for */

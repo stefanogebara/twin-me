@@ -13,7 +13,7 @@ vi.mock('../../../../api/_app/services/money/store.js', async (importOriginal) =
 });
 
 const { assemble, FIGURE_KINDS } = await import('../../../../api/_app/services/money/chat.js');
-const { figureAsk, fileAsk, asksForFigure, withoutFigureAsks, mayAskForFigure } = await import('../../../../api/_app/services/money/askIntent.js');
+const { figureAsk, fileAsk, asksForFigure, withoutFigureAsks, mayAskForFigure, withAskedFigure } = await import('../../../../api/_app/services/money/askIntent.js');
 
 const NOW = new Date('2026-09-08T12:00:00Z');
 const t = (id, occurred_at, amount, merchant_key, merchant_raw) => ({ id, occurred_at, amount, merchant_key, merchant_raw, channel: 'card', currency: 'EUR' });
@@ -114,5 +114,28 @@ describe('a sentence that tells the person to ask for a figure', () => {
     expect(mayAskForFigure('Ask for')).toBe(true);
     expect(mayAskForFigure('You can')).toBe(true);
     expect(mayAskForFigure('Clothing took 116,76 EUR and')).toBe(false);
+  });
+});
+
+describe('withAskedFigure: the words agree with what is drawn under them', () => {
+  const reply = (text) => ({ text, figures: [], actions: [], receipts: [] });
+  it('drops a question left over from the model once the code has drawn the figure', () => {
+    const out = withAskedFigure(reply('What would you like the graph to show? For example, spending per month or by weekday?'), 'draw a graph', ctx);
+    expect(out.figures.map((f) => f.kind)).toEqual(['shares']);
+    expect(out.text).not.toMatch(/\?/);
+    expect(out.text.trim().length).toBeGreaterThan(0);
+  });
+  it('keeps what the model said about the figure when it is not a question', () => {
+    const out = withAskedFigure(reply('Most of it went to clothing this month.'), 'draw a graph', ctx);
+    expect(out.text).toBe('Most of it went to clothing this month.');
+  });
+  it('never presents a figure it could not draw', () => {
+    const one = assemble({ transactions: [t('s1', '2026-09-03T10:00:00Z', -20, 'bar', 'Bar'), t('s2', '2026-09-05T10:00:00Z', -12, 'spotify', 'Spotify')], places: [], now: NOW });
+    const out = withAskedFigure(reply('Here is your spending per month.'), 'show me a chart of my spending by month', one);
+    expect(out.figures).toEqual([]);
+    expect(out.text).not.toMatch(/here is/i);
+    expect(out.text).toMatch(/at least two months/);
+    const es = withAskedFigure(reply('Aqu\u00ed tienes tus gastos por mes.'), 'mu\u00e9strame un gr\u00e1fico de mis gastos por mes', one);
+    expect(es.text).not.toMatch(/aqu\u00ed tienes/i);
   });
 });
