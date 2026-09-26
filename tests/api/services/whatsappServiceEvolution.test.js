@@ -33,18 +33,18 @@ describe('sendWhatsAppMessage via Evolution API', () => {
   it('POSTs to /message/sendText/{instance} with number+text and apikey header', async () => {
     axiosPost.mockResolvedValue({ status: 201, data: { key: { id: 'EVO_MSG_1' }, status: 'PENDING' } });
 
-    const res = await sendWhatsAppMessage('+55 11 99900-2121', 'oi');
+    const res = await sendWhatsAppMessage('+55 11 90000-0001', 'oi');
 
     expect(res).toEqual({ success: true, messageId: 'EVO_MSG_1', provider: 'evolution' });
     const [url, body, opts] = axiosPost.mock.calls[0];
     expect(url).toBe('https://evo.example.com/message/sendText/twinme');
-    expect(body).toEqual({ number: '5511999002121', text: 'oi' }); // digits only
+    expect(body).toEqual({ number: '5511900000001', text: 'oi' }); // digits only
     expect(opts.headers.apikey).toBe('EVOKEY');
   });
 
   it('returns a failure envelope (no throw) when Evolution errors', async () => {
     axiosPost.mockRejectedValue({ response: { status: 400, data: { message: 'instance not connected' } } });
-    const res = await sendWhatsAppMessage('5511999002121', 'oi');
+    const res = await sendWhatsAppMessage('5511900000001', 'oi');
     expect(res.success).toBe(false);
     expect(res.provider).toBe('evolution');
   });

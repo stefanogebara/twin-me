@@ -207,14 +207,14 @@ No advice. No judgment. Mirror + one question. PT-BR default, English if detecte
 ### Day 0 findings (2026-04-24)
 
 Only one user in the entire TwinMe database has Whoop + Spotify + Calendar all
-connected: you. Antonio Piza linked WhatsApp on Apr 2 but never reconnected
-platforms. Rafael Zema never connected Whoop at all.
+connected: you. Tester A linked WhatsApp on Apr 2 but never reconnected
+platforms. Tester B never connected Whoop at all.
 
 | User | Whoop+Spotify+Cal | WA linked | Phone |
 |---|---|---|---|
-| Stefano (167c27b5) | 3/3 | yes | +5511999002121 |
-| Antonio Piza (4ce189bb) | 0/3 disconnected | yes | +5511996112005 |
-| Rafael Zema (9147425e) | 0/3, no Whoop ever | no | — |
+| Stefano (167c27b5) | 3/3 | yes | +5511900000001 |
+| Tester A (4ce189bb) | 0/3 disconnected | yes | +5511900000002 |
+| Tester B (9147425e) | 0/3, no Whoop ever | no | — |
 
 Even your data is thin: Whoop last obs 2026-04-12 (12d stale), 0 Spotify plays
 last 24h, 0 calendar events next 3h. Reconnect/re-sync before Day 1 — Whoop
@@ -235,7 +235,7 @@ token may have rotted.
 
 #### Day 4 — recruit with proof, not promise
 - [ ] 4-1: Screenshot a real reflection from Day 3. The one that felt most true.
-- [ ] 4-2: Text Antonio + Rafael: "built this, needs Whoop+Spotify+Calendar reconnected (3 min). Here's what it looks like: [screenshot]"
+- [ ] 4-2: Text Tester A + Tester B: "built this, needs Whoop+Spotify+Calendar reconnected (3 min). Here's what it looks like: [screenshot]"
 - [ ] 4-3: Do NOT chase if they don't respond within 24h. That's signal.
 
 #### Days 5-7 — widen or kill
@@ -280,7 +280,7 @@ Total: ~210 lines of real code + ~30 lines of prompt.
 - `api/_app/services/whatsappService.js` — `sendWhatsAppMessage(phone, text)`
 - `api/_app/services/observationFetchers/{whoop,spotify,calendar}.js` — fresh API pulls (probably not needed for V1 — DB is fresh enough)
 - `api/_app/services/llmGateway.js` — DeepSeek call via TIER_ANALYSIS
-- `messaging_channels` table — phone-to-user_id mapping (already has Stefano + Antonio)
+- `messaging_channels` table — phone-to-user_id mapping (already has Stefano + Tester A)
 
 ### Open questions Day 1 must answer
 
@@ -360,7 +360,7 @@ returns 403. One-line fix.
 ### HIGH — this week
 
 - [x] **H1 — `sensitiveContent: true` silently downgrades to Mistral Small.** SHIPPED ff4a163d — pass `TIER_EXTRACTION` explicitly, removed `sensitiveContent` flag.
-- [x] **H2 — Cross-user leak regression test.** SHIPPED 195e2ef9 — E2E asserts Stefano + Antonio produce distinct reflections from identical input. Locks `skipCache: true` in place.
+- [x] **H2 — Cross-user leak regression test.** SHIPPED 195e2ef9 — E2E asserts Stefano + Tester A produce distinct reflections from identical input. Locks `skipCache: true` in place.
 - [x] **H3 — `getValidAccessToken` called 3x sequentially in calendar fetcher.** SHIPPED 81f211d3 — token hoisted to function entry, lines 258+370 reuse it.
 - [x] **H4 — Zero PostHog telemetry on purchase reflections.** SHIPPED ff4a163d — `captureTelemetry` emits structured log envelopes. Three events: generated/rate_limited/failed. Never includes user text. PostHog wiring is one swap-out away.
 - [x] **H5 — `addConversationMemory` swallows errors silently** SHIPPED 81f211d3 — `.catch(err => log.warn(...))`.
@@ -388,7 +388,7 @@ returns 403. One-line fix.
 
 ### Test coverage gaps (P0/P1)
 
-- [x] **T1 (P0)** — Cross-user reflection leak test (User A vs User B). SHIPPED 195e2ef9 — fires identical text from Stefano + Antonio, asserts distinct reflections.
+- [x] **T1 (P0)** — Cross-user reflection leak test (User A vs User B). SHIPPED 195e2ef9 — fires identical text from Stefano + Tester A, asserts distinct reflections.
 - [x] **T2 (P0)** — Webhook idempotency on duplicate `wamid`. SHIPPED ff4a163d.
 - [x] **T3 (P0)** — Prompt injection neutralization. SHIPPED 95299199.
 - [ ] **T4 (P0)** — `purchaseContextBuilder` graceful degrade (no Spotify/Calendar)
