@@ -823,7 +823,9 @@ describe('withoutMarkBelow', () => {
 describe('what the ledger can read', () => {
   it('is one computed line in the context, with the formats a statement takes', async () => {
     const { contextText } = await import('../../../../api/_app/services/money/chat.js');
-    expect(contextText(ctx())).toMatch(/Sources the ledger can read: .*\.xlsx or \.csv, never a PDF/);
+    /* "never a PDF" was pinned here and stayed true until #597 made a bank's PDF read; the chat
+       then told people it could not read one (Decisions, 2026-09-26). */
+    expect(contextText(ctx())).toMatch(/Sources the ledger can read: .*as Excel, CSV or PDF/);
   });
 });
 

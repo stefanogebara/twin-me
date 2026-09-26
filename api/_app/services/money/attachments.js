@@ -9,7 +9,11 @@
  * Three readings, tried in this order, each on the machinery that already exists:
  *
  *   statement   an Excel or CSV export from the bank: statements/importer.js reads the
- *               rows, and every payment in it joins the ledger (ingestSightings)
+ *               rows, and every payment in it joins the ledger (ingestSightings). A bank's
+ *               PDF is read by the statement upload's own reader (pdfGrid, then OCR text
+ *               split by textGrid, #597), counted, and sent on to Sources, where its account
+ *               is picked and its rows checked: its columns come from geometry, so it never
+ *               joins unseen, and one of its lines never becomes a receipt (2026-09-26)
  *   receipt     any text the document holds (a photo through the vision model, a PDF's
  *               own text) read by inbox.js's receipt extractor, gated the same way: an
  *               amount the model names must appear in the document, or it is nothing
@@ -134,12 +138,29 @@ export async function readAttachment(userId, { buffer, filename = '', mimeType =
     /* A CSV that is not a statement falls through to the text reading. */
   }
 
+  /* 1b. A bank's PDF, read by the statement upload's own reader and sent on to Sources: until
+     2026-09-26 its text went to the receipt reader, which could keep one line of a statement as
+     a payment, or to a note, and never read its rows. */
+  const pdf = extOf(name) === 'pdf' || String(mimeType || '').toLowerCase() === 'application/pdf';
+  const sendToSources = (n) => said('nothing', n === 1
+    ? w('{name} reads as a bank statement of one payment. To add it, upload it in Sources, choose its account and check the row.', { name })
+    : w('{name} reads as a bank statement of {n} payments. To add them, upload it in Sources, choose its account and check the rows.', { name, n }));
+  if (pdf && deps.statementFromPdf) {
+    const rows = await Promise.resolve().then(() => deps.statementFromPdf(buffer)).catch(quietly('attach/pdf-statement', null));
+    if (rows?.sightings?.length) return sendToSources(rows.sightings.length);
+  }
+
   /* 2. The text the document holds. */
   const read = await extractText(buffer, { filename: name, mimeType, userId });
   const text = read && read.ok ? String(read.text || '').trim() : '';
   if (!text) {
     if (read && read.needsOcr) return said('unreadable', w('{name} is a scan with no text layer. A photo of the page reads.', { name }));
     return said('unreadable', w('{name} could not be read.', { name }));
+  }
+  /* A scanned statement has no page grid, only the lines OCR read: split into columns, as the upload does. */
+  if (pdf && deps.statementFromText) {
+    const rows = await Promise.resolve().then(() => deps.statementFromText(text)).catch(quietly('attach/pdf-statement-text', null));
+    if (rows?.sightings?.length) return sendToSources(rows.sightings.length);
   }
 
   /* 3. A receipt, by the inbox's own reading and gate. */

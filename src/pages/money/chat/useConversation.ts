@@ -11,6 +11,7 @@ import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { useLocale, useT } from '@/lib/i18n';
 import { MAX_UPLOAD, OFFERS, shrink, nextAsk, type AskLine, type Offer } from './askLine';
 import { useLedgerTrace } from './useLedgerTrace';
+import { saveMonthSheet } from '../monthSheet';
 
 export function useConversation() {
   const locale = useLocale();
@@ -55,6 +56,8 @@ export function useConversation() {
           figures: t.figures || undefined, receipts: t.receipts || undefined, thinking: t.thinking || undefined, basis: t.basis || undefined,
           /* What that answer suggested asking next, kept with it, so a reload does not fall back to the fixed six. */
           next: t.next || undefined,
+          /* A month offered as a file is still that month's file after a reload; the other offers may have gone stale. */
+          ...((t.actions || []).some((a) => a?.kind === 'sheet') ? { actions: (t.actions || []).filter((a) => a?.kind === 'sheet') } : {}),
         }));
         /* Whatever was typed while this loaded stays: the kept turns go in front of it. */
         setLines((all) => (all.length ? [...kept, ...all] : kept));
@@ -215,6 +218,14 @@ export function useConversation() {
     /* A setup offer is a step on another page, not something the ledger does. */
     if (action.kind === 'setup' && typeof action.href === 'string' && action.href.startsWith('/money/')) { navigate(action.href); return; }
     acting.current.add(lineId);
+    /* The month as a file is saved here, from the server's own export: nothing is asked of the
+       ledger, and the offer stays for another copy. */
+    if (action.kind === 'sheet' && typeof action.month === 'string') {
+      const note = (acted?: string) => setLines((all) => all.map((l) => (l.id === lineId ? { ...l, acted } : l)));
+      note(t('Making the sheet\u2026'));
+      try { await saveMonthSheet(action.month); note(undefined); } catch { note(t('The sheet could not be made. Try again.')); } finally { acting.current.delete(lineId); }
+      return;
+    }
     /* The offers go the moment one is tapped, so a second tap cannot run it twice. */
     setLines((all) => all.map((l) => (l.id === lineId ? { ...l, actions: [], acted: t('Doing it.') } : l)));
     try {

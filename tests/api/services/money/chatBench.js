@@ -14,7 +14,7 @@
  * taxi 7,40, total 582,87; July 298,14; June 162,51) and to words; the live month moves.
  *
  *   dim: figure-yes | figure-no | shape | grounding | follow-up | learning | correction |
- *        language | edge | reasoning | suggestions
+ *        language | edge | reasoning | suggestions | files
  */
 
 const EUR = /\d+,\d{2}\s?(EUR|€)/;
@@ -36,6 +36,14 @@ export const BENCH = [
   { id: 'fy-august-where', dim: 'figure-yes', message: 'Where did August go?', route: 'model', figures: { some: ['shares'] }, actions: NO_ACT, mention: [/august|agosto/i, EUR], avoid: [/1630,13/], maxSentences: 4 },
   { id: 'fy-today-band', dim: 'figure-yes', message: 'What can I spend today?', route: 'any', figures: { only: ['band'] }, actions: NO_ACT, mention: [EUR], judge: false, maxSentences: 4 },
   { id: 'fy-ahead', dim: 'figure-yes', message: 'What is still to come this month?', route: 'any', figures: { only: ['ahead', 'band', 'recurring'] }, actions: NO_ACT, maxSentences: 4 },
+  /* asked to draw, from the owner's own thread (2026-09-23 to 09-25): the code draws it, and "ask for the figure" never reaches the screen */
+  { id: 'fy-draw-graph', dim: 'figure-yes', message: 'draw a graph', route: 'model', figures: { some: ['shares'] }, actions: NO_ACT, avoid: [/ask (me )?for/i], maxSentences: 4 },
+  { id: 'fy-draw-recurring', dim: 'figure-yes', message: 'Draw a figure of recurring changes', route: 'short', figures: { some: ['recurring'] }, actions: NO_ACT, judge: false, maxSentences: 3 },
+  { id: 'fy-draw-subs', dim: 'figure-yes', message: 'draw my subscriptions', route: 'short', figures: { some: ['recurring'] }, actions: NO_ACT, judge: false, maxSentences: 3 },
+  { id: 'fy-graph-months', dim: 'figure-yes', message: 'graph of my spending by month', route: 'any', figures: { some: ['months'] }, actions: NO_ACT, mention: [EUR], maxSentences: 4 },
+  { id: 'fy-es-categoria', dim: 'figure-yes', message: 'gr\u00e1fico de mis gastos por categor\u00eda', route: 'model', figures: { some: ['shares'] }, actions: NO_ACT, avoid: [/pide|ask for/i], maxSentences: 4 },
+  { id: 'fy-pt-mes', dim: 'figure-yes', message: 'desenha um gr\u00e1fico dos meus gastos por m\u00eas', route: 'model', figures: { some: ['months'] }, actions: NO_ACT, avoid: [/pe[\u00e7c]a|ask for/i], maxSentences: 4 },
+  { id: 'fy-in-out', dim: 'figure-yes', message: 'draw what came in and went out each month', route: 'model', figures: { some: ['flows', 'months'] }, actions: NO_ACT, maxSentences: 4 },
 
   /* ---------------------------------------------------------------- figure-no: a number is enough */
   { id: 'fn-yesterday', dim: 'figure-no', message: 'How much did I spend yesterday?', route: 'model', figures: NONE, actions: NO_ACT, mention: [EUR], maxSentences: 3 },
@@ -163,6 +171,13 @@ export const BENCH = [
   { id: 'ed-compare-others', dim: 'edge', message: 'am I spending more than other students?', route: 'model', figures: { only: ['months', 'shares', 'band'] }, actions: NO_ACT, mention: [/cannot|only your|no other|does not|not /i], judge: false, maxSentences: 3 },
   { id: 'ed-empty-month', dim: 'edge', message: 'how much on pharmacy this month?', route: 'short', figures: { only: ['shares'] }, actions: NO_ACT, mention: [/pharmacy/i, /nothing|0,00/i], judge: false, maxSentences: 4 },
   { id: 'ed-emoji', dim: 'edge', message: 'how much did I spend yesterday? 😅', route: 'model', figures: NONE, actions: NO_ACT, mention: [EUR], maxSentences: 3 },
+
+  /* ---------------------------------------------------------------- files: the month as a download, and what the chat reads */
+  { id: 'fl-excel-september', dim: 'files', message: 'Create an Excel file of my September spending.', route: 'short', figures: NONE, actions: { some: ['sheet'] }, mention: [/spreadsheet/i], avoid: [/PDF/], judge: false, maxSentences: 2 },
+  { id: 'fl-excel-sector', dim: 'files', message: 'create an excel for me so i can keep it w the expenditures this month per sector', route: 'short', figures: NONE, actions: { some: ['sheet'] }, mention: [/by kind/i], judge: false, maxSentences: 2 },
+  { id: 'fl-es-last-month', dim: 'files', message: 'hazme una hoja de c\u00e1lculo del mes pasado', route: 'short', figures: NONE, actions: { some: ['sheet'] }, mention: [/hoja de c[a\u00e1]lculo/i], judge: false, maxSentences: 2 },
+  { id: 'fl-month-not-held', dim: 'files', message: 'export December to a spreadsheet', route: 'short', figures: NONE, actions: NO_ACT, mention: [/nothing/i], judge: false, maxSentences: 2 },
+  { id: 'fl-reads-pdf', dim: 'files', message: 'can you read a PDF from my bank?', route: 'model', figures: NONE, actions: { optional: true, some: ['setup'] }, mention: [/PDF/i], avoid: [/cannot read|can't read|never a PDF|does not read/i], maxSentences: 3 },
 
   /* ---------------------------------------------------------------- reasoning: judged on the thinking, streamed */
   { id: 're-why-high', dim: 'reasoning', stream: true, speedMs: 45000, message: 'why is this month so much higher than August?', route: 'model', figures: { only: ['shares', 'months', 'weekdays', 'week', 'history'] }, actions: NO_ACT, mention: [EUR], maxSentences: 5 },

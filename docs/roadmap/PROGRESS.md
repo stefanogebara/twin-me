@@ -279,6 +279,10 @@ Not there yet, honestly: no web access (the chat says only what the ledger compu
 
 ## Decisions
 
+### 2026-09-26 — what Ask believes it reads, and the verb "show" (Claude)
+
+The chat's capability line told the model a statement is read "as .xlsx or .csv, never a PDF", and `chat.test.js` ("is one computed line in the context, with the formats a statement takes") pinned those words. Since #597 a bank's PDF reads, so Ask told people it could not read one. The assertion now pins "as Excel, CSV or PDF"; nothing else in that test changed. The line also names the files the chat's own attach route takes (`acceptsAttachment`) and what Ask makes (a figure asked for, a month as a spreadsheet), so the model neither claims nor denies what the code does. Separately, `kindInMessage` read the verb in "show me my spending by month" as the entertainment kind and could draw an entertainment table under a months question; "show me/us/my/what/how..." and a leading "show" are no longer that kind, while "shows" and "the show" still are.
+
 ### 2026-09-25 — comparison composition and evidence privacy (Codex, doing)
 
 After #575 shipped, verified the authenticated production purchase comparison against Today and after reload; input focus is an underline, with no enclosing frame. Next design experiment connects the result to the purchase and allowance with a shared visual scale, preserves the live register, and reduces the composer’s visual weight. The scale is supplemental, excludes negative inputs, and keeps exact values as accessible text. Test desktop, phone, long translations, keyboard and reduced motion. Libraries.dev effects remain experiments unless they communicate real work. Correct the sign-in promise that no card details are stored: raw bank evidence can contain card identifiers, even though Money never requests a payment card. Mask the presentation without rewriting the source evidence.
