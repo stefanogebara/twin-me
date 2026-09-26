@@ -201,6 +201,22 @@
 .mc-bar.is-current .mc-bar-track > i { background: var(--ink); }
 .mc .mc-bar-label { color: var(--ink-2); font-size: 13px; line-height: 16px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
+/* Money in beside money out, a pair of bars a month (2026-09-26), on a hairline base: in is the
+   data signal (#0096ba, --rg-signal), out is ink (#251f21, --rg-ink), the month and the key in
+   ink-3 (#6c6867, --rg-ink-3). This month's label goes to ink, as the months figure marks it. */
+.mc-flows { display: grid; gap: 8px; }
+.mc-flows-bars { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 12px; align-items: end; height: 120px; }
+.mc-flow { display: grid; grid-template-rows: minmax(0, 1fr) auto; height: 100%; gap: 6px; min-width: 0; text-align: center; }
+.mc-flow-track { display: flex; align-items: flex-end; justify-content: center; gap: 3px; min-height: 0; border-bottom: 1px solid var(--rule); }
+.mc-flow-track > i { display: block; flex: 0 1 16px; min-width: 4px; border-radius: 2px 2px 0 0; }
+.mc-flow-in { background: var(--rg-signal); }
+.mc-flow-out { background: var(--rg-ink); }
+.mc .mc-flow-label { color: var(--rg-ink-3); font-size: 13px; line-height: 16px; font-weight: 350; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mc .mc-flow.is-current .mc-flow-label { color: var(--rg-ink); font-weight: 500; }
+.mc .mc-flows-key { display: flex; align-items: center; gap: 6px; margin: 0; color: var(--rg-ink-3); font-weight: 350; }
+.mc-flows-key > i { display: inline-block; flex: none; width: 8px; height: 8px; border-radius: 2px; }
+.mc-flows-key > i + span + i { margin-left: 10px; }
+
 .mc-shares { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
 .mc-share { display: grid; gap: 4px; }
 .mc-share-head { display: flex; justify-content: space-between; gap: 12px; font-weight: 500; }

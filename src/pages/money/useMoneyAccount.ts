@@ -9,7 +9,7 @@ import { monthlyLoad as loadOfRecurring } from './recurringLoad';
 import { dayPartsIn, browserZone } from './readingHelpers';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLocale, useT } from '@/lib/i18n';
-import { usableForecast, moneyAPI, shortDay, BANKS, setLedgerCurrency, ownCurrency, type MoneyReconciliation, type MoneyProfile, type MoneyCapabilities, type MoneyAccount as MoneyBankAccount, type MoneyCalendar, type MoneyCategories, type MoneyFact, type MoneyForecast, type MoneyPattern, type MoneyQuestions, type MoneyToday, type MoneyMonth, type MoneyPage, type MoneyReading, type MoneyRecurring, type MoneyTransaction, type MoneyUsage, type MoneySourceCounts, type MoneyInbox } from '../../services/api/moneyAPI';
+import { usableForecast, moneyAPI, shortDay, BANKS, setLedgerCurrency, ownCurrency, type MoneyReconciliation, type MoneyProfile, type MoneyCapabilities, type MoneyAccount as MoneyBankAccount, type MoneyCalendar, type MoneyCategories, type MoneyFact, type MoneyForecast, type MoneyPattern, type MoneyQuestions, type MoneyToday, type MoneyMonth, type MoneyPage, type MoneyReading, type MoneyRecurring, type MoneyTransaction, type MoneyUsage, type MoneySourceCounts, type MoneyInbox, type MoneyFlows } from '../../services/api/moneyAPI';
 import { moneyRevision, MONEY_CHANGED } from '../../services/api/moneyChanges';
 import { todayHere, localDay } from './readingWords';
 import type { MoneyView } from './navLinks';
@@ -26,6 +26,7 @@ type Snapshot = {
   userId: string | null; revision: number; at: number; forecast: MoneyForecast | null; today: MoneyToday | null; ledger: MoneyTransaction[]; recurring: MoneyRecurring[];
   accounts: MoneyBankAccount[]; months: MoneyMonth[]; readings: MoneyReading[]; categories: MoneyCategories | null; usage: MoneyUsage | null; unread: boolean;
   capabilities: MoneyCapabilities; inbox: MoneyInbox | null; facts: MoneyFact[] | null; seen: Record<string, string[]>; sources: MoneySourceCounts | null;
+  flows?: MoneyFlows | null;
 };
 let SNAPSHOT: Snapshot | null = null;
 const SNAPSHOT_FRESH_MS = 30000;
@@ -78,6 +79,8 @@ export function useMoneyRead(userId: string | null, view: MoneyView) {
   const [seen, setSeen] = useState<Record<string, string[]>>(SNAPSHOT?.seen ?? {});
   /* What each source has given, and what it cannot (2026-09-21). */
   const [sources, setSources] = useState<MoneySourceCounts | null>(SNAPSHOT?.sources ?? null);
+  /* Money in beside money out, this month and the months before (inflow.js, 2026-09-26). */
+  const [flows, setFlows] = useState<MoneyFlows | null>(SNAPSHOT?.flows ?? null);
   /* The parts of the last read that could not be read, by name: a part that failed is not
      an empty part, and whoever paints it must know the difference. */
   const [failedParts, setFailedParts] = useState<Set<string>>(new Set());
@@ -129,8 +132,9 @@ export function useMoneyRead(userId: string | null, view: MoneyView) {
     const fa = got('facts'); if (fa !== undefined) setFacts(fa);
     const sn = got('seen'); if (sn !== undefined) setSeen(sn);
     const sc = got('sources'); if (sc !== undefined) setSources(sc);
+    const fl = got('flows'); if (fl !== undefined) setFlows(fl);
     const pf = got('profile'); if (pf !== undefined) { setProfile(pf); setLedgerCurrency(pf.currency); }
-    setFailedParts(page ? failed : new Set(['forecast', 'today', 'ledger', 'recurring', 'accounts', 'months', 'readings', 'categories', 'usage', 'capabilities', 'inbox', 'facts']));
+    setFailedParts(page ? failed : new Set(['forecast', 'today', 'ledger', 'recurring', 'accounts', 'months', 'readings', 'categories', 'usage', 'capabilities', 'inbox', 'facts', 'flows']));
     /* A month that could not be read is not an empty month. Every rejection was dropped, so a
        server that was down told the person their ledger was empty and offered to connect the
        bank they already have (2026-09-16). */
@@ -156,6 +160,7 @@ export function useMoneyRead(userId: string | null, view: MoneyView) {
         facts: fa !== undefined ? fa : SNAPSHOT?.facts ?? null,
         seen: sn !== undefined ? sn : SNAPSHOT?.seen ?? {},
         sources: sc !== undefined ? sc : SNAPSHOT?.sources ?? null,
+        flows: fl !== undefined ? fl : SNAPSHOT?.flows ?? null,
         unread: false,
       };
       SNAPSHOT = kept;
@@ -200,7 +205,7 @@ export function useMoneyRead(userId: string | null, view: MoneyView) {
       .catch(() => {});
     return () => { live = false; };
   }, [load]);
-  return { reconciliation, forecast: reconciliation?.state === 'clear' && usableForecast(forecast) ? forecast : null, profile, today: reconciliation?.state === 'clear' ? today : null, unread, ledger, setLedger, recurring, accounts, months, readings: reconciliation?.state === 'clear' ? readings : [], categories, setCategories, usage, capabilities, inbox, facts, seen, sources, failedParts, loaded, needsReconnect, setNeedsReconnect, load };
+  return { reconciliation, forecast: reconciliation?.state === 'clear' && usableForecast(forecast) ? forecast : null, profile, today: reconciliation?.state === 'clear' ? today : null, unread, ledger, setLedger, recurring, accounts, months, readings: reconciliation?.state === 'clear' ? readings : [], flows: reconciliation?.state === 'clear' ? flows : null, categories, setCategories, usage, capabilities, inbox, facts, seen, sources, failedParts, loaded, needsReconnect, setNeedsReconnect, load };
 }
 
 /** What only You shows, read only there: the calendar, the questions, the patterns. */

@@ -6,6 +6,7 @@
 
 import type { MoneyAccount } from '../useMoneyAccount';
 import MonthHero from './month/MonthHero';
+import CameIn from './month/CameIn';
 import WhereItWent from './month/WhereItWent';
 import ByWeekday from './month/ByWeekday';
 import Ledger from './month/Ledger';
@@ -18,6 +19,8 @@ export default function MonthView({ m }: { m: MoneyAccount }) {
           {/* The month opens on its figure, with the one drawing that says how it compares:
               this month to today's date against the same days of last month. */}
       <MonthHero m={m} />
+          {/* Where it came from, a payer a row: money in before money out, as the line above says them. */}
+      <CameIn m={m} />
           {/* Where it went, by kind of place */}
       <WhereItWent m={m} />
           {/* By day of the week, the last eight full weeks (2026-09-21). */}

@@ -9,11 +9,24 @@ import { ownCurrency, ledgerCurrency, euro, moneyAPI } from '../../../../service
 import { orbFor } from '../../orbFor';
 import Wait from '../../../../components/Wait';
 import MonthOrbits from '../../figures/MonthOrbits';
-import { ordinalDay, monthName } from '../../words';
+import { ordinalDay, monthName, type T } from '../../words';
 import type { MoneyAccount } from '../../useMoneyAccount';
+import type { MoneyFlows } from '../../../../services/api/moneyAPI';
+
+/**
+ * The month from both sides, in one line of the server's figures: what came in, every euro that
+ * went out, and which side is ahead by how much (inflow.js). "Left" is the day's word on Today
+ * and in Ask, so the difference is said as a difference (2026-09-26).
+ */
+function flowLine(t: T, f: MoneyFlows) {
+  const holes = { in: euro(f.money_in), out: euro(f.money_out), diff: euro(f.net) };
+  if (f.net > 0) return t('{in} in, {out} out, {diff} more in than out.', holes);
+  if (f.net < 0) return t('{in} in, {out} out, {diff} more out than in.', holes);
+  return t('{in} in, {out} out.', holes);
+}
 
 export default function MonthHero({ m }: { m: MoneyAccount }) {
-  const { t, locale, forecast, today, ledger, months, categories, recurring, loaded, monthKey, monthRows, incomeEdge, todayDay, pairMax, last, monthLabel, zone } = m;
+  const { t, locale, forecast, today, ledger, months, categories, recurring, loaded, monthKey, monthRows, incomeEdge, todayDay, pairMax, last, monthLabel, zone, flows } = m;
   /* The month as a file, on request: a row per payment, the way the page names things. */
   const [sheet, setSheet] = useState<'idle' | 'busy' | 'failed'>('idle');
   const downloadSheet = async () => {
@@ -54,6 +67,9 @@ export default function MonthHero({ m }: { m: MoneyAccount }) {
               const amount = forecast && forecast.spent !== null ? euro(forecast.spent) : (months[0] ? euro(months[0].spent) : '\u2026');
               return incomeEdge ? t('{month}, {amount} of {income}.', { month: monthLabel, amount, income: euro(incomeEdge) }) : t('{month}, {amount}.', { month: monthLabel, amount });
             })()}</h1> : null}
+            {/* Money in beside money out, under the month's own figure. A month with nothing in
+                says nothing: "0,00 in" would be a guess at a quiet bank, not a fact. */}
+            {loaded && flows && flows.month.slice(0, 7) === monthKey && flows.money_in > 0 ? <p className="mv-sub mv-figures" id="month-flows">{flowLine(t, flows)}</p> : null}
             {ledger.some((row) => !ownCurrency(row.currency)) ? <p className="mv-sub">{ledgerCurrency() === 'EUR' ? t('Totals include euros only. Other currencies stay on their original receipts.') : t('Totals include {ccy} only. Other currencies stay on their original receipts.', { ccy: ledgerCurrency() })}</p> : null}
             {incomeEdge ? <p className="mv-sub">{today?.keep
               ? t('{income} is what you said comes in, {keep} of it to keep.', { income: euro(incomeEdge), keep: euro(today.keep) })

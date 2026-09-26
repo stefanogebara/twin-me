@@ -92,6 +92,15 @@ export type MoneyMonth = {
   month: string; spent: number; spent_to_day?: number; received: number; lines: number; days_covered: number; days_in_month: number; complete: boolean;
   biggest: { id: string; merchant: string; amount: number } | null;
 };
+/** One payer of a month's money in (services/money/inflow.js): the merchant key, the bank's name for it, the sum. */
+export type MoneyFlowSource = { key: string; name: string | null; amount: number; count: number; last_at: string };
+/** A month from both sides: what came in, every euro that went out, in minus out, and who paid, largest first. */
+export type MoneyFlowMonth = {
+  month: string; money_in: number; money_out: number; net: number;
+  sources: MoneyFlowSource[]; more_sources: number; more_amount: number;
+};
+/** This month at the top, and every month the ledger holds, newest first. */
+export type MoneyFlows = MoneyFlowMonth & { months: MoneyFlowMonth[] };
 export type MoneyReading = {
   id: string; kind: string; month: string | null; sentence: string; detail: string | null;
   numbers: Record<string, number | string>; evidence_count: number; verdict: 'true' | 'not_me' | null; computed_at: string; first_seen_at?: string;
@@ -266,6 +275,8 @@ export type MoneyPage = {
   seen: Record<string, string[]> | null;
   /* What each source has given, and what it cannot give. */
   sources: MoneySourceCounts | null;
+  /* Money in beside money out, this month and the months before. Absent from an older server. */
+  flows?: MoneyFlows | null;
   failed: string[];
 };
 
@@ -427,12 +438,14 @@ export type FigureShare = { label: string; value: number; share: number };
 export type FigureRecurring = { label: string; amount: number; cadence: string; next?: string | null };
 export type FigureDay = { label: string; value: number; today?: boolean };
 export type FigureAhead = { label: string; day: string; amount: number; basis?: string | null };
+export type FigureFlow = { label: string; money_in: number; money_out: number; current?: boolean };
 export type PurchaseFigure = { kind: 'purchase'; cost: number; allowance: number; difference: number; currency: string };
 export type ChatFigure =
   | PurchaseFigure
   | { kind: 'week'; title?: string; days: FigureDay[] }
   | { kind: 'ahead'; title?: string; items: FigureAhead[] }
   | { kind: 'months'; title?: string; points: FigurePoint[] }
+  | { kind: 'flows'; title?: string; points: FigureFlow[] }
   | { kind: 'weekdays'; title?: string; points: FigurePoint[] }
   | { kind: 'history'; title?: string; points: FigurePoint[] }
   | { kind: 'shares'; title?: string; items: FigureShare[] }

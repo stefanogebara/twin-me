@@ -15,7 +15,7 @@ export default function Ledger({ m }: { m: MoneyAccount }) {
 }
 
 function LedgerRows({ m }: { m: MoneyAccount }) {
-  const { t, locale, ledger, byMonth, pairMax, todayDay, verdict, seen } = m;
+  const { t, locale, ledger, byMonth, pairMax, todayDay, verdict, seen, flows } = m;
   const [monthOpen, setMonthOpen] = useState<Record<string, boolean>>({});
   const [open, setOpen] = useState<string | null>(null);
   const [receipts, setReceipts] = useState<Record<string, MoneySighting[]>>({});
@@ -60,7 +60,12 @@ function LedgerRows({ m }: { m: MoneyAccount }) {
                        running, and what came in. */
                     let countLine = t(group.rows.length === 1 ? '{n} payment' : '{n} payments', { n: group.rows.length });
                     if (seg && !seg.complete && seg.days_covered) countLine = t('{payments} in {covered} of {total} days', { payments: countLine, covered: seg.days_covered, total: seg.days_in_month });
-                    if (seg && seg.received) countLine = t('{line}, {amount} in', { line: countLine, amount: euro(seg.received) });
+                    /* What came in is the hero line's own figure wherever the flows carry the month
+                       (inflow.js): one rule, so a move between the person's own accounts cannot be
+                       money in on one line of the page and not on the other (2026-09-26). */
+                    const flow = flows?.months.find((f) => f.month.slice(0, 7) === group.key);
+                    const received = flow ? flow.money_in : seg?.received;
+                    if (received) countLine = t('{line}, {amount} in', { line: countLine, amount: euro(received) });
                     return (
                       <li key={group.key}>
                         <button type="button" className="mv-item" aria-expanded={isOpen} onClick={() => setMonthOpen((all) => ({ ...all, [group.key]: !isOpen }))}>
