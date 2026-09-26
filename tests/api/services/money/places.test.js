@@ -545,7 +545,7 @@ describe('categoryFromBrand', () => {
 
 describe('what is never a place', () => {
   it('a name and an initial is a person the bank abbreviated, and nothing is asked', async () => {
-    for (const n of ['Ruiz M.', 'Ruiz M', 'M. Dolores T.']) expect(looksLikePerson(n), n).toBe(true);
+    for (const n of ['Ruiz M.', 'Ruiz M', 'L. Isabel G.']) expect(looksLikePerson(n), n).toBe(true);
     for (const n of ['Mercadona', 'El Corte Ingles', 'Bolt.eu', 'La Fruteria', 'H&M']) expect(looksLikePerson(n), n).toBe(false);
     const fetchImpl = vi.fn(async () => ok(GOOGLE_MERCADONA));
     expect(await lookupPlace({ name: 'Ruiz M.', city: 'Madrid', fetchImpl, env: { GOOGLE_PLACES_API_KEY: 'k' } })).toBe(null);

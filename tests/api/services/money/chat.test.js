@@ -406,13 +406,13 @@ describe('isShortAsk', () => {
     expect(isShortAsk('How does this month compare?')).toBe(true);
     expect(isShortAsk('Give me a chart of my spending by category')).toBe(true);
     expect(isStatement('Give me a chart of my spending by category')).toBe(false);
-    expect(isShortAsk('maria dolores is the woman who gets me the real madrid tickets for 50 euros per person, so many times see if money comes back from 50 euro transfers or 200 euro to me as friends sometimes buy from me')).toBe(false);
+    expect(isShortAsk('laura isabel is the woman who gets me the real madrid tickets for 50 euros per person, so many times see if money comes back from 50 euro transfers or 200 euro to me as friends sometimes buy from me')).toBe(false);
     expect(isShortAsk('Spotify is my flatmate\'s, it comes back every month but it is not mine')).toBe(false);
     expect(isShortAsk('')).toBe(false);
   });
   it('the shortcut never answers a statement with the list of subscriptions', () => {
     const ctx = { recurring: [{ merchant_key: 'spotify', merchant_name: 'Spotify', cadence: 'monthly', typical_amount: 11.99, charges: [] }], segments: [], transactions: [], questions: { opening: [], fromLedger: [] } };
-    expect(shortCircuit('maria dolores is the woman who gets me the real madrid tickets, see if money comes back from 50 euro transfers to me', ctx)).toBe(null);
+    expect(shortCircuit('laura isabel is the woman who gets me the real madrid tickets, see if money comes back from 50 euro transfers to me', ctx)).toBe(null);
   });
 });
 
@@ -656,16 +656,16 @@ describe('the offers a correction becomes', () => {
   it('person offer: the whole name the person typed finds the shorter key the bank gave, and an ambiguous one finds nobody', async () => {
     const { personRow } = await import('../../../../api/_app/services/money/chat.js');
     const rows = [
-      t('p1', '2026-09-11T10:00:00Z', -200, 'maria dolores tomas', 'Maria Dolores Tomas', { channel: 'bizum' }),
-      t('p2', '2026-09-12T10:00:00Z', -30, 'maria fernandes', 'Maria Fernandes', { channel: 'transfer' }),
-      t('p3', '2026-09-12T11:00:00Z', -12, 'maria dolores tomas', 'MARIA DOLORES TOMAS', { channel: 'card' }),
+      t('p1', '2026-09-11T10:00:00Z', -200, 'laura isabel gomez', 'Laura Isabel Gomez', { channel: 'bizum' }),
+      t('p2', '2026-09-12T10:00:00Z', -30, 'laura fernandes', 'Laura Fernandes', { channel: 'transfer' }),
+      t('p3', '2026-09-12T11:00:00Z', -12, 'laura isabel gomez', 'LAURA ISABEL GOMEZ', { channel: 'card' }),
     ];
     const c = assemble({ transactions: [...transactions, ...rows], segments, forecast: cast, recurring, readings: [], facts: [], questions, places, categories, now: NOW });
-    expect(personRow(c.transactions, 'maria dolores tomas obon')?.id).toBe('p1');
-    expect(personRow(c.transactions, 'Maria Dolores')?.id).toBe('p1');
-    expect(personRow(c.transactions, 'maria')).toBeNull();
-    expect(personRow(c.transactions, 'ma')).toBeNull();
-    expect(validateAction({ kind: 'person', merchant_key: 'maria dolores tomas obon', role: 'landlord' }, c)).toMatchObject({ kind: 'person', merchant_key: 'maria dolores tomas', role: 'landlord' });
+    expect(personRow(c.transactions, 'laura isabel gomez sanz')?.id).toBe('p1');
+    expect(personRow(c.transactions, 'Laura Isabel')?.id).toBe('p1');
+    expect(personRow(c.transactions, 'laura')).toBeNull();
+    expect(personRow(c.transactions, 'la')).toBeNull();
+    expect(validateAction({ kind: 'person', merchant_key: 'laura isabel gomez sanz', role: 'landlord' }, c)).toMatchObject({ kind: 'person', merchant_key: 'laura isabel gomez', role: 'landlord' });
   });
   it('remember keeps their words; forget needs a fact the ledger holds', () => {
     const c = ctx();
@@ -752,7 +752,7 @@ describe('plainWords', () => {
 describe('sentenceCount', () => {
   it('does not end a sentence at a name\'s initial', async () => {
     const { sentenceCount } = await import('./chatScenarios.js');
-    expect(sentenceCount('You sent 262,00 EUR to 3 people: Maria D. 200,00 EUR; Achref S. 50,00 EUR. That is all.')).toBe(2);
+    expect(sentenceCount('You sent 262,00 EUR to 3 people: Laura I. 200,00 EUR; Omar H. 50,00 EUR. That is all.')).toBe(2);
   });
 });
 
@@ -849,9 +849,9 @@ describe('replies that need no model', () => {
     const parents = plainReplyFor('My parents send me 1750 on the first of every month', c);
     expect(parents?.text).toBe('Noted: Comes in: Parents, 1750,00 \u20ac on the 1st. If that is right, mark it below.');
     expect(parents?.actions.map((x) => x.kind)).toEqual(['fact']);
-    const withHer = assemble({ transactions: [...transactions, t('q1', '2026-09-11T10:00:00Z', -200, 'maria dolores tomas', 'Maria Dolores Tomas', { channel: 'bizum' })], segments, forecast: cast, recurring, readings: [], facts: [], questions, places, categories, now: NOW });
-    const her = plainReplyFor('The 200 euro transfer to Maria Dolores Tomas Obon is my rent, she is my landlord.', withHer);
-    expect(her?.text).toBe('Noted: Maria Dolores Tomas is your landlord. If that is right, mark it below.');
+    const withHer = assemble({ transactions: [...transactions, t('q1', '2026-09-11T10:00:00Z', -200, 'laura isabel gomez', 'Laura Isabel Gomez', { channel: 'bizum' })], segments, forecast: cast, recurring, readings: [], facts: [], questions, places, categories, now: NOW });
+    const her = plainReplyFor('The 200 euro transfer to Laura Isabel Gomez Sanz is my rent, she is my landlord.', withHer);
+    expect(her?.text).toBe('Noted: Laura Isabel Gomez is your landlord. If that is right, mark it below.');
     expect(her?.actions[0]).toMatchObject({ kind: 'person', role: 'landlord' });
     expect(plainReplyFor('Pedro es mi casero', { ...withHer, language: 'es', transactions: [...withHer.transactions, t('p9', '2026-09-12T10:00:00Z', -300, 'pedro ruiz', 'Pedro Ruiz', { channel: 'transfer' })] })?.text).toBe('Anotado: Pedro Ruiz es tu casero. Si es correcto, m\u00e1rcalo abajo.');
     const empty = plainReplyFor('What did I spend on the 16th?', { ...c, asked: 'What did I spend on the 16th?' });
@@ -874,11 +874,11 @@ describe('a short follow-up asks about what the previous message asked about', (
     expect(partsSentence(c, 'how much on software in July?')).toBe('In July: software 11,99 \u20ac.');
     const { learnFromStatement } = await import('../../../../api/_app/services/money/chat.js');
     expect(learnFromStatement('my father sends me 100 euros sometimes', c)).toBeNull();
-    const rows = [t('q1', '2026-09-11T10:00:00Z', -200, 'maria dolores tomas', 'Maria Dolores Tomas', { channel: 'bizum' })];
+    const rows = [t('q1', '2026-09-11T10:00:00Z', -200, 'laura isabel gomez', 'Laura Isabel Gomez', { channel: 'bizum' })];
     const withHer = assemble({ transactions: [...transactions, ...rows], segments, forecast: cast, recurring, readings: [], facts: [], questions, places, categories, now: NOW });
-    expect(learnFromStatement('The 200 euro transfer to Maria Dolores Tomas Obon is my rent, she is my landlord.', withHer)?.offer).toMatchObject({ kind: 'person', merchant_key: 'maria dolores tomas', role: 'landlord' });
+    expect(learnFromStatement('The 200 euro transfer to Laura Isabel Gomez Sanz is my rent, she is my landlord.', withHer)?.offer).toMatchObject({ kind: 'person', merchant_key: 'laura isabel gomez', role: 'landlord' });
     expect(learnFromStatement('Nobody Here is my landlord', withHer)).toBeNull();
-    const twice = assembleReply({ text: 'Noted. If that is right, mark it below.', figures: [], actions: [{ kind: 'person', merchant_key: 'maria dolores tomas obon', role: 'landlord' }, { kind: 'remember', text: 'rent' }], cites: [] }, withHer, 'The 200 euro transfer to Maria Dolores Tomas Obon is my rent, she is my landlord.');
+    const twice = assembleReply({ text: 'Noted. If that is right, mark it below.', figures: [], actions: [{ kind: 'person', merchant_key: 'laura isabel gomez sanz', role: 'landlord' }, { kind: 'remember', text: 'rent' }], cites: [] }, withHer, 'The 200 euro transfer to Laura Isabel Gomez Sanz is my rent, she is my landlord.');
     expect(twice.actions.map((x) => x.kind)).toEqual(['person']);
     expect(learnFromStatement('My parents send me 1750 on the 1st of every month', c)?.offer?.kind).toBe('fact');
     expect(partsSentence(c, 'how much is left?')).toBeNull();

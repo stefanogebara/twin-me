@@ -504,8 +504,8 @@ export function buildFigure(request, ctx) {
 
 /** An action the model proposed, checked against what is real; null when it is not. */
 /**
- * The transfer or Bizum counterpart a key names. The bank keys a person short ("maria dolores
- * tomas") and the person writes the whole name ("Maria Dolores Tomas Obon"), so the model's key
+ * The transfer or Bizum counterpart a key names. The bank keys a person short ("laura isabel
+ * tomas") and the person writes the whole name ("Laura Isabel Gomez Sanz"), so the model's key
  * came back one word longer and the offer was dropped (2026-09-23). Exact first; else the
  * shorter key's words must each begin the longer key's words, and only one row may fit.
  */
@@ -1299,7 +1299,7 @@ export function say(language, source, holes = {}) {
  */
 /**
  * Whether a message is a short ask the ledger can answer without the model: a question or a
- * request in a dozen words at most. A statement is never one. "maria dolores is the woman
+ * request in a dozen words at most. A statement is never one. "laura isabel is the woman
  * who gets me the real madrid tickets... see if money comes back from 50 euro transfers"
  * carries "comes back" and got the list of subscriptions for an answer on 2026-09-15; the
  * person was teaching, not asking. Pure.
