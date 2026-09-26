@@ -55,3 +55,16 @@ export function shouldBounceToExpiredAuth(hadPriorSession: boolean, pathname: st
   if (!hadPriorSession) return false;
   return !isPublicRoute(pathname);
 }
+
+/**
+ * Where a stale session lands when its refresh fails (2026-09-19).
+ *
+ * Presence is a different product with a different door: a daughter whose
+ * session died on her mother's page was being shown the money product's
+ * sign-in ("Your money, read to you. For students in Spain."). Her pages
+ * expire into the Presence sign-in; everything else keeps the general one.
+ */
+export function expiredAuthPath(pathname: string): string {
+  const base = pathname === '/presence' || pathname.startsWith('/presence/') ? '/presence/login' : '/auth';
+  return `${base}?error=session_expired`;
+}

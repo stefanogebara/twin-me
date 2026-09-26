@@ -263,3 +263,59 @@
     display: none;
   }
 }
+
+/* ======================================================================
+   ONE QUESTION PER SCREEN (2026-09-19)
+   ======================================================================
+   The sidebar went: its step list and its record of what is still empty
+   ("As histórias dela — nenhuma ainda") turned a first run into a report on
+   nothing. What is left is the mark, a row of ticks for how far along she is,
+   and the way out; the question has the screen to itself. */
+
+.presence-cosmos .obx-shell {
+  width: 100%;
+  max-width: 680px;
+  margin: 0 auto;
+  padding: 32px 24px 120px;
+}
+
+.presence-cosmos .obx-bar {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  margin-bottom: 72px;
+}
+
+.presence-cosmos .obx-progress {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0 auto 0 8px;
+}
+
+/* One tick per step: done is ink, here is ink and wider, still to come is a hairline. */
+.presence-cosmos .obx-tick {
+  width: 16px;
+  height: 2px;
+  border-radius: 1px;
+  background: var(--c-hairline);
+  transition: background 0.2s ease, width 0.2s ease;
+}
+.presence-cosmos .obx-tick.is-done { background: var(--c-ink-3); }
+.presence-cosmos .obx-tick.is-here { background: var(--c-ink); width: 28px; }
+
+.presence-cosmos .obx-leave {
+  border: 0;
+  background: none;
+  padding: 0;
+  font: inherit;
+  font-size: 13px;
+  color: var(--c-ink-3);
+  cursor: pointer;
+}
+.presence-cosmos .obx-leave:hover { color: var(--c-ink); }
+
+@media (max-width: 767px) {
+  .presence-cosmos .obx-shell { padding: 20px 20px 96px; }
+  .presence-cosmos .obx-bar { margin-bottom: 48px; }
+}

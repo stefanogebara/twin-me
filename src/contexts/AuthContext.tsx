@@ -3,7 +3,7 @@ import { setAccessToken, getAccessToken, clearAccessToken, authFetch, getDesktop
 import { queryClient } from '@/lib/queryClient';
 import { singleFlight } from '@/utils/singleFlight';
 import { shouldSyncTimezone, getLastSyncedTimezone, markTimezoneSynced } from '@/utils/timezoneSync';
-import { shouldBounceToExpiredAuth } from '@/lib/sessionBounce';
+import { shouldBounceToExpiredAuth, expiredAuthPath } from '@/lib/sessionBounce';
 
 import { API_URL } from '@/services/api/apiBase';
 /**
@@ -176,7 +176,7 @@ const hadPriorSession = getCachedUser() !== null;
           resetAuthState();
           const pathname = typeof window !== 'undefined' ? window.location.pathname : '';
           if (shouldBounceToExpiredAuth(hadPriorSession, pathname)) {
-            const target = '/auth?error=session_expired';
+            const target = expiredAuthPath(pathname);
             try { window.location.replace(target); } catch { /* SSR safety */ }
             return; // stop — don't run checkAuth() during the navigation
           }
