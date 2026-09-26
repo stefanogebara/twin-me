@@ -18,7 +18,7 @@ import { incomeEvents, incomeFindings } from './income.js';
 import { createLogger } from '../logger.js';
 import { ingestSightings } from './ingestion.js';
 export { ingestSighting, ingestSightings } from './ingestion.js';
-import { detectRecurring, withoutCancelled } from './recurring.js';
+import { seriesOf, storedSeries } from './recurring.js';
 import { projectMonth } from './projection.js';
 import { fetchTransactions, toSighting, distinctPending, fetchBalances } from './feeds/enableBanking.js';
 import { readLedger, monthSegments } from './analyst.js';
@@ -29,7 +29,7 @@ import { poolMerchantPriors } from './priors.js';
 import { nudgeFindings, retiredKinds, NUDGE_KINDS, expiredNudge } from './nudges.js';
 import { safeToSpend } from './allowance.js';
 import { tellTwin, tellTwinFacts, tellTwinPatterns, tellTwinTurn } from './twinBridge.js';
-import { lookupPlace, providerFor, categoryFromBrand, PROVIDER_NONE } from './places.js';
+import { lookupPlace, providerFor, categoryFromBrand, PROVIDER_NONE, PROVIDER_GOOGLE, PROVIDER_NOMINATIM } from './places.js';
 import { readUsage, unmeasurable, platformForMerchant } from './usage.js';
 import { learnMerchants, predictNext, learnPatterns, describeForTwin, TWIN_PREDICTION_CONFIDENCE } from './brain.js';
 import { openingQuestions, followUpQuestions, ledgerQuestions, checkCommitment, describeContext, FACT_KINDS, RENT_SPLIT_FLOOR } from './context.js';
@@ -44,7 +44,7 @@ export { listTransactions, listOwnTransactions, transactionPage } from './transa
    cycles); store.js keeps their names so no caller had to move. */
 import { INTERNAL_FACT_KINDS, listFacts, publicFacts, categoriesFor } from './factsRepository.js';
 export { INTERNAL_FACT_KINDS, listFacts, categoriesFor } from './factsRepository.js';
-import { forecast, months, scorePredictions } from './forecastService.js';
+import { forecast, months, scorePredictions, seriesEvidence } from './forecastService.js';
 import { quietly } from './quietly.js';
 export { forecast, months, scorePredictions } from './forecastService.js';
 
@@ -56,31 +56,75 @@ export async function sightingsFor(userId, transactionId) {
   return (data || []).map((row) => ({ ...row, raw_text: maskEvidenceCards(row.raw_text) }));
 }
 
-/** Recompute recurring series from the last 400 days and flag the ledger rows. */
 /**
+ * The series in the last 400 days at `now`, from the evidence they were read from. Reads only.
  * @param {{ facts?: object[], transactions?: object[] }} given every fact (with the internal
  *   ones) and the ledger (with its rejected rows) when the caller already read them (M2-A).
  */
-export async function refreshRecurring(userId, now = new Date(), given = {}) {
-  const reconciliationRead = await beginReconciliationRead(userId, given);
-  if (financialEvidenceBlocked(reconciliationRead.initial)) return [];
-  const since = new Date(now.getTime() - 400 * 86400000).toISOString();
-  const evidence = given.transactions
-    ? selectTransactions(given.transactions, { since, limit: 5000, currency: ledgerCurrency(), includeRejected: true })
-    : await listOwnTransactions(userId, { since, limit: 5000, includeRejected: true });
-  const rows = evidence.filter((row) => row.verdict !== 'not_me');
+async function seriesNow(userId, now, given) {
+  const evidence = await seriesEvidence(userId, now, given);
   const { data: merchants } = await supabaseAdmin.from('money_merchants').select('merchant_key, platform').not('platform', 'is', null);
   const platforms = Object.fromEntries((merchants || []).map((m) => [m.merchant_key, m.platform]));
   const facts = given.facts ? publicFacts(given.facts) : await listFacts(userId).catch(quietly('recurring/facts', () => []));
-  const series = withoutCancelled(detectRecurring(rows, { now, platforms }), facts);
+  return { evidence, series: seriesOf(evidence, { now, platforms, facts }) };
+}
+
+/** What a card shows beside a series: its name, its payments, what they have cost. Pure. */
+function recurringCards(series, evidence) {
+  const rows = evidence.filter((row) => row.verdict !== 'not_me');
   /* The key is machine spelling ("render com"). A card should carry the name the ledger shows. */
   const names = new Map();
   for (const t of rows) if (t.merchant_raw && !names.has(t.merchant_key)) names.set(t.merchant_key, t.merchant_raw);
+  /* A card says a charge comes back every month; the person then asks which payments those
+     were, when the next one lands and what it has cost so far. The transactions are already
+     in hand, so the answer costs no query. */
+  const charges = new Map();
+  for (const t of rows) {
+    if (Number(t.amount) >= 0) continue;
+    if (!charges.has(t.merchant_key)) charges.set(t.merchant_key, []);
+    charges.get(t.merchant_key).push({ id: t.id, occurred_at: t.occurred_at, amount: Math.abs(Number(t.amount) || 0), verdict: t.verdict || null });
+  }
+  return series.map((x) => {
+    const paid = (charges.get(x.merchant_key) || []).sort((a, b) => new Date(b.occurred_at) - new Date(a.occurred_at));
+    return {
+      ...x,
+      merchant_name: names.get(x.merchant_key) || null,
+      charges: paid.slice(0, 12),
+      total_paid: Math.round(paid.reduce((sum, c) => sum + c.amount, 0) * 100) / 100,
+      day_of_month: paid.length ? dayOfMonthIn(paid[0].occurred_at) : null,
+    };
+  });
+}
+
+/**
+ * The standing charges for a read (the page, the chat, GET /recurring, the sheet): computed
+ * from the rows the read holds, never stored. The page stored them on every open, inside its
+ * own completeness check; the flags it wrote moved the financial revision that check compares,
+ * so a read after a bank pull withheld itself (audit C3, 2026-09-26).
+ */
+export async function recurringSeries(userId, now = new Date(), given = {}) {
+  const reconciliationRead = await beginReconciliationRead(userId, given);
+  if (financialEvidenceBlocked(reconciliationRead.initial)) return [];
+  const { evidence, series } = await seriesNow(userId, now, given);
+  if (!given.reconciliationRead && financialEvidenceBlocked(await finishReconciliationRead(reconciliationRead))) return [];
+  return recurringCards(series, evidence);
+}
+
+/**
+ * Store the series and flag their rows, where the evidence changes: a bank read, an import, a
+ * capture, a mail, a verdict, a removal, a review, a charge said to be cancelled, and the hourly
+ * cron for the clock. It holds its own completeness check and refuses to run inside a read's.
+ */
+export async function refreshRecurring(userId, now = new Date(), given = {}) {
+  if (given.reconciliationRead) throw new Error('refreshRecurring writes and cannot run inside a read (a reconciliation window); a read uses recurringSeries');
+  const reconciliationRead = await beginReconciliationRead(userId);
+  if (financialEvidenceBlocked(reconciliationRead.initial)) return [];
+  const { evidence, series } = await seriesNow(userId, now, given);
   const { data: previous, error: readError } = await supabaseAdmin.from('money_recurring').select('merchant_key').eq('user_id', userId);
   if (readError) throw new Error('Could not read recurring charges');
-  if (!given.reconciliationRead && financialEvidenceBlocked(await finishReconciliationRead(reconciliationRead))) return [];
+  if (financialEvidenceBlocked(await finishReconciliationRead(reconciliationRead))) return [];
   if (series.length) {
-    const { error } = await supabaseAdmin.from('money_recurring').upsert(series.map(({ platform, transaction_ids, variants, variant_amounts, ...item }) => ({ user_id: userId, ...item, updated_at: now.toISOString() })), { onConflict: 'user_id,merchant_key' });
+    const { error } = await supabaseAdmin.from('money_recurring').upsert(series.map((item) => ({ user_id: userId, ...storedSeries(item), updated_at: now.toISOString() })), { onConflict: 'user_id,merchant_key' });
     if (error) throw new Error('Could not save recurring charges');
   }
   // A rejected charge can dissolve a series. Remove the old commitment as well as its flags.
@@ -101,25 +145,7 @@ export async function refreshRecurring(userId, now = new Date(), given = {}) {
     const { error } = await supabaseAdmin.from('money_transactions').update({ is_recurring: true }).eq('user_id', userId).in('id', ids);
     if (error) throw new Error('Could not update recurring payment flags');
   }
-  /* A card says a charge comes back every month; the person then asks which payments those
-     were, when the next one lands and what it has cost so far. The transactions are already
-     in hand, so the answer costs no query. */
-  const charges = new Map();
-  for (const t of rows) {
-    if (Number(t.amount) >= 0) continue;
-    if (!charges.has(t.merchant_key)) charges.set(t.merchant_key, []);
-    charges.get(t.merchant_key).push({ id: t.id, occurred_at: t.occurred_at, amount: Math.abs(Number(t.amount) || 0), verdict: t.verdict || null });
-  }
-  return series.map((x) => {
-    const paid = (charges.get(x.merchant_key) || []).sort((a, b) => new Date(b.occurred_at) - new Date(a.occurred_at));
-    return {
-      ...x,
-      merchant_name: names.get(x.merchant_key) || null,
-      charges: paid.slice(0, 12),
-      total_paid: Math.round(paid.reduce((sum, c) => sum + c.amount, 0) * 100) / 100,
-      day_of_month: paid.length ? dayOfMonthIn(paid[0].occurred_at) : null,
-    };
-  });
+  return recurringCards(series, evidence);
 }
 
 export async function setVerdict(userId, transactionId, verdict) {
@@ -374,6 +400,7 @@ export async function pullBankFeed(userId, { since, attended = false, psu = null
   // Presence must be backed by PSU headers, never merely by an internal boolean.
   attended = Boolean(attended && psu?.ip);
   const summary = [];
+  let changed = 0; // lines created or given new evidence, across every account read
   for (const acc of accounts) {
     if (Date.now() + 2000 >= deadline) {
       summary.push({ account: acc.name, seen: 0, created: 0, complete: false, error: 'time_budget_exhausted' });
@@ -408,7 +435,7 @@ export async function pullBankFeed(userId, { since, attended = false, psu = null
         });
         const batch = distinctPending(page.rows.map((row) => toSighting(row, acc.id)).filter((s) => s.occurred_at && s.amount), occurrences);
         const result = await ingestSightings(userId,batch);
-        seen += result.seen; created += result.created; pages++;
+        seen += result.seen; created += result.created; changed += result.created + (result.attached || 0); pages++;
         key = page.continuationKey;
         if (key) {
           const { error } = await supabaseAdmin.from('money_accounts').update({ sync_checkpoint: { from, key, occurrences: [...occurrences] } }).eq('user_id',userId).eq('id',acc.id);
@@ -444,6 +471,9 @@ export async function pullBankFeed(userId, { since, attended = false, psu = null
   if (summary.length && summary.every((s) => s.error === 'feed_budget_spent')) {
     throw Object.assign(new Error('The bank allows four unattended reads per day.'),{code:'feed_budget_spent'});
   }
+  /* What comes back is stored here, before the readings or the page the app reloads read it:
+     a read only computes it (audit C3, 2026-09-26). A re-read that changed no line does not. */
+  if (changed) await refreshRecurring(userId).catch(quietly('pull/recurring', undefined));
   return summary;
 }
 
@@ -667,6 +697,26 @@ export function categoryOfPayment(place, channel, role = null) {
 }
 
 /**
+ * What a person calls each merchant: the name on their own latest payment to it, one per key
+ * so a list holds still between reads. money_places is one row per merchant key for every
+ * ledger, and its name was once whoever looked the merchant up first, or whatever a caller
+ * sent (2026-09-26, audit S5): no page and no prompt names a merchant from it. Pure.
+ */
+function ownNames(rows) {
+  const names = new Map();
+  const at = new Map();
+  for (const r of rows || []) {
+    if (!r?.merchant_key || !String(r.merchant_raw || '').trim()) continue;
+    const when = Date.parse(r.occurred_at) || 0;
+    if (!names.has(r.merchant_key) || when > at.get(r.merchant_key)) {
+      names.set(r.merchant_key, r.merchant_raw);
+      at.set(r.merchant_key, when);
+    }
+  }
+  return names;
+}
+
+/**
  * Where a month's money went, by kind of place. The kind comes from money_places, one row
  * per merchant, so this is a join and not a guess; a merchant nobody has looked up yet
  * counts as "not read yet" rather than being quietly filed under "other" — the difference
@@ -695,13 +745,10 @@ export async function categorySpend(userId, { month = null, facts: givenFacts = 
   if (!rows.length) return { month, total: 0, read: 0, groups: [] };
 
   const keys = [...new Set(rows.map((r) => r.merchant_key))];
-  const [{ data: places }, mine] = await Promise.all([
-    supabaseAdmin.from('money_places').select('merchant_key, name, kind, category, city, lat, lon, confidence').in('merchant_key', keys),
-    categoriesFor(userId, keys),
-  ]);
-  /* The person's own word replaces the provider's kind on their copy of the place. */
-  const byKey = new Map((places || []).map((p) => [p.merchant_key, { ...p, category: mine.get(p.merchant_key) ?? p.category ?? null }]));
-  for (const k of keys) if (!byKey.has(k) && mine.get(k)) byKey.set(k, { merchant_key: k, name: null, category: mine.get(k) });
+  /* The kind of each merchant: the person's own word, else what a provider said. Only the kind
+     comes from the shared place cache; the name shown is the one on the person's own payments. */
+  const mine = await categoriesFor(userId, keys);
+  const names = ownNames(rows);
 
   const groups = new Map();
   let total = 0;
@@ -709,19 +756,19 @@ export async function categorySpend(userId, { month = null, facts: givenFacts = 
   for (const r of rows) {
     const amount = Math.abs(Number(r.amount) || 0);
     total += amount;
-    const place = byKey.get(r.merchant_key);
+    const kind = mine.get(r.merchant_key);
     /* A merchant that was looked up and not found is still unread, not "other": a miss is
        recorded so the same question is not asked twice, and it must not pass for an answer. */
     /* A transfer to a person is a transfer, whatever a places provider thinks: the channel
        the bank recorded is itself an answer, and a truthful one. */
-    const category = categoryOfPayment(place, r.channel, roleOf(roles, r.merchant_key));
+    const category = categoryOfPayment(kind ? { category: kind } : null, r.channel, roleOf(roles, r.merchant_key));
     if (category) read += amount;
     const key = category || 'not read yet';
     if (!groups.has(key)) groups.set(key, { category: key, known: Boolean(category), spent: 0, lines: 0, merchants: new Map() });
     const g = groups.get(key);
     g.spent += amount;
     g.lines += 1;
-    const name = place?.name || r.merchant_raw || r.merchant_key;
+    const name = names.get(r.merchant_key) || r.merchant_key;
     const m = g.merchants.get(name) || { spent: 0, merchant_key: r.merchant_key };
     m.spent += amount;
     g.merchants.set(name, m);
@@ -743,28 +790,35 @@ export async function categorySpend(userId, { month = null, facts: givenFacts = 
   };
 }
 
-/** The places behind a person's ledger, for a map and for a category correction. */
+/**
+ * The places behind a person's ledger, for a map and for a category correction. The chat's
+ * prompt and the sheet read their names from here. What a provider said about a merchant (its
+ * kind, its point) comes off the shared row; its name never does, nor any column the shared row
+ * could have taken from another ledger: the name and the city are the person's own.
+ */
 export async function listPlaces(userId) {
   const { data: rows } = await supabaseAdmin.from('money_transactions')
-    .select('merchant_key, merchant_raw, merchant_city, amount').eq('user_id', userId).lt('amount', 0);
+    .select('merchant_key, merchant_raw, merchant_city, amount, occurred_at').eq('user_id', userId).lt('amount', 0);
   const keys = [...new Set((rows || []).map((r) => r.merchant_key))];
   if (!keys.length) return [];
-  const [{ data: places }, mine] = await Promise.all([supabaseAdmin.from('money_places').select('*').in('merchant_key', keys), categoriesFor(userId, keys)]);
+  const [{ data: places }, mine] = await Promise.all([
+    supabaseAdmin.from('money_places').select('merchant_key, kind, category, city, lat, lon, confidence').in('merchant_key', keys),
+    categoriesFor(userId, keys),
+  ]);
   const byKey = new Map((places || []).map((p) => [p.merchant_key, p]));
+  const names = ownNames(rows);
   const spend = new Map();
-  const names = new Map();
   const cities = new Map();
   for (const r of rows || []) {
     spend.set(r.merchant_key, (spend.get(r.merchant_key) || 0) + Math.abs(Number(r.amount) || 0));
-    if (!names.has(r.merchant_key) && r.merchant_raw) names.set(r.merchant_key, r.merchant_raw);
     if (!cities.has(r.merchant_key) && r.merchant_city) cities.set(r.merchant_key, r.merchant_city);
   }
   return keys.map((k) => {
     const p = byKey.get(k) || null;
     return {
       merchant_key: k,
-      name: p?.name || names.get(k) || k,
-      city: p?.city || cities.get(k) || null,
+      name: names.get(k) || k,
+      city: cities.get(k) || p?.city || null,
       kind: p?.kind || null,
       category: mine.get(k) ?? p?.category ?? null,
       lat: p?.lat ?? null,
@@ -776,131 +830,214 @@ export async function listPlaces(userId) {
   }).sort((a, b) => b.spent - a.spent);
 }
 
-/** A person's correction to a category outlives the next lookup. */
-/** The person's word on what kind of place a merchant is: kept for them alone; null forgets it. */
-export async function setPlaceCategory(userId, merchantKey, category, { name = null } = {}) {
+/**
+ * The person's word on what kind of place a merchant is: kept for them alone, and it outlives
+ * the next lookup; null forgets it. A person's correction takes the row back from the judge
+ * (source 'person'), as migration 20260922 says it should.
+ *
+ * Only about a merchant in the caller's own ledger. Until 2026-09-26 any key was taken: the
+ * answer read back the shared row's name, so anyone could learn whether anybody had paid a given
+ * shop or person and what they were called, and a key no provider had placed got a shared row
+ * named after whatever the caller sent, which every other ledger then read (audit S5). Now the
+ * answer carries the caller's own name for the merchant, their word, or what a provider said
+ * about a merchant that is theirs, and the shared cache is never written here.
+ */
+export async function setPlaceCategory(userId, merchantKey, category) {
+  const { data: own, error: readError } = await supabaseAdmin.from('money_transactions')
+    .select('merchant_raw, occurred_at').eq('user_id', userId).eq('merchant_key', merchantKey)
+    .order('occurred_at', { ascending: false }).limit(50);
+  if (readError) throw new Error(readError.message);
+  if (!own?.length) throw Object.assign(new Error('That merchant is not in this ledger.'), { code: 'place_not_in_ledger' });
   if (category) {
     const { error } = await supabaseAdmin.from('money_place_overrides')
-      .upsert({ user_id: userId, merchant_key: merchantKey, category, created_at: new Date().toISOString() }, { onConflict: 'user_id,merchant_key' });
+      .upsert({ user_id: userId, merchant_key: merchantKey, category, source: 'person', confidence: null, created_at: new Date().toISOString() }, { onConflict: 'user_id,merchant_key' });
     if (error) throw new Error(error.message);
   } else {
     const { error } = await supabaseAdmin.from('money_place_overrides').delete().eq('user_id', userId).eq('merchant_key', merchantKey);
     if (error) throw new Error(error.message);
   }
-  /* A merchant no provider has ever placed has no shared row: one is made so it has a name,
-     with no kind on it, since the kind is this person's and not everyone's. */
-  const { data } = await supabaseAdmin.from('money_places').select('merchant_key, name, category').eq('merchant_key', merchantKey).maybeSingle();
-  if (!data) {
-    const { error: e2 } = await supabaseAdmin.from('money_places').insert({ merchant_key: merchantKey, name: name || merchantKey, provider: 'person' });
-    if (e2 && !/duplicate|23505/.test(e2.message)) throw new Error(e2.message);
+  let provided = null;
+  if (!category) {
+    const { data } = await supabaseAdmin.from('money_places').select('category').eq('merchant_key', merchantKey).maybeSingle();
+    provided = data?.category || null;
   }
-  return { merchant_key: merchantKey, name: data?.name || name || merchantKey, category: category || data?.category || null };
+  return { merchant_key: merchantKey, name: ownNames(own.map((r) => ({ ...r, merchant_key: merchantKey }))).get(merchantKey) || merchantKey, category: category || provided };
 }
 
 /**
- * Look up the merchants nobody has looked up yet, one row per merchant, cached forever.
- * Capped per run because the free provider allows one request a second and a serverless
- * request dies at sixty: the caller comes back for the rest. Online brands cost no request
- * at all, which is most of a builder's ledger.
+ * How long a lookup run keeps starting merchants. The function dies at sixty seconds, and a
+ * merchant started just inside this can still take the provider's five and the judge's eight
+ * after it: the run stops starting, answers with what it did and how many are left, and the
+ * caller comes back for the rest.
  */
-export async function enrichPlaces(userId, { limit = 12 } = {}) {
-  if (providerFor() === PROVIDER_NONE) return { looked: 0, placed: 0, left: 0, provider: PROVIDER_NONE };
-  const { data: rows } = await supabaseAdmin
+export const PLACES_BUDGET_MS = 40000;
+
+/* The place providers whose answers the shared cache may hold (places.js). */
+const PLACE_PROVIDERS = new Set([PROVIDER_GOOGLE, PROVIDER_NOMINATIM]);
+/* A transfer or a Bizum goes to a person, and a person is nobody's place. */
+const TO_PEOPLE = new Set(['transfer', 'bizum']);
+/* A person's own record of a merchant nothing could place: no category, and the next run
+   does not ask about it again; their own word replaces it (money_place_overrides.source). */
+const UNPLACED = 'unplaced';
+
+const plainWords = (text) => String(text || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+  .toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+
+/**
+ * The row the shared place cache may hold for a merchant, or null when there is nothing to
+ * share. Pure, and the whole rule in one place:
+ *
+ *   - it holds only what a place provider said (Google, Nominatim), or what the brand table and
+ *     the online rules in places.js settle from the words of a name alone: a kind, a category,
+ *     a point;
+ *   - it is named with the provider's own label, else the key. Never the line on a person's
+ *     payment, never a word a person typed: a label that only gives back the words that were
+ *     asked (a provider with no name of its own returns the query) is the person's, not the
+ *     provider's;
+ *   - a merchant nothing placed, or only a guess under half confidence, gets no row at all:
+ *     that miss is one person's (their own record) and must not stop anyone else's lookup.
+ *
+ * Transfers to people never reach here (enrichPlaces).
+ */
+export function sharedPlace(key, asked, place, brand, at = new Date().toISOString()) {
+  /* A weak provider answer is worse than none: "Abada" came back as "Calle de la Abada", a
+     street. Below half confidence nothing of it is kept. */
+  const trusted = Boolean(place) && (place.confidence ?? 0) >= 0.5;
+  const category = brand?.category || (trusted ? place.category : null) || null;
+  if (!category) return null;
+  /* A provider was asked and answered (an online brand is decided in places.js with no request). */
+  const provided = trusted && PLACE_PROVIDERS.has(place.provider);
+  const said = provided && typeof place.name === 'string' ? place.name.trim() : '';
+  const label = said && plainWords(said) !== plainWords(asked) ? said : null;
+  return {
+    merchant_key: key,
+    name: label || key,
+    kind: (trusted ? place.kind : null) || brand?.kind || null,
+    category,
+    lat: provided ? (place.lat ?? null) : null,
+    lon: provided ? (place.lon ?? null) : null,
+    city: provided ? (place.city || null) : null,
+    country: provided ? (place.country || null) : null,
+    provider: brand ? 'brand' : place.provider,
+    provider_place_id: provided ? (place.provider_place_id || null) : null,
+    confidence: brand ? Math.max(0.8, trusted ? (place.confidence ?? 0) : 0) : (place.confidence ?? null),
+    raw: provided ? { provider_name: label, describe: place.kind || null, body: place.raw || null } : null,
+    looked_up_at: at,
+  };
+}
+
+/**
+ * Look up the merchants this person has no record of and the shared cache has no answer for.
+ * Capped per run, because the free provider allows one request a second, and timed, because a
+ * serverless request dies at sixty: the caller comes back for the rest (`remaining`, and `left`,
+ * its older name, count what this run did not start). Online brands cost no request at all,
+ * which is most of a builder's ledger.
+ *
+ * What a provider says goes in the shared cache, where it helps every ledger that shares the
+ * merchant (sharedPlace). What nothing could place, and every person paid by transfer or Bizum,
+ * stays with this person: never a provider's question, never a shared row. Until 2026-09-26 the
+ * shared row was named after this ledger's own bank line, a payee's name included, and every
+ * other ledger read it (audit S5).
+ */
+export async function enrichPlaces(userId, { limit = 12, deadline = null, now = Date.now } = {}) {
+  const until = deadline ?? now() + PLACES_BUDGET_MS;
+  if (providerFor() === PROVIDER_NONE) return { looked: 0, placed: 0, left: 0, remaining: 0, provider: PROVIDER_NONE };
+  const { data: rows, error: rowsError } = await supabaseAdmin
     .from('money_transactions')
-    .select('merchant_key, merchant_raw, merchant_city, amount')
+    .select('merchant_key, merchant_raw, merchant_city, amount, occurred_at, channel')
     .eq('user_id', userId).lt('amount', 0);
-  if (!rows?.length) return { looked: 0, placed: 0, left: 0, provider: providerFor() };
+  if (rowsError) throw new Error(`ledger not read for places: ${rowsError.message}`);
+  if (!rows?.length) return { looked: 0, placed: 0, left: 0, remaining: 0, provider: providerFor() };
 
   /* Biggest spend first: the merchant worth naming is the one taking the most money. */
   const spend = new Map();
-  const names = new Map();
   const cities = new Map();
   /* What each payment cost, for the judge below: a truncated bank line says little, and
      "four payments of about 4,50 EUR" says a great deal more (judge.js). */
   const amounts = new Map();
+  /* A merchant paid only by transfer or Bizum is a person. */
+  const places = new Set();
   for (const r of rows) {
     spend.set(r.merchant_key, (spend.get(r.merchant_key) || 0) + Math.abs(Number(r.amount) || 0));
-    if (r.merchant_raw && !names.has(r.merchant_key)) names.set(r.merchant_key, r.merchant_raw);
     if (r.merchant_city && !cities.has(r.merchant_key)) cities.set(r.merchant_key, r.merchant_city);
     const bag = amounts.get(r.merchant_key) || [];
     bag.push(Math.abs(Number(r.amount) || 0));
     amounts.set(r.merchant_key, bag);
+    if (!TO_PEOPLE.has(r.channel)) places.add(r.merchant_key);
   }
-  const { data: known } = await supabaseAdmin.from('money_places').select('merchant_key');
+  const names = ownNames(rows);
+  const keys = [...spend.keys()];
+  /* What the shared cache already answers for this person's merchants, and what this person
+     already has a record of: their word, the judge's answer for them, or that nothing placed
+     it. Neither is asked about again, and the judge never overwrites their word. A read that
+     fails stops the run rather than asking again about everything. */
+  const [{ data: known, error: knownError }, { data: mine, error: mineError }] = await Promise.all([
+    supabaseAdmin.from('money_places').select('merchant_key').in('merchant_key', keys),
+    supabaseAdmin.from('money_place_overrides').select('merchant_key').eq('user_id', userId),
+  ]);
+  if (knownError || mineError) throw new Error(`place records not read: ${(knownError || mineError).message}`);
   const done = new Set((known || []).map((k) => k.merchant_key));
-  /* What this person has already said, or already been told: the judge is never asked about
-     a merchant they have a word on, and never overwrites one. */
-  const { data: mine } = await supabaseAdmin.from('money_place_overrides').select('merchant_key').eq('user_id', userId);
   const theirs = new Set((mine || []).map((m) => m.merchant_key));
-  const todo = [...spend.keys()]
-    .filter((k) => !done.has(k))
+  const todo = keys
+    .filter((k) => !done.has(k) && !theirs.has(k))
     .sort((a, b) => spend.get(b) - spend.get(a));
 
   const profile = await personProfile(userId);
   let placed = 0;
   let unreached = 0;
   let judgedCount = 0;
-  const batch = todo.slice(0, limit);
-  for (const key of batch) {
+  let started = 0;
+  for (const key of todo.slice(0, limit)) {
+    /* Only started while there is time to finish it. */
+    if (now() >= until) break;
+    started += 1;
     const name = names.get(key) || key;
+    const city = cities.get(key) || null;
+    const at = new Date().toISOString();
+    const toPerson = !places.has(key);
     /* What the name settles on its own beats what a geocoder guesses: a provider does not
        know Cabify is a ride or that OpenRouter is an API bill. Coordinates still come from
        the provider, so a brand keeps its place on a map. */
-    const brand = categoryFromBrand(name);
+    const brand = toPerson ? null : categoryFromBrand(name);
     let place = null;
-    try { place = await lookupPlace({ name, city: cities.get(key) || null, country: profile.country }); }
-    catch (error) {
-      /* The provider was not reached, so nothing is known either way. Written down as a miss
-         it would never be asked again; left alone, the next run asks. */
-      log.warn(`place lookup failed (${name})`, { error: error.message });
-      unreached += 1;
+    if (!toPerson) {
+      try { place = await lookupPlace({ name, city, country: profile.country }); }
+      catch (error) {
+        /* The provider was not reached, so nothing is known either way. Written down as a miss
+           it would never be asked again; left alone, the next run asks. */
+        log.warn(`place lookup failed (${key})`, { error: error.message });
+        unreached += 1;
+        continue;
+      }
+    }
+    const shared = toPerson ? null : sharedPlace(key, name, place, brand, at);
+    if (shared) {
+      /* First answer wins, and it is never renamed: a row another ledger's run wrote while this
+         one was asking stands. */
+      const { error } = await supabaseAdmin.from('money_places').upsert(shared, { onConflict: 'merchant_key', ignoreDuplicates: true });
+      if (error) log.warn(`place cache write failed (${key}): ${error.message}`);
+      else placed += 1;
       continue;
     }
-    /* A miss is recorded too, so the next run does not ask the same question again. */
-    /* A weak provider answer is worse than none: "Abada" came back as "Calle de la Abada",
-       a street. Below half confidence the lookup is recorded and its category dropped. */
-    const trusted = place && (place.confidence ?? 0) >= 0.5;
-    const row = place
-      ? {
-        /* The ledger's name stays the name. The provider's label lives in raw. */
-        merchant_key: key, name, kind: (trusted ? place.kind : null) || brand?.kind || null,
-        category: brand?.category || (trusted ? place.category : null) || null,
-        lat: trusted ? (place.lat ?? null) : null, lon: trusted ? (place.lon ?? null) : null,
-        city: place.city || cities.get(key) || null,
-        country: place.country || null, provider: brand ? 'brand' : (place.provider || null),
-        provider_place_id: place.provider_place_id || null,
-        confidence: brand ? Math.max(0.8, place.confidence ?? 0) : (place.confidence ?? null),
-        raw: { provider_name: place.name || null, describe: place.kind || null, body: place.raw || null },
-        looked_up_at: new Date().toISOString(),
-      }
-      : {
-        merchant_key: key, name, kind: brand?.kind || null, category: brand?.category || null,
-        city: cities.get(key) || null,
-        provider: brand ? 'brand' : providerFor(), confidence: brand ? 0.8 : 0,
-        looked_up_at: new Date().toISOString(),
-      };
-    const { error } = await supabaseAdmin.from('money_places').upsert(row, { onConflict: 'merchant_key' });
-    if (error) log.warn(`place cache write failed (${key}): ${error.message}`);
-    else if (place || brand) placed += 1;
-    /* Nothing placed it: not the brand table, not the provider. Rather than write the miss
-       and leave the merchant reading "not read yet" for good, ask the judge.
-       It answers for THIS person and nobody else. The shared row keeps only what a provider
-       said (migration 20260915), and the question the judge is asked carries this person's
-       payment count and typical amount, so its answer is an inference from one ledger and
-       belongs in that ledger. `source` keeps it distinct from the person's own word, which
-       overwrites it whenever they say otherwise. */
-    if (shouldJudge({ category: row.category, hasOwnWord: theirs.has(key) })) {
-      const judged = await judgePlace({ name, city: cities.get(key) || null, amounts: amounts.get(key) || [], country: profile.country, countryName: profile.countryName });
-      if (judged) {
-        const { error: judgedError } = await supabaseAdmin.from('money_place_overrides').insert(
-          { user_id: userId, merchant_key: key, category: judged.category, source: 'jev', confidence: judged.confidence, created_at: new Date().toISOString() },
-        );
-        if (judgedError) log.warn(`judged category not kept (${key}): ${judgedError.message}`);
-        else { judgedCount += 1; placed += 1; }
-      }
-    }
+    /* Nothing placed it: not the brand table, not the provider, or it is a person. Rather than
+       leave the merchant reading "not read yet" for good, ask the judge. It answers for THIS
+       person and nobody else: the question carries this person's payment count and typical
+       amount, so its answer is an inference from one ledger and belongs in that ledger
+       (migration 20260922). Whatever it says, or that it said nothing, is kept as theirs, so
+       the next run does not ask again; `source` keeps it distinct from the person's own word,
+       which overwrites it whenever they say otherwise. */
+    const judged = shouldJudge({ category: null, hasOwnWord: theirs.has(key) })
+      ? await judgePlace({ name, city, amounts: amounts.get(key) || [], country: profile.country, countryName: profile.countryName })
+      : null;
+    const { error: ownError } = await supabaseAdmin.from('money_place_overrides').insert({
+      user_id: userId, merchant_key: key, category: judged ? judged.category : null,
+      source: judged ? 'jev' : UNPLACED, confidence: judged ? judged.confidence : null, created_at: at,
+    });
+    if (ownError) log.warn(`own place record not kept (${key}): ${ownError.message}`);
+    else if (judged) { judgedCount += 1; placed += 1; }
   }
-  return { looked: batch.length, placed, judged: judgedCount, unreached, left: Math.max(0, todo.length - batch.length), provider: providerFor() };
+  const remaining = todo.length - started;
+  return { looked: started, placed, judged: judgedCount, unreached, left: remaining, remaining, provider: providerFor() };
 }
 
 /**
@@ -1181,6 +1318,8 @@ export async function answerQuestion(userId, { questionId, kind, subject, subjec
     await supabaseAdmin.from('money_questions_asked')
       .upsert({ user_id: userId, question_id: questionId, answered: true, skipped: false }, { onConflict: 'user_id,question_id' });
   }
+  /* A charge said to be cancelled leaves the stored series now; a read no longer stores it. */
+  if (kind === 'merchant_kind') await refreshRecurring(userId).catch(quietly('facts/recurring-after-answer', undefined));
   return data;
 }
 
@@ -1210,6 +1349,7 @@ export async function deleteFact(userId, factId, { reason = 'forget' } = {}) {
   const { error } = await supabaseAdmin.from('money_facts').delete().eq('user_id', userId).eq('id', factId);
   if (error) throw new Error(error.message);
   if (fact.question_id) await supabaseAdmin.from('money_questions_asked').delete().eq('user_id', userId).eq('question_id', fact.question_id);
+  if (fact.kind === 'merchant_kind') await refreshRecurring(userId).catch(quietly('facts/recurring-after-forget', undefined));
   return { deleted: true };
 }
 

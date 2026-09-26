@@ -15,7 +15,7 @@ import { forecast, months } from './forecastService.js';
 import { todayAllowance } from './allowanceService.js';
 import { listTransactions, selectTransactions } from './transactionRepository.js';
 import { listFacts, publicFacts } from './factsRepository.js';
-import { personProfileCached, refreshRecurring, listBankAccounts, reconnectByAccount, listReadings, categorySpend, subscriptionUsage } from './store.js';
+import { personProfileCached, recurringSeries, listBankAccounts, reconnectByAccount, listReadings, categorySpend, subscriptionUsage } from './store.js';
 import { accountsWithCards } from './instruments.js';
 import { capabilitiesFor } from './betaCapabilities.js';
 import { inboxSummary } from './inbox.js';
@@ -62,7 +62,9 @@ export async function readPage(userId, { view = 'today', now = new Date() } = {}
     months: segments,
     today: Promise.all([given, cast, segments]).then(([g, c, s]) => todayAllowance(userId, now, { ...g, cast: c, segments: s })),
     ledger: ledger.then((rows) => selectTransactions(rows, { limit: LEDGER_LIMIT })),
-    recurring: given.then((g) => refreshRecurring(userId, now, g)),
+    /* Computed from the rows in hand, never stored from here: a write inside this read moved
+       the revision the completeness check compares, and the page withheld itself (C3). */
+    recurring: given.then((g) => recurringSeries(userId, now, g)),
     accounts: given.then((g) => accountsView(userId, g)),
     readings: listReadings(userId, { reconciliationRead }),
     facts: facts.then(publicFacts),

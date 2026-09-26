@@ -11,7 +11,7 @@ import { beginReconciliationRead, finishReconciliationRead } from './reconciliat
  */
 import { ledgerCurrency } from './currency.js';
 import { supabaseAdmin } from '../database.js';
-import { withoutCancelled } from './recurring.js';
+import { seriesOf, storedSeries, SERIES_WINDOW_DAYS } from './recurring.js';
 import { createLogger } from '../logger.js';
 import { splitShareOf, reimbursementIds } from './bizum.js';
 import { incomeEvents } from './income.js';
@@ -29,6 +29,20 @@ import { quietly } from './quietly.js';
 const log = createLogger('money-forecast');
 
 /**
+ * The rows a recurring series is read from: the ledger's currency over the series window, the
+ * rejected rows with them (a rejection must clear a flag), from the caller's one read when it
+ * holds one. The stored copy (store.refreshRecurring) and every read select the same rows,
+ * under the same bound.
+ */
+export async function seriesEvidence(userId, now = new Date(), given = {}) {
+  const since = new Date(new Date(now).getTime() - SERIES_WINDOW_DAYS * 86400000).toISOString();
+  const window = { since, limit: 5000, includeRejected: true };
+  return given.transactions
+    ? selectTransactions(given.transactions, { ...window, currency: ledgerCurrency() })
+    : listOwnTransactions(userId, window);
+}
+
+/**
  * @param {{ facts?: object[], transactions?: object[] }} given rows the caller already read:
  *   every fact with the internal ones, and the ledger with its rejected rows. The page and the
  *   chat read each once and hand them to every part (M2-A, 2026-09-22); alone, this reads.
@@ -40,22 +54,25 @@ export async function forecast(userId, now = new Date(), given = {}) {
   const reconciliationRead = await beginReconciliationRead(userId, given);
   if (financialEvidenceBlocked(reconciliationRead.initial)) return withheldForecast(reconciliationRead.initial, now);
   const since = new Date(now.getTime() - 100 * 86400000).toISOString();
-  const [rows, rec, facts] = await Promise.all([
-    given.transactions ? selectTransactions(given.transactions, { since, limit: 5000, currency: ledgerCurrency() }) : listOwnTransactions(userId, { since, limit: 5000 }),
-    supabaseAdmin.from('money_recurring').select('*').eq('user_id', userId).then((r) => {
-      if (r.error) throw new Error(`Cannot read recurring commitments: ${r.error.message}`);
-      return r.data || [];
-    }),
+  /* The series' 400 days, from which the projection takes its own 100: one read, or none when
+     the caller holds the ledger. */
+  const [evidence, facts] = await Promise.all([
+    seriesEvidence(userId, now, given),
     /* With the internal rows: the calendar's snapshot lives in one, and without it the
        forecast never saw what the diary said was coming. */
     given.facts ?? listFacts(userId, { includeInternal: true }),
   ]);
+  const rows = selectTransactions(evidence, { since, limit: 5000 });
 
   /* What the person told us, turned into the four things it changes: money already spoken
      for, money coming in, the share of a split cost that is actually theirs, and which
      transfers are not spending at all. */
   const commitments = facts.filter((f) => f.kind === 'commitment' && f.amount);
-  const recurring = withoutCancelled(rec, facts);
+  /* What comes back, computed from the ledger at `now` as the page's own list is, and not
+     read from the stored copy: that copy moves only when the evidence does, so its next dates
+     fell behind the clock and the month dropped charges still to come (2026-09-16); a read
+     that refreshed it wrote inside its own completeness check (C3, 2026-09-26). */
+  const recurring = seriesOf(evidence, { now, facts }).map(storedSeries);
   const shares = new Map(facts.filter((f) => f.kind === 'shared_cost' && f.share != null)
     .map((f) => [String(f.subject || '').toLowerCase(), Number(f.share)]));
 

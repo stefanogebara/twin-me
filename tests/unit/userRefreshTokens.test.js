@@ -4,12 +4,14 @@
  * Asserts that auth-simple.js:
  *   1. References the new user_refresh_tokens table
  *   2. Uses the new-table lookup pattern in refresh handler (token_hash WHERE)
- *   3. Still references users.refresh_token_hash for backward-compat fallback
+ *   3. No longer falls back to users.refresh_token_hash (audit S6, 2026-09-26)
  *
  * This is intentionally a static source audit — no DB or network. It guards
- * against accidental regressions where someone rips out either the new path
- * (breaking multi-device) or the legacy fallback (invalidating in-flight
- * cookies during rollout).
+ * against accidental regressions where someone rips out the new path
+ * (breaking multi-device) or reintroduces the legacy fallback -- which is
+ * what let a stolen refresh token's rotated successor keep working after
+ * reuse detection revoked its row. tests/api/routes/refreshRevocation.test.js
+ * has the behavioural version of that guard.
  */
 
 import { describe, it, expect } from 'vitest';
@@ -49,10 +51,14 @@ describe('user_refresh_tokens — multi-device session refactor', () => {
       expect(storeSource).toMatch(/from\('user_refresh_tokens'\)\.select\([^)]*\)\.eq\('token_hash', hash\)\.single\(\)/);
     });
 
-    it('preserves legacy users.refresh_token_hash fallback for in-flight cookies', () => {
-      // Backward-compat: tokens issued before the migration must still work.
-      expect(authSource).toMatch(/findUserByLegacyRefreshHash\(/);
-      expect(storeSource).toMatch(/eq\('refresh_token_hash', hash\)/);
+    it('no longer falls back to the legacy users.refresh_token_hash column (audit S6, 2026-09-26)', () => {
+      // That fallback had no expiry check and was never cleared by reuse detection or the
+      // row-expiry path, so a stolen token's rotated successor -- or an expired token on a
+      // second try -- kept working through it after the row that should have refused it was
+      // gone. tests/api/routes/refreshRevocation.test.js proves the behaviour end to end.
+      expect(authSource).not.toMatch(/findUserByLegacyRefreshHash\(/);
+      expect(authSource).not.toMatch(/clearLegacyRefreshHash\(/);
+      expect(authSource).not.toMatch(/refresh_token_hash:/);
     });
 
     it('logout deletes a specific row (not a column null-out)', () => {

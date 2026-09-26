@@ -488,3 +488,39 @@ describe('settled outcomes follow financial revisions',()=>{
     expect(result).toEqual({audit:false,commit:false});
   });
 });
+
+import { readPage } from '../../../../api/_app/services/money/pageRead.js';
+import { beginReconciliationRead, finishReconciliationRead } from '../../../../api/_app/services/money/reconciliationRead.js';
+/* Audit C3 (2026-09-26): opening Today stored the standing charges inside #592's completeness
+   check, and the real trigger on money_transactions moved the financial revision under it. */
+describe('a read never writes inside its own completeness check', () => {
+  it('shows a standing charge nothing has stored yet, stays clear, and writes neither series nor flag', async () => {
+    const now = new Date('2026-09-10T10:00:00Z');
+    await pool.query('DELETE FROM money_recurring WHERE user_id=$1', [USER]);
+    await pool.query('DELETE FROM money_facts WHERE user_id=$1', [USER]);
+    /* An address already minted: the first page of a life mints one, a write of its own. */
+    await pool.query("INSERT INTO money_facts(user_id,kind,subject,value,source) VALUES ($1,'inbox_address','','r-c3@in.twinme.me','system')", [USER]);
+    for (const at of ['2026-06-20T09:00:00Z', '2026-07-20T09:00:00Z', '2026-08-20T09:00:00Z']) {
+      await pool.query("INSERT INTO money_transactions(user_id,occurred_at,posted_at,amount,merchant_key,merchant_raw,currency,channel) VALUES ($1,$2,$2,-9.99,'music','Music','EUR','card')", [USER, at]);
+    }
+    const revision = async () => (await pool.query('SELECT revision FROM money_score_state WHERE user_id=$1', [USER])).rows[0].revision;
+    const before = await revision();
+    const { data } = await readPage(USER, { view: 'today', now });
+    expect(data.reconciliation).toMatchObject({ state: 'clear' });
+    expect(data.recurring.map((s) => [s.merchant_key, s.merchant_name, s.cadence])).toEqual([['music', 'Music', 'monthly']]);
+    /* The month counts the charge still to come from the same rows, with nothing stored. */
+    expect(data.forecast.committed_items.map((c) => [c.merchant_key, c.next_expected])).toEqual([['music', '2026-09-20']]);
+    expect(await revision()).toBe(before);
+    expect((await rows()).every((t) => t.is_recurring === false)).toBe(true);
+    expect((await pool.query('SELECT count(*)::int AS n FROM money_recurring WHERE user_id=$1', [USER])).rows[0].n).toBe(0);
+    /* The write the page used to make is the one that moved the revision under its own check. */
+    const read = await beginReconciliationRead(USER);
+    expect(await refreshRecurring(USER, now)).toHaveLength(1);
+    expect(await finishReconciliationRead(read)).toMatchObject({ state: 'unavailable' });
+    expect((await rows()).every((t) => t.is_recurring === true)).toBe(true);
+    /* Stored where the evidence changed, the next page reads clear and shows the same series. */
+    const next = await readPage(USER, { view: 'today', now });
+    expect(next.data.reconciliation).toMatchObject({ state: 'clear' });
+    expect(next.data.recurring.map((s) => s.merchant_key)).toEqual(['music']);
+  });
+});

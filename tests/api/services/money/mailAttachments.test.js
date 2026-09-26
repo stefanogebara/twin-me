@@ -1,12 +1,17 @@
 import { describe, it, expect, vi } from 'vitest';
+import { createHash } from 'node:crypto';
 
 vi.mock('../../../../api/_app/services/database.js', () => ({ supabaseAdmin: {} }));
 vi.mock('../../../../api/_app/services/money/store.js', () => ({ ingestSightings: vi.fn(), refreshRecurring: vi.fn(), refreshReadings: vi.fn(), listFacts: vi.fn(), answerQuestion: vi.fn(), ingestSighting: vi.fn() }));
 vi.mock('../../../../api/_app/services/money/statements/accounts.js', () => ({ statementAccounts: vi.fn(), checkStatementEvidence: vi.fn() }));
 
 const { statementFromMail } = await import('../../../../api/_app/services/money/mailAttachments.js');
+const { ATTACHMENT_DEPS } = await import('../../../../api/_app/services/money/attachmentDeps.js');
 
 const CSV = Buffer.from('Fecha,Concepto,Importe\n17/09/2026,METRO DE MADRID,"-12,20"\n17/09/2026,CINES YELMO,"-9,50"\n18/09/2026,MARIA GARCIA,"25,00"\n');
+/* The file a row came from, as the ledger compares files: a kept sheet and the bank's PDF of one
+   month are one payment per line, and one file never joins a line it already backs. */
+const fingerprint = (bytes) => createHash('sha256').update(bytes).digest('hex').slice(0, 16);
 const one = { id: '11111111-1111-4111-8111-111111111111', name: 'Santander', currency: 'EUR' };
 const two = { id: '22222222-2222-4222-8222-222222222222', name: 'Revolut', currency: 'EUR' };
 const fakes = (accounts) => {
@@ -50,5 +55,17 @@ describe('statementFromMail', () => {
     const out = await statementFromMail('u1', CSV, 'movimientos.csv', { emailId: 'e1', attachmentId: 'a1' }, deps);
     expect(out.kind).toBe('statement');
     expect(seen.ingested[0].account_id).toBe(one.id);
+  });
+  it('marks every row with the file it came from', async () => {
+    const { deps, seen } = fakes([one]);
+    await statementFromMail('u1', CSV, 'movimientos.csv', { emailId: 'e1', attachmentId: 'a1' }, deps);
+    expect(seen.ingested.map((s) => s.raw_json.document)).toEqual([fingerprint(CSV), fingerprint(CSV), fingerprint(CSV)]);
+  });
+});
+
+describe('a statement attached in the chat', () => {
+  it('marks every row with the file it came from, as the upload and the mail do', () => {
+    const { sightings } = ATTACHMENT_DEPS.parseStatement(CSV, 'movimientos.csv');
+    expect(sightings.map((s) => s.raw_json.document)).toEqual([fingerprint(CSV), fingerprint(CSV), fingerprint(CSV)]);
   });
 });

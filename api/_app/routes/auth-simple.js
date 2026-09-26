@@ -16,7 +16,7 @@ import * as AS from './authSchemas.js';
 import { authenticateUser } from '../middleware/auth.js';
 import { computeIsAdmin } from '../services/adminAccess.js';
 import {
-  findUserByEmail, findUserById, findUserByLegacyRefreshHash, findUserByVerificationToken, createUser, updateUser, clearLegacyRefreshHash,
+  findUserByEmail, findUserById, findUserByVerificationToken, createUser, updateUser,
   insertRefreshToken, findRefreshToken, findRefreshTokenByPrevious, deleteRefreshTokenById, deleteRefreshTokenByHash, rotateRefreshToken,
   insertMagicLink, findMagicLink, consumeMagicLink, insertPendingAuthCode, findPendingAuthCode, deletePendingAuthCode, upsertPlatformConnection,
 } from '../services/auth/authStore.js';
@@ -287,19 +287,19 @@ function deriveDeviceLabel(req) {
 }
 
 /**
- * Persist a freshly-issued refresh token.
+ * Persist a freshly-issued refresh token to user_refresh_tokens (one row per
+ * device; signing in from a new device does not invalidate another).
  *
- * Writes to the new per-device user_refresh_tokens table (primary path) AND
- * to the legacy users.refresh_token_hash column (transition fallback so
- * deployments can be rolled back without invalidating active sessions).
+ * Returns true iff the insert succeeded. false means the client holds a
+ * cookie no row backs, and the caller MUST abort (500) rather than complete
+ * the sign-in or refresh.
  *
- * Returns true iff AT LEAST ONE write succeeded — either path is sufficient
- * for a working refresh (the /refresh handler reads both). Returns false only
- * when BOTH writes fail, in which case the client would receive a cookie it
- * can never exchange. Callers should 500 on false.
- *
- * TODO(post-rollout): Once users.refresh_token_hash is dropped, remove the
- * legacy update block and return `!insertErr` directly.
+ * audit S6, 2026-09-26: this also used to mirror the hash onto the legacy
+ * users.refresh_token_hash column so a rollback could keep refreshing
+ * sessions. /refresh read that column back with no expiry check, so a token
+ * whose row rotation replaced, or reuse detection deleted, kept working
+ * through the column. Both that write here and the read in /refresh are
+ * gone; database/migrations/ has the migration that drops the column.
  */
 async function persistRefreshToken({ userId, tokenHash, deviceLabel }) {
   const expiresAt = new Date(Date.now() + REFRESH_TOKEN_TTL_MS).toISOString();
@@ -312,18 +312,6 @@ async function persistRefreshToken({ userId, tokenHash, deviceLabel }) {
     });
   if (insertErr) {
     log.error('Failed to insert user_refresh_tokens row', { error: insertErr, userId });
-  }
-
-  // Legacy fallback during rollout — write the latest hash to the users column
-  // so pre-migration refresh handlers still work if we have to roll back.
-  const { error: legacyErr } = await updateUser(userId, { refresh_token_hash: tokenHash });
-  if (legacyErr) {
-    log.warn('Failed to update legacy refresh_token_hash', { error: legacyErr, userId });
-  }
-
-  // Both failed — client cookie will never refresh; caller MUST abort.
-  if (insertErr && legacyErr) {
-    log.error('Refresh token persistence failed on both paths', { userId });
     return false;
   }
   return true;
@@ -529,7 +517,7 @@ router.post('/signup', authLimiter, validate({ body: AS.SIGNUP }), async (req, r
     const { accessToken, refreshToken } = generateTokenPair(newUser, client);
     const refreshTokenHash = hashToken(refreshToken);
 
-    // Store refresh token (per-device row + legacy fallback)
+    // Store refresh token (one row per device)
     const persistedSignup = await persistRefreshToken({
       userId: newUser.id,
       tokenHash: refreshTokenHash,
@@ -604,7 +592,7 @@ router.post('/signin', authLimiter, validate({ body: AS.SIGNIN }), async (req, r
     const { accessToken, refreshToken } = generateTokenPair(user, client);
     const refreshTokenHash = hashToken(refreshToken);
 
-    // Store refresh token (per-device row + legacy fallback)
+    // Store refresh token (one row per device)
     // Signing in from a new device does NOT invalidate other device rows.
     const persistedSignin = await persistRefreshToken({
       userId: user.id,
@@ -706,16 +694,13 @@ router.post('/refresh', refreshLimiter, validate({ body: AS.REFRESH }), async (r
       if (graced) return graced;
     }
 
-    // Legacy fallback: token was issued before the user_refresh_tokens
-    // migration landed. Accept it, then silently migrate to the new table on
-    // successful rotation below.
-    // TODO(post-rollout): remove this block after users.refresh_token_hash is dropped.
     if (!user) {
-      const { data: legacyUser } = await findUserByLegacyRefreshHash(tokenHash, 'id, email, first_name, last_name, created_at, email_verified, oauth_provider, timezone, preferred_language');
-      user = legacyUser || null;
-    }
-
-    if (!user) {
+      // No row holds this hash, directly or as the one a rotation just replaced: a stolen
+      // token, an expired one already deleted above, or one that never existed. audit S6,
+      // 2026-09-26: this used to fall back to the legacy users.refresh_token_hash column
+      // with no expiry check, which is what let a token kept working after its row was gone
+      // -- reuse detection deleted the row but never that column, so the thief's rotated
+      // token, and any expired token on its second try, were both accepted through it.
       return res.status(401).json({ error: 'Invalid refresh token' });
     }
 
@@ -751,19 +736,15 @@ router.post('/refresh', refreshLimiter, validate({ body: AS.REFRESH }), async (r
         if (graced) return graced;
         return res.status(401).json({ error: 'Invalid refresh token' });
       }
-
-      // Mirror to legacy column during rollout so rollbacks keep working.
-      await updateUser(user.id, { refresh_token_hash: newHash });
     } else {
-      // Legacy-token migration: create a new per-device row going forward.
-      const persistedMigration = await persistRefreshToken({
-        userId: user.id,
-        tokenHash: newHash,
-        deviceLabel: deriveDeviceLabel(req),
-      });
-      if (!persistedMigration) {
-        return res.status(500).json({ error: 'Failed to persist session. Please try again.' });
-      }
+      /* Unreachable: `user` is only ever set above alongside `tokenRowId`, in the
+         findRefreshToken branch. This was the seam the legacy users.refresh_token_hash
+         fallback used to fill -- it could resolve a user here with no row, and this branch
+         then minted a brand-new session for it, which is how a stolen token's successor
+         kept working after reuse detection deleted the row it was rotated from (audit S6,
+         2026-09-26). Refuse rather than revive that path. */
+      log.error('Refresh resolved a user with no token row id; refusing', { userId: user.id });
+      return res.status(401).json({ error: 'Invalid refresh token' });
     }
 
     setRefreshCookie(res, newRefreshToken, req);
@@ -1045,21 +1026,21 @@ router.post('/logout', validate({ body: AS.LOGOUT }), async (req, res) => {
     // Read the current device's refresh token from the cookie (or body for mobile).
     // Logout must only invalidate THIS device, not every device the user has.
     const refreshToken = req.cookies?.refresh_token || req.body?.refreshToken;
+
+    // Delete this device's row by the refresh token itself, whether or not the access
+    // token below is still valid. audit S6, 2026-09-26: this used to live inside the
+    // jwt.verify try block, so logout revoked nothing server-side once the access token
+    // had expired (a 30m-2h token against a 30-day session is the common case) -- the
+    // refresh token kept working until someone presented it.
+    if (refreshToken) {
+      const rtHash = hashToken(refreshToken);
+      const { error: delErr } = await deleteRefreshTokenByHash(rtHash);
+      if (delErr) log.warn('Error deleting user_refresh_tokens row on logout', { error: delErr });
+    }
+
     if (token) {
       try {
         const decoded = jwt.verify(token, JWT_SECRET);
-
-        // Delete only THIS device's row in user_refresh_tokens (per-device logout)
-        if (refreshToken) {
-          const rtHash = hashToken(refreshToken);
-          const { error: delErr } = await deleteRefreshTokenByHash(rtHash);
-          if (delErr) log.warn('Error deleting user_refresh_tokens row on logout', { error: delErr });
-
-          // Legacy: clear the users column ONLY if this device's hash matches
-          // what's stored there (avoid nuking a different device's legacy token).
-          // TODO(post-rollout): remove after users.refresh_token_hash is dropped.
-          await clearLegacyRefreshHash(decoded.id, rtHash);
-        }
 
         // Blacklist the JWT until its natural expiry
         const { blacklistToken } = await import('../middleware/auth.js');
@@ -1076,7 +1057,7 @@ router.post('/logout', validate({ body: AS.LOGOUT }), async (req, res) => {
           );
         }
       } catch {
-        // Token expired or invalid — still clear on best effort
+        // Token expired or invalid — the refresh row is already gone above either way.
       }
     }
     // Clear both host-only (legacy, pre 2026-05-13) and domain-scoped cookies
@@ -1448,7 +1429,7 @@ router.get('/oauth/callback', async (req, res) => {
     const { accessToken, refreshToken } = generateTokenPair(user);
     const refreshTokenHash = hashToken(refreshToken);
 
-    // Store refresh token (per-device row + legacy fallback)
+    // Store refresh token (one row per device)
     const persistedOauthRedirect = await persistRefreshToken({
       userId: user.id,
       tokenHash: refreshTokenHash,
@@ -1730,7 +1711,7 @@ router.post('/oauth/callback', validate({ body: AS.OAUTH_CALLBACK }), async (req
       const { accessToken, refreshToken } = generateTokenPair(user);
       const refreshTokenHash = hashToken(refreshToken);
 
-      // Store refresh token (per-device row + legacy fallback)
+      // Store refresh token (one row per device)
       const persistedOauthPost = await persistRefreshToken({
         userId: user.id,
         tokenHash: refreshTokenHash,

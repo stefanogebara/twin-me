@@ -27,6 +27,8 @@ export const BANK_PULL = loose({ since: z.string().max(64).optional() });
 export const STATEMENT_ACCOUNT = loose({ name: z.string().trim().min(1).max(60) });
 export const PLACES_LOOKUP = loose({ limit: z.union([z.number().int().min(1).max(40), z.string().regex(/^\d{1,2}$/)]).optional() });
 export const PLACE_CATEGORY_PARAMS = z.object({ merchantKey: z.string().min(1).max(120) });
+/* `name` is what the page showed for the merchant. It is accepted and kept nowhere: a person's
+   name for a merchant is read from their own payments (audit S5, 2026-09-26). */
 export const PLACE_CATEGORY = loose({ category: z.string().max(40).nullable().optional(), name: z.string().max(120).optional() });
 export const ANSWER = loose({
   questionId: z.string().max(120).nullable().optional(), kind: z.string().min(1).max(40),

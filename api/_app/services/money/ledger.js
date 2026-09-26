@@ -6,7 +6,10 @@
  * key, amount (within 1%) and time (within four days) agree, otherwise it opens
  * a new transaction. The bank feed wins on amount and posting date; the phone
  * wins on the minute. Pure: arrays in, decisions out; store.js applies them.
+ * Two statements are held to a stricter rule, pairStatement(): account, day,
+ * cent and direction, one row of each file per line.
  */
+import { dayIn, daysBetweenIn } from './zone.js';
 
 /* Four days, not 36 hours: a card alert on Friday night is booked by the bank on Monday,
    sometimes Tuesday, and the merchant key and amount must still agree, so the wider window
@@ -105,6 +108,79 @@ export function findMatch(sighting, transactions, opts = {}) {
   return legacyMatch(eligibleMatches(sighting, transactions, opts));
 }
 
+/* ------------------------------------------------------- one payment, two statements */
+
+const DAY_MS = 24 * 60 * 60 * 1000;
+const cents = (n) => Math.round(Number(n) * 100);
+
+/** Calendar days, where the person is, from the nearer of a line's two days (when it happened
+    and when it was booked) to a statement row's day. Infinity when neither is close. */
+function dayGap(line, sighting) {
+  let gap = Infinity;
+  for (const at of [line.occurred_at, line.posted_at]) {
+    if (!at || Math.abs(new Date(at).getTime() - new Date(sighting.occurred_at).getTime()) > 3 * DAY_MS) continue;
+    const days = daysBetweenIn(at, sighting.occurred_at);
+    if (days !== null) gap = Math.min(gap, Math.abs(days));
+  }
+  return gap;
+}
+
+/** What two statements of one account both know for certain about a payment: its currency,
+    its card, its amount to the cent and its direction, and its day within one (a person writes
+    the day of the purchase, a bank prints the value date). The words are not part of it. */
+function sameStatementPayment(line, sighting) {
+  return (line.currency || 'EUR') === (sighting.currency || 'EUR')
+    && Boolean(line.account_id) && line.account_id === sighting.account_id
+    && !(line.card_last4 && sighting.card_last4 && line.card_last4 !== sighting.card_last4)
+    && cents(line.amount) === cents(signedAmount(sighting))
+    && dayGap(line, sighting) <= 1;
+}
+
+const createdAt = (t) => { const at = Date.parse(t.created_at); return Number.isFinite(at) ? at : Infinity; };
+
+/**
+ * Which line a statement row describes, among the lines other statement files back and its own
+ * file does not. A kept sheet says "Cabify" on the 9th where the bank's PDF says "COMPRA Cabify
+ * ES 2636eRmHs0tq" on the 10th, so the words only break a tie: first the lines whose shop agrees,
+ * then the ones on the row's own day. Lines left that are alike (one shop, one day) are the same
+ * payment made more than once, and the oldest is taken: the next equal row of the file takes the
+ * next, so two metro rides in each file are two lines. Lines left that differ, by shop or by day,
+ * are something the row could have told apart and did not: 'ambiguous', never a guess.
+ * @param {object} sighting  a statement row with account_id
+ * @param {object[]} lines   candidate lines, each with created_at when it is stored
+ * @returns {{ kind: 'none'|'pair'|'ambiguous', match: object|null, candidateIds: string[] }}
+ */
+export function pairStatement(sighting, lines) {
+  const same = lines.filter((t) => sameStatementPayment(t, sighting));
+  const candidateIds = same.map((t) => t.id).sort();
+  if (!same.length) return { kind: 'none', match: null, candidateIds };
+  const worded = same.filter((t) => !nameless(t.merchant_key) && !nameless(sighting.merchant_key)
+    && sameMerchant(t.merchant_key, sighting.merchant_key));
+  const told = worded.length ? worded : same;
+  const onTheDay = told.filter((t) => dayGap(t, sighting) === 0);
+  const left = onTheDay.length ? onTheDay : told;
+  const alike = (a, b) => (a.merchant_key === b.merchant_key || sameMerchant(a.merchant_key, b.merchant_key))
+    && dayIn(a.occurred_at) === dayIn(b.occurred_at);
+  if (!left.every((a) => left.every((b) => alike(a, b)))) return { kind: 'ambiguous', match: null, candidateIds };
+  const oldest = left.map((t, at) => ({ t, at })).sort((a, b) => (createdAt(a.t) - createdAt(b.t)) || a.at - b.at)[0].t;
+  return { kind: 'pair', match: oldest, candidateIds };
+}
+
+/**
+ * Evidence kept out of the ledger until the person says which payment it describes (#592). An
+ * observation deferred once keeps that first record, whatever its candidates become. The reason
+ * is the one the money_sighting_reconciliation_shape constraint accepts.
+ */
+export function deferral(sighting, candidateIds) {
+  return { action: 'deferred', transaction: null, sighting: {
+    ...sighting,
+    reconciliation: sighting.reconciliation || {
+      version: 1, state: 'deferred', reason: 'ambiguous_weak_match',
+      first_deferred_at: new Date().toISOString(), candidate_ids: candidateIds.slice(0, 50),
+    },
+  } };
+}
+
 /**
  * Decide what a sighting does to the ledger.
  * @returns {{ action: 'create'|'attach'|'deferred', transaction: object|null, sighting: object }}
@@ -122,13 +198,7 @@ export function reconcile(sighting, transactions, primarySightingSource = null, 
   // just because its candidate set shrinks. Only the explicit review boundary resolves it.
   const classified = classifyMatch(sighting, transactions, opts);
   if (!opts.existing && (sighting.reconciliation?.state === 'deferred' || classified.kind === 'ambiguous_weak')) {
-    return { action: 'deferred', transaction: null, sighting: {
-      ...sighting,
-      reconciliation: sighting.reconciliation || {
-        version: 1, state: 'deferred', reason: 'ambiguous_weak_match',
-        first_deferred_at: new Date().toISOString(), candidate_ids: classified.candidateIds.slice(0, 50),
-      },
-    } };
+    return deferral(sighting, classified.candidateIds);
   }
   const match = opts.existing || classified.match;
   if (!match) {

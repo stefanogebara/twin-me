@@ -1,6 +1,7 @@
 import { beforeEach, expect, it, vi } from 'vitest';
 import express from 'express';
 import request from 'supertest';
+import { createHash } from 'node:crypto';
 const owner = '00000000-0000-4000-8000-000000000001';
 const account = '00000000-0000-4000-8000-000000000010';
 const f = vi.hoisted(() => ({ owned: vi.fn(), check: vi.fn(), ingest: vi.fn(), complete: vi.fn() }));
@@ -64,6 +65,16 @@ it('keeps answered payments in review until separately confirmed, then imports t
   expect(confirmed.body.data).toMatchObject({ read: 1, created: 1 });
   expect(f.ingest).toHaveBeenCalledWith(owner, [expect.objectContaining({ amount: 5, direction: 'out', account_id: account })]);
   expect(f.complete).not.toHaveBeenCalled();
+});
+
+it('marks the rows of a sheet read by its plan with the file they came from', async () => {
+  const unsigned = Buffer.from('When;What;How much\n21/09;Cafe;5');
+  const plan = { index: 0, columns: { date: 0, concept: 1, amount: 2 } };
+  const r = await request(app).post('/money/statement').field('accountId', account).field('plan', JSON.stringify(plan))
+    .field('answers', JSON.stringify({ sign: 'all_out', year: '2026' })).field('confirm', 'true').attach('file', unsigned, 'budget.csv');
+  expect(r.status).toBe(200);
+  const [[, sightings]] = f.ingest.mock.calls;
+  expect(sightings.map((s) => s.raw_json.document)).toEqual([createHash('sha256').update(unsigned).digest('hex').slice(0, 16)]);
 });
 
 it('confirmation cannot bypass unresolved questions', async () => {

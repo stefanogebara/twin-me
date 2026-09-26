@@ -33,6 +33,22 @@ export function withoutCancelled(series = [], facts = []) {
   const gone = cancelledKeys(facts);
   return gone.size ? (series || []).filter((s) => !gone.has(String(s.merchant_key || '').toLowerCase())) : (series || []);
 }
+
+/** How far back a series is read, by the stored copy and by every read alike. */
+export const SERIES_WINDOW_DAYS = 400;
+/**
+ * The series a ledger holds at `now`, minus the ones the person ended: the one computation
+ * behind the stored copy, the page's and the chat's list and the forecast. A read computes it
+ * and never stores it: the page stored it on every open, inside its own completeness check,
+ * and the flags it wrote invalidated that check (audit C3, 2026-09-26). `evidence` may carry
+ * rejected rows; a payment marked not_me is never a charge. Pure.
+ */
+export function seriesOf(evidence, { now, platforms = {}, facts = [] } = {}) {
+  const rows = (evidence || []).filter((t) => t.verdict !== 'not_me');
+  return withoutCancelled(detectRecurring(rows, { now, platforms, windowDays: SERIES_WINDOW_DAYS }), facts);
+}
+/** A series as money_recurring holds it: what comes back, not the rows it was read from. */
+export const storedSeries = ({ platform, transaction_ids, variants, variant_amounts, ...item }) => item;
 export const AMOUNT_CV = 0.2;
 export const INTERVAL_CV = 0.4;
 const DAY = 86400000;

@@ -8,7 +8,7 @@ import { financialEvidenceBlocked, withheldForecast } from '../services/money/fi
  * GET  /api/money/ledger?since=            reconciled transactions, newest first
  * GET  /api/money/transactions/:id/sightings   the receipts behind one transaction
  * POST /api/money/transactions/:id/verdict { verdict: worth_it | not_me | null }
- * GET  /api/money/recurring                recurring series (recomputed on call)
+ * GET  /api/money/recurring                recurring series (computed on call, never stored by a read)
  * GET  /api/money/forecast                 this month, with a band
  * POST /api/money/statement                a bank statement (xlsx/csv) becomes sightings
  * GET  /api/money/categories[?month=]      where a month went, by kind of place
@@ -56,7 +56,7 @@ import * as S from './moneySchemas.js';
 import { inboxSummary, isInboxConfigured, verifySvix, ingestReceivedEmail } from '../services/money/inbox.js';
 import { MAIL_ATTACHMENT_DEPS } from '../services/money/mailAttachments.js';
 import { monthSheet } from '../services/money/sheet.js';
-import { refreshRecurring as recurringOf } from '../services/money/store.js';
+import { recurringSeries as recurringOf } from '../services/money/store.js';
 import { readAttachment, acceptsAttachment, MAX_ATTACHMENT_BYTES } from '../services/money/attachments.js';
 import { ATTACHMENT_DEPS } from '../services/money/attachmentDeps.js';
 import { accuracy } from '../services/money/predictions.js';
@@ -67,8 +67,8 @@ const bankClosed = (c) => ({ unconfigured: 'Live bank connections are not set up
 import { holdUndatedCapture } from '../services/money/legacyCapture.js';
 import { recordOptIn } from '../services/money/channelStore.js';
 import { isMoneyChannelUser } from '../services/money/channel.js';
-import { removeBankAccount, inPersonScope, personProfileCached, personProfile, ingestSighting, ingestSightings, listTransactions, transactionPage, sightingsFor, refreshRecurring, forecast, setVerdict, userForCaptureKey, createCaptureKey, saveBankAccounts, listBankAccounts, pullBankFeed, refreshReadings, listReadings, setReadingVerdict, months, feedBudget, categorySpend, listPlaces, setPlaceCategory, enrichPlaces, subscriptionUsage, questionsFor, answerQuestion, skipQuestion, listFacts, deleteFact, recordCallbackFailure, listChatTurns, saveChatTurn, learn, userLanguage, patternsFor } from '../services/money/store.js';
-import { parseDelimited, parseWorkbook, toSightings } from '../services/money/statements/importer.js';
+import { removeBankAccount, inPersonScope, personProfileCached, personProfile, ingestSighting, ingestSightings, listTransactions, transactionPage, sightingsFor, refreshRecurring, forecast, setVerdict, userForCaptureKey, createCaptureKey, saveBankAccounts, listBankAccounts, pullBankFeed, refreshReadings, listReadings, setReadingVerdict, months, feedBudget, categorySpend, listPlaces, setPlaceCategory, enrichPlaces, subscriptionUsage, questionsFor, answerQuestion, skipQuestion, listFacts, deleteFact, recordCallbackFailure, listChatTurns, saveChatTurn, learn, userLanguage, patternsFor, recurringSeries } from '../services/money/store.js';
+import { parseDelimited, parseWorkbook, toSightings, documentFingerprint } from '../services/money/statements/importer.js';
 import { planQuestions, answeredPlan, sanitisePlan, textGrid } from '../services/money/statements/shape.js';
 import { extractDocumentText } from '../services/documentExtractionService.js';
 import { pdfGrid } from '../services/money/statements/pdfGrid.js';
@@ -91,6 +91,8 @@ import { quietly } from '../services/money/quietly.js';
 
 const log = createLogger('MoneyRoute');
 const router = Router();
+/** The ingestion outcomes that write a line: a new one, or new evidence on one already held. */
+const LINE_CHANGED = new Set(['create', 'attach']);
 
 /**
  * The phone cannot hold a session. A Shortcut or a listener sends `X-TwinMe-Key: twm_...`,
@@ -133,6 +135,9 @@ router.post('/capture', authenticateUserOrKey, validate({ body: S.CAPTURE }), as
   const ref = `${read.refPrefix}:${crypto.createHash('sha256').update(read.refSeed).digest('hex').slice(0, 32)}`;
   try {
     const result = await ingestSighting(req.user.id, { ...parsed, source_ref: ref });
+    /* A new line, or new evidence on one, can complete a standing charge: it is stored before
+       the answer, outside any read (C3). This route runs before the person's scope is set. */
+    if (LINE_CHANGED.has(result.action)) await inPersonScope(req.user.id, () => refreshRecurring(req.user.id)).catch(quietly('capture/recurring', undefined));
     res.status(result.action === 'create' ? 201 : 200).json({ success: true, data: { action: result.action, transaction: result.transaction, sighting: { id: result.sighting.id, parse_confidence: result.sighting.parse_confidence } } });
   } catch (error) {
     log.error('capture failed', { error: error.message });
@@ -152,6 +157,11 @@ router.post('/inbox/resend', async (req, res) => {
   if (req.body?.type !== 'email.received') return res.json({ success: true, data: { outcome: 'ignored' } });
   try {
     const result = await ingestReceivedEmail(req.body, MAIL_ATTACHMENT_DEPS);
+    /* A receipt or a bank alert that became or settled a line: the series are stored for its
+       owner, in their scope, before Resend is answered (C3). */
+    if (result?.outcome === 'read' && result.userId && LINE_CHANGED.has(result.action)) {
+      await inPersonScope(result.userId, () => refreshRecurring(result.userId)).catch(quietly('inbox/recurring', undefined));
+    }
     res.json({ success: true, data: result });
   } catch (error) {
     log.error('inbox failed', { error: error.message });
@@ -240,8 +250,9 @@ router.post('/transactions/:id/verdict', validate({ params: S.UUID_PARAM, body: 
   catch (error) { log.error('verdict failed', { error: error.message }); res.status(500).json({ success: false, error: 'Internal server error' }); }
 });
 
+/* A read: the series are computed here and stored only where the evidence changes (C3). */
 router.get('/recurring', async (req, res) => {
-  try { res.json({ success: true, data: await refreshRecurring(req.user.id) }); }
+  try { res.json({ success: true, data: await recurringSeries(req.user.id) }); }
   catch (error) { log.error('recurring failed', { error: error.message }); res.status(500).json({ success: false, error: 'Internal server error' }); }
 });
 
@@ -448,6 +459,9 @@ router.post('/statement', statementUpload, async (req, res) => {
   try {
     const account = await ownedStatementAccount(req.user.id, req.body?.accountId);
     const name = req.file.originalname || '';
+    /* Every row keeps the file it came from: the ledger lets a row join a line another file
+       backs (the kept sheet and the bank's PDF of one month) and never one its own file backs. */
+    const document = documentFingerprint(req.file.buffer);
     /* A PDF is a page, not a table, and for plenty of people it is the only thing the bank
        gives them. documentExtractionService reads the text layer, with OCR behind it for a
        scan; textGrid turns that text into the rows and columns everything downstream wants,
@@ -474,7 +488,7 @@ router.post('/statement', statementUpload, async (req, res) => {
     }
     /* A bank's own export reads for nothing: the header dictionary knows it, no model is
        asked and no question is put. Only a sheet that dictionary cannot read goes further. */
-    let { sightings, skipped, header } = toSightings(rows, { accountId: account.id, defaultCurrency: account.currency });
+    let { sightings, skipped, header } = toSightings(rows, { accountId: account.id, defaultCurrency: account.currency, document });
     let notPayments = false;
 
     /* A PDF's columns are inferred from where its text was drawn, never read from the file, so
@@ -510,7 +524,7 @@ router.post('/statement', statementUpload, async (req, res) => {
       if (plan) {
         plan = answeredPlan(plan, jsonField(req.body?.answers) || {});
         const questions = planQuestions(rows, plan, { accountCurrency: account.currency });
-        ({ sightings, skipped, header } = toSightings(rows, { accountId: account.id, defaultCurrency: account.currency, plan }));
+        ({ sightings, skipped, header } = toSightings(rows, { accountId: account.id, defaultCurrency: account.currency, plan, document }));
         // Column identification is still a model interpretation, even when the sheet
         // needs no date/direction answers. Always show it before accepting a separate
         // confirmation carrying the reviewed plan. While questions remain, this preview
@@ -561,7 +575,11 @@ router.get('/categories', async (req, res) => {
   catch (error) { log.error('categories failed', { error: error.message }); res.status(500).json({ success: false, error: 'Internal server error' }); }
 });
 
-/** Look up the merchants not yet placed. Repeat until `left` is zero. */
+/**
+ * Look up the merchants not yet placed. Repeat until `remaining` (or `left`, the same count) is
+ * zero: a run stops starting merchants at forty seconds so it answers inside the function's
+ * minute, where forty merchants at a lookup and a judge each once ran past it into a 504.
+ */
 router.post('/places/lookup', validate({ body: S.PLACES_LOOKUP }), async (req, res) => {
   const limit = Math.min(Math.max(parseInt(String(req.body?.limit ?? '12'), 10) || 12, 1), 40);
   try { res.json({ success: true, data: await enrichPlaces(req.user.id, { limit }) }); }
@@ -574,14 +592,22 @@ router.get('/places', async (req, res) => {
   catch (error) { log.error('places failed', { error: error.message }); res.status(500).json({ success: false, error: 'Internal server error' }); }
 });
 
+/**
+ * A person's word on a merchant in their own ledger, kept for them alone. The page still sends
+ * the name it showed; nothing keeps it: what a person calls a merchant is read from their own
+ * payments, and nothing a person sends reaches the place cache every ledger reads (audit S5).
+ */
 router.post('/places/:merchantKey/category', validate({ params: S.PLACE_CATEGORY_PARAMS, body: S.PLACE_CATEGORY }), async (req, res) => {
   const category = req.body?.category ?? null;
   if (category !== null && (typeof category !== 'string' || category.length > 40)) {
     return res.status(400).json({ success: false, error: 'category must be a short word or null' });
   }
-  const name = typeof req.body?.name === 'string' ? req.body.name.slice(0, 120) : null;
-  try { res.json({ success: true, data: await setPlaceCategory(req.user.id, String(req.params.merchantKey).slice(0, 120), category, { name }) }); }
-  catch (error) { log.error('place category failed', { error: error.message }); res.status(500).json({ success: false, error: 'Internal server error' }); }
+  try { res.json({ success: true, data: await setPlaceCategory(req.user.id, String(req.params.merchantKey).slice(0, 120), category) }); }
+  catch (error) {
+    if (error.code === 'place_not_in_ledger') return res.status(404).json({ success: false, error: 'That merchant is not in your ledger.' });
+    log.error('place category failed', { error: error.message });
+    res.status(500).json({ success: false, error: 'Internal server error' });
+  }
 });
 
 /** How many unattended reads of the consent are left in the rolling day. */

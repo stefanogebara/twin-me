@@ -40,7 +40,7 @@ import { balances, describeBetweenPeople, monthBetweenPeople, describeMonthBetwe
 import crypto from 'node:crypto';
 import { createLogger } from '../logger.js';
 import { subscriptionUsage,
-  listTransactions, months, forecast, categorySpend, refreshRecurring, listReadings, listFacts,
+  listTransactions, months, forecast, categorySpend, recurringSeries, listReadings, listFacts,
   questionsFor, listPlaces, setVerdict, setPlaceCategory, answerQuestion, categoryOfPayment, deleteFact, saveChatTurn, listBankAccounts, userLanguage,
 } from './store.js';
 import { learnMerchants, learnPatterns, predictNext, describeForTwin } from './brain.js';
@@ -290,7 +290,8 @@ export async function gather(userId, now = new Date()) {
   const givenRead = Promise.all([ledgerRead, factsRead]).then(([transactions, facts]) => ({ ...(transactions ? { transactions } : {}), ...(facts ? { facts } : {}), reconciliationRead }));
   const segmentsRead = givenRead.then((given) => months(userId, now, given));
   const castRead = givenRead.then((given) => forecast(userId, now, given));
-  const recurringRead = givenRead.then((given) => settled(refreshRecurring(userId, now, given), []));
+  /* Computed, never stored from inside this read's completeness check (C3, 2026-09-26). */
+  const recurringRead = givenRead.then((given) => settled(recurringSeries(userId, now, given), []));
   /* what each subscription is used for, against what it costs: "least worth it" was answered by size (2026-09-23) */
   const usageRead = ledgerRead.then((rows) => settled(Promise.resolve().then(() => subscriptionUsage(userId, now, { transactions: rows || undefined, reconciliationRead })), null));
   /* Last month's kinds of place go in beside this month's: asked "and last month?" the model
