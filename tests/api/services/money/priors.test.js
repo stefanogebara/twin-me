@@ -52,7 +52,7 @@ describe('studentMonth', () => {
     expect(m.label).toMatch(/typical student month/);
   });
   it('reads a rent-sized commitment as rent even without the word', () => {
-    expect(studentMonth([{ kind: 'commitment', subject: 'Maria Dolores', amount: 200 }]).rent).toBe(200);
+    expect(studentMonth([{ kind: 'commitment', subject: 'Laura Isabel', amount: 200 }]).rent).toBe(200);
     expect(studentMonth([{ kind: 'commitment', subject: 'Gym', amount: 30 }])).toBeNull();
   });
 });

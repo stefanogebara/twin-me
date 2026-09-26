@@ -57,7 +57,7 @@ describe('cancelStatement', () => {
 
 describe('who somebody is', () => {
   it('reads a role word and the name, in three languages, and nothing from a question', () => {
-    expect(personStatement('The 200 euro transfer to Maria Dolores Tomas Obon is my rent, she is my landlord.')).toEqual({ role: 'landlord', name: 'maria dolores tomas obon' });
+    expect(personStatement('The 200 euro transfer to Laura Isabel Gomez Sanz is my rent, she is my landlord.')).toEqual({ role: 'landlord', name: 'laura isabel gomez sanz' });
     expect(personStatement('Rafaella is my flatmate')).toEqual({ role: 'flatmate', name: 'rafaella' });
     expect(personStatement('no, Rafaella is my flatmate, not a friend')).toEqual({ role: 'flatmate', name: 'rafaella' });
     expect(personStatement('Pedro es mi casero')).toEqual({ role: 'landlord', name: 'pedro' });

@@ -9,13 +9,17 @@ import { financialEvidenceBlocked, financialEvidenceReason } from './financialCo
  * month, the day where the person is, the place, the kind of place as the page names it,
  * the amount, the channel the bank recorded, and whether the ledger expects it back.
  * No scope, no sync, nothing to drift. Pure where it can be; one read where it must.
+ *
+ * A second sheet adds each kind of place up: "an excel ... with the expenditures this month
+ * per sector" was what the owner asked Ask for (2026-09-24), and the chat now hands this file
+ * over (askIntent.js). The file is always this one, made here; the model never writes it.
  */
 import * as XLSX from 'xlsx';
 import { dayIn } from './zone.js';
 import { ledgerCurrency } from './currency.js';
 import { kindWord } from './chat.js';
 import { listOwnTransactions, listPlaces, categoryOfPayment, userLanguage, personProfileCached, listFacts } from './store.js';
-import { personRoles, roleOf } from './spending.js';
+import { personRoles, roleOf, spendingRule } from './spending.js';
 import { quietly } from './quietly.js';
 import { maskEvidenceCards } from './evidencePrivacy.js';
 
@@ -69,12 +73,64 @@ export function sheetRows(transactions, { month, places = [], recurring = [], fa
   return { header: HEADERS[lang], rows };
 }
 
-/** The workbook's bytes: one sheet named after the month. */
-export function sheetFile({ header, rows }, month) {
+const KIND_HEADERS = {
+  en: ['Kind', 'Spent', 'Currency', 'Payments', 'Share'],
+  es: ['Tipo', 'Gastado', 'Moneda', 'Pagos', 'Parte'],
+  'pt-BR': ['Tipo', 'Gasto', 'Moeda', 'Pagamentos', 'Parte'],
+};
+const KIND_SHEET = { en: 'Spent by kind', es: 'Gasto por tipo', 'pt-BR': 'Gasto por tipo' };
+const TOTAL = { en: 'Total', es: 'Total', 'pt-BR': 'Total' };
+const cents = (n) => Math.round(n * 100) / 100;
+
+/**
+ * Each kind of place of one month with what went to it, largest first, then the total. The one
+ * rule the Month page adds up with (spending.js): money out, in the ledger's own currency, never
+ * a row the person disowned, never money moved to a flatmate, a parent, a friend or a partner.
+ * So "per sector" here and the kinds on the page are the same euros. The share is of that total.
+ */
+export function kindTotals(transactions, { month, places = [], facts = [], language = 'en', zone = null } = {}) {
+  const lang = L(language);
+  const counts = spendingRule(facts || []);
+  const roles = personRoles(facts || []);
+  const byKey = new Map((places || []).map((p) => [p.merchant_key, p]));
+  const groups = new Map();
+  let total = 0;
+  let payments = 0;
+  for (const t of transactions || []) {
+    if (!(Number(t.amount) < 0) || !counts(t) || dayIn(t.occurred_at, zone).slice(0, 7) !== month) continue;
+    const kind = categoryOfPayment(byKey.get(t.merchant_key), t.channel, roleOf(roles, t.merchant_key)) || null;
+    const g = groups.get(kind) || { spent: 0, payments: 0 };
+    g.spent += Math.abs(Number(t.amount));
+    g.payments += 1;
+    groups.set(kind, g);
+    total += Math.abs(Number(t.amount));
+    payments += 1;
+  }
+  const currency = ledgerCurrency();
+  const share = (spent) => (total > 0 ? Math.round((spent / total) * 1000) / 1000 : 0);
+  const rows = [...groups.entries()]
+    .sort((a, b) => b[1].spent - a[1].spent)
+    .map(([kind, g]) => [kind ? kindWord(lang, kind) : NOT_READ[lang], cents(g.spent), currency, g.payments, share(g.spent)]);
+  rows.push([TOTAL[lang], cents(total), currency, payments, total > 0 ? 1 : 0]);
+  return { name: KIND_SHEET[lang], header: KIND_HEADERS[lang], rows };
+}
+
+/** The workbook's bytes: one sheet named after the month, and the kinds on a second when given. */
+export function sheetFile({ header, rows }, month, byKind = null) {
   const wb = XLSX.utils.book_new();
   const ws = XLSX.utils.aoa_to_sheet([header, ...rows]);
   ws['!cols'] = [{ wch: 11 }, { wch: 32 }, { wch: 16 }, { wch: 11 }, { wch: 9 }, { wch: 14 }, { wch: 10 }];
   XLSX.utils.book_append_sheet(wb, ws, month);
+  if (byKind) {
+    const kinds = XLSX.utils.aoa_to_sheet([byKind.header, ...byKind.rows]);
+    kinds['!cols'] = [{ wch: 20 }, { wch: 11 }, { wch: 9 }, { wch: 11 }, { wch: 8 }];
+    /* The share is a fraction, shown as a percentage the way a spreadsheet shows one. */
+    for (let r = 1; r <= byKind.rows.length; r += 1) {
+      const cell = kinds[XLSX.utils.encode_cell({ r, c: 4 })];
+      if (cell) cell.z = '0%';
+    }
+    XLSX.utils.book_append_sheet(wb, kinds, byKind.name);
+  }
   return XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
 }
 
@@ -97,5 +153,6 @@ export async function monthSheet(userId, { month = null, now = new Date(), deps 
   ]);
   requireComplete(await finishReconciliationRead(reconciliationRead));
   const table = sheetRows(transactions, { month: key, places, recurring, facts, language: language || 'en', zone });
-  return { month: key, rows: table.rows.length, filename: `twinme-${key}.xlsx`, buffer: sheetFile(table, key) };
+  const byKind = kindTotals(transactions, { month: key, places, facts, language: language || 'en', zone });
+  return { month: key, rows: table.rows.length, filename: `twinme-${key}.xlsx`, buffer: sheetFile(table, key, byKind) };
 }

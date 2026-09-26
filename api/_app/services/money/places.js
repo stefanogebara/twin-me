@@ -311,7 +311,7 @@ function normalize(text) {
     .toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
 }
 
-/** A name and an initial ("Ruiz M.", "M. Dolores T."): a person the bank abbreviated, never a shop. */
+/** A name and an initial ("Ruiz M.", "L. Isabel G."): a person the bank abbreviated, never a shop. */
 export function looksLikePerson(merchant) {
   const words = String(merchant || '').trim().split(/\s+/);
   if (words.length < 2 || words.length > 4) return false;

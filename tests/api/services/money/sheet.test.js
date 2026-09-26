@@ -92,3 +92,43 @@ it('does not export a seemingly complete month while payment evidence is pending
  const deps={personProfileCached:async()=>({timezone:'UTC'}),listOwnTransactions:async()=>tx,listPlaces:async()=>[],userLanguage:async()=> 'en',listFacts:async()=>[]};
  await expect(monthSheet('u1',{month:'2026-09',deps})).rejects.toMatchObject({code:'PAYMENT_REVIEW_REQUIRED'});
 });
+
+/* "create an excel for me so i can keep it w the expenditures this month per sector" (the
+   owner, 2026-09-24): the file carries a second sheet, each kind of place with what went to it,
+   by the one spending rule the Month page adds up with. */
+describe('the totals by kind', () => {
+  const more = [
+    ...tx,
+    { id: 't6', occurred_at: '2026-09-12T10:00:00Z', amount: -20, currency: 'EUR', merchant_key: 'el corte ingles', merchant_raw: 'El Corte Ingles', channel: 'card' },
+    { id: 't7', occurred_at: '2026-09-13T10:00:00Z', amount: -300, currency: 'EUR', merchant_key: 'ana lopez', merchant_raw: 'Ana Lopez', channel: 'transfer' },
+    { id: 't8', occurred_at: '2026-09-14T10:00:00Z', amount: -8, currency: 'EUR', merchant_key: 'glovo', merchant_raw: 'Glovo', channel: 'card', verdict: 'not_me' },
+  ];
+  const facts = [{ kind: 'person', subject: 'ana lopez', value: 'flatmate' }];
+
+  it('adds each kind of the month: spending only, in the ledger currency, a flatmate and a disowned row left out', async () => {
+    const { kindTotals } = await import('../../../../api/_app/services/money/sheet.js');
+    const { header, rows } = kindTotals(more, { month: '2026-09', places, facts, language: 'en', zone: 'UTC' });
+    expect(header).toEqual(['Kind', 'Spent', 'Currency', 'Payments', 'Share']);
+    expect(rows).toEqual([
+      ['clothing', 136.76, 'EUR', 2, 0.919],
+      ['software', 11.99, 'EUR', 1, 0.081],
+      ['Total', 148.75, 'EUR', 3, 1],
+    ]);
+  });
+
+  it('is the second sheet of the workbook, in the language of the account', async () => {
+    const deps = {
+      personProfileCached: async () => ({ timezone: 'UTC' }),
+      listOwnTransactions: async () => more, listPlaces: async () => places, userLanguage: async () => 'es', recurringFor: async () => recurring, listFacts: async () => facts,
+    };
+    const out = await monthSheet('u1', { month: '2026-09', deps });
+    const wb = XLSX.read(out.buffer, { type: 'buffer' });
+    expect(wb.SheetNames).toEqual(['2026-09', 'Gasto por tipo']);
+    const kinds = XLSX.utils.sheet_to_json(wb.Sheets['Gasto por tipo'], { header: 1 });
+    expect(kinds[0]).toEqual(['Tipo', 'Gastado', 'Moneda', 'Pagos', 'Parte']);
+    expect(kinds[1]).toEqual(['ropa', 136.76, 'EUR', 2, 0.919]);
+    expect(kinds.at(-1)).toEqual(['Total', 148.75, 'EUR', 3, 1]);
+    /* the share reads as a percentage in the spreadsheet */
+    expect(wb.Sheets['Gasto por tipo'].E2.w).toBe('92%');
+  });
+});

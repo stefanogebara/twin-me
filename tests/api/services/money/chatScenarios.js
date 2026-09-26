@@ -74,7 +74,8 @@ export const SCENARIOS = [
 
   /* round 7 (2026-09-20): people, and a graph of a named stretch */
   { id: 'bizum-month', kind: 'ask', message: 'How much did I send by Bizum this month and to whom?', route: 'model', figures: { only: ['shares', 'history'] }, actions: { none: true }, mention: [/\d+,\d{2}\s?(EUR|€)/], avoid: [/(has|holds|have|is) no (single )?total|não tem (o|um) total|no tiene (el|un) total/i], maxSentences: 4 },
-  { id: 'who-sent-me', kind: 'ask', message: 'Who sent me money this month?', route: 'model', figures: { only: ['shares', 'history'] }, actions: { none: true }, mention: [/\d+,\d{2}\s?(EUR|€)|nobody|ningu[eé]m|nadie/i], maxSentences: 4 },
+  /* computed since 2026-09-26 (flowAnswer.js): the model read the people line, which named a salary as a person */
+  { id: 'who-sent-me', kind: 'ask', message: 'Who sent me money this month?', route: 'short', figures: { only: ['shares', 'history'] }, actions: { none: true }, mention: [/\d+,\d{2}\s?(EUR|€)|nobody|ningu[eé]m|nadie/i], maxSentences: 4 },
   { id: 'graph-range', kind: 'ask', message: 'Give me a graph of what I spent between the 8th and the 14th', route: 'model', figures: { some: ['week'] }, actions: { none: true }, mention: [/\d+,\d{2}\s?(EUR|€)/], avoid: [/\?\s*$/], maxSentences: 3 },
   { id: 'weekend-by-day', kind: 'ask', message: 'Show me last weekend day by day', route: 'model', figures: { some: ['week'] }, actions: { none: true }, mention: [/\d+,\d{2}\s?(EUR|€)|nothing|nada/i], maxSentences: 3 },
 
@@ -131,8 +132,8 @@ export const SCENARIOS = [
   { id: 'night-hours-caveat', kind: 'ask', message: 'How much did I spend last Friday night?', route: 'model', figures: { only: ['shares', 'week', 'weekdays', 'history'] }, actions: { none: true }, mention: [/\d+,\d{2}\s?(EUR|€)|nothing|nada/i, /hora|hour|banco|bank|lan\u00e7|book/i], maxSentences: 4 },
 
   /* statements: the person is teaching, not asking */
-  { id: 'maria-dolores', kind: 'statement', message: 'maria dolores is the woman who gets me the real madrid tickets for 50 euros per person, so many times see if money comes back from 50 euro transfers or 200 euro to me as friends sometimes buy from me or my friends pay their ticket to me as i do the bridging w maria dolores.', route: 'model', figures: { only: [] }, actions: { some: ['person', 'remember'] }, mention: [/maria dolores/i], avoid: [/charges? comes? back every month/i, /subscription/i], maxSentences: 4 },
-  { id: 'landlord', kind: 'statement', message: 'The 200 euro transfer to Maria Dolores Tomas Obon is my rent, she is my landlord.', route: 'model', figures: { only: [] }, actions: { some: ['person'] }, mention: [/rent|landlord|aluguel|alquiler|propriet|casero/i], maxSentences: 4 },
+  { id: 'maria-isabel', kind: 'statement', message: 'laura isabel is the woman who gets me the real madrid tickets for 50 euros per person, so many times see if money comes back from 50 euro transfers or 200 euro to me as friends sometimes buy from me or my friends pay their ticket to me as i do the bridging w laura isabel.', route: 'model', figures: { only: [] }, actions: { some: ['person', 'remember'] }, mention: [/laura isabel/i], avoid: [/charges? comes? back every month/i, /subscription/i], maxSentences: 4 },
+  { id: 'landlord', kind: 'statement', message: 'The 200 euro transfer to Laura Isabel Gomez Sanz is my rent, she is my landlord.', route: 'model', figures: { only: [] }, actions: { some: ['person'] }, mention: [/rent|landlord|aluguel|alquiler|propriet|casero/i], maxSentences: 4 },
   { id: 'flatmate-spotify', kind: 'statement', message: 'Spotify is my flatmate\'s, it comes back every month but it is not mine.', route: 'model', figures: { only: [] }, actions: { some: ['not_me', 'remember', 'person', 'recategorise'] }, avoid: [/charges? comes? back every month, \d/i], maxSentences: 4 },
   { id: 'keep-300', kind: 'statement', message: 'I want to have 300 euros left at the end of the month.', route: 'model', figures: { only: ['band'] }, actions: { some: ['remember', 'answer'] }, maxSentences: 4 },
   { id: 'trip-valencia', kind: 'statement', message: 'I am going to Valencia next weekend with Ana.', route: 'model', figures: { only: [] }, actions: { some: ['remember'] }, mention: [/val[eê]ncia/i], maxSentences: 4 },
@@ -164,7 +165,7 @@ export const SCENARIOS = [
 
 /** Sentences in a reply, the way a person counts them. */
 export function sentenceCount(text) {
-  /* "Maria D. 200,00 EUR" is a name with an initial, not a sentence end. */
+  /* "Laura I. 200,00 EUR" is a name with an initial, not a sentence end. */
   return String(text || '').split(/(?<=[.!?])(?<!\b[A-Z]\.)\s+(?=[A-Z0-9\u00c0-\u024f"'(])/).map((s) => s.trim()).filter(Boolean).length;
 }
 /** Amounts written in a reply, as numbers: "12,50" -> 12.5, "1.011,02" -> 1011.02. */

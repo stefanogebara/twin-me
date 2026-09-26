@@ -14,7 +14,7 @@
  * taxi 7,40, total 582,87; July 298,14; June 162,51) and to words; the live month moves.
  *
  *   dim: figure-yes | figure-no | shape | grounding | follow-up | learning | correction |
- *        language | edge | reasoning | suggestions
+ *        language | edge | reasoning | suggestions | files
  */
 
 const EUR = /\d+,\d{2}\s?(EUR|€)/;
@@ -36,13 +36,21 @@ export const BENCH = [
   { id: 'fy-august-where', dim: 'figure-yes', message: 'Where did August go?', route: 'model', figures: { some: ['shares'] }, actions: NO_ACT, mention: [/august|agosto/i, EUR], avoid: [/1630,13/], maxSentences: 4 },
   { id: 'fy-today-band', dim: 'figure-yes', message: 'What can I spend today?', route: 'any', figures: { only: ['band'] }, actions: NO_ACT, mention: [EUR], judge: false, maxSentences: 4 },
   { id: 'fy-ahead', dim: 'figure-yes', message: 'What is still to come this month?', route: 'any', figures: { only: ['ahead', 'band', 'recurring'] }, actions: NO_ACT, maxSentences: 4 },
+  /* asked to draw, from the owner's own thread (2026-09-23 to 09-25): the code draws it, and "ask for the figure" never reaches the screen */
+  { id: 'fy-draw-graph', dim: 'figure-yes', message: 'draw a graph', route: 'model', figures: { some: ['shares'] }, actions: NO_ACT, avoid: [/ask (me )?for/i], maxSentences: 4 },
+  { id: 'fy-draw-recurring', dim: 'figure-yes', message: 'Draw a figure of recurring changes', route: 'short', figures: { some: ['recurring'] }, actions: NO_ACT, judge: false, maxSentences: 3 },
+  { id: 'fy-draw-subs', dim: 'figure-yes', message: 'draw my subscriptions', route: 'short', figures: { some: ['recurring'] }, actions: NO_ACT, judge: false, maxSentences: 3 },
+  { id: 'fy-graph-months', dim: 'figure-yes', message: 'graph of my spending by month', route: 'any', figures: { some: ['months'] }, actions: NO_ACT, mention: [EUR], maxSentences: 4 },
+  { id: 'fy-es-categoria', dim: 'figure-yes', message: 'gr\u00e1fico de mis gastos por categor\u00eda', route: 'model', figures: { some: ['shares'] }, actions: NO_ACT, avoid: [/pide|ask for/i], maxSentences: 4 },
+  { id: 'fy-pt-mes', dim: 'figure-yes', message: 'desenha um gr\u00e1fico dos meus gastos por m\u00eas', route: 'model', figures: { some: ['months'] }, actions: NO_ACT, avoid: [/pe[\u00e7c]a|ask for/i], maxSentences: 4 },
+  { id: 'fy-in-out', dim: 'figure-yes', message: 'draw what came in and went out each month', route: 'model', figures: { some: ['flows', 'months'] }, actions: NO_ACT, maxSentences: 4 },
 
   /* ---------------------------------------------------------------- figure-no: a number is enough */
   { id: 'fn-yesterday', dim: 'figure-no', message: 'How much did I spend yesterday?', route: 'model', figures: NONE, actions: NO_ACT, mention: [EUR], maxSentences: 3 },
   { id: 'fn-balance', dim: 'figure-no', message: 'How much do I have in the bank?', route: 'model', figures: NONE, actions: NO_ACT, mention: [EUR, /santander|bank|banco/i], maxSentences: 3 },
   { id: 'fn-count', dim: 'figure-no', message: 'How many payments have I made this month?', route: 'model', figures: NONE, actions: NO_ACT, mention: [/\d+ (payments?|pagos?|pagamentos?)/i], maxSentences: 3 },
   { id: 'fn-biggest', dim: 'figure-no', message: 'What was my biggest payment this month?', route: 'short', figures: NONE, actions: NO_ACT, mention: [EUR], judge: false, maxSentences: 3 },
-  { id: 'fn-who', dim: 'figure-no', message: 'Who is Maria Dolores?', route: 'model', figures: NONE, actions: { optional: true, some: ['person'] }, mention: [/maria dolores/i], maxSentences: 3 },
+  { id: 'fn-who', dim: 'figure-no', message: 'Who is Laura Isabel?', route: 'model', figures: NONE, actions: { optional: true, some: ['person'] }, mention: [/laura isabel/i], maxSentences: 3 },
   { id: 'fn-rent-due', dim: 'figure-no', message: 'When is my rent due?', route: 'model', figures: { only: ['recurring', 'band'] }, actions: NO_ACT, mention: [/rent|landlord|does not see|no rent|cannot tell/i], judge: false, maxSentences: 3 },
   { id: 'fn-hi', dim: 'figure-no', message: 'hi', route: 'short', figures: NONE, actions: NO_ACT, judge: false, maxSentences: 2 },
   { id: 'fn-thanks', dim: 'figure-no', message: 'thanks!', route: 'short', figures: NONE, actions: NO_ACT, judge: false, maxSentences: 2 },
@@ -69,6 +77,10 @@ export const BENCH = [
   { id: 'gr-percent', dim: 'grounding', message: 'What percentage of my spending this month is software?', route: 'short', figures: { only: ['shares'] }, actions: NO_ACT, mention: [/\d+\s?%|percent|por ciento/i, /software/i], judge: false, maxSentences: 5 },
   { id: 'gr-mercadona', dim: 'grounding', message: 'How much at Mercadona this month?', route: 'model', figures: { only: ['history', 'shares'] }, actions: NO_ACT, mention: [/nothing|no |not |none|nada/i, /mercadona/i], maxSentences: 3 },
   { id: 'gr-father', dim: 'grounding', message: 'How much has my father sent me?', route: 'short', figures: NONE, actions: NO_ACT, mention: [/ruiz/i, EUR, /transfer/], judge: false, maxSentences: 2 },
+  /* money in and out and who paid, from the month page's figures, with no model (2026-09-26: "cannot answer" after 21.8 s, a salary named as a person) */
+  { id: 'gr-in-and-out', dim: 'grounding', message: 'How much came in this month, and how much went out?', route: 'short', figures: NONE, actions: NO_ACT, mention: [TWO], avoid: [/cannot answer/i], judge: false, maxSentences: 2 },
+  { id: 'gr-who-paid', dim: 'grounding', message: 'Who paid me this month?', route: 'short', figures: NONE, actions: NO_ACT, mention: [EUR], avoid: [/nomina s\./i], judge: false, maxSentences: 3 },
+  { id: 'la-es-in-out', dim: 'language', message: 'cuanto me ha entrado este mes y cuanto ha salido?', route: 'short', figures: NONE, actions: NO_ACT, mention: [TWO, /entraron/i], judge: false, maxSentences: 2 },
   { id: 'gr-received', dim: 'grounding', message: 'How much came in this month?', route: 'model', figures: NONE, actions: NO_ACT, mention: [EUR], maxSentences: 3 },
   { id: 'gr-net', dim: 'grounding', message: 'Am I spending more than I receive this month?', route: 'short', figures: NONE, actions: NO_ACT, mention: [TWO], avoid: [/1402,33/], judge: false, maxSentences: 4 },
   { id: 'gr-three-months', dim: 'grounding', message: 'total spent over the last three months?', route: 'short', figures: { only: ['months'] }, actions: NO_ACT, mention: [/582,87/, /298,14/], avoid: [/2511,14|1179,15/], judge: false, maxSentences: 4 },
@@ -80,7 +92,7 @@ export const BENCH = [
   { id: 'fu-in-august', dim: 'follow-up', message: 'and in August?', history: [{ role: 'user', text: 'how much on groceries this month?' }, { role: 'twin', text: 'Groceries this month: 436,45 EUR in 7 payments.' }], route: 'model', figures: { only: ['shares', 'months', 'history'] }, actions: NO_ACT, mention: [/122,99/], avoid: [/436,45/], maxSentences: 3 },
   { id: 'fu-and-spotify', dim: 'follow-up', message: 'and Spotify?', history: [{ role: 'user', text: 'What comes back every month?' }, { role: 'twin', text: '5 charges come back every month, 114,12 EUR together: Higgsfield, Elevenlabs.io, Fly.io and 2 more.' }], route: 'model', figures: { only: ['recurring', 'history'] }, actions: NO_ACT, mention: [/spotify/i], maxSentences: 3 },
   { id: 'fu-in-spanish', dim: 'follow-up', message: 'en español, por favor', history: [{ role: 'user', text: 'How much did I spend this week?' }, { role: 'twin', text: 'This week you spent 188,34 EUR in 14 payments, the largest El Corte Ingles 101,39 EUR.' }], route: 'model', figures: { only: ['week', 'shares'] }, actions: NO_ACT, mention: [/semana|gast/i], avoid: [/\bthis week\b|\byou spent\b/i], maxSentences: 3 },
-  { id: 'fu-first-one', dim: 'follow-up', message: 'who is the first one?', history: [{ role: 'user', text: 'Who did I send money to this month?' }, { role: 'twin', text: 'You sent 389,25 EUR to 9 people: Maria D. (other) 200,00 EUR, Achref S. 50,00 EUR, Rafaella V. (friend) 49,25 EUR and others.' }], route: 'model', figures: NONE, actions: { optional: true, some: ['person'] }, mention: [/maria/i], maxSentences: 3 },
+  { id: 'fu-first-one', dim: 'follow-up', message: 'who is the first one?', history: [{ role: 'user', text: 'Who did I send money to this month?' }, { role: 'twin', text: 'You sent 389,25 EUR to 9 people: Laura I. (other) 200,00 EUR, Omar H. 50,00 EUR, Rafaella V. (friend) 49,25 EUR and others.' }], route: 'model', figures: NONE, actions: { optional: true, some: ['person'] }, mention: [/maria/i], maxSentences: 3 },
   { id: 'fu-per-week', dim: 'follow-up', message: 'and per week?', history: [{ role: 'user', text: 'How does this month compare with the last ones?' }, { role: 'twin', text: 'Sep is at 1630,13 EUR so far. Aug closed at 582,87 EUR.' }], route: 'model', figures: { only: ['week', 'weekdays', 'months'] }, actions: NO_ACT, mention: [EUR], maxSentences: 4 },
   { id: 'fu-why-more', dim: 'follow-up', message: 'why?', history: [{ role: 'user', text: 'Am I spending more than usual?' }, { role: 'twin', text: 'Yes: this month is at 1630,13 EUR against 582,87 EUR in August.' }], route: 'model', figures: { only: ['shares', 'months', 'weekdays', 'week', 'history'] }, actions: NO_ACT, mention: [EUR], maxSentences: 4 },
   { id: 'fu-again', dim: 'follow-up', message: 'how much yesterday?', history: [{ role: 'user', text: 'How much did I spend yesterday?' }, { role: 'twin', text: 'Yesterday you spent 131,34 EUR in total.' }], route: 'model', figures: NONE, actions: NO_ACT, mention: [EUR], maxSentences: 3 },
@@ -111,8 +123,8 @@ export const BENCH = [
     { message: 'what do you know about next weekend?', route: 'model', figures: { only: ['week', 'band'] }, actions: NO_ACT, avoid: [/val[eê]ncia/i] },
   ] },
   { id: 'ln-landlord', dim: 'learning', steps: [
-    { message: 'The 200 euro transfer to Maria Dolores Tomas Obon is my rent, she is my landlord.', route: 'any', figures: NONE, actions: { some: ['person'] }, act: 'person', mention: [/landlord/i] },
-    { message: 'who is my landlord?', route: 'model', figures: NONE, actions: NO_ACT, mention: [/maria dolores/i] },
+    { message: 'The 200 euro transfer to Laura Isabel Gomez Sanz is my rent, she is my landlord.', route: 'any', figures: NONE, actions: { some: ['person'] }, act: 'person', mention: [/landlord/i] },
+    { message: 'who is my landlord?', route: 'model', figures: NONE, actions: NO_ACT, mention: [/laura isabel/i] },
     { message: 'how much rent do I pay?', route: 'model', figures: { only: ['history', 'recurring'] }, actions: NO_ACT, mention: [/200,00/] },
   ] },
   { id: 'ln-not-mine', dim: 'learning', steps: [
@@ -124,7 +136,7 @@ export const BENCH = [
     { message: 'how much on eating out this month?', route: 'short', figures: { some: ['shares'] }, actions: NO_ACT, mention: [/eating out/i, EUR], avoid: [/134,93/], judge: false },
   ] },
   { id: 'ln-correct-role', dim: 'learning', steps: [
-    { message: 'no, Rafaella is my flatmate, not a friend', history: [{ role: 'user', text: 'Who did I send money to this month?' }, { role: 'twin', text: 'You sent 389,25 EUR to 9 people: Maria D. 200,00 EUR, Rafaella V. (friend) 49,25 EUR and others.' }], route: 'any', figures: NONE, actions: { some: ['person'] }, act: 'person', mention: [/rafaella|flatmate/i] },
+    { message: 'no, Rafaella is my flatmate, not a friend', history: [{ role: 'user', text: 'Who did I send money to this month?' }, { role: 'twin', text: 'You sent 389,25 EUR to 9 people: Laura I. 200,00 EUR, Rafaella V. (friend) 49,25 EUR and others.' }], route: 'any', figures: NONE, actions: { some: ['person'] }, act: 'person', mention: [/rafaella|flatmate/i] },
     { message: 'how much did I send to my flatmate this month?', route: 'model', figures: NONE, actions: NO_ACT, mention: [/49,25|rafaella/i] },
   ] },
   { id: 'ln-cancel', dim: 'learning', steps: [
@@ -163,6 +175,13 @@ export const BENCH = [
   { id: 'ed-compare-others', dim: 'edge', message: 'am I spending more than other students?', route: 'model', figures: { only: ['months', 'shares', 'band'] }, actions: NO_ACT, mention: [/cannot|only your|no other|does not|not /i], judge: false, maxSentences: 3 },
   { id: 'ed-empty-month', dim: 'edge', message: 'how much on pharmacy this month?', route: 'short', figures: { only: ['shares'] }, actions: NO_ACT, mention: [/pharmacy/i, /nothing|0,00/i], judge: false, maxSentences: 4 },
   { id: 'ed-emoji', dim: 'edge', message: 'how much did I spend yesterday? 😅', route: 'model', figures: NONE, actions: NO_ACT, mention: [EUR], maxSentences: 3 },
+
+  /* ---------------------------------------------------------------- files: the month as a download, and what the chat reads */
+  { id: 'fl-excel-september', dim: 'files', message: 'Create an Excel file of my September spending.', route: 'short', figures: NONE, actions: { some: ['sheet'] }, mention: [/spreadsheet/i], avoid: [/PDF/], judge: false, maxSentences: 2 },
+  { id: 'fl-excel-sector', dim: 'files', message: 'create an excel for me so i can keep it w the expenditures this month per sector', route: 'short', figures: NONE, actions: { some: ['sheet'] }, mention: [/by kind/i], judge: false, maxSentences: 2 },
+  { id: 'fl-es-last-month', dim: 'files', message: 'hazme una hoja de c\u00e1lculo del mes pasado', route: 'short', figures: NONE, actions: { some: ['sheet'] }, mention: [/hoja de c[a\u00e1]lculo/i], judge: false, maxSentences: 2 },
+  { id: 'fl-month-not-held', dim: 'files', message: 'export December to a spreadsheet', route: 'short', figures: NONE, actions: NO_ACT, mention: [/nothing/i], judge: false, maxSentences: 2 },
+  { id: 'fl-reads-pdf', dim: 'files', message: 'can you read a PDF from my bank?', route: 'model', figures: NONE, actions: { optional: true, some: ['setup'] }, mention: [/PDF/i], avoid: [/cannot read|can't read|never a PDF|does not read/i], maxSentences: 3 },
 
   /* ---------------------------------------------------------------- reasoning: judged on the thinking, streamed */
   { id: 're-why-high', dim: 'reasoning', stream: true, speedMs: 45000, message: 'why is this month so much higher than August?', route: 'model', figures: { only: ['shares', 'months', 'weekdays', 'week', 'history'] }, actions: NO_ACT, mention: [EUR], maxSentences: 5 },

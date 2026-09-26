@@ -157,6 +157,22 @@ describe('readAttachment', () => {
     const dead = deps({ extractText: vi.fn(async () => ({ ok: false, text: '' })) });
     expect((await readAttachment(USER, { buffer: jpg, filename: 'blur.jpg' }, dead)).kind).toBe('unreadable');
   });
+
+  it('a scanned bank PDF is split into columns as the upload splits it, and sent on to Sources', async () => {
+    /* no page grid in a scan: the OCR lines are what there is, and they are a statement, not a receipt */
+    const { textGrid } = await import('../../../../api/_app/services/money/statements/shape.js');
+    const { toSightings } = await import('../../../../api/_app/services/money/statements/importer.js');
+    const d = deps({
+      statementFromPdf: vi.fn(async () => ({ sightings: [], skipped: [], header: null })),
+      statementFromText: (text) => toSightings(textGrid(text), {}),
+      extractText: vi.fn(async () => ({ ok: true, method: 'ocr', text: 'Fecha      Concepto            Importe\n01/09/2026  PAGO MOVIL EN MERCADONA  -48,20\n02/09/2026  PAGO MOVIL EN GLOVO  -12,50' })),
+    });
+    const r = await readAttachment(USER, { buffer: Buffer.from('%PDF-1.4'), filename: 'escaneo.pdf', mimeType: 'application/pdf' }, d);
+    expect(r).toMatchObject({ kind: 'nothing', said: 'escaneo.pdf reads as a bank statement of 2 payments. To add them, upload it in Sources, choose its account and check the rows.' });
+    expect(d.extractReceipt).not.toHaveBeenCalled();
+    expect(d.ingestSighting).not.toHaveBeenCalled();
+    expect(d.ingestSightings).not.toHaveBeenCalled();
+  });
 });
 
 it('keeps ambiguous receipt evidence without claiming it was counted as a payment', async () => {

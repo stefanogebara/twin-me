@@ -5,7 +5,8 @@
  */
 
 import { useState } from 'react';
-import { ownCurrency, ledgerCurrency, euro, moneyAPI } from '../../../../services/api/moneyAPI';
+import { ownCurrency, ledgerCurrency, euro } from '../../../../services/api/moneyAPI';
+import { saveMonthSheet } from '../../monthSheet';
 import { orbFor } from '../../orbFor';
 import Wait from '../../../../components/Wait';
 import MonthOrbits from '../../figures/MonthOrbits';
@@ -32,10 +33,7 @@ export default function MonthHero({ m }: { m: MoneyAccount }) {
   const downloadSheet = async () => {
     setSheet('busy');
     try {
-      const { blob, filename } = await moneyAPI.monthSheet(monthKey);
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a'); a.href = url; a.download = filename; document.body.appendChild(a); a.click(); a.remove();
-      setTimeout(() => URL.revokeObjectURL(url), 4000);
+      await saveMonthSheet(monthKey);
       setSheet('idle');
     } catch { setSheet('failed'); }
   };
