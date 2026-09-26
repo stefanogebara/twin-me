@@ -77,6 +77,10 @@ export const BENCH = [
   { id: 'gr-percent', dim: 'grounding', message: 'What percentage of my spending this month is software?', route: 'short', figures: { only: ['shares'] }, actions: NO_ACT, mention: [/\d+\s?%|percent|por ciento/i, /software/i], judge: false, maxSentences: 5 },
   { id: 'gr-mercadona', dim: 'grounding', message: 'How much at Mercadona this month?', route: 'model', figures: { only: ['history', 'shares'] }, actions: NO_ACT, mention: [/nothing|no |not |none|nada/i, /mercadona/i], maxSentences: 3 },
   { id: 'gr-father', dim: 'grounding', message: 'How much has my father sent me?', route: 'short', figures: NONE, actions: NO_ACT, mention: [/ruiz/i, EUR, /transfer/], judge: false, maxSentences: 2 },
+  /* money in and out and who paid, from the month page's figures, with no model (2026-09-26: "cannot answer" after 21.8 s, a salary named as a person) */
+  { id: 'gr-in-and-out', dim: 'grounding', message: 'How much came in this month, and how much went out?', route: 'short', figures: NONE, actions: NO_ACT, mention: [TWO], avoid: [/cannot answer/i], judge: false, maxSentences: 2 },
+  { id: 'gr-who-paid', dim: 'grounding', message: 'Who paid me this month?', route: 'short', figures: NONE, actions: NO_ACT, mention: [EUR], avoid: [/nomina s\./i], judge: false, maxSentences: 3 },
+  { id: 'la-es-in-out', dim: 'language', message: 'cuanto me ha entrado este mes y cuanto ha salido?', route: 'short', figures: NONE, actions: NO_ACT, mention: [TWO, /entraron/i], judge: false, maxSentences: 2 },
   { id: 'gr-received', dim: 'grounding', message: 'How much came in this month?', route: 'model', figures: NONE, actions: NO_ACT, mention: [EUR], maxSentences: 3 },
   { id: 'gr-net', dim: 'grounding', message: 'Am I spending more than I receive this month?', route: 'short', figures: NONE, actions: NO_ACT, mention: [TWO], avoid: [/1402,33/], judge: false, maxSentences: 4 },
   { id: 'gr-three-months', dim: 'grounding', message: 'total spent over the last three months?', route: 'short', figures: { only: ['months'] }, actions: NO_ACT, mention: [/582,87/, /298,14/], avoid: [/2511,14|1179,15/], judge: false, maxSentences: 4 },

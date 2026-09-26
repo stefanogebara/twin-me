@@ -56,6 +56,8 @@ import { quietly } from './quietly.js';
 import { selectTransactions } from './transactionRepository.js';
 /* What the person asked Ask to make, a figure or a file, decided from their words (2026-09-26). */
 import { withAskedFigure, figureHint, figureAsk, figureNote, asksForFigure, mayAskForFigure, fileReply, sheetAction } from './askIntent.js';
+/* Money in, money out and who paid this month, from the month page's own figures (2026-09-26). */
+import { flowAnswer } from './flowAnswer.js';
 
 const log = createLogger('money-chat');
 
@@ -936,6 +938,18 @@ const PHRASES = {
     'That file is over 4 MB. A photo of it would come through.': 'Ese archivo pasa de 4 MB. Una foto s\u00ed entrar\u00eda.',
     'It reads photos, PDFs, plain text and bank exports as Excel or CSV.': 'Lee fotos, PDF, texto plano y extractos del banco en Excel o CSV.',
     /* what Ask makes and why it cannot (askIntent.js), and a bank's PDF read in the chat (attachments.js) */
+    /* money in and out, and who paid (flowAnswer.js) */
+    'This month {in} came in and {out} went out, so {net} more came in than went out.': 'Este mes entraron {in} y salieron {out}: entr\u00f3 {net} m\u00e1s de lo que sali\u00f3.',
+    'This month {in} came in and {out} went out, so {net} more went out than came in.': 'Este mes entraron {in} y salieron {out}: sali\u00f3 {net} m\u00e1s de lo que entr\u00f3.',
+    'This month {in} came in and {out} went out: the two are level.': 'Este mes entraron {in} y salieron {out}: quedan a la par.',
+    'This month {in} came in.': 'Este mes entraron {in}.',
+    'This month {out} went out, every payment and transfer that left, spending or not.': 'Este mes salieron {out}, cada pago y transferencia que sali\u00f3, gasto o no.',
+    'Nothing has come in yet this month; {out} went out.': 'Todav\u00eda no ha entrado nada este mes; salieron {out}.',
+    'Nothing has come in yet this month.': 'Todav\u00eda no ha entrado nada este mes.',
+    'Nothing has gone out yet this month.': 'Todav\u00eda no ha salido nada este mes.',
+    'and {n} more, {amount} together': 'y {n} m\u00e1s, {amount} en total',
+    'All of it from {name}.': 'Todo de {name}.',
+    'From {n} payers, largest first: {list}.': 'De {n} pagadores, de mayor a menor: {list}.',
     'Download {month} as a spreadsheet': 'Descargar {month} como hoja de c\u00e1lculo',
     '{month} as a spreadsheet: a row for every payment, and the totals by kind on a second sheet.': '{month} en una hoja de c\u00e1lculo: una fila por cada pago y los totales por tipo en una segunda hoja.',
     'Each month as its own spreadsheet: a row for every payment, and the totals by kind on a second sheet.': 'Cada mes en su propia hoja de c\u00e1lculo: una fila por cada pago y los totales por tipo en una segunda hoja.',
@@ -1119,6 +1133,18 @@ const PHRASES = {
     'That file is over 4 MB. A photo of it would come through.': 'Esse arquivo passa de 4 MB. Uma foto dele passaria.',
     'It reads photos, PDFs, plain text and bank exports as Excel or CSV.': 'Ele l\u00ea fotos, PDFs, texto simples e extratos do banco em Excel ou CSV.',
     /* what Ask makes and why it cannot (askIntent.js), and a bank's PDF read in the chat (attachments.js) */
+    /* money in and out, and who paid (flowAnswer.js) */
+    'This month {in} came in and {out} went out, so {net} more came in than went out.': 'Este m\u00eas entraram {in} e sa\u00edram {out}: entrou {net} a mais do que saiu.',
+    'This month {in} came in and {out} went out, so {net} more went out than came in.': 'Este m\u00eas entraram {in} e sa\u00edram {out}: saiu {net} a mais do que entrou.',
+    'This month {in} came in and {out} went out: the two are level.': 'Este m\u00eas entraram {in} e sa\u00edram {out}: ficaram empatados.',
+    'This month {in} came in.': 'Este m\u00eas entraram {in}.',
+    'This month {out} went out, every payment and transfer that left, spending or not.': 'Este m\u00eas sa\u00edram {out}, cada pagamento e transfer\u00eancia que saiu, gasto ou n\u00e3o.',
+    'Nothing has come in yet this month; {out} went out.': 'Ainda n\u00e3o entrou nada este m\u00eas; sa\u00edram {out}.',
+    'Nothing has come in yet this month.': 'Ainda n\u00e3o entrou nada este m\u00eas.',
+    'Nothing has gone out yet this month.': 'Ainda n\u00e3o saiu nada este m\u00eas.',
+    'and {n} more, {amount} together': 'e mais {n}, {amount} no total',
+    'All of it from {name}.': 'Tudo de {name}.',
+    'From {n} payers, largest first: {list}.': 'De {n} pagadores, do maior para o menor: {list}.',
     'Download {month} as a spreadsheet': 'Baixar {month} como planilha',
     '{month} as a spreadsheet: a row for every payment, and the totals by kind on a second sheet.': '{month} em uma planilha: uma linha para cada pagamento e os totais por tipo em uma segunda aba.',
     'Each month as its own spreadsheet: a row for every payment, and the totals by kind on a second sheet.': 'Cada m\u00eas em sua pr\u00f3pria planilha: uma linha para cada pagamento e os totais por tipo em uma segunda aba.',
@@ -1319,6 +1345,10 @@ function computedReply(message, ctx) {
   if (byKind) return byKind;
   const plainSum = plainSums(message, ctx);
   if (plainSum) return plainSum;
+  /* "How much came in, how much went out, who paid me": the model wrote for 21.8 s and said
+     nothing that survived; the month page's figures answer it (flowAnswer.js). */
+  const flow = flowAnswer(message, ctx);
+  if (flow) return flow;
   const ahead = monthAhead(message, ctx);
   if (ahead) return ahead;
   const person = personSums(message, ctx);
@@ -1381,7 +1411,9 @@ export function plainSums(message, ctx) {
     return { text: euroGlyphs(text), figures: [], actions: [], receipts: receiptsFor([{ rows: rows.slice(0, 3) }], ctx) };
   }
   if (/\b(spend(ing)?|gast(o|ando|ei)|llevo)\b.*\b(more|mas|mais)\b.*\b(than|que|do que)\b.*\b(receive|earn|get|make|recibo|gano|ingreso|recebo|ganho|entra)/.test(m) || /\b(receive|earn|recibo|gano|recebo|ganho)\b.*\b(more|less|mas|menos|mais)\b.*\b(than|que)\b.*\b(spend|gasto)/.test(m)) {
-    const text = say(L, 'This month: {spent} spent, {received} came in.', { spent: amountText(here.spent), received: amountText(here.received || 0) });
+    /* What came in is inflow.js's, the page's own: the segment's received counted a payment
+       dated later this month (2026-09-26). */
+    const text = say(L, 'This month: {spent} spent, {received} came in.', { spent: amountText(here.spent), received: amountText(monthFlows(ctx.transactions, { now: ctx.now }).money_in) });
     return { text: euroGlyphs(text), figures: [], actions: [], receipts: [] };
   }
   const span = m.match(/\b(last|past|ultimos?|ultimas?)\s+(two|three|four|2|3|4|dos|tres|cuatro|dois|tres|quatro)\s+(months?|meses)\b/) || m.match(/\b(two|three|four|2|3|4|dos|tres|cuatro|dois|quatro)\s+(months?|meses)\b.*\b(total|together|juntos|en total|no total|somados?)\b/);

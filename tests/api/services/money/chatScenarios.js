@@ -74,7 +74,8 @@ export const SCENARIOS = [
 
   /* round 7 (2026-09-20): people, and a graph of a named stretch */
   { id: 'bizum-month', kind: 'ask', message: 'How much did I send by Bizum this month and to whom?', route: 'model', figures: { only: ['shares', 'history'] }, actions: { none: true }, mention: [/\d+,\d{2}\s?(EUR|€)/], avoid: [/(has|holds|have|is) no (single )?total|não tem (o|um) total|no tiene (el|un) total/i], maxSentences: 4 },
-  { id: 'who-sent-me', kind: 'ask', message: 'Who sent me money this month?', route: 'model', figures: { only: ['shares', 'history'] }, actions: { none: true }, mention: [/\d+,\d{2}\s?(EUR|€)|nobody|ningu[eé]m|nadie/i], maxSentences: 4 },
+  /* computed since 2026-09-26 (flowAnswer.js): the model read the people line, which named a salary as a person */
+  { id: 'who-sent-me', kind: 'ask', message: 'Who sent me money this month?', route: 'short', figures: { only: ['shares', 'history'] }, actions: { none: true }, mention: [/\d+,\d{2}\s?(EUR|€)|nobody|ningu[eé]m|nadie/i], maxSentences: 4 },
   { id: 'graph-range', kind: 'ask', message: 'Give me a graph of what I spent between the 8th and the 14th', route: 'model', figures: { some: ['week'] }, actions: { none: true }, mention: [/\d+,\d{2}\s?(EUR|€)/], avoid: [/\?\s*$/], maxSentences: 3 },
   { id: 'weekend-by-day', kind: 'ask', message: 'Show me last weekend day by day', route: 'model', figures: { some: ['week'] }, actions: { none: true }, mention: [/\d+,\d{2}\s?(EUR|€)|nothing|nada/i], maxSentences: 3 },
 
