@@ -13,8 +13,8 @@
  * Pure: facts and rows in, events and findings out.
  */
 
-import { shortName } from './bizum.js';
-import { personRoles, roleOf } from './spending.js';
+import { shortName, reimbursementIds } from './bizum.js';
+import { personRoles, roleOf, isInflow } from './spending.js';
 import { dayIn, dayOfMonthIn, partsIn, monthIn } from './zone.js';
 import { money } from './currency.js';
 
@@ -47,6 +47,18 @@ const STOP = new Set(['the', 'my', 'a', 'from', 'de', 'del', 'la', 'el', 'mi', '
 const words = (s) => norm(s).split(' ').filter((w) => w.length > 2 && !STOP.has(w));
 /** Kinds of income a person names that no sender's name will ever contain. */
 const KIND_WORDS = { family: ['family', 'familia', 'parents', 'padres', 'mum', 'mom', 'dad', 'mama', 'papa', 'madre', 'padre'], grant: ['grant', 'beca', 'scholarship', 'erasmus'], salary: ['salary', 'job', 'work', 'nomina', 'sueldo', 'trabajo'] };
+
+/**
+ * What counts as income wherever a split payment is counted by the person's share: money in
+ * (isInflow, the one rule for it, spending.js), less the Bizums back for a split the person
+ * confirmed, which settle the others' parts rather than pay the person (bizum.js). The
+ * forecast and the readings read income through this, so money in has one definition and
+ * income one stated exception to it.
+ */
+export function incomeRule(facts = [], transactions = [], opts = {}) {
+  const settlements = reimbursementIds(facts, transactions, opts);
+  return (t) => isInflow(t) && !settlements.has(t.id);
+}
 
 /**
  * The senders behind the money that came in, each with its rhythm.
