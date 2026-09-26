@@ -55,7 +55,7 @@ import { partsIn, weekdayIn, dayIn } from './zone.js';
 import { quietly } from './quietly.js';
 import { selectTransactions } from './transactionRepository.js';
 /* What the person asked Ask to make, a figure or a file, decided from their words (2026-09-26). */
-import { withAskedFigure, figureHint, figureAsk, figureNote, asksForFigure, mayAskForFigure, fileReply, sheetAction } from './askIntent.js';
+import { withAskedFigure, figureHint, figureAsk, figureNote, asksForFigure, mayAskForFigure, fileReply, sheetAction, strayBeside, figurePlan } from './askIntent.js';
 /* Money in, money out and who paid this month, from the month page's own figures (2026-09-26). */
 import { flowAnswer } from './flowAnswer.js';
 
@@ -2287,6 +2287,9 @@ export async function answerStream(userId, message, history = [], { now = new Da
   /* Asked for a figure, the words go a sentence at a time: that is when the model tells people
      to ask for the figure instead of drawing it, and a sentence must be whole to be refused. */
   const wholeSentences = Boolean(figureAsk(asking, ctx));
+  /* Whether the code draws the figure asked for, so a sentence that contradicts it never reaches the screen. */
+  const plan = figurePlan(asking, ctx);
+  const stray = (sentence) => Boolean(plan) && strayBeside(sentence, plan === 'draw');
 
   /**
    * Could what is being written still turn out to be a sentence the person was already told?
@@ -2334,7 +2337,7 @@ export async function answerStream(userId, message, history = [], { now = new Da
       }
       if (!grounded(full)) { droppedSentences += 1; continue; }
       /* "Ask for the shares figure" never reaches the wire: the code draws what was asked for. */
-      if (asksForFigure(full)) continue;
+      if (asksForFigure(full) || stray(full)) continue;
       if (!said.has(shapeOf(full))) put(full, false);
       released = 0;
     }
@@ -2346,7 +2349,7 @@ export async function answerStream(userId, message, history = [], { now = new Da
       if (tail.trim()) {
         if (released > 0) { if (grounded(converted)) put(tail, true); else { droppedSentences += 1; put(`\u2026 ${say(ctx.language, NO_SUCH_NUMBER)}`, true); } }
         else if (!grounded(converted)) droppedSentences += 1;
-        else if (!said.has(shapeOf(converted.trim())) && !asksForFigure(converted)) put(tail.trim(), false);
+        else if (!said.has(shapeOf(converted.trim())) && !asksForFigure(converted) && !stray(converted)) put(tail.trim(), false);
       }
       pending = '';
       released = 0;
