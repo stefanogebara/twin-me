@@ -26,8 +26,17 @@ describe('personMovements', () => {
     const m = personMovements(ledger);
     expect(m.map((x) => [x.id, x.direction])).toEqual([['b1', 'in'], ['b2', 'in'], ['b3', 'in'], ['n2', 'in']]);
   });
+  it('does not take a salary, a benefit or a company paying by transfer for a person', () => {
+    const paid = [
+      tx('s1', '2026-09-05T08:00:00Z', 850, 'NOMINA SEPTIEMBRE UNIVERSIDAD', 'transfer'),
+      tx('s2', '2026-09-06T08:00:00Z', 120, 'PRESTACION SEPE', 'transfer'),
+      tx('s3', '2026-09-07T08:00:00Z', 40, 'REEMBOLSO SEGUROS ACME S.A.', 'transfer'),
+      tx('p1', '2026-09-08T08:00:00Z', 20, 'Ana Lopez', 'bizum'),
+    ];
+    expect(personMovements(paid).map((m) => m.id)).toEqual(['p1']);
+  });
   it('shortens a bank-printed name to what a person would say', () => {
-    expect(shortName('MARIA DOLORES TOMAS OBON')).toBe('Maria D.');
+    expect(shortName('LAURA ISABEL GOMEZ SANZ')).toBe('Laura I.');
     expect(shortName('ana')).toBe('Ana');
     expect(shortName('')).toBe('someone');
   });
@@ -97,25 +106,29 @@ describe('monthBetweenPeople', async () => {
   const { monthBetweenPeople, describeMonthBetweenPeople } = await import('../../../../api/_app/services/money/bizum.js');
   const now = new Date('2026-09-20T10:00:00Z');
   const rows = [
-    tx('r1', '2026-09-02T10:00:00Z', -200, 'Maria Dolores Tomas Obon', 'bizum'),
-    tx('r2', '2026-09-12T10:00:00Z', -50, 'Achref Safraou', 'bizum'),
-    tx('r3', '2026-09-15T10:00:00Z', 25, 'Achref Safraou', 'bizum'),
-    tx('r4', '2026-09-18T10:00:00Z', -12, 'Sofia Celaa', 'transfer'),
-    tx('old', '2026-08-28T10:00:00Z', -80, 'Sofia Celaa', 'bizum'),
+    tx('r1', '2026-09-02T10:00:00Z', -200, 'Laura Isabel Gomez Sanz', 'bizum'),
+    tx('r2', '2026-09-12T10:00:00Z', -50, 'Omar Haddad', 'bizum'),
+    tx('r3', '2026-09-15T10:00:00Z', 25, 'Omar Haddad', 'bizum'),
+    tx('r4', '2026-09-18T10:00:00Z', -12, 'Elena Vidal', 'transfer'),
+    tx('old', '2026-08-28T10:00:00Z', -80, 'Elena Vidal', 'bizum'),
     tx('shop', '2026-09-18T11:00:00Z', -30, 'Mercadona', 'card'),
   ];
+  it('counts only what has happened: a line dated later this month waits for its day', () => {
+    const later = [...rows, tx('future', '2026-09-28T10:00:00Z', 90, 'Omar Haddad', 'bizum')];
+    expect(monthBetweenPeople(later, now)).toMatchObject({ sent: 262, received: 25 });
+  });
   it('totals the month to and from people, by person, this month only', () => {
     const m = monthBetweenPeople(rows, now);
     expect(m).toMatchObject({ month: '2026-09', sent: 262, received: 25 });
-    expect(m.people.map((p) => `${p.name} ${p.sent}/${p.received}`)).toEqual(['Maria D. 200/0', 'Achref S. 50/25', 'Sofia C. 12/0']);
+    expect(m.people.map((p) => `${p.name} ${p.sent}/${p.received}`)).toEqual(['Laura I. 200/0', 'Omar H. 50/25', 'Elena V. 12/0']);
   });
   it('writes the two lines the chat quotes, and none for a month without people', () => {
     const lines = describeMonthBetweenPeople(monthBetweenPeople(rows, now)).map((l) => l.replace(/\u00a0/g, ' ').replace(/\u20ac/g, 'EUR'));
-    expect(lines[0]).toBe('To people this month (Bizum and transfers): 262,00 EUR to 3 people: Maria D. 200,00 EUR (1); Achref S. 50,00 EUR (1); Sofia C. 12,00 EUR (1).');
-    expect(lines[1]).toBe('From people this month: 25,00 EUR from 1 person: Achref S. 25,00 EUR (1).');
+    expect(lines[0]).toBe('To people this month (Bizum and transfers): 262,00 EUR to 3 people: Laura I. 200,00 EUR (1); Omar H. 50,00 EUR (1); Elena V. 12,00 EUR (1).');
+    expect(lines[1]).toBe('From people this month: 25,00 EUR from 1 person: Omar H. 25,00 EUR (1).');
     expect(lines[2]).toBe('Nobody marked family sent anything this month.');
-    const withRole = describeMonthBetweenPeople(monthBetweenPeople(rows, now, new Map([['achref safraou', 'family']])));
-    expect(withRole[1]).toMatch(/Achref S\. \(family\)/);
+    const withRole = describeMonthBetweenPeople(monthBetweenPeople(rows, now, new Map([['omar haddad', 'family']])));
+    expect(withRole[1]).toMatch(/Omar H\. \(family\)/);
     expect(withRole).toHaveLength(2);
     expect(describeMonthBetweenPeople(monthBetweenPeople([rows[5]], now))).toEqual([]);
   });

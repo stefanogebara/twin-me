@@ -44,6 +44,9 @@ export const NOT_SPLIT = 'not split';
 
 const DAY = 86400000;
 const PERSON_CHANNELS = new Set(['bizum', 'transfer']);
+/* A transfer is not always a person: a salary, a benefit or a company pays that way too, and
+   "NOMINA SEPTIEMBRE UNIVERSIDAD" was named "Nomina S." among the people who paid (2026-09-26). */
+const NOT_A_PERSON = /\b(n[o\u00f3]mina|salario|sueldo|payroll|salary|pensi[o\u00f3]n|prestaci[o\u00f3]n|subsidio|beca|sepe|seguridad social|hacienda|aeat)\b|\bs\.\s?[al]\.(\s?u\.)?(?=\s|$)/i;
 /* The same form the analyst uses on the screen: Intl's own, sign and no-break space kept. */
 const euro = (n) => money(Math.abs(Number(n) || 0));
 const r2 = (n) => Math.round(Number(n) * 100) / 100;
@@ -73,7 +76,7 @@ function dayWord(iso, now) {
 /** Every movement to or from a person: Bizum and transfers, both directions. */
 export function personMovements(transactions = []) {
   return (transactions || [])
-    .filter((t) => t && t.occurred_at && PERSON_CHANNELS.has(t.channel) && Number.isFinite(Number(t.amount)))
+    .filter((t) => t && t.occurred_at && PERSON_CHANNELS.has(t.channel) && Number.isFinite(Number(t.amount)) && !NOT_A_PERSON.test(`${t.merchant_raw || ''} ${t.merchant_key || ''}`))
     .map((t) => ({ ...t, person: nameOf(t), direction: Number(t.amount) > 0 ? 'in' : 'out' }));
 }
 
@@ -86,7 +89,8 @@ export function monthBetweenPeople(transactions = [], now = new Date(), roles = 
   const by = new Map();
   let sent = 0; let received = 0;
   for (const m of personMovements(transactions)) {
-    if (monthIn(m.occurred_at) !== month || m.verdict === 'not_me') continue;
+    /* Only what has happened: a line dated later this month waits for its day, as Month does. */
+    if (monthIn(m.occurred_at) !== month || m.verdict === 'not_me' || at(m) > now.getTime()) continue;
     const key = m.merchant_key || m.person;
     if (!by.has(key)) by.set(key, { key, name: shortName(m.person), role: roleOf(roles, key), sent: 0, sentCount: 0, received: 0, receivedCount: 0 });
     const b = by.get(key);
