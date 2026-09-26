@@ -39,21 +39,21 @@ describe('sendWhatsAppMessage via Z-API', () => {
   it('POSTs to the instance send-text URL with phone+message and Client-Token', async () => {
     axiosPost.mockResolvedValue({ status: 200, data: { zaapId: 'z1', messageId: 'wamid.X', id: 'wamid.X' } });
 
-    const res = await sendWhatsAppMessage('+5511999002121', 'oi');
+    const res = await sendWhatsAppMessage('+5511900000001', 'oi');
 
     expect(res).toEqual({ success: true, messageId: 'wamid.X', provider: 'zapi' });
     expect(axiosPost).toHaveBeenCalledTimes(1);
     const [url, body, opts] = axiosPost.mock.calls[0];
     expect(url).toBe('https://api.z-api.io/instances/INST123/token/TOK456/send-text');
     // '+' stripped to digits only
-    expect(body).toEqual({ phone: '5511999002121', message: 'oi' });
+    expect(body).toEqual({ phone: '5511900000001', message: 'oi' });
     expect(opts.headers['Client-Token']).toBe('CLIENT789');
   });
 
   it('returns a failure envelope (no throw) when Z-API errors', async () => {
     axiosPost.mockRejectedValue({ response: { status: 401, data: { error: 'instance not connected' } } });
 
-    const res = await sendWhatsAppMessage('5511999002121', 'oi');
+    const res = await sendWhatsAppMessage('5511900000001', 'oi');
 
     expect(res.success).toBe(false);
     expect(res.provider).toBe('zapi');
@@ -61,7 +61,7 @@ describe('sendWhatsAppMessage via Z-API', () => {
 
   it('suppresses send when TWINME_DISABLE_OUTBOUND_SEND=true', async () => {
     process.env.TWINME_DISABLE_OUTBOUND_SEND = 'true';
-    const res = await sendWhatsAppMessage('5511999002121', 'oi');
+    const res = await sendWhatsAppMessage('5511900000001', 'oi');
     expect(res).toEqual({ success: true, suppressed: true });
     expect(axiosPost).not.toHaveBeenCalled();
     delete process.env.TWINME_DISABLE_OUTBOUND_SEND;

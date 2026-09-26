@@ -85,7 +85,7 @@ describe('questions the ledger raises', () => {
     tx('2026-07-10', 100, 'Ruiz Martin Carlos', 'transfer'),
     tx('2026-07-23', 100, 'Ruiz Martin Carlos', 'transfer'),
     tx('2026-08-26', 1750, 'Ruiz Martin Carlos', 'transfer'),
-    tx('2026-08-30', 50, 'Isi Yaffe Bitton', 'transfer'),
+    tx('2026-08-30', 50, 'Ivo Yuste Bernal', 'transfer'),
   ];
 
   it('asks about the biggest unexplained money first, and shows the transfers behind it', () => {
@@ -97,11 +97,11 @@ describe('questions the ledger raises', () => {
     expect(first.receipts).toHaveLength(3);
     expect(first.input).toContain('family');
     /* 2.050 EUR outranks 50 EUR: patience is finite and the biggest gap deserves it. */
-    expect(plain(qs[1].ask)).toContain('Isi Yaffe Bitton');
+    expect(plain(qs[1].ask)).toContain('Ivo Yuste Bernal');
   });
 
   it('lets a coffee-sized transfer pass without a question', () => {
-    const small = [tx('2026-09-02', 14, 'Santiago Isaias Gutierrez Cevallos', 'bizum')];
+    const small = [tx('2026-09-02', 14, 'Severino Ismael Gorostiza Carrasco', 'bizum')];
     expect(ledgerQuestions({ transactions: small, now: NOW })).toEqual([]);
   });
 
@@ -112,10 +112,10 @@ describe('questions the ledger raises', () => {
   });
 
   it('asks who was paid, but not over small settling-up', () => {
-    const out = [tx('2026-09-04', -49.25, 'Rafaella Van Der Graaff', 'transfer'), tx('2026-09-06', -4, 'Frederico Garcia Pugliese', 'bizum')];
+    const out = [tx('2026-09-04', -49.25, 'Rosalind Van Der Geest', 'transfer'), tx('2026-09-06', -4, 'Florencio Galvez Pellicer', 'bizum')];
     const qs = ledgerQuestions({ transactions: out, now: NOW });
-    expect(plain(qs[0].ask)).toBe('You sent Rafaella Van Der Graaff 49,25 € once. Who is that?');
-    expect(qs.map((q) => q.subject)).not.toContain('frederico garcia pugliese');
+    expect(plain(qs[0].ask)).toBe('You sent Rosalind Van Der Geest 49,25 € once. Who is that?');
+    expect(qs.map((q) => q.subject)).not.toContain('florencio galvez pellicer');
   });
 
   it('asks what a place is only once it keeps coming back', () => {

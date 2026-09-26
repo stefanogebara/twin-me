@@ -75,7 +75,7 @@ describe('channelFrom', () => {
     /* a bare name: a card payment going out, a transfer coming in (2026-09-23) */
     expect(channelFrom('CINES YELMO')).toBe('card');
     expect(channelFrom('CINES YELMO', { amount: -9.5 })).toBe('card');
-    expect(channelFrom('MARIA GARCIA', { amount: 25 })).toBe('transfer');
+    expect(channelFrom('MAITE GIMENO', { amount: 25 })).toBe('transfer');
     expect(parseNarrative('METRO DE MADRID', { amount: -12.2 }).channel).toBe('card');
     expect(parseNarrative('METRO DE MADRID', { amount: -12.2 }).merchant).toBeNull();
   });

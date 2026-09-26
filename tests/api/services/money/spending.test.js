@@ -8,15 +8,15 @@ import { monthSegments, readLedger } from '../../../../api/_app/services/money/a
 
 const t = (id, occurred_at, amount, merchant_key, extra = {}) => ({ id, occurred_at, amount, merchant_key, merchant_raw: merchant_key, channel: 'card', ...extra });
 const facts = [
-  { kind: 'person', subject: 'rafaella van der graaff', value: 'friend' },
+  { kind: 'person', subject: 'rosalind van der geest', value: 'friend' },
   { kind: 'person', subject: 'landlord sl', value: 'landlord' },
 ];
 const rows = [
   t('a', '2026-09-07T10:00:00Z', -116.76, 'el corte ingles'),
-  t('b', '2026-09-04T10:00:00Z', -49.25, 'rafaella van der graaff', { channel: 'transfer' }),
+  t('b', '2026-09-04T10:00:00Z', -49.25, 'rosalind van der geest', { channel: 'transfer' }),
   t('c', '2026-09-03T10:00:00Z', -600, 'landlord sl', { channel: 'transfer' }),
   t('d', '2026-09-02T10:00:00Z', 15.15, 'bizum in', { channel: 'bizum' }),
-  t('e', '2026-09-01T10:00:00Z', -4, 'frederico', { channel: 'transfer' }),
+  t('e', '2026-09-01T10:00:00Z', -4, 'florencio', { channel: 'transfer' }),
 ];
 
 describe('spendingRule', () => {

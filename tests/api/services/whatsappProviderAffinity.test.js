@@ -66,7 +66,7 @@ beforeEach(() => {
 describe('sendWhatsAppMessage provider affinity', () => {
   it('honors an explicit kapso hint even when Z-API would win the priority chain', async () => {
     const svc = await importServiceWithEnv({ ...ZAPI_ENV, ...KAPSO_ENV });
-    const res = await svc.sendWhatsAppMessage('+5511999002121', 'hello', { provider: 'kapso' });
+    const res = await svc.sendWhatsAppMessage('+5511900000001', 'hello', { provider: 'kapso' });
     expect(axios.post).toHaveBeenCalledTimes(1);
     expect(axios.post.mock.calls[0][0]).toContain('api.kapso.ai');
     expect(res.provider).toBe('kapso');
@@ -74,7 +74,7 @@ describe('sendWhatsAppMessage provider affinity', () => {
 
   it('without a hint, the existing priority order is unchanged (Z-API first)', async () => {
     const svc = await importServiceWithEnv({ ...ZAPI_ENV, ...KAPSO_ENV });
-    const res = await svc.sendWhatsAppMessage('+5511999002121', 'hello');
+    const res = await svc.sendWhatsAppMessage('+5511900000001', 'hello');
     expect(axios.post.mock.calls[0][0]).toContain('api.z-api.io');
     expect(res.provider).toBe('zapi');
   });
@@ -83,14 +83,14 @@ describe('sendWhatsAppMessage provider affinity', () => {
     // zapi affinity recorded historically, but only Kapso is configured now:
     // deliver from the configured number rather than black-holing the message.
     const svc = await importServiceWithEnv({ ...KAPSO_ENV });
-    const res = await svc.sendWhatsAppMessage('+5511999002121', 'hello', { provider: 'zapi' });
+    const res = await svc.sendWhatsAppMessage('+5511900000001', 'hello', { provider: 'zapi' });
     expect(axios.post.mock.calls[0][0]).toContain('api.kapso.ai');
     expect(res.provider).toBe('kapso');
   });
 
   it('zapi hint routes via Z-API when configured', async () => {
     const svc = await importServiceWithEnv({ ...ZAPI_ENV, ...KAPSO_ENV });
-    const res = await svc.sendWhatsAppMessage('+5511999002121', 'hello', { provider: 'zapi' });
+    const res = await svc.sendWhatsAppMessage('+5511900000001', 'hello', { provider: 'zapi' });
     expect(axios.post.mock.calls[0][0]).toContain('api.z-api.io');
     expect(res.provider).toBe('zapi');
   });

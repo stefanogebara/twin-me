@@ -162,11 +162,11 @@ describe('projectMonth: what the person said, made to count', () => {
   });
 
   it('stops treating money handed to a flatmate as spending', () => {
-    const rows = [t('2026-09-02', -250, 'Rafaella Van Der Graaff', 'transfer'), t('2026-09-03', -20)];
+    const rows = [t('2026-09-02', -250, 'Rosalind Van Der Geest', 'transfer'), t('2026-09-03', -20)];
     const all = projectMonth({ transactions: rows, recurring: [], now: NOW });
     const named = projectMonth({
       transactions: rows, recurring: [], now: NOW,
-      isSpending: (x) => x.merchant_key !== 'rafaella van der graaff',
+      isSpending: (x) => x.merchant_key !== 'rosalind van der geest',
     });
     expect(all.spent).toBe(270);
     expect(named.spent).toBe(20);

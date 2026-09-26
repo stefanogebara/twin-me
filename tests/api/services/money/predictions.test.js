@@ -48,8 +48,8 @@ describe('scoreOne', () => {
   });
   it('applies the spending rule, so a friend paid back is not a day\'s spending', () => {
     const p = { kind: 'safe_today', predicted_for: '2026-09-12', value: 50 };
-    const rows = [t('a', '2026-09-12T10:00:00Z', -200, 'rafaella')];
-    expect(scoreOne(p, rows, (x) => x.merchant_key !== 'rafaella', MATURE).actual).toBe(0);
+    const rows = [t('a', '2026-09-12T10:00:00Z', -200, 'rosalind')];
+    expect(scoreOne(p, rows, (x) => x.merchant_key !== 'rosalind', MATURE).actual).toBe(0);
   });
   it('says nothing about a kind it does not score', () => {
     expect(scoreOne({ kind: 'next_charge', predicted_for: '2026-09-01' }, [], counts, NOW)).toBe(null);

@@ -20,7 +20,7 @@ if (!accessToken) { console.log('no token; verify status', r.status); process.ex
 const day = (d) => `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`;
 const es = (n) => n.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const today = new Date(); const rows = []; let balance = 812.4;
-const shops = [['COMPRA MERCADONA MADRID', -23.4], ['METRO DE MADRID', -12.2], ['GLOVO', -14.9], ['CAFETERIA LA ROLLERIE', -4.6], ['COMPRA ZARA MADRID', -39.95], ['UBER', -9.8], ['LIDL MADRID', -31.7], ['BIZUM A MARIA GARCIA', -25], ['SPOTIFY', -10.99], ['COMPRA CARREFOUR EXPRESS', -18.35], ['CINES YELMO', -9.5], ['BAR EL TIGRE', -16]];
+const shops = [['COMPRA MERCADONA MADRID', -23.4], ['METRO DE MADRID', -12.2], ['GLOVO', -14.9], ['CAFETERIA LA ROLLERIE', -4.6], ['COMPRA ZARA MADRID', -39.95], ['UBER', -9.8], ['LIDL MADRID', -31.7], ['BIZUM A MAITE GIMENO', -25], ['SPOTIFY', -10.99], ['COMPRA CARREFOUR EXPRESS', -18.35], ['CINES YELMO', -9.5], ['BAR EL TIGRE', -16]];
 for (let back = 44; back >= 0; back -= 1) {
   const d = new Date(today.getTime() - back * 86400000);
   if (d.getDate() === 1) { balance += 1750; rows.push([day(d), day(d), 'TRANSFERENCIA DE PADRES', es(1750), es(balance)]); }

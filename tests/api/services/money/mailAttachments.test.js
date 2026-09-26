@@ -8,7 +8,7 @@ vi.mock('../../../../api/_app/services/money/statements/accounts.js', () => ({ s
 const { statementFromMail } = await import('../../../../api/_app/services/money/mailAttachments.js');
 const { ATTACHMENT_DEPS } = await import('../../../../api/_app/services/money/attachmentDeps.js');
 
-const CSV = Buffer.from('Fecha,Concepto,Importe\n17/09/2026,METRO DE MADRID,"-12,20"\n17/09/2026,CINES YELMO,"-9,50"\n18/09/2026,MARIA GARCIA,"25,00"\n');
+const CSV = Buffer.from('Fecha,Concepto,Importe\n17/09/2026,METRO DE MADRID,"-12,20"\n17/09/2026,CINES YELMO,"-9,50"\n18/09/2026,MAITE GIMENO,"25,00"\n');
 /* The file a row came from, as the ledger compares files: a kept sheet and the bank's PDF of one
    month are one payment per line, and one file never joins a line it already backs. */
 const fingerprint = (bytes) => createHash('sha256').update(bytes).digest('hex').slice(0, 16);
